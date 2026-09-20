@@ -1,0 +1,49 @@
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+import pytz
+
+# Base Directory
+BASE_DIR = Path(__file__).resolve().parent
+
+# Load .env file
+load_dotenv(BASE_DIR / ".env")
+
+# Telegram Settings
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+
+# Mode settings
+SIMULATION_MODE = os.getenv("SIMULATION_MODE", "false").lower() in ("true", "1", "yes")
+
+# Timezone (Cambodia Time UTC+7)
+CAMBODIA_TZ_NAME = os.getenv("TIMEZONE", "Asia/Phnom_Penh")
+CAMBODIA_TZ = pytz.timezone(CAMBODIA_TZ_NAME)
+
+# Daily Gold Price Alert Schedule (Cambodia Time)
+DAILY_PRICE_ALERT_HOUR = int(os.getenv("DAILY_PRICE_ALERT_HOUR", "7"))
+DAILY_PRICE_ALERT_MINUTE = int(os.getenv("DAILY_PRICE_ALERT_MINUTE", "0"))
+
+# Database Path
+DB_PATH = BASE_DIR / "data.db"
+
+# -------------------------------------------------------------
+# Cambodian Gold Weight Standard Conversion Constants
+# -------------------------------------------------------------
+# 1 Troy Ounce = 31.1034768 grams
+# 1 តម្លឹង (Damlung / Tael) = 37.5 grams
+# 1 ជី (Chi) = 3.75 grams (1/10 of Damlung)
+# 1 ហ៊ុន (Hun) = 0.375 grams (1/10 of Chi)
+#
+# Formula:
+# Price per gram = Price_per_oz / 31.1034768
+# 1 Damlung = Price per gram * 37.5 = Price_per_oz * (37.5 / 31.1034768)
+# Gram ratio: 37.5 / 31.1034768 ≈ 1.20565297
+GRAMS_PER_TROY_OUNCE = 31.1034768
+GRAMS_PER_DAMLUNG = 37.5
+DAMLUNG_TO_OZ_RATIO = GRAMS_PER_DAMLUNG / GRAMS_PER_TROY_OUNCE
+
+# Monitoring Interval timings (in seconds)
+INTERVAL_NORMAL = 60 * 60     # Mode 1: 1 hour normal checks
+INTERVAL_UPCOMING = 60 * 2     # Mode 2: 2 minutes when high-impact event is within 30m
+INTERVAL_HIGH_IMPACT = 30      # Mode 3: 30 seconds when within 5 mins or waiting for actual data
