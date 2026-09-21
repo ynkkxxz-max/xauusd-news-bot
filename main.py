@@ -11,8 +11,9 @@ import database
 from collectors.gold_price import GoldPriceCollector
 from collectors.economic_calendar import EconomicCalendarCollector
 from collectors.breaking_news import BreakingNewsCollector
+from collectors.chart_builder import GoldChartBuilder
 from analyzers.gold_filter import GoldNewsFilter
-from analyzers.macro_analyzer import MacroAnalyzer
+from analyzers.gemini_analyzer import GeminiAnalyzer
 from formatters.khmer_formatter import KhmerFormatter
 from telegram_notifier import TelegramNotifier
 
@@ -28,7 +29,13 @@ class XAUUSDNewsAssistantBot:
         self.gold_collector = GoldPriceCollector()
         self.calendar_collector = EconomicCalendarCollector()
         self.news_collector = BreakingNewsCollector()
+        self.chart_builder = GoldChartBuilder()
         self.notifier = TelegramNotifier()
+        self.analyzer = GeminiAnalyzer()
+        if self.analyzer.is_available():
+            logger.info("Gemini AI analysis ENABLED (natural-language Khmer market analysis).")
+        else:
+            logger.info("Gemini not configured — using rule-based MacroAnalyzer fallback.")
         logger.info("Initializing XAUUSD News Assistant Bot (Cambodia Time UTC+7)...")
 
     def check_daily_gold_price(self):
@@ -44,13 +51,21 @@ class XAUUSDNewsAssistantBot:
         if now_kh.hour >= DAILY_PRICE_ALERT_HOUR:
             logger.info(f"Triggering Daily Gold Price broadcast for {today_str}...")
             price_data = self.gold_collector.fetch_price()
-            msg = KhmerFormatter.format_daily_gold_price(price_data)
+            summary = self.analyzer.summarize_daily_price(price_data)
+            msg = KhmerFormatter.format_daily_gold_price(price_data, summary=summary)
             
             # Send and Auto-Pin
             res = self.notifier.send_message(msg, auto_pin=True)
             msg_id = res.get("result", {}).get("message_id")
             database.record_daily_price_sent(today_str, msg_id)
             logger.info(f"Daily Gold Price successfully broadcasted and pinned (ID: {msg_id})")
+
+            # Attach the 3-month price chart as a photo right after the text.
+            chart_png = self.chart_builder.build_chart_png(price_data)
+            if chart_png:
+                self.notifier.send_photo(chart_png)
+            else:
+                logger.warning("Chart generation failed; sending text-only daily price.")
 
     def check_economic_events(self) -> int:
         """
@@ -98,7 +113,7 @@ class XAUUSDNewsAssistantBot:
                     # Check if actual not already recorded
                     if not database.is_event_stage_sent(ev_id, "actual", actual_val):
                         logger.info(f"Triggering IMMEDIATE FLASH ALERT for {ev['title']} (Actual: {actual_val})")
-                        analysis = MacroAnalyzer.analyze_actual_vs_forecast(
+                        analysis = self.analyzer.analyze_actual_vs_forecast(
                             ev["title"], actual_val, ev.get("forecast", ""), ev.get("previous", "")
                         )
                         msg = KhmerFormatter.format_actual_release_alert(ev, analysis)
@@ -140,7 +155,7 @@ class XAUUSDNewsAssistantBot:
             is_urgent = GoldNewsFilter.is_breaking_or_high_impact(title)
             
             logger.info(f"Processing gold-relevant news: {title} (Urgent: {is_urgent})")
-            analysis = MacroAnalyzer.analyze_breaking_news(title, desc)
+            analysis = self.analyzer.analyze_breaking_news(title, desc)
             msg = KhmerFormatter.format_breaking_event_alert(item, analysis)
 
             # Send alert

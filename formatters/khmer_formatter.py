@@ -2,7 +2,7 @@ from datetime import datetime
 
 class KhmerFormatter:
     @staticmethod
-    def format_daily_gold_price(price_data: dict) -> str:
+    def format_daily_gold_price(price_data: dict, summary: str = "") -> str:
         """
         Formats daily gold price report in Khmer with Cambodian units:
         - 1 Troy Ounce
@@ -22,6 +22,8 @@ class KhmerFormatter:
         sign = "+" if chg >= 0 else ""
         icon = "📈" if chg >= 0 else "📉"
 
+        summary_block = f"🧠 <b>ការវិភាគសង្ខេប:</b>\n{summary}\n\n" if summary else ""
+
         msg = (
             f"🥇 <b>DAILY GOLD PRICE</b>\n\n"
             f"📅 <b>កាលបរិច្ឆេទ:</b> {date_str}\n\n"
@@ -31,6 +33,7 @@ class KhmerFormatter:
             f"• <b>1 ហ៊ុន:</b> ${hun:,.2f}\n"
             f"• <b>1 Troy Ounce:</b> ${oz:,.2f}\n\n"
             f"{icon} <b>បម្រែបម្រួលប្រចាំថ្ងៃ:</b> {sign}${chg:,.2f} ({sign}{pct:.2f}%)\n\n"
+            f"{summary_block}"
             f"🕐 <b>ធ្វើបច្ចុប្បន្នភាព:</b>\n"
             f"{time_str}\n\n"
             f"🔗 <i>ប្រភព: {price_data.get('source', 'Institutional Spot Gold Feed')}</i>"

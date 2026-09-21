@@ -16,6 +16,13 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
 # Mode settings
 SIMULATION_MODE = os.getenv("SIMULATION_MODE", "false").lower() in ("true", "1", "yes")
 
+# Gemini AI settings (used for natural-language Khmer market analysis)
+# NOTE: Never commit your real key. Set GEMINI_API_KEY in the .env file only.
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash").strip()
+# If true, use Gemini for analysis; otherwise fall back to the rule-based MacroAnalyzer.
+USE_GEMINI = os.getenv("USE_GEMINI", "true").lower() in ("true", "1", "yes")
+
 # Timezone (Cambodia Time UTC+7)
 CAMBODIA_TZ_NAME = os.getenv("TIMEZONE", "Asia/Phnom_Penh")
 CAMBODIA_TZ = pytz.timezone(CAMBODIA_TZ_NAME)
