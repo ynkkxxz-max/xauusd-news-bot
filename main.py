@@ -1,3 +1,4 @@
+import re
 import time
 import logging
 from datetime import datetime
@@ -61,6 +62,11 @@ class XAUUSDNewsAssistantBot:
             database.record_daily_price_sent(today_str, msg_id)
             logger.info(f"Daily Gold Price successfully broadcasted and pinned (ID: {msg_id})")
 
+    @staticmethod
+    def _caption_fits(text: str, limit: int = 1024) -> bool:
+        """Telegram captions are capped at 1024 characters (HTML tags not counted)."""
+        return len(re.sub(r"<[^>]+>", "", text)) <= limit
+
     def _build_calendar_png(self) -> bytes:
         try:
             events = self.calendar_collector.fetch_day_events(datetime.now(CAMBODIA_TZ))
@@ -93,7 +99,6 @@ class XAUUSDNewsAssistantBot:
         
         has_imminent_event = False
         has_waiting_actual = False
-        self._calendar_attached = False
 
         for ev in events:
             ev_id = ev["id"]
@@ -194,14 +199,23 @@ class XAUUSDNewsAssistantBot:
         analysis = self.analyzer.analyze_breaking_news(title, desc)
         msg = KhmerFormatter.format_breaking_event_alert(item, analysis)
 
-        # Send alert
-        self.notifier.send_message(msg)
+        # One combined message: calendar table photo with the analysis as caption
+        png = self._build_calendar_png()
+        if png and self._caption_fits(msg):
+            self.notifier.send_photo(png, caption=msg)
+            self._calendar_attached = True
+        else:
+            if png:
+                self.notifier.send_photo(png)
+            self.notifier.send_message(msg)
         database.record_news_sent(item["id"], title, item.get("source", ""))
         database.set_state("last_breaking_alert_ts", str(time.time()))
 
     def run_cycle(self) -> int:
         """Executes a single monitoring cycle and returns next sleep duration."""
         try:
+            self._calendar_attached = False
+
             # 1. Daily Gold Price Check
             self.check_daily_gold_price()
 
