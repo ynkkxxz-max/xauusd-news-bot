@@ -32,6 +32,10 @@ USE_GEMINI = os.getenv("USE_GEMINI", "true").lower() in ("true", "1", "yes")
 GEMINI_MIN_INTERVAL = float(os.getenv("GEMINI_MIN_INTERVAL", "20"))
 GEMINI_COOLDOWN = float(os.getenv("GEMINI_COOLDOWN", "900"))
 
+# Minimum seconds between two breaking-news alerts (user spec: 1 alert per 2 hours).
+# Extra gold-relevant items arriving inside the window are held, not dropped.
+BREAKING_ALERT_MIN_GAP = float(os.getenv("BREAKING_ALERT_MIN_GAP", "7200"))
+
 # Timezone (Cambodia Time UTC+7)
 CAMBODIA_TZ_NAME = os.getenv("TIMEZONE", "Asia/Phnom_Penh")
 CAMBODIA_TZ = pytz.timezone(CAMBODIA_TZ_NAME)

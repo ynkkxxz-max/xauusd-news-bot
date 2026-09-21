@@ -39,6 +39,15 @@ def init_db():
         sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
+
+    # Generic key-value state (e.g. last breaking-alert timestamp)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS bot_state (
+        key TEXT PRIMARY KEY,
+        value TEXT,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
     
     conn.commit()
     conn.close()
@@ -115,6 +124,24 @@ def record_daily_price_sent(date_str: str, message_id: int = None):
     INSERT OR REPLACE INTO daily_price_logs (date_str, message_id, sent_at)
     VALUES (?, ?, datetime('now'))
     """, (date_str, message_id))
+    conn.commit()
+    conn.close()
+
+def get_state(key: str):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT value FROM bot_state WHERE key = ?", (key,))
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if row else None
+
+def set_state(key: str, value: str):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+    INSERT OR REPLACE INTO bot_state (key, value, updated_at)
+    VALUES (?, ?, datetime('now'))
+    """, (key, value))
     conn.commit()
     conn.close()
 

@@ -5,7 +5,8 @@ import pytz
 
 from config import (
     CAMBODIA_TZ, DAILY_PRICE_ALERT_HOUR, DAILY_PRICE_ALERT_MINUTE,
-    INTERVAL_NORMAL, INTERVAL_UPCOMING, INTERVAL_HIGH_IMPACT
+    INTERVAL_NORMAL, INTERVAL_UPCOMING, INTERVAL_HIGH_IMPACT,
+    BREAKING_ALERT_MIN_GAP
 )
 import database
 from collectors.gold_price import GoldPriceCollector
@@ -126,11 +127,13 @@ class XAUUSDNewsAssistantBot:
 
     def check_breaking_news(self):
         """
-        Monitors RSS feeds for Mode 1 (hourly news) and Mode 4 (immediate breaking news).
-        Uses deduplication to avoid spamming.
+        Monitors RSS feeds for gold-relevant breaking news (Mode 1 / Mode 4).
+        Deduplicated per item, and rate-limited to at most one alert per
+        BREAKING_ALERT_MIN_GAP seconds (user spec: 1 alert per 2 hours).
+        Items arriving inside a closed window are held and sent in a later one.
         """
-        news_items = self.news_collector.fetch_latest_news()
-        for item in news_items:
+        pending = []
+        for item in self.news_collector.fetch_latest_news():
             news_id = item["id"]
             if database.is_news_sent(news_id):
                 continue
@@ -138,20 +141,35 @@ class XAUUSDNewsAssistantBot:
             title = item["title"]
             desc = item.get("description", "")
 
-            # 1. Relevance Filter: Is this related to Gold/USD/Fed/Rates?
+            # Relevance Filter: Is this related to Gold/USD/Fed/Rates?
             if not GoldNewsFilter.is_gold_relevant(title, desc):
                 continue
+            pending.append(item)
 
-            # 2. Check if Breaking / High-Impact (Mode 4)
-            is_urgent = GoldNewsFilter.is_breaking_or_high_impact(title)
-            
-            logger.info(f"Processing gold-relevant news: {title} (Urgent: {is_urgent})")
-            analysis = self.analyzer.analyze_breaking_news(title, desc)
-            msg = KhmerFormatter.format_breaking_event_alert(item, analysis)
+        if not pending:
+            return
 
-            # Send alert
-            self.notifier.send_message(msg)
-            database.record_news_sent(news_id, title, item.get("source", ""))
+        now = time.time()
+        last_ts = float(database.get_state("last_breaking_alert_ts") or 0.0)
+        if now - last_ts < BREAKING_ALERT_MIN_GAP:
+            wait_min = int((BREAKING_ALERT_MIN_GAP - (now - last_ts)) // 60)
+            logger.info(
+                f"Breaking alert rate-limited: {len(pending)} item(s) held, "
+                f"next alert allowed in ~{wait_min} min."
+            )
+            return
+
+        item = pending[0]
+        title = item["title"]
+        desc = item.get("description", "")
+        logger.info(f"Sending breaking alert: {title}")
+        analysis = self.analyzer.analyze_breaking_news(title, desc)
+        msg = KhmerFormatter.format_breaking_event_alert(item, analysis)
+
+        # Send alert
+        self.notifier.send_message(msg)
+        database.record_news_sent(item["id"], title, item.get("source", ""))
+        database.set_state("last_breaking_alert_ts", str(time.time()))
 
     def run_cycle(self) -> int:
         """Executes a single monitoring cycle and returns next sleep duration."""

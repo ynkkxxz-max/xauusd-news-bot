@@ -35,14 +35,3 @@ class GoldNewsFilter:
             return True
 
         return False
-
-    @staticmethod
-    def is_breaking_or_high_impact(title: str) -> bool:
-        """Flags high-impact breaking news that requires Mode 4 immediate alert."""
-        text = title.lower()
-        urgent_signals = [
-            "breaking", "urgent", "surprise", "emergency", "rate cut", "rate hike",
-            "fomc statement", "cpi rises", "cpi falls", "nfp surges", "nfp misses",
-            "escalates", "missile", "war", "attack", "sanctions", "china central bank"
-        ]
-        return any(signal in text for signal in urgent_signals)
