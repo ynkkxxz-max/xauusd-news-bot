@@ -45,6 +45,31 @@ class TelegramNotifier:
             logger.error(f"[TelegramNotifier] Exception while sending message: {e}")
             return {"ok": False, "error": str(e)}
 
+    def send_photo(self, photo_bytes: bytes, caption: str = "", parse_mode: str = "HTML") -> dict:
+        """Uploads a PNG image to the chat via the sendPhoto API."""
+        if not self.is_configured():
+            logger.warning(f"[TelegramNotifier] Credentials not set. Simulated photo upload ({len(photo_bytes)} bytes).")
+            return {"ok": True, "result": {"message_id": 999998, "simulated": True}}
+
+        url = f"{self.base_url}/sendPhoto"
+        files = {"photo": ("calendar.png", photo_bytes, "image/png")}
+        data = {"chat_id": self.chat_id}
+        if caption:
+            data["caption"] = caption
+            data["parse_mode"] = parse_mode
+
+        try:
+            resp = requests.post(url, data=data, files=files, timeout=30)
+            result = resp.json()
+            if result.get("ok"):
+                logger.info(f"[TelegramNotifier] Photo sent (ID: {result.get('result', {}).get('message_id')})")
+            else:
+                logger.error(f"[TelegramNotifier] Error sending photo: {result}")
+            return result
+        except Exception as e:
+            logger.error(f"[TelegramNotifier] Exception while sending photo: {e}")
+            return {"ok": False, "error": str(e)}
+
     def pin_message(self, message_id: int, disable_notification: bool = True) -> bool:
         """Auto-pin message in the chat/channel."""
         if not self.is_configured():

@@ -12,6 +12,7 @@ import database
 from collectors.gold_price import GoldPriceCollector
 from collectors.economic_calendar import EconomicCalendarCollector
 from collectors.breaking_news import BreakingNewsCollector
+from collectors.calendar_image import CalendarImageBuilder
 from analyzers.gold_filter import GoldNewsFilter
 from analyzers.gemini_analyzer import GeminiAnalyzer
 from formatters.khmer_formatter import KhmerFormatter
@@ -29,6 +30,7 @@ class XAUUSDNewsAssistantBot:
         self.gold_collector = GoldPriceCollector()
         self.calendar_collector = EconomicCalendarCollector()
         self.news_collector = BreakingNewsCollector()
+        self.calendar_builder = CalendarImageBuilder()
         self.notifier = TelegramNotifier()
         self.analyzer = GeminiAnalyzer()
         if self.analyzer.is_available():
@@ -59,6 +61,28 @@ class XAUUSDNewsAssistantBot:
             database.record_daily_price_sent(today_str, msg_id)
             logger.info(f"Daily Gold Price successfully broadcasted and pinned (ID: {msg_id})")
 
+    def _build_calendar_png(self) -> bytes:
+        try:
+            events = self.calendar_collector.fetch_day_events(datetime.now(CAMBODIA_TZ))
+            if not events:
+                return None
+            return self.calendar_builder.build_day_png(events)
+        except Exception as e:
+            logger.warning(f"Calendar image build failed: {e}")
+            return None
+
+    def _attach_calendar_once(self):
+        """Attaches today's calendar table image to at most one alert per cycle."""
+        if self._calendar_attached:
+            return
+        self._calendar_attached = True
+        png = self._build_calendar_png()
+        if png:
+            self.notifier.send_photo(
+                png,
+                caption=f"📅 <b>ប្រតិទិនសេដ្ឋកិច្ចថ្ងៃនេះ</b> — ម៉ោងកម្ពុជា (UTC+7)",
+            )
+
     def check_economic_events(self) -> int:
         """
         Monitors economic calendar and triggers Mode 2 (Upcoming) and Mode 3 (Actual Release).
@@ -69,6 +93,7 @@ class XAUUSDNewsAssistantBot:
         
         has_imminent_event = False
         has_waiting_actual = False
+        self._calendar_attached = False
 
         for ev in events:
             ev_id = ev["id"]
@@ -82,6 +107,7 @@ class XAUUSDNewsAssistantBot:
                 logger.info(f"Triggering 15m alert for {ev['title']}")
                 msg = KhmerFormatter.format_upcoming_alert(ev, minutes_left=diff_minutes)
                 self.notifier.send_message(msg)
+                self._attach_calendar_once()
                 database.record_event_stage(ev_id, ev["title"], ev["currency"], ev["release_time_str"], "upcoming_15m")
                 has_imminent_event = True
 
@@ -90,6 +116,7 @@ class XAUUSDNewsAssistantBot:
                 logger.info(f"Triggering 5m alert for {ev['title']}")
                 msg = KhmerFormatter.format_upcoming_alert(ev, minutes_left=diff_minutes)
                 self.notifier.send_message(msg)
+                self._attach_calendar_once()
                 database.record_event_stage(ev_id, ev["title"], ev["currency"], ev["release_time_str"], "upcoming_5m")
                 has_imminent_event = True
 
@@ -110,6 +137,7 @@ class XAUUSDNewsAssistantBot:
                         )
                         msg = KhmerFormatter.format_actual_release_alert(ev, analysis)
                         self.notifier.send_message(msg)
+                        self._attach_calendar_once()
                         database.record_event_stage(
                             ev_id, ev["title"], ev["currency"], ev["release_time_str"], 
                             "actual", actual_val=actual_val, forecast_val=ev.get("forecast", "")

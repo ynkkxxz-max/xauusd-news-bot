@@ -45,6 +45,23 @@ class EconomicCalendarCollector:
 
         return events
 
+    def fetch_day_events(self, day: datetime = None) -> list:
+        """All events (any currency/impact) for one Cambodia-time day, chronological."""
+        day = day or datetime.now(CAMBODIA_TZ)
+        out = []
+        try:
+            headers = {"User-Agent": "Mozilla/5.0"}
+            resp = requests.get(self.ff_url, headers=headers, timeout=12)
+            if resp.status_code == 200:
+                for item in resp.json():
+                    parsed = self._parse_event(item)
+                    if parsed and parsed["release_dt"].date() == day.date():
+                        out.append(parsed)
+        except Exception as e:
+            logger.warning(f"[EconomicCalendarCollector] Failed to fetch day calendar: {e}")
+        out.sort(key=lambda ev: ev["release_dt"])
+        return out
+
     def _parse_event(self, item: dict) -> dict:
         """Parses calendar item into normalized dictionary."""
         date_raw = item.get("date", "") # ISO format like '2026-09-20T08:30:00-04:00'
