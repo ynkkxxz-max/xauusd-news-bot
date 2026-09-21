@@ -11,7 +11,6 @@ import database
 from collectors.gold_price import GoldPriceCollector
 from collectors.economic_calendar import EconomicCalendarCollector
 from collectors.breaking_news import BreakingNewsCollector
-from collectors.chart_builder import GoldChartBuilder
 from analyzers.gold_filter import GoldNewsFilter
 from analyzers.gemini_analyzer import GeminiAnalyzer
 from formatters.khmer_formatter import KhmerFormatter
@@ -29,7 +28,6 @@ class XAUUSDNewsAssistantBot:
         self.gold_collector = GoldPriceCollector()
         self.calendar_collector = EconomicCalendarCollector()
         self.news_collector = BreakingNewsCollector()
-        self.chart_builder = GoldChartBuilder()
         self.notifier = TelegramNotifier()
         self.analyzer = GeminiAnalyzer()
         if self.analyzer.is_available():
@@ -59,13 +57,6 @@ class XAUUSDNewsAssistantBot:
             msg_id = res.get("result", {}).get("message_id")
             database.record_daily_price_sent(today_str, msg_id)
             logger.info(f"Daily Gold Price successfully broadcasted and pinned (ID: {msg_id})")
-
-            # Attach the 3-month price chart as a photo right after the text.
-            chart_png = self.chart_builder.build_chart_png(price_data)
-            if chart_png:
-                self.notifier.send_photo(chart_png)
-            else:
-                logger.warning("Chart generation failed; sending text-only daily price.")
 
     def check_economic_events(self) -> int:
         """
