@@ -115,7 +115,6 @@ class KhmerFormatter:
     def format_breaking_event_alert(news_item: dict, analysis: dict) -> str:
         """Formats breaking news / major geopolitical or unexpected central bank event alert."""
         title = news_item.get("title", "")
-        source = news_item.get("source", "ForexLive / FXStreet Institutional")
 
         msg = (
             f"🚨 <b>BREAKING EVENT — ព្រឹត្តិការណ៍ទីផ្សារបន្ទាន់!</b>\n\n"
@@ -129,8 +128,6 @@ class KhmerFormatter:
             f"🏦 <b>សម្ពាធលើ Yields / Risk Sentiment:</b>\n"
             f"{analysis['rate_yield_impact']}\n\n"
             f"🥇 <b>សម្ពាធលើ XAUUSD:</b>\n"
-            f"👉 <b>{analysis['xau_pressure']}</b>\n\n"
-            f"⚠️ <b>ចំណាំ:</b> មិនត្រូវស្មានទីផ្សារ 100% ឡើយ — ត្រូវផ្ទៀងផ្ទាត់ Volume និង Price Action។\n\n"
-            f"🔗 <i>ប្រភព: {source}</i>"
+            f"👉 <b>{analysis['xau_pressure']}</b>"
         )
         return msg

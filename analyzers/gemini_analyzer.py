@@ -158,12 +158,14 @@ class GeminiAnalyzer:
             f"វិភាគព័ត៌មានបន្ទាន់ខាងក្រោម និងផលប៉ះពាល់លើមាស (XAUUSD)៖\n"
             f"ចំណងជើង: {title}\nខ្លឹមសារ: {description}\n\n"
             f"ត្រឡប់ JSON ដែលមាន fields: {', '.join(_ANALYSIS_KEYS)}។\n"
-            f"- what_happened: សង្ខេបអ្វីដែលកើតឡើង\n"
-            f"- why_it_matters: ហេតុអ្វីវាសំខាន់ចំពោះមាស\n"
-            f"- usd_impact: ផលប៉ះពាល់លើ USD\n"
-            f"- rate_yield_impact: ផលប៉ះពាល់លើអត្រាការប្រាក់/Yields\n"
-            f"- xau_pressure: សម្ពាធលើមាស (ចាប់ផ្តើមដោយ 🟢/🔴/🟡)\n"
-            f"- bias: 🟢 Bullish / 🔴 Bearish / 🟡 Mixed / Unclear"
+            f"- what_happened: ពន្យល់ 2-3 ប្រយោគថាមានអ្វីកើតឡើង (រួមទាំងលម្អិតសំខាន់ៗ)\n"
+            f"- why_it_matters: ពន្យល់ឱ្យបានក្បោះក្បាយ 3-5 ប្រយោគ ថាហេតុអ្វីព័ត៌មាននេះសំខាន់ចំពោះមាស "
+            f"ដោយពន្យល់ពីយន្តការផ្ទេរផលប៉ះពាល់ (ការរំពឹងទុកអត្រាការប្រាក់ Fed, កម្លាំង USD, real yields, risk sentiment)\n"
+            f"- usd_impact: 1-2 ប្រយោគ ព្រមទាំងមូលហេតុ\n"
+            f"- rate_yield_impact: 1-2 ប្រយោគ ព្រមទាំងមូលហេតុ\n"
+            f"- xau_pressure: សម្ពាធលើមាស (ចាប់ផ្តើមដោយ 🟢/🔴/🟡) បូកនឹងការពន្យល់ 1-2 ប្រយោគ\n"
+            f"- bias: 🟢 Bullish / 🔴 Bearish / 🟡 Mixed / Unclear\n"
+            f"សរសេរទាំងអស់ជាភាសាខ្មែរ ពន្យល់ឱ្យបានក្បោះក្បាយ ច្បាស់លាស់ និងងាយយល់។"
         )
         try:
             return self._normalize(self._call(prompt))
