@@ -117,7 +117,7 @@ class KhmerFormatter:
         title = news_item.get("title", "")
 
         msg = (
-            f"🚨 <b>BREAKING EVENT — ព្រឹត្តិការណ៍ទីផ្សារបន្ទាន់!</b>\n\n"
+            f"🚨 <b>BREAKING EVENT — ព្រឹត្តិការណ៍ទីផ្សារប្រចាំថ្ងៃ!</b>\n\n"
             f"📰 <b>ចំណងជើង:</b> {title}\n\n"
             f"🚨 <b>តើមានអ្វីកើតឡើង?:</b>\n"
             f"{analysis['what_happened']}\n\n"
