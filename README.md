@@ -64,5 +64,3 @@ python test_simulation.py
 ```powershell
 python -c "from main import XAUUSDNewsAssistantBot; bot = XAUUSDNewsAssistantBot(); bot.start_loop()"
 ```
-
-<!-- auto-deploy verification 1790021531 -->
