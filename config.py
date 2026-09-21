@@ -23,6 +23,15 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash").strip()
 # If true, use Gemini for analysis; otherwise fall back to the rule-based MacroAnalyzer.
 USE_GEMINI = os.getenv("USE_GEMINI", "true").lower() in ("true", "1", "yes")
 
+# Gemini throttling — protects the free-tier quota from HTTP 429 bursts.
+# GEMINI_MIN_INTERVAL: minimum seconds between any two Gemini calls (spaces out
+#   the many news items processed in one cycle so we stay under the RPM limit).
+# GEMINI_COOLDOWN: when the quota is exhausted (HTTP 429), stop calling Gemini
+#   for this many seconds and use the rule-based fallback instead of hammering
+#   an already-exhausted quota with useless retries.
+GEMINI_MIN_INTERVAL = float(os.getenv("GEMINI_MIN_INTERVAL", "20"))
+GEMINI_COOLDOWN = float(os.getenv("GEMINI_COOLDOWN", "900"))
+
 # Timezone (Cambodia Time UTC+7)
 CAMBODIA_TZ_NAME = os.getenv("TIMEZONE", "Asia/Phnom_Penh")
 CAMBODIA_TZ = pytz.timezone(CAMBODIA_TZ_NAME)

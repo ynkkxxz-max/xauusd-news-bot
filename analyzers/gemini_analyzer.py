@@ -3,7 +3,10 @@ import logging
 import time
 import requests
 
-from config import GEMINI_API_KEY, GEMINI_MODEL, USE_GEMINI
+from config import (
+    GEMINI_API_KEY, GEMINI_MODEL, USE_GEMINI,
+    GEMINI_MIN_INTERVAL, GEMINI_COOLDOWN,
+)
 from analyzers.macro_analyzer import MacroAnalyzer
 
 logger = logging.getLogger(__name__)
@@ -56,16 +59,50 @@ class GeminiAnalyzer:
             f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
         )
 
+    # Throttle state is class-level (process-wide) so every GeminiAnalyzer
+    # shares one cooldown and one min-interval clock.
+    _last_request_ts = 0.0
+    _cooldown_until = 0.0
+
+    def _throttle_wait(self):
+        """Enforces the quota cooldown and the minimum spacing between calls.
+
+        Raises immediately if we are inside a 429 cooldown so callers fall back
+        to rules without burning another request; otherwise sleeps just enough
+        to respect GEMINI_MIN_INTERVAL before the next call.
+        """
+        now = time.time()
+        if now < GeminiAnalyzer._cooldown_until:
+            remaining = int(GeminiAnalyzer._cooldown_until - now)
+            raise RuntimeError(f"Gemini cooldown active ({remaining}s left) after quota limit")
+        gap = now - GeminiAnalyzer._last_request_ts
+        if gap < GEMINI_MIN_INTERVAL:
+            time.sleep(GEMINI_MIN_INTERVAL - gap)
+        GeminiAnalyzer._last_request_ts = time.time()
+
+    def _trip_cooldown(self, seconds: float = None):
+        seconds = seconds if seconds is not None else GEMINI_COOLDOWN
+        GeminiAnalyzer._cooldown_until = time.time() + seconds
+        logger.warning(
+            f"[GeminiAnalyzer] quota limit hit — pausing Gemini for {int(seconds)}s, "
+            f"using rule-based fallback meanwhile."
+        )
+
     def is_available(self) -> bool:
         return bool(USE_GEMINI and self.api_key and self.api_key != "YOUR_GEMINI_API_KEY_HERE")
 
     def _post(self, payload: dict, max_retries: int = 4) -> dict:
-        """POSTs to Gemini with retry on transient errors (429/500/503).
+        """POSTs to Gemini with retry on transient errors (500/503).
 
         gemini-3.x flash models return 503 under high demand; a short retry
         loop with backoff makes the bot resilient instead of silently
         falling back to rules on a temporary blip.
+
+        HTTP 429 is NOT retried — it means the free-tier quota is exhausted,
+        so retrying just wastes requests. Instead we trip a cooldown and let
+        the caller fall back to rules until the quota window resets.
         """
+        self._throttle_wait()
         last_exc = None
         for attempt in range(max_retries):
             try:
@@ -75,7 +112,11 @@ class GeminiAnalyzer:
                     json=payload,
                     timeout=40,
                 )
-                if resp.status_code in (429, 500, 503):
+                GeminiAnalyzer._last_request_ts = time.time()
+                if resp.status_code == 429:
+                    self._trip_cooldown()
+                    raise RuntimeError(f"HTTP 429: {resp.text[:120]}")
+                if resp.status_code in (500, 503):
                     last_exc = RuntimeError(f"HTTP {resp.status_code}: {resp.text[:120]}")
                     time.sleep(1.5 * (attempt + 1))
                     continue
