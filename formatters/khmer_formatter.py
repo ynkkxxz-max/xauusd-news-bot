@@ -272,7 +272,19 @@ class KhmerFormatter:
         dxy = macro.get("dxy_price", 0.0)
         us10y = macro.get("us10y_yield", 0.0)
 
+        gld_price = macro.get("gld_price", 0.0)
+        gld_vol = macro.get("gld_volume", 0)
+        gld_chg = macro.get("gld_pct", 0.0)
+        gld_icon = "🟢 ទិញចូល (Inflow)" if gld_chg >= 0 else "🔴 លក់ចេញ (Outflow)"
+
         summary_block = f"🧠 <b>សេចក្តីសង្ខេបចលនាទីផ្សារ:</b>\n{summary}\n\n" if summary else ""
+
+        spdr_block = (
+            f"🐋 <b>លំហូរស្ថាប័នធំៗ (SPDR Gold Trust ETF):</b>\n"
+            f"• <b>ភាគហ៊ុន GLD:</b> ${gld_price:,.2f} ({gld_chg:+.2f}%)\n"
+            f"• <b>ទំហំជួញដូរស្ថាប័ន:</b> {gld_vol:,.0f} Shares\n"
+            f"• <b>និន្នាការ Whale:</b> {gld_icon}\n\n"
+        )
 
         msg = (
             f"🌙 <b>DAILY MARKET WRAP-UP — សេចក្តីសង្ខេបទីផ្សារពេលយប់</b>\n\n"
@@ -284,9 +296,10 @@ class KhmerFormatter:
             f"📊 <b>កត្តាគន្លឹះម៉ាក្រូសេដ្ឋកិច្ច:</b>\n"
             f"• 💵 <b>DXY Index:</b> {dxy:.2f}\n"
             f"• 🏛️ <b>US 10Y Yield:</b> {us10y:.2f}%\n\n"
+            f"{spdr_block}"
             f"{summary_block}"
             f"🎯 <b>ទស្សនវិស័យថ្ងៃស្អែក:</b> តាមដានតំបន់ Key Pivot និងប្រតិទិនសេដ្ឋកិច្ចពេលព្រឹក!\n\n"
-            f"🔗 <i>ប្រភព: Interbank Bullion Liquidity & Macro Feeds</i>"
+            f"🔗 <i>ប្រភព: Interbank Bullion Liquidity & SPDR Gold Shares</i>"
         )
         return msg
 
