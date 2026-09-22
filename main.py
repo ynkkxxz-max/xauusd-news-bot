@@ -260,6 +260,30 @@ class XAUUSDNewsAssistantBot:
             self.notifier.send_message(msg)
             database.set_state("last_candle_conf_ts", str(now))
 
+    def check_weekly_sunday_outlook(self):
+        """
+        Broadcasts Weekly Macro Outlook every Sunday at 19:00 (7:00 PM Cambodia Time)
+        before markets open on Monday morning.
+        """
+        now_kh = datetime.now(CAMBODIA_TZ)
+        # Sunday is weekday 6
+        if now_kh.weekday() == 6 and now_kh.hour >= 19:
+            today_str = now_kh.strftime("%Y-%m-%d")
+            key = f"weekly_outlook_{today_str}"
+            if database.get_state(key):
+                return
+
+            logger.info(f"Triggering Weekly Sunday Outlook for {today_str}...")
+            price_data = self.gold_collector.fetch_price()
+            events = self.calendar_collector.fetch_events()
+            high_impact = [e for e in events if e.get("impact") == "HIGH"]
+
+            summary = self.analyzer.summarize_daily_price(price_data)
+            msg = KhmerFormatter.format_weekly_outlook(price_data, high_impact, summary=summary)
+            self.notifier.send_message(msg)
+            database.set_state(key, "sent")
+            logger.info("Weekly Sunday Outlook broadcasted successfully.")
+
     def check_database_maintenance(self):
         """Performs automatic database cleanup (Point 3) keeping data.db fast and lightweight."""
         now_kh = datetime.now(CAMBODIA_TZ)
@@ -662,6 +686,9 @@ class XAUUSDNewsAssistantBot:
             # 5. Daily Market Wrap-Up (10:00 PM Cambodia Time)
             self.check_night_wrap_up()
 
+            # 5.1 Weekly Sunday Outlook (Every Sunday 19:00 Cambodia Time)
+            self.check_weekly_sunday_outlook()
+
             # 6. Breaking News Alert (Strictly filtered: Only sends if 100% clear and high-impact)
             self.check_breaking_news()
 
@@ -697,6 +724,7 @@ class XAUUSDNewsAssistantBot:
                         self.check_daily_gold_price()
                         self.check_session_open_alerts()
                         self.check_night_wrap_up()
+                        self.check_weekly_sunday_outlook()
                         self.check_price_volatility_spike()
                         self.check_candlestick_confirmation()
                         self.check_breaking_news()
