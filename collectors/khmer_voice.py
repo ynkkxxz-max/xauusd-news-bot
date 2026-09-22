@@ -70,8 +70,9 @@ class KhmerVoiceSynthesizer:
     def build_morning_voice_script(self, price_data: dict) -> str:
         """Constructs a natural, fluent Khmer spoken script for the 7:00 AM Morning Gold Brief."""
         oz = round(price_data.get("price_oz", 0.0), 2)
-        local_sell = price_data.get("local_damlung_sell", 0.0)
-        local_buy = price_data.get("local_damlung_buy", 0.0)
+        local_market = price_data.get("local_market", {})
+        local_sell = local_market.get("damlung_sell", 0.0)
+        local_buy = local_market.get("damlung_buy", 0.0)
         chg = price_data.get("change", 0.0)
         trend = "កើនឡើង" if chg >= 0 else "ធ្លាក់ចុះ"
         chg_abs = abs(round(chg, 2))
