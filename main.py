@@ -807,11 +807,11 @@ class XAUUSDNewsAssistantBot:
         if not analysis:
             return
 
-        # --- SPECIAL FOMC / POWELL LIVE SPEECH INTERPRETATION ---
-        is_fomc_or_powell = any(w in (title + " " + desc).lower() for w in ["fomc", "powell", "fed rate", "federal reserve issues", "rate decision"])
+        # --- SPECIAL FOMC / POWELL / WARSH LIVE SPEECH INTERPRETATION ---
+        is_fomc_or_powell = any(w in (title + " " + desc).lower() for w in ["fomc", "powell", "warsh", "fed rate", "federal reserve issues", "rate decision"])
         fomc_interp = None
         if is_fomc_or_powell and self.fomc_interpreter.is_available():
-            logger.info(f"[LIVE FOMC/POWELL INTERPRETER] Detected Fed statement/speech: {title}")
+            logger.info(f"[LIVE FOMC/POWELL/WARSH INTERPRETER] Detected Fed statement/speech: {title}")
             fomc_interp = self.fomc_interpreter.interpret_powell_speech(f"{title}\n{desc}", event_title=title)
 
         if fomc_interp:
