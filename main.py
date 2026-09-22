@@ -90,6 +90,11 @@ try:
 except ImportError:
     from analyzers.fomc_interpreter import FomcSpeechInterpreter
 
+try:
+    from heatmap_builder import LiquidityHeatmapBuilder
+except ImportError:
+    from collectors.heatmap_builder import LiquidityHeatmapBuilder
+
 from telegram_notifier import TelegramNotifier
 
 
@@ -112,6 +117,7 @@ class XAUUSDNewsAssistantBot:
         self.voice_synth = KhmerVoiceSynthesizer()
         self.order_book_tracker = OrderBookDepthTracker()
         self.fomc_interpreter = FomcSpeechInterpreter()
+        self.heatmap_builder = LiquidityHeatmapBuilder()
         self.notifier = TelegramNotifier()
 
         self.analyzer = AnalyzerChain([GeminiAnalyzer()] + build_fallback_analyzers())
@@ -200,9 +206,15 @@ class XAUUSDNewsAssistantBot:
                 "London Session", "14:00", 
                 "ធនាគារអឺរ៉ុប និងចក្រភពអង់គ្លេសចាប់ផ្តើមជួញដូរ។ សាច់ប្រាក់ងាយស្រួល (Liquidity) ចាក់ចូលទីផ្សារមាសយ៉ាងច្រើន!"
             )
-            self.notifier.send_message(msg)
+            price_data = self.gold_collector.fetch_price()
+            order_book = self.order_book_tracker.fetch_order_book_depth()
+            heatmap_png = self.heatmap_builder.generate_heatmap_png(price_data, order_book)
+            if heatmap_png:
+                self.notifier.send_photo(heatmap_png, caption=msg)
+            else:
+                self.notifier.send_message(msg)
             database.set_state(f"london_session_{today_str}", "sent")
-            logger.info("London Session Open alert broadcasted.")
+            logger.info("London Session Open alert + Heatmap broadcasted.")
 
         # New York Session: 19:00 (7:00 PM) Cambodia Time
         if now_kh.hour == 19 and not database.get_state(f"ny_session_{today_str}"):
@@ -210,9 +222,15 @@ class XAUUSDNewsAssistantBot:
                 "New York Session", "19:00",
                 "ផ្សារ Wall Street & COMEX អាមេរិកបើកដំណើរការ។ នេះជា Session ដែលមានទំហំជួញដូរមាសធំបំផុតលើលោក!"
             )
-            self.notifier.send_message(msg)
+            price_data = self.gold_collector.fetch_price()
+            order_book = self.order_book_tracker.fetch_order_book_depth()
+            heatmap_png = self.heatmap_builder.generate_heatmap_png(price_data, order_book)
+            if heatmap_png:
+                self.notifier.send_photo(heatmap_png, caption=msg)
+            else:
+                self.notifier.send_message(msg)
             database.set_state(f"ny_session_{today_str}", "sent")
-            logger.info("New York Session Open alert broadcasted.")
+            logger.info("New York Session Open alert + Heatmap broadcasted.")
 
     def check_night_wrap_up(self):
         """Checks if daily market wrap-up message needs to be sent at 22:00 (10:00 PM) Cambodia Time."""
@@ -510,6 +528,25 @@ class XAUUSDNewsAssistantBot:
                 else:
                     self.notifier.send_message("⚠️ មិនអាចបង្កើតសំឡេងបាននៅពេលនេះទេ សូមព្យាយាមម្តងទៀត។", chat_id=chat_id, reply_markup=bottom_keyboard)
 
+            elif clean_cmd in ("/heatmap", "/liquidity", "heatmap") or "ផែនទីកម្តៅ" in text or "heatmap" in text.lower():
+                self.notifier.send_message("🧠 <i>AI កំពុងគូរផែនទីកម្តៅ Liquidity Heatmap HD ផ្អែកលើ Order Flow & Stop Loss clusters...</i>", chat_id=chat_id)
+                price_data = self.gold_collector.fetch_price()
+                order_book = self.order_book_tracker.fetch_order_book_depth()
+                heatmap_png = self.heatmap_builder.generate_heatmap_png(price_data, order_book)
+                if heatmap_png:
+                    spot = price_data.get("price_oz", 0.0)
+                    caption = (
+                        f"🧠 <b>SMART MONEY ORDER FLOW HEATMAP (XAU/USD)</b>\n\n"
+                        f"• 🥇 <b>Current Spot:</b> <code>${spot:,.2f}</code>\n"
+                        f"• 🔴 <b>BSL (Buy Side Liquidity):</b> តំបន់ប្រមូលផ្តុំ Buy Stop Loss (ខាងលើ)\n"
+                        f"• 🟢 <b>SSL (Sell Side Liquidity):</b> តំបន់ប្រមូលផ្តុំ Sell Stop Loss (ខាងក្រោម)\n"
+                        f"• 📊 <b>Depth Ratio:</b> Bids {order_book.get('bid_ratio', 50):.1f}% vs Asks {order_book.get('ask_ratio', 50):.1f}%\n\n"
+                        f"💡 <i>ផែនទីកម្តៅបង្ហាញពីតំបន់ដែលស្ថាប័នធំៗចូលចិត្តទាញតម្លៃទៅ Hunt Liquidity មុនពេលប្តូរទិសដៅ!</i>"
+                    )
+                    self.notifier.send_photo(heatmap_png, caption=caption, chat_id=chat_id, reply_markup=bottom_keyboard)
+                else:
+                    self.notifier.send_message("⚠️ មិនអាចបង្កើត Heatmap បានទេនៅពេលនេះ។", chat_id=chat_id, reply_markup=bottom_keyboard)
+
             elif clean_cmd in ("/depth", "/orderbook", "/iceberg", "orderbook") or "ជម្រៅទីផ្សារ" in text:
                 depth = self.order_book_tracker.fetch_order_book_depth()
                 resp = KhmerFormatter.format_order_book_depth(depth)
@@ -564,6 +601,7 @@ class XAUUSDNewsAssistantBot:
                         f"ចុចប៊ូតុង <b>[ Price ]</b> ឬ <b>[ SMC ]</b> នៅខាងក្រោម ឬវាយពាក្យបញ្ជា Bot៖\n"
                         f"• <b>Price</b> ➡️ មើលហាងឆេងមាស Spot និងផ្សារធំថ្មីបច្ចុប្បន្ន\n"
                         f"• <b>SMC</b> ➡️ មើលកម្រិតបច្ចេកទេស AI Pivot & SMC Setup Zone\n"
+                        f"• <code>/heatmap</code> ➡️ ផែនទីកម្តៅ Smart Money Liquidity Heatmap HD (Canvas)\n"
                         f"• <code>/fomc</code> ➡️ AI បកប្រែផ្ទាល់ការថ្លែងសុន្ទរកថា Fed / Powell Speech + សំឡេង\n"
                         f"• <code>/depth</code> ➡️ មើលជម្រៅ Order Book Depth 100 Levels & Iceberg Walls\n"
                         f"• <code>/cot</code> ➡️ មើលរបាយការណ៍កុងត្រាស្ថាប័នធំៗ CFTC CoT Report\n"
