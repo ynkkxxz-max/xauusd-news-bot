@@ -363,6 +363,30 @@ class KhmerFormatter:
         )
 
     @staticmethod
+    def format_liquidity_sweep(sweep: dict) -> str:
+        """Formats Real-Time Institutional Liquidity Sweep (Stop Loss Hunt) Alert."""
+        is_bull = sweep.get("type") == "BULLISH_SWEEP"
+        icon = "🟢" if is_bull else "🔴"
+        action = "BULLISH REVERSAL SETUP (ឱកាសទិញស្ទុះឡើង)" if is_bull else "BEARISH REVERSAL SETUP (ឱកាសលក់ទម្លាក់ចុះ)"
+
+        return (
+            f"🧲 {icon} <b>LIQUIDITY SWEEP ALERT — ស្ថាប័នទើបតែ Hunt Stop Loss!</b>\n\n"
+            f"⚡ <b>ស្ថានភាព (Event):</b> <b>{action}</b>\n"
+            f"• 🎯 <b>កម្រិត Liquidity (Level):</b> <b>{sweep['level_name']}</b> (<code>${sweep['level_price']:,.2f}</code>)\n"
+            f"• 🏹 <b>តម្លៃ Sweep ខ្ពស់បំផុត/ទាបបំផុត:</b> <code>${sweep['sweep_price']:,.2f}</code>\n"
+            f"• 🥇 <b>តម្លៃបច្ចុប្បន្ន (Current):</b> <code>${sweep['current_price']:,.2f}</code>\n\n"
+            f"📈 <b>កម្រិតណែនាំសម្រាប់ Trader (Smart Money Trade):</b>\n"
+            f"• <b>Entry:</b> <code>${sweep['current_price']:,.2f}</code>\n"
+            f"• 🛑 <b>Stop Loss (SL):</b> <code>${sweep['sl']:,.2f}</code> (ហួសពីចុង Wick)\n"
+            f"• 🎯 <b>Take Profit (TP):</b> <code>${sweep['tp']:,.2f}</code>\n\n"
+            f"🧠 <b>ការពន្យល់លំហូរសាច់ប្រាក់ (Smart Money Concept):</b>\n"
+            f"• {sweep['desc']}\n"
+            f"• ស្ថាប័នធំៗបានប្រើ Fakeout ដើម្បីបង្កើត Liquidity សម្រាប់ Order ធំរបស់ពួកគេ។\n\n"
+            f"🛡️ <b>អនុសាសន៍:</b> ចូល Order ជាមួយទំហំ Lot សមរម្យ និងដាក់ Stop Loss ជានិច្ច!\n\n"
+            f"📊 <i>ពិនិត្យ Chart: <a href='https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD'>TradingView XAUUSD Live</a></i>"
+        )
+
+    @staticmethod
     def format_cot_report(cot_data: dict) -> str:
         """Formats CFTC Commitment of Traders (CoT) institutional report for Gold."""
         if not cot_data or not cot_data.get("available"):
