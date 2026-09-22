@@ -110,6 +110,10 @@ class XAUUSDNewsAssistantBot:
             buttons = {
                 "inline_keyboard": [
                     [
+                        {"text": "🔄 ឆែកតម្លៃ Live ភ្លាមៗ", "url": "https://t.me/FFNewsAlertBot?start=price"},
+                        {"text": "🎯 AI SMC Setup", "url": "https://t.me/FFNewsAlertBot?start=smc"}
+                    ],
+                    [
                         {"text": "📊 មើល Chart ផ្ទាល់ (TradingView)", "url": "https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD"},
                         {"text": "📅 ប្រតិទិនសេដ្ឋកិច្ច", "url": "https://www.forexfactory.com/calendar"}
                     ]
@@ -246,13 +250,34 @@ class XAUUSDNewsAssistantBot:
                     self.notifier.send_message("📅 មិនមានទិន្នន័យប្រតិទិនសេដ្ឋកិច្ចធំៗថ្ងៃនេះទេ។", chat_id=chat_id, reply_markup=bottom_keyboard)
 
             elif clean_cmd in ("/help", "/start") or "ជំនួយ" in text:
-                help_text = (
-                    f"👋 <b>សូមស្វាគមន៍មកកាន់ XAUUSD AI Assistant Bot!</b>\n\n"
-                    f"ចុចប៊ូតុង <b>[ Price ]</b> ឬ <b>[ SMC ]</b> នៅខាងក្រោមដើម្បីបញ្ជា Bot ភ្លាមៗ៖\n"
-                    f"• <b>Price</b> ➡️ មើលហាងឆេងមាស Spot និងផ្សារធំថ្មីបច្ចុប្បន្ន\n"
-                    f"• <b>SMC</b> ➡️ មើលកម្រិតបច្ចេកទេស AI Pivot & SMC Setup Zone"
-                )
-                self.notifier.send_message(help_text, chat_id=chat_id, reply_markup=bottom_keyboard)
+                parts = text.split()
+                if len(parts) > 1 and parts[1].lower() == "price":
+                    price_data = self.gold_collector.fetch_price()
+                    resp = KhmerFormatter.format_daily_gold_price(price_data, summary="", include_smc=False)
+                    self.notifier.send_message(resp, chat_id=chat_id, reply_markup=bottom_keyboard)
+                elif len(parts) > 1 and parts[1].lower() == "smc":
+                    price_data = self.gold_collector.fetch_price()
+                    levels = price_data.get("key_levels", {})
+                    oz = price_data.get("price_oz", 0.0)
+                    pivot = levels.get("pivot", oz)
+                    r1 = levels.get("r1", oz + 20)
+                    s1 = levels.get("s1", oz - 20)
+                    reply = (
+                        f"🎯 <b>កម្រិតបច្ចេកទេស & AI SMC Setup Zone</b>\n\n"
+                        f"• 🟢 <b>Buy Zone:</b> ${s1 - 4:,.2f} - ${s1 + 3:,.2f} (SL: ${s1 - 11:,.2f})\n"
+                        f"• 🔴 <b>Sell Zone:</b> ${r1 - 3:,.2f} - ${r1 + 4:,.2f} (SL: ${r1 + 11:,.2f})\n"
+                        f"• 🎯 <b>Pivot Point:</b> ${pivot:,.2f}\n\n"
+                        f"💡 <i>អនុសាសន៍: រង់ចាំ Confirmation Candle នៅលើ M15 មុនចូល Order!</i>"
+                    )
+                    self.notifier.send_message(reply, chat_id=chat_id, reply_markup=bottom_keyboard)
+                else:
+                    help_text = (
+                        f"👋 <b>សូមស្វាគមន៍មកកាន់ XAUUSD AI Assistant Bot!</b>\n\n"
+                        f"ចុចប៊ូតុង <b>[ Price ]</b> ឬ <b>[ SMC ]</b> នៅខាងក្រោមដើម្បីបញ្ជា Bot ភ្លាមៗ៖\n"
+                        f"• <b>Price</b> ➡️ មើលហាងឆេងមាស Spot និងផ្សារធំថ្មីបច្ចុប្បន្ន\n"
+                        f"• <b>SMC</b> ➡️ មើលកម្រិតបច្ចេកទេស AI Pivot & SMC Setup Zone"
+                    )
+                    self.notifier.send_message(help_text, chat_id=chat_id, reply_markup=bottom_keyboard)
 
 
 
