@@ -339,3 +339,25 @@ class KhmerFormatter:
             f"• 🔒 <b>ការពារទុន:</b> ពិនិត្យ Margin Level និងរំកិល Stop Loss ការពារប្រាក់ចំណេញ (Trailing Stop) ភ្លាមៗ!\n\n"
             f"📊 <i>មើល Chart ផ្ទាល់: <a href='https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD'>TradingView XAUUSD</a></i>"
         )
+
+    @staticmethod
+    def format_candlestick_confirmation(conf: dict) -> str:
+        """Formats Technical Candlestick Confirmation Alert at SMC Key Levels."""
+        is_bull = "BULLISH" in conf.get("type", "")
+        icon = "🟢" if is_bull else "🔴"
+        action = "BUY SETUP CONFIRMED (បញ្ជាក់សញ្ញាទិញ)" if is_bull else "SELL SETUP CONFIRMED (បញ្ជាក់សញ្ញាលក់)"
+        
+        return (
+            f"🎯 {icon} <b>AI SMC CONFIRMATION — សញ្ញាទៀនបញ្ជាក់នៅតំបន់គន្លឹះ!</b>\n\n"
+            f"📊 <b>សញ្ញា:</b> <b>{action}</b>\n"
+            f"• 🕯️ <b>ទម្រង់ទៀន (Pattern):</b> <b>{conf['pattern']}</b> (M15 Structure)\n"
+            f"• 🎯 <b>តំបន់គន្លឹះ (Zone):</b> <b>{conf['zone_name']}</b>\n\n"
+            f"📈 <b>កម្រិតចូលជួញដូរ (Trade Parameters):</b>\n"
+            f"• <b>Entry Price:</b> <code>${conf['entry']:,.2f}</code>\n"
+            f"• 🛑 <b>Stop Loss (SL):</b> <code>${conf['sl']:,.2f}</code>\n"
+            f"• 🎯 <b>Take Profit (TP):</b> <code>${conf['tp']:,.2f}</code> (Risk/Reward ~ 1:2.5+)\n\n"
+            f"🧠 <b>ការពន្យល់បច្ចេកទេស:</b>\n"
+            f"• {conf['desc']}\n\n"
+            f"🛡️ <b>ការគ្រប់គ្រងហានិភ័យ:</b> ប្រើទំហំ Risk ត្រឹម ១-២% នៃដើមទុនប៉ុណ្ណោះ!\n\n"
+            f"📊 <i>ពិនិត្យ Chart: <a href='https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD'>TradingView XAUUSD Live</a></i>"
+        )
