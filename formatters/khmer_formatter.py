@@ -361,3 +361,38 @@ class KhmerFormatter:
             f"🛡️ <b>ការគ្រប់គ្រងហានិភ័យ:</b> ប្រើទំហំ Risk ត្រឹម ១-២% នៃដើមទុនប៉ុណ្ណោះ!\n\n"
             f"📊 <i>ពិនិត្យ Chart: <a href='https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD'>TradingView XAUUSD Live</a></i>"
         )
+
+    @staticmethod
+    def format_weekly_outlook(price_data: dict, high_impact_events: list, summary: str = "") -> str:
+        """Formats Sunday Evening Weekly Macro & Institutional Gold Outlook."""
+        oz = price_data.get("price_oz", 0.0)
+        levels = price_data.get("key_levels", {})
+        pivot = levels.get("pivot", oz)
+        r1 = levels.get("r1", oz + 20)
+        s1 = levels.get("s1", oz - 20)
+
+        # Build list of top economic catalysts
+        events_str = ""
+        if high_impact_events:
+            for ev in high_impact_events[:5]:
+                events_str += f"• 🔴 <b>{ev.get('release_date_str', '')} {ev.get('release_time_str', '')}</b>: {ev.get('title', '')} ({ev.get('currency', 'USD')})\n"
+        else:
+            events_str = "• មិនមានទិន្នន័យក្រហមធំៗ (High Impact) ក្នុងសប្តាហ៍នេះទេ\n"
+
+        summary_block = f"🧠 <b>ទស្សនវិស័យស្ថាប័ន (Institutional Bias):</b>\n{summary}\n\n" if summary else ""
+
+        return (
+            f"🏛️ <b>WEEKLY GOLD OUTLOOK — យុទ្ធសាស្ត្រមាសប្រចាំសប្តាហ៍ថ្មី!</b>\n\n"
+            f"📅 <b>ការរៀបចំជួញដូរសម្រាប់សប្តាហ៍ថ្មី (ម៉ោងនៅកម្ពុជា UTC+7)</b>\n"
+            f"🥇 <b>តម្លៃបិទចុងសប្តាហ៍ (Close):</b> <code>${oz:,.2f}</code>\n\n"
+            f"🎯 <b>កម្រិតបច្ចេកទេសប្រចាំសប្តាហ៍ (Weekly Key Levels):</b>\n"
+            f"• 🔴 <b>Weekly Resistance (Target Sell):</b> <code>${r1:,.2f}</code>\n"
+            f"• 🎯 <b>Weekly Pivot Point (តុល្យភាព):</b> <code>${pivot:,.2f}</code>\n"
+            f"• 🟢 <b>Weekly Support (Target Buy):</b> <code>${s1:,.2f}</code>\n\n"
+            f"📅 <b>ព្រឹត្តិការណ៍សេដ្ឋកិច្ចសំខាន់ៗប្រចាំសប្តាហ៍ (High Impact Catalysts):</b>\n"
+            f"{events_str}\n"
+            f"{summary_block}"
+            f"🛡️ <b>ផែនការ Trader:</b> គ្រប់គ្រងដើមទុន គោរព Stop Loss និងរង់ចាំការបញ្ជាក់ច្បាស់លាស់មុនចូល Trade!\n\n"
+            f"📊 <i>មើល Chart: <a href='https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD'>TradingView XAUUSD</a></i> | "
+            f"📅 <i><a href='https://www.forexfactory.com/calendar'>ForexFactory Calendar</a></i>"
+        )
