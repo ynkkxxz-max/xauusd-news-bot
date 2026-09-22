@@ -72,6 +72,17 @@ class TelegramNotifier:
                 logger.info(f"[TelegramNotifier] Photo sent (ID: {result.get('result', {}).get('message_id')})")
             else:
                 logger.error(f"[TelegramNotifier] Error sending photo: {result}")
+                # Fallback: if HTML parsing failed, strip HTML or retry without parse_mode so photo is never lost
+                if "can't parse entities" in str(result.get("description", "")):
+                    import re
+                    clean_caption = re.sub(r"<[^>]+>", "", caption)[:1020]
+                    data["caption"] = clean_caption
+                    data.pop("parse_mode", None)
+                    files = {"photo": ("calendar.png", photo_bytes, "image/png")}
+                    retry_resp = requests.post(url, data=data, files=files, timeout=30)
+                    result = retry_resp.json()
+                    if result.get("ok"):
+                        logger.info(f"[TelegramNotifier] Photo sent on plain-text fallback (ID: {result.get('result', {}).get('message_id')})")
             return result
         except Exception as e:
             logger.error(f"[TelegramNotifier] Exception while sending photo: {e}")
