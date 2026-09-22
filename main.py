@@ -12,23 +12,56 @@ from config import (
     BREAKING_ALERT_MIN_GAP
 )
 import database
-from collectors.gold_price import GoldPriceCollector
-from collectors.economic_calendar import EconomicCalendarCollector
-from collectors.breaking_news import BreakingNewsCollector
-from collectors.calendar_image import CalendarImageBuilder
 try:
-    from collectors.tradingview_chart import TradingViewChartBuilder
+    from gold_price import GoldPriceCollector
+except ImportError:
+    from collectors.gold_price import GoldPriceCollector
+
+try:
+    from economic_calendar import EconomicCalendarCollector
+except ImportError:
+    from collectors.economic_calendar import EconomicCalendarCollector
+
+try:
+    from breaking_news import BreakingNewsCollector
+except ImportError:
+    from collectors.breaking_news import BreakingNewsCollector
+
+try:
+    from calendar_image import CalendarImageBuilder
+except ImportError:
+    from collectors.calendar_image import CalendarImageBuilder
+
+try:
+    from tradingview_chart import TradingViewChartBuilder
 except ImportError:
     try:
-        from tradingview_chart import TradingViewChartBuilder
+        from collectors.tradingview_chart import TradingViewChartBuilder
     except ImportError:
         TradingViewChartBuilder = None
 
-from analyzers.gold_filter import GoldNewsFilter
-from analyzers.gemini_analyzer import GeminiAnalyzer
-from analyzers.fallback_analyzers import AnalyzerChain, build_fallback_analyzers
-from formatters.khmer_formatter import KhmerFormatter
+try:
+    from gold_filter import GoldNewsFilter
+except ImportError:
+    from analyzers.gold_filter import GoldNewsFilter
+
+try:
+    from gemini_analyzer import GeminiAnalyzer
+except ImportError:
+    from analyzers.gemini_analyzer import GeminiAnalyzer
+
+try:
+    from fallback_analyzers import AnalyzerChain, build_fallback_analyzers
+except ImportError:
+    from analyzers.fallback_analyzers import AnalyzerChain, build_fallback_analyzers
+
+try:
+    from khmer_formatter import KhmerFormatter
+except ImportError:
+    from formatters.khmer_formatter import KhmerFormatter
+
 from telegram_notifier import TelegramNotifier
+
 
 # Configure logging
 logging.basicConfig(
