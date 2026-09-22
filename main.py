@@ -75,6 +75,11 @@ try:
 except ImportError:
     from collectors.macro_correlation import MarketMacroCorrelation
 
+try:
+    from khmer_voice import KhmerVoiceSynthesizer
+except ImportError:
+    from collectors.khmer_voice import KhmerVoiceSynthesizer
+
 from telegram_notifier import TelegramNotifier
 
 
@@ -94,6 +99,7 @@ class XAUUSDNewsAssistantBot:
         self.candle_analyzer = CandlestickPatternAnalyzer()
         self.cot_collector = CotCollector()
         self.macro_collector = MarketMacroCorrelation()
+        self.voice_synth = KhmerVoiceSynthesizer()
         self.notifier = TelegramNotifier()
 
         self.analyzer = AnalyzerChain([GeminiAnalyzer()] + build_fallback_analyzers())
@@ -157,6 +163,19 @@ class XAUUSDNewsAssistantBot:
             res = self.notifier.send_message(msg, auto_pin=True, reply_markup=buttons)
             msg_id = res.get("result", {}).get("message_id")
             database.record_daily_price_sent(today_str, msg_id)
+
+            # Generate and send accompanying natural Khmer Voice Audio note (Podcast / Audio Brief)
+            try:
+                voice_script = self.voice_synth.build_morning_voice_script(price_data)
+                voice_bytes = self.voice_synth.text_to_speech(voice_script)
+                if voice_bytes and len(voice_bytes) > 1000:
+                    self.notifier.send_voice(
+                        voice_bytes, 
+                        caption="🎙️ <b>សំឡេងសង្ខេបហាងឆេងមាសប្រចាំព្រឹក (Morning Audio Note)</b>"
+                    )
+                    logger.info("Morning Khmer voice audio note broadcasted successfully.")
+            except Exception as e:
+                logger.warning(f"Failed to broadcast morning voice note: {e}")
 
     def check_session_open_alerts(self):
         """Monitors and alerts London Session (14:00) and New York Session (19:00) Openings."""
@@ -447,6 +466,21 @@ class XAUUSDNewsAssistantBot:
                     )
                 self.notifier.send_message(resp, chat_id=chat_id, reply_markup=bottom_keyboard)
 
+            elif clean_cmd in ("/voice", "/audio", "voice") or "សំឡេង" in text:
+                price_data = self.gold_collector.fetch_price()
+                self.notifier.send_message("🎙️ <i>កំពុងបង្កើតសំឡេងសង្ខេបភាសាខ្មែរ សូមរង់ចាំមួយភ្លែត...</i>", chat_id=chat_id)
+                voice_script = self.voice_synth.build_morning_voice_script(price_data)
+                voice_bytes = self.voice_synth.text_to_speech(voice_script)
+                if voice_bytes and len(voice_bytes) > 1000:
+                    self.notifier.send_voice(
+                        voice_bytes,
+                        caption="🎙️ <b>សំឡេងសង្ខេបហាងឆេងមាស (Khmer Gold Audio Brief)</b>",
+                        chat_id=chat_id,
+                        reply_markup=bottom_keyboard
+                    )
+                else:
+                    self.notifier.send_message("⚠️ មិនអាចបង្កើតសំឡេងបាននៅពេលនេះទេ សូមព្យាយាមម្តងទៀត។", chat_id=chat_id, reply_markup=bottom_keyboard)
+
             elif clean_cmd in ("/help", "/start") or "ជំនួយ" in text:
                 parts = text.split()
                 if len(parts) > 1 and parts[1].lower() == "price":
@@ -479,7 +513,8 @@ class XAUUSDNewsAssistantBot:
                         f"• <b>Price</b> ➡️ មើលហាងឆេងមាស Spot និងផ្សារធំថ្មីបច្ចុប្បន្ន\n"
                         f"• <b>SMC</b> ➡️ មើលកម្រិតបច្ចេកទេស AI Pivot & SMC Setup Zone\n"
                         f"• <code>/cot</code> ➡️ មើលរបាយការណ៍កុងត្រាស្ថាប័នធំៗ CFTC CoT Report\n"
-                        f"• <code>/dxy</code> ➡️ មើលសន្ទស្សន៍ដុល្លារ និងសញ្ញា Macro Divergence"
+                        f"• <code>/dxy</code> ➡️ មើលសន្ទស្សន៍ដុល្លារ និងសញ្ញា Macro Divergence\n"
+                        f"• <code>/voice</code> ➡️ ស្តាប់សំឡេងនិយាយសង្ខេបហាងឆេងមាសភាសាខ្មែរ"
                     )
                     self.notifier.send_message(help_text, chat_id=chat_id, reply_markup=bottom_keyboard)
 
