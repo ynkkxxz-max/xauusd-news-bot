@@ -410,6 +410,55 @@ class KhmerFormatter:
         )
 
     @staticmethod
+    def format_iceberg_alert(iceberg: dict) -> str:
+        """Formats Real-Time Institutional Iceberg Order / Whale Wall Alert."""
+        is_buy = iceberg.get("type") == "ICEBERG_BUY_WALL"
+        icon = "🟢" if is_buy else "🔴"
+        action = "WHALE ICEBERG BUY WALL DETECTED (បន្ទាយទប់ទិញយក្ស)" if is_buy else "WHALE ICEBERG SELL WALL DETECTED (ជញ្ជាំងរារាំងលក់យក្ស)"
+
+        return (
+            f"🛰️ {icon} <b>WHALE ORDER BOOK ALERT — រកឃើញ Order ស្ថាប័នលាក់មុខ!</b>\n\n"
+            f"⚡ <b>ប្រភេទ Order:</b> <b>{action}</b>\n"
+            f"• 🎯 <b>តម្លៃដាក់ទប់ (Wall Level):</b> <code>${iceberg['price']:,.2f}</code>\n"
+            f"• 🐋 <b>ទំហំទំងន់ (Volume):</b> <code>{iceberg['volume_oz']:.1f} អោន</code> (<b>${iceberg['value_usd']:,.0f}</b>)\n"
+            f"• 🥇 <b>តម្លៃទីផ្សារបច្ចុប្បន្ន (Spot):</b> <code>${iceberg['mid_price']:,.2f}</code>\n\n"
+            f"🧠 <b>ការពន្យល់ Order Book Depth:</b>\n"
+            f"• {iceberg['desc']}\n"
+            f"• ស្ថាប័នធំៗបានដាក់ Limit Order កម្រាស់ក្រាស់ក្រែល ដែលអាចធ្វើឱ្យតម្លៃ Rebound ខ្លាំងនៅពេលមកដល់ចំណុចនេះ!\n\n"
+            f"🛡️ <b>យុទ្ធសាស្ត្រ Trader:</b> យកកម្រិតនេះធ្វើជាតំបន់ Support/Resistance ដ៏រឹងមាំ ឬជាចំណុច Take Profit / Entry!\n\n"
+            f"📊 <i>ពិនិត្យ Chart: <a href='https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD'>TradingView XAUUSD Live</a></i>"
+        )
+
+    @staticmethod
+    def format_order_book_depth(depth: dict) -> str:
+        """Formats full 100-level Institutional Order Book Depth overview."""
+        if not depth or not depth.get("available"):
+            return "📊 <b>ទិន្នន័យ Order Book Depth មិនទាន់ត្រូវបានធ្វើបច្ចុប្បន្នភាពនៅឡើយទេ។</b>"
+
+        b_walls = depth.get("whale_buy_walls", [])
+        s_walls = depth.get("whale_sell_walls", [])
+
+        b_str = ""
+        for b in b_walls:
+            b_str += f"  • 🟢 <code>${b['price']:,.2f}</code>: <b>{b['volume_oz']:.1f} oz</b> (~${b['value_usd']:,.0f})\n"
+
+        s_str = ""
+        for s in s_walls:
+            s_str += f"  • 🔴 <code>${s['price']:,.2f}</code>: <b>{s['volume_oz']:.1f} oz</b> (~${s['value_usd']:,.0f})\n"
+
+        return (
+            f"🛰️ <b>INSTITUTIONAL GOLD ORDER BOOK DEPTH (100 Levels)</b>\n\n"
+            f"🥇 <b>តម្លៃបច្ចុប្បន្ន (Mid Price):</b> <code>${depth['mid_price']:,.2f}</code>\n\n"
+            f"⚖️ <b>សមាមាត្រកម្លាំងទីផ្សារ (Liquidity Ratio):</b>\n"
+            f"• 🟢 <b>Bid Liquidity (ទិញ):</b> <code>{depth['bid_dominance_pct']}%</code> ({depth['total_bid_vol']:.1f} oz)\n"
+            f"• 🔴 <b>Ask Liquidity (លក់):</b> <code>{depth['ask_dominance_pct']}%</code> ({depth['total_ask_vol']:.1f} oz)\n"
+            f"• 🧠 <b>ទំនោរកម្លាំង:</b> {depth['bias']}\n\n"
+            f"🧱 <b>បន្ទាយទប់ទិញធំបំផុត (Top Whale Buy Walls):</b>\n{b_str}\n"
+            f"🧱 <b>ជញ្ជាំងរារាំងលក់ធំបំផុត (Top Whale Sell Walls):</b>\n{s_str}\n"
+            f"💡 <i>ទិន្នន័យបញ្ជាក់ពីជម្រៅទីផ្សារកុងត្រាមាស និងតំបន់ Iceberg Orders ពិតប្រាកដ!</i>"
+        )
+
+    @staticmethod
     def format_cot_report(cot_data: dict) -> str:
         """Formats CFTC Commitment of Traders (CoT) institutional report for Gold."""
         if not cot_data or not cot_data.get("available"):
