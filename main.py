@@ -65,6 +65,11 @@ try:
 except ImportError:
     from analyzers.candlestick_analyzer import CandlestickPatternAnalyzer
 
+try:
+    from cot_collector import CotCollector
+except ImportError:
+    from collectors.cot_collector import CotCollector
+
 from telegram_notifier import TelegramNotifier
 
 
@@ -82,6 +87,7 @@ class XAUUSDNewsAssistantBot:
         self.news_collector = BreakingNewsCollector()
         self.calendar_builder = CalendarImageBuilder()
         self.candle_analyzer = CandlestickPatternAnalyzer()
+        self.cot_collector = CotCollector()
         self.notifier = TelegramNotifier()
 
         self.analyzer = AnalyzerChain([GeminiAnalyzer()] + build_fallback_analyzers())
@@ -279,7 +285,8 @@ class XAUUSDNewsAssistantBot:
             high_impact = [e for e in events if e.get("impact") == "HIGH"]
 
             summary = self.analyzer.summarize_daily_price(price_data)
-            msg = KhmerFormatter.format_weekly_outlook(price_data, high_impact, summary=summary)
+            cot_data = self.cot_collector.fetch_gold_cot()
+            msg = KhmerFormatter.format_weekly_outlook(price_data, high_impact, summary=summary, cot_data=cot_data)
             self.notifier.send_message(msg)
             database.set_state(key, "sent")
             logger.info("Weekly Sunday Outlook broadcasted successfully.")
@@ -365,6 +372,11 @@ class XAUUSDNewsAssistantBot:
                 else:
                     self.notifier.send_message("📅 មិនមានទិន្នន័យប្រតិទិនសេដ្ឋកិច្ចធំៗថ្ងៃនេះទេ។", chat_id=chat_id, reply_markup=bottom_keyboard)
 
+            elif clean_cmd in ("/cot", "/cftc", "cot") or "ស្ថាប័ន cftc" in text.lower():
+                cot_data = self.cot_collector.fetch_gold_cot()
+                resp = KhmerFormatter.format_cot_report(cot_data)
+                self.notifier.send_message(resp, chat_id=chat_id, reply_markup=bottom_keyboard)
+
             elif clean_cmd in ("/help", "/start") or "ជំនួយ" in text:
                 parts = text.split()
                 if len(parts) > 1 and parts[1].lower() == "price":
@@ -386,12 +398,17 @@ class XAUUSDNewsAssistantBot:
                         f"💡 <i>អនុសាសន៍: រង់ចាំ Confirmation Candle នៅលើ M15 មុនចូល Order!</i>"
                     )
                     self.notifier.send_message(reply, chat_id=chat_id, reply_markup=bottom_keyboard)
+                elif len(parts) > 1 and parts[1].lower() == "cot":
+                    cot_data = self.cot_collector.fetch_gold_cot()
+                    resp = KhmerFormatter.format_cot_report(cot_data)
+                    self.notifier.send_message(resp, chat_id=chat_id, reply_markup=bottom_keyboard)
                 else:
                     help_text = (
                         f"👋 <b>សូមស្វាគមន៍មកកាន់ XAUUSD AI Assistant Bot!</b>\n\n"
-                        f"ចុចប៊ូតុង <b>[ Price ]</b> ឬ <b>[ SMC ]</b> នៅខាងក្រោមដើម្បីបញ្ជា Bot ភ្លាមៗ៖\n"
+                        f"ចុចប៊ូតុង <b>[ Price ]</b> ឬ <b>[ SMC ]</b> នៅខាងក្រោម ឬវាយពាក្យបញ្ជា Bot៖\n"
                         f"• <b>Price</b> ➡️ មើលហាងឆេងមាស Spot និងផ្សារធំថ្មីបច្ចុប្បន្ន\n"
-                        f"• <b>SMC</b> ➡️ មើលកម្រិតបច្ចេកទេស AI Pivot & SMC Setup Zone"
+                        f"• <b>SMC</b> ➡️ មើលកម្រិតបច្ចេកទេស AI Pivot & SMC Setup Zone\n"
+                        f"• <code>/cot</code> ➡️ មើលរបាយការណ៍កុងត្រាស្ថាប័នធំៗ CFTC CoT Report"
                     )
                     self.notifier.send_message(help_text, chat_id=chat_id, reply_markup=bottom_keyboard)
 
