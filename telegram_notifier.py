@@ -88,6 +88,35 @@ class TelegramNotifier:
             logger.error(f"[TelegramNotifier] Exception while sending photo: {e}")
             return {"ok": False, "error": str(e)}
 
+    def send_voice(self, voice_bytes: bytes, caption: str = "", parse_mode: str = "HTML", reply_markup: dict = None, chat_id: str = None) -> dict:
+        """Uploads an audio/voice note (.mp3 / .ogg) to the chat via the sendVoice API."""
+        if not self.is_configured():
+            logger.warning(f"[TelegramNotifier] Credentials not set. Simulated voice upload ({len(voice_bytes)} bytes).")
+            return {"ok": True, "result": {"message_id": 999997, "simulated": True}}
+
+        target_chat = str(chat_id or self.chat_id)
+        url = f"{self.base_url}/sendVoice"
+        files = {"voice": ("voice.mp3", voice_bytes, "audio/mpeg")}
+        data = {"chat_id": target_chat}
+        if caption:
+            data["caption"] = caption
+            data["parse_mode"] = parse_mode
+        if reply_markup:
+            import json
+            data["reply_markup"] = json.dumps(reply_markup)
+
+        try:
+            resp = requests.post(url, data=data, files=files, timeout=30)
+            result = resp.json()
+            if result.get("ok"):
+                logger.info(f"[TelegramNotifier] Voice message sent (ID: {result.get('result', {}).get('message_id')})")
+            else:
+                logger.error(f"[TelegramNotifier] Error sending voice: {result}")
+            return result
+        except Exception as e:
+            logger.error(f"[TelegramNotifier] Exception while sending voice: {e}")
+            return {"ok": False, "error": str(e)}
+
     def pin_message(self, message_id: int, disable_notification: bool = True) -> bool:
         """Auto-pin message in the chat/channel."""
         if not self.is_configured():
