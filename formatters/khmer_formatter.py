@@ -17,11 +17,12 @@ def _clip(text: str, cap: int) -> str:
 
 class KhmerFormatter:
     @staticmethod
-    def format_daily_gold_price(price_data: dict, summary: str = "") -> str:
+    def format_daily_gold_price(price_data: dict, summary: str = "", include_smc: bool = True) -> str:
         """
         Formats daily gold price report in Khmer with clear distinction between:
         1. ទីផ្សារអន្តរជាតិ (International Market - XAU/USD Interbank Spot)
         2. ទីផ្សារកម្ពុជា (Cambodia Local Market - Central Market / Phnom Penh 24K & 18K)
+        If include_smc is False (used for private chat 'Price' button), only displays the pure gold price.
         """
         oz = price_data.get("price_oz", 0.0)
         damlung_intl = price_data.get("price_damlung", 0.0)
@@ -30,7 +31,7 @@ class KhmerFormatter:
         date_str = price_data.get("date_str", "")
         time_str = price_data.get("updated_time_str", "07:00")
         source_intl = price_data.get("source_intl", price_data.get("source", "Swissquote Institutional Bank / COMEX"))
-        source_local = price_data.get("source_local", "សមាគម/ហាងមាសផ្សារធំថ្មី រាជធានីភ្នំពេញ")
+        source_local = price_data.get("source_local", "សមាគម/ហាងមាសផ្សារធំថ្មី រាជធានីភ្នំពេញ (Physical Spot)")
 
         loc = price_data.get("local_market", {})
         damlung_sell = loc.get("damlung_sell", damlung_intl + 30.0)
@@ -75,6 +76,21 @@ class KhmerFormatter:
         elif chg < -20:
             sentiment = "Fear (សម្ពាធលក់ខ្លាំង)"
 
+        smc_block = ""
+        if include_smc:
+            smc_block = (
+                f"\n🎯 <b><u>ផែនការជួញដូរ AI SMC (Daily Trading Setup)</u></b>\n"
+                f"• 🟢 <b>Buy Setup (Discount OB):</b> ${buy_zone_low} - ${buy_zone_high}\n"
+                f"  └ <i>SL: ${buy_sl} | TP1: ${buy_tp1} | TP2: ${buy_tp2}</i>\n"
+                f"• 🔴 <b>Sell Setup (Premium OB):</b> ${sell_zone_low} - ${sell_zone_high}\n"
+                f"  └ <i>SL: ${sell_sl} | TP1: ${sell_tp1} | TP2: ${sell_tp2}</i>\n"
+                f"• 🎯 <b>Pivot Point:</b> ${pivot:,.2f} | <b>អារម្មណ៍ផ្សារ:</b> {sentiment}\n\n"
+                f"📊 <b><u>សូចនាករម៉ាក្រូសេដ្ឋកិច្ច (Macro Correlation)</u></b>\n"
+                f"• 💵 <b>DXY Index:</b> {dxy:.2f} ({'+' if dxy_chg >= 0 else ''}{dxy_chg:.2f})\n"
+                f"• 🏛️ <b>US 10-Year Yield:</b> {us10y:.2f}%\n\n"
+                f"{summary_block}"
+            )
+
         msg = (
             f"🥇 <b>DAILY GOLD PRICE — ហាងឆេងមាសប្រចាំថ្ងៃ</b>\n\n"
             f"📅 <b>កាលបរិច្ឆេទ:</b> {date_str} (ម៉ោង {time_str} កម្ពុជា)\n\n"
@@ -88,21 +104,13 @@ class KhmerFormatter:
             f"• <b>មាសទឹកដប់ (១ ជី):</b> លក់ ${chi_sell:,.2f} | ទិញ ${chi_buy:,.2f}\n"
             f"• <b>មាស (១ ហ៊ុន):</b> លក់ ${hun_sell:,.2f}\n"
             f"• <b>ប្លាទីន/មាសកែច្នៃ 18K (១ ជី):</b> ~${platin_chi:,.2f}\n"
-            f"📍 <i>ប្រភព: {source_local}</i>\n\n"
-            f"🎯 <b><u>ផែនការជួញដូរ AI SMC (Daily Trading Setup)</u></b>\n"
-            f"• 🟢 <b>Buy Setup (Discount OB):</b> ${buy_zone_low} - ${buy_zone_high}\n"
-            f"  └ <i>SL: ${buy_sl} | TP1: ${buy_tp1} | TP2: ${buy_tp2}</i>\n"
-            f"• 🔴 <b>Sell Setup (Premium OB):</b> ${sell_zone_low} - ${sell_zone_high}\n"
-            f"  └ <i>SL: ${sell_sl} | TP1: ${sell_tp1} | TP2: ${sell_tp2}</i>\n"
-            f"• 🎯 <b>Pivot Point:</b> ${pivot:,.2f} | <b>អារម្មណ៍ផ្សារ:</b> {sentiment}\n\n"
-            f"📊 <b><u>សូចនាករម៉ាក្រូសេដ្ឋកិច្ច (Macro Correlation)</u></b>\n"
-            f"• 💵 <b>DXY Index:</b> {dxy:.2f} ({'+' if dxy_chg >= 0 else ''}{dxy_chg:.2f})\n"
-            f"• 🏛️ <b>US 10-Year Yield:</b> {us10y:.2f}%\n\n"
-            f"{summary_block}"
+            f"📍 <i>ប្រភព: {source_local}</i>\n"
+            f"{smc_block}"
         )
         return msg.strip()
 
     @staticmethod
+
     def format_upcoming_alert(event: dict, minutes_left: int) -> str:
         """Formats upcoming high-impact event alert (e.g. 15m or 5m countdown)."""
         time_str = event.get("release_time_str", "")

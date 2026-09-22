@@ -217,8 +217,10 @@ class XAUUSDNewsAssistantBot:
 
             if clean_cmd in ("/price", "/gold", "price") or "ហាងឆេងមាស" in text:
                 price_data = self.gold_collector.fetch_price()
-                resp = KhmerFormatter.format_daily_gold_price(price_data, summary="")
+                # Clean, pure price report without SMC/Macro block when clicking 'Price' button
+                resp = KhmerFormatter.format_daily_gold_price(price_data, summary="", include_smc=False)
                 self.notifier.send_message(resp, chat_id=chat_id, reply_markup=bottom_keyboard)
+
 
             elif clean_cmd in ("/levels", "/setup", "smc") or "កម្រិត smc" in text.lower():
                 price_data = self.gold_collector.fetch_price()
