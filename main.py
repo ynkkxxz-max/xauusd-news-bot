@@ -418,7 +418,21 @@ class XAUUSDNewsAssistantBot:
         desc = item.get("description", "")
         logger.info(f"Sending breaking alert: {title}")
         analysis = self.analyzer.analyze_breaking_news(title, desc)
+        if not analysis:
+            return
+
+        # STRICT USER DIRECTIVE:
+        # If the analysis is unclear, vague, or marked is_clear == False, DO NOT SEND TO TELEGRAM CHANNEL!
+        is_clear = analysis.get("is_clear")
+        bias = str(analysis.get("bias", "")).lower()
+        if is_clear is False or "unclear" in bias:
+            logger.info(f"[SKIPPED] News '{title}' skipped because market impact is unclear or low-confidence.")
+            # Record as sent so it won't loop re-analyzing the same item
+            database.record_news_sent(item["id"], title, item.get("source", ""))
+            return
+
         msg = KhmerFormatter.format_breaking_event_alert(item, analysis)
+
 
         # One single combined message: news photo (or calendar table) with the analysis as caption.
         # NEVER send two separate messages (photo + text). Always send strictly ONE message.
@@ -463,8 +477,8 @@ class XAUUSDNewsAssistantBot:
             # 5. Daily Market Wrap-Up (10:00 PM Cambodia Time)
             self.check_night_wrap_up()
 
-            # 6. Breaking News Alert (Disabled per user request)
-            # self.check_breaking_news()
+            # 6. Breaking News Alert (Strictly filtered: Only sends if 100% clear and high-impact)
+            self.check_breaking_news()
 
             # 7. Economic Calendar & Upcoming/Actual News Check
             recommended_interval = self.check_economic_events()
@@ -498,11 +512,12 @@ class XAUUSDNewsAssistantBot:
                         self.check_daily_gold_price()
                         self.check_session_open_alerts()
                         self.check_night_wrap_up()
-                        # self.check_breaking_news()
+                        self.check_breaking_news()
                         background_interval = self.check_economic_events()
                     except Exception as err:
                         logger.error(f"Error during background task check: {err}", exc_info=True)
                         background_interval = 60
+
 
 
                 # Micro-sleep to ensure near-zero CPU usage while maintaining instant responsiveness
