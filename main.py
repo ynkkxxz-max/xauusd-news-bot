@@ -184,6 +184,49 @@ class XAUUSDNewsAssistantBot:
             database.set_state(key, "sent")
             logger.info(f"Daily Market Wrap-Up broadcasted successfully.")
 
+    def check_price_volatility_spike(self):
+        """
+        Monitors rapid Gold Price movement (Spike Warning).
+        If gold moves >= $15 within a 15-minute window, immediately triggers a Volatility Alert.
+        Includes a 30-minute cooldown to prevent spamming while keeping traders informed.
+        """
+        now = time.time()
+        last_alert = float(database.get_state("last_spike_alert_ts") or 0.0)
+        if now - last_alert < 1800:  # 30-minute cooldown
+            return
+
+        price_data = self.gold_collector.fetch_price()
+        current_price = price_data.get("price_oz", 0.0)
+        if current_price <= 0:
+            return
+
+        # Fetch baseline price from 15 minutes ago
+        last_record = database.get_state("last_tracked_price_data")
+        import json
+        if last_record:
+            try:
+                prev_data = json.loads(last_record)
+                prev_ts = prev_data.get("ts", now)
+                prev_price = prev_data.get("price", current_price)
+
+                diff = round(current_price - prev_price, 2)
+                # If 10-20 minutes elapsed and price moved by $15 or more
+                if (now - prev_ts >= 600) and abs(diff) >= 15.0:
+                    logger.info(f"[VOLATILITY SPIKE DETECTED] XAUUSD moved ${diff:+.2f} (from ${prev_price} to ${current_price})")
+                    msg = KhmerFormatter.format_spike_alert(current_price, prev_price, diff, minutes=int((now - prev_ts) / 60))
+                    self.notifier.send_message(msg)
+                    database.set_state("last_spike_alert_ts", str(now))
+                    # Reset baseline after alert
+                    database.set_state("last_tracked_price_data", json.dumps({"price": current_price, "ts": now}))
+                    return
+                elif now - prev_ts >= 900:  # Roll forward reference every 15 minutes
+                    database.set_state("last_tracked_price_data", json.dumps({"price": current_price, "ts": now}))
+            except Exception as e:
+                logger.warning(f"Spike check parse error: {e}")
+                database.set_state("last_tracked_price_data", json.dumps({"price": current_price, "ts": now}))
+        else:
+            database.set_state("last_tracked_price_data", json.dumps({"price": current_price, "ts": now}))
+
     def check_database_maintenance(self):
         """Performs automatic database cleanup (Point 3) keeping data.db fast and lightweight."""
         now_kh = datetime.now(CAMBODIA_TZ)
@@ -621,6 +664,7 @@ class XAUUSDNewsAssistantBot:
                         self.check_daily_gold_price()
                         self.check_session_open_alerts()
                         self.check_night_wrap_up()
+                        self.check_price_volatility_spike()
                         self.check_breaking_news()
                         background_interval = self.check_economic_events()
                     except Exception as err:
