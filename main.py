@@ -70,6 +70,11 @@ try:
 except ImportError:
     from collectors.cot_collector import CotCollector
 
+try:
+    from macro_correlation import MarketMacroCorrelation
+except ImportError:
+    from collectors.macro_correlation import MarketMacroCorrelation
+
 from telegram_notifier import TelegramNotifier
 
 
@@ -88,6 +93,7 @@ class XAUUSDNewsAssistantBot:
         self.calendar_builder = CalendarImageBuilder()
         self.candle_analyzer = CandlestickPatternAnalyzer()
         self.cot_collector = CotCollector()
+        self.macro_collector = MarketMacroCorrelation()
         self.notifier = TelegramNotifier()
 
         self.analyzer = AnalyzerChain([GeminiAnalyzer()] + build_fallback_analyzers())
@@ -283,6 +289,27 @@ class XAUUSDNewsAssistantBot:
             self.notifier.send_message(msg)
             database.set_state("last_liquidity_sweep_ts", str(now))
 
+    def check_macro_divergence(self):
+        """
+        Monitors institutional divergence between Gold and US Dollar Index (DXY).
+        Sends high-priority alert when Gold shows Bullish Accumulation or Bearish Distribution.
+        """
+        now = time.time()
+        last_div = float(database.get_state("last_macro_divergence_ts") or 0.0)
+        if now - last_div < 7200:  # 2-hour cooldown between divergence alerts
+            return
+
+        price_data = self.gold_collector.fetch_price()
+        current_price = price_data.get("price_oz", 0.0)
+        gold_pct = price_data.get("change_pct", 0.0)
+
+        div = self.macro_collector.detect_divergence(current_price, gold_pct)
+        if div:
+            logger.info(f"[MACRO DIVERGENCE DETECTED] {div['type']}")
+            msg = KhmerFormatter.format_divergence_alert(div)
+            self.notifier.send_message(msg)
+            database.set_state("last_macro_divergence_ts", str(now))
+
     def check_weekly_sunday_outlook(self):
         """
         Broadcasts Weekly Macro Outlook every Sunday at 19:00 (7:00 PM Cambodia Time)
@@ -394,6 +421,32 @@ class XAUUSDNewsAssistantBot:
                 resp = KhmerFormatter.format_cot_report(cot_data)
                 self.notifier.send_message(resp, chat_id=chat_id, reply_markup=bottom_keyboard)
 
+            elif clean_cmd in ("/dxy", "/macro", "/divergence") or "ដុល្លារ" in text:
+                price_data = self.gold_collector.fetch_price()
+                current_price = price_data.get("price_oz", 0.0)
+                gold_pct = price_data.get("change_pct", 0.0)
+                macro = self.macro_collector.fetch_macro_correlations()
+                dxy_p = macro.get("dxy_price", 100.0)
+                dxy_c = macro.get("dxy_pct", 0.0)
+                us10y = macro.get("us10y_yield", 4.0)
+                gld_v = macro.get("gld_volume", 0)
+
+                div = self.macro_collector.detect_divergence(current_price, gold_pct)
+                if div:
+                    resp = KhmerFormatter.format_divergence_alert(div)
+                else:
+                    g_sign = "+" if gold_pct >= 0 else ""
+                    d_sign = "+" if dxy_c >= 0 else ""
+                    resp = (
+                        f"📊 <b>MACRO CORRELATION (DXY & US10Y) ស្ថិតិទីផ្សារ</b>\n\n"
+                        f"• 🥇 <b>Gold Spot (XAU/USD):</b> <code>${current_price:,.2f}</code> ({g_sign}{gold_pct:.2f}%)\n"
+                        f"• 💵 <b>US Dollar Index (DXY):</b> <code>{dxy_p}</code> ({d_sign}{dxy_c:.2f}%)\n"
+                        f"• 📈 <b>US 10-Year Bond Yield:</b> <code>{us10y}%</code>\n"
+                        f"• 🐋 <b>SPDR Gold Shares (GLD Volume):</b> <code>{gld_v:,}</code>\n\n"
+                        f"⚖️ <b>ស្ថានភាព Divergence:</b> ទីផ្សារកំពុងដើរតាម Normal Correlation (មិនទាន់មាន Divergence ច្បាស់លាស់ទេ)។"
+                    )
+                self.notifier.send_message(resp, chat_id=chat_id, reply_markup=bottom_keyboard)
+
             elif clean_cmd in ("/help", "/start") or "ជំនួយ" in text:
                 parts = text.split()
                 if len(parts) > 1 and parts[1].lower() == "price":
@@ -425,7 +478,8 @@ class XAUUSDNewsAssistantBot:
                         f"ចុចប៊ូតុង <b>[ Price ]</b> ឬ <b>[ SMC ]</b> នៅខាងក្រោម ឬវាយពាក្យបញ្ជា Bot៖\n"
                         f"• <b>Price</b> ➡️ មើលហាងឆេងមាស Spot និងផ្សារធំថ្មីបច្ចុប្បន្ន\n"
                         f"• <b>SMC</b> ➡️ មើលកម្រិតបច្ចេកទេស AI Pivot & SMC Setup Zone\n"
-                        f"• <code>/cot</code> ➡️ មើលរបាយការណ៍កុងត្រាស្ថាប័នធំៗ CFTC CoT Report"
+                        f"• <code>/cot</code> ➡️ មើលរបាយការណ៍កុងត្រាស្ថាប័នធំៗ CFTC CoT Report\n"
+                        f"• <code>/dxy</code> ➡️ មើលសន្ទស្សន៍ដុល្លារ និងសញ្ញា Macro Divergence"
                     )
                     self.notifier.send_message(help_text, chat_id=chat_id, reply_markup=bottom_keyboard)
 
@@ -726,6 +780,9 @@ class XAUUSDNewsAssistantBot:
             # 5.2 Real-Time Liquidity Sweep Alert (Hunt Stop Loss)
             self.check_liquidity_sweep()
 
+            # 5.3 Macro Divergence Alert (DXY vs Gold)
+            self.check_macro_divergence()
+
             # 6. Breaking News Alert (Strictly filtered: Only sends if 100% clear and high-impact)
             self.check_breaking_news()
 
@@ -765,6 +822,7 @@ class XAUUSDNewsAssistantBot:
                         self.check_price_volatility_spike()
                         self.check_candlestick_confirmation()
                         self.check_liquidity_sweep()
+                        self.check_macro_divergence()
                         self.check_breaking_news()
                         background_interval = self.check_economic_events()
                     except Exception as err:
