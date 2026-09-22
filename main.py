@@ -463,8 +463,8 @@ class XAUUSDNewsAssistantBot:
             # 5. Daily Market Wrap-Up (10:00 PM Cambodia Time)
             self.check_night_wrap_up()
 
-            # 6. Breaking & Relevant Gold News Check
-            self.check_breaking_news()
+            # 6. Breaking News Alert (Disabled per user request)
+            # self.check_breaking_news()
 
             # 7. Economic Calendar & Upcoming/Actual News Check
             recommended_interval = self.check_economic_events()
@@ -477,7 +477,7 @@ class XAUUSDNewsAssistantBot:
         """
         High-Performance Real-Time Autonomous Event Loop.
         - Polls Telegram incoming user commands continuously every 1-2 seconds for INSTANT response.
-        - Schedules and executes background tasks (News, Economic Calendar, Daily Price, Sessions)
+        - Schedules and executes background tasks (Economic Calendar, Daily Price, Sessions)
           based on elapsed timestamps without sleeping for 1 hour or blocking commands!
         """
         logger.info("Bot started in ULTRA-FAST REAL-TIME RESPONSIVE MODE.")
@@ -498,11 +498,12 @@ class XAUUSDNewsAssistantBot:
                         self.check_daily_gold_price()
                         self.check_session_open_alerts()
                         self.check_night_wrap_up()
-                        self.check_breaking_news()
+                        # self.check_breaking_news()
                         background_interval = self.check_economic_events()
                     except Exception as err:
                         logger.error(f"Error during background task check: {err}", exc_info=True)
                         background_interval = 60
+
 
                 # Micro-sleep to ensure near-zero CPU usage while maintaining instant responsiveness
                 time.sleep(1.0)
