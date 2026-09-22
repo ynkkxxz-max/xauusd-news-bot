@@ -461,10 +461,24 @@ class XAUUSDNewsAssistantBot:
         if not pending:
             return
 
-        # User directive: NO MORE TIME RESTRICTION OR 2-HOUR DELAY.
-        # Whenever AI bot discovers any gold-relevant news or market anomalies, ALERT IMMEDIATELY!
+        # Fetch titles broadcasted in the last 4 hours for cross-source semantic deduplication
+        recent_sent_titles = database.get_recent_news_titles(hours=4)
+
+        # Filter out items that discuss the exact same event as already broadcasted
+        unique_pending = []
+        for it in pending:
+            if GoldNewsFilter.is_duplicate_or_similar(it["title"], recent_sent_titles):
+                logger.info(f"[SEMANTIC DUPLICATE SKIPPED] News '{it['title']}' is duplicate of a recent alert.")
+                database.record_news_sent(it["id"], it["title"], it.get("source", ""))
+            else:
+                unique_pending.append(it)
+
+        if not unique_pending:
+            return
+
+        # Select the most urgent & fresh news among the unique items
         item = max(
-            pending,
+            unique_pending,
             key=lambda it: (GoldNewsFilter.urgency_score(it["title"]), self._news_ts(it)),
         )
         logger.info(f"[ZERO-DELAY IMMEDIATE ALERT] News/Anomaly detected: {item['title']}")
