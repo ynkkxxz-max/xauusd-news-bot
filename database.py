@@ -109,6 +109,18 @@ def record_news_sent(news_id: str, title: str, source: str):
     conn.commit()
     conn.close()
 
+def get_recent_news_titles(hours: int = 4) -> list:
+    """Returns a list of titles sent in the last N hours for similarity/duplicate checking."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+    SELECT title FROM sent_news 
+    WHERE sent_at >= datetime('now', ?)
+    """, (f"-{hours} hours",))
+    rows = cursor.fetchall()
+    conn.close()
+    return [r[0] for r in rows if r[0]]
+
 def is_daily_price_sent(date_str: str) -> bool:
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
