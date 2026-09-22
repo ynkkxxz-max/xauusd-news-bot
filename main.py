@@ -194,15 +194,34 @@ class XAUUSDNewsAssistantBot:
             if not text or not chat_id:
                 continue
 
-            # Command routing
-            cmd = text.split()[0].lower()
+            # Standard keyboard buttons for Private Chat
+            menu_keyboard = {
+                "keyboard": [
+                    [{"text": "🥇 ហាងឆេងមាស (/price)"}, {"text": "🎯 កម្រិត SMC (/levels)"}],
+                    [{"text": "📅 ប្រតិទិនសេដ្ឋកិច្ច (/calendar)"}, {"text": "ℹ️ ជំនួយ (/help)"}]
+                ],
+                "resize_keyboard": True,
+                "persistent": True
+            }
 
-            if cmd in ("/price", "/gold"):
+            inline_trading_buttons = {
+                "inline_keyboard": [
+                    [
+                        {"text": "📊 មើល Chart ផ្ទាល់ (TradingView)", "url": "https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD"},
+                        {"text": "📅 ប្រតិទិនសេដ្ឋកិច្ច", "url": "https://www.forexfactory.com/calendar"}
+                    ]
+                ]
+            }
+
+            # Command routing
+            clean_cmd = text.split()[0].lower()
+
+            if clean_cmd in ("/price", "/gold") or "ហាងឆេងមាស" in text:
                 price_data = self.gold_collector.fetch_price()
                 resp = KhmerFormatter.format_daily_gold_price(price_data, summary="")
-                self.notifier.send_message(resp, chat_id=chat_id)
+                self.notifier.send_message(resp, chat_id=chat_id, reply_markup=inline_trading_buttons)
 
-            elif cmd in ("/levels", "/setup"):
+            elif clean_cmd in ("/levels", "/setup") or "កម្រិត smc" in text.lower():
                 price_data = self.gold_collector.fetch_price()
                 levels = price_data.get("key_levels", {})
                 oz = price_data.get("price_oz", 0.0)
@@ -216,25 +235,26 @@ class XAUUSDNewsAssistantBot:
                     f"• 🎯 <b>Pivot Point:</b> ${pivot:,.2f}\n\n"
                     f"💡 <i>អនុសាសន៍: រង់ចាំ Confirmation Candle នៅលើ M15 មុនចូល Order!</i>"
                 )
-                self.notifier.send_message(reply, chat_id=chat_id)
+                self.notifier.send_message(reply, chat_id=chat_id, reply_markup=inline_trading_buttons)
 
-            elif cmd in ("/calendar", "/events"):
+            elif clean_cmd in ("/calendar", "/events") or "ប្រតិទិនសេដ្ឋកិច្ច" in text:
                 png = self._build_calendar_png()
                 if png:
-                    self.notifier.send_photo(png, caption="📅 <b>ប្រតិទិនសេដ្ឋកិច្ចថ្ងៃនេះ — ម៉ោងនៅកម្ពុជា (UTC+7)</b>", chat_id=chat_id)
+                    self.notifier.send_photo(png, caption="📅 <b>ប្រតិទិនសេដ្ឋកិច្ចថ្ងៃនេះ — ម៉ោងនៅកម្ពុជា (UTC+7)</b>", chat_id=chat_id, reply_markup=inline_trading_buttons)
                 else:
-                    self.notifier.send_message("📅 មិនមានទិន្នន័យប្រតិទិនសេដ្ឋកិច្ចធំៗថ្ងៃនេះទេ។", chat_id=chat_id)
+                    self.notifier.send_message("📅 មិនមានទិន្នន័យប្រតិទិនសេដ្ឋកិច្ចធំៗថ្ងៃនេះទេ។", chat_id=chat_id, reply_markup=inline_trading_buttons)
 
-            elif cmd in ("/help", "/start"):
+            elif clean_cmd in ("/help", "/start") or "ជំនួយ" in text:
                 help_text = (
                     f"👋 <b>សូមស្វាគមន៍មកកាន់ XAUUSD AI Assistant Bot!</b>\n\n"
-                    f"បញ្ជា Bot តាមរយៈ Commands ដូចខាងក្រោម៖\n"
+                    f"លោកអ្នកអាចចុចប៊ូតុង Menu ខាងក្រោមផ្ទាល់ ឬប្រើ Commands៖\n"
                     f"• <code>/price</code> ➡️ មើលហាងឆេងមាស Spot និងផ្សារធំថ្មីបច្ចុប្បន្ន\n"
                     f"• <code>/levels</code> ➡️ មើលកម្រិតបច្ចេកទេស AI Pivot & SMC Setup\n"
                     f"• <code>/calendar</code> ➡️ មើលតារាងប្រតិទិនសេដ្ឋកិច្ចថ្ងៃនេះ\n"
                     f"• <code>/help</code> ➡️ មើលសេចក្តីណែនាំទាំងអស់"
                 )
-                self.notifier.send_message(help_text, chat_id=chat_id)
+                self.notifier.send_message(help_text, chat_id=chat_id, reply_markup=menu_keyboard)
+
 
     @staticmethod
     def _caption_fits(text: str, limit: int = 1024) -> bool:
