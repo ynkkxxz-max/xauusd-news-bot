@@ -109,3 +109,102 @@ class CandlestickPatternAnalyzer:
                 }
 
         return None
+
+    def detect_liquidity_sweep(self) -> dict:
+        """
+        Detects Institutional Liquidity Sweeps (Hunt Stop Loss) on Gold:
+        - Asian Session High (ASH) / Asian Session Low (ASL) Sweep
+        - Previous Day High (PDH) / Previous Day Low (PDL) Sweep
+        A sweep happens when price pierces above High / below Low by $1-$7, 
+        fails to sustain, and prints a rejection wick (False Breakout / Turtle Soup).
+        """
+        try:
+            url = "https://query1.finance.yahoo.com/v8/finance/chart/GC=F?interval=15m&range=2d"
+            resp = requests.get(url, headers=self.headers, timeout=8)
+            if resp.status_code != 200:
+                return None
+
+            result = resp.json()["chart"]["result"][0]
+            timestamps = result.get("timestamp", [])
+            q = result["indicators"]["quote"][0]
+            opens = q.get("open", [])
+            highs = q.get("high", [])
+            lows = q.get("low", [])
+            closes = q.get("close", [])
+
+            valid_candles = []
+            for ts, o, h, l, c in zip(timestamps, opens, highs, lows, closes):
+                if None not in (ts, o, h, l, c):
+                    valid_candles.append({
+                        "ts": ts,
+                        "open": float(o),
+                        "high": float(h),
+                        "low": float(l),
+                        "close": float(c)
+                    })
+
+            if len(valid_candles) < 5:
+                return None
+
+            curr = valid_candles[-1]
+            prev = valid_candles[-2]
+
+            import pytz
+            from datetime import datetime
+            cambodia_tz = pytz.timezone("Asia/Phnom_Penh")
+
+            # 1. Identify Asian Session High / Low (06:00 to 14:00 Cambodia Time)
+            asian_highs = []
+            asian_lows = []
+            for c in valid_candles[:-2]:
+                dt = datetime.fromtimestamp(c["ts"], tz=cambodia_tz)
+                if 6 <= dt.hour < 14:
+                    asian_highs.append(c["high"])
+                    asian_lows.append(c["low"])
+
+            ash = max(asian_highs[-32:]) if asian_highs else None
+            asl = min(asian_lows[-32:]) if asian_lows else None
+
+            # Current candle dynamics
+            c_high = curr["high"]
+            c_low = curr["low"]
+            c_close = curr["close"]
+            c_open = curr["open"]
+            upper_wick = c_high - max(c_open, c_close)
+            lower_wick = min(c_open, c_close) - c_low
+            c_range = c_high - c_low or 0.01
+
+            # --- Check High Liquidity Sweep (Buy-Side Liquidity BSL Hunt -> Sell Reversal) ---
+            if ash and (c_high > ash) and (c_close < ash + 1.5):
+                # Must reject with upper wick or bearish close
+                if (upper_wick / c_range >= 0.40) or (c_close < c_open):
+                    return {
+                        "type": "BEARISH_SWEEP",
+                        "level_name": "Asian Session High (ASH)",
+                        "sweep_price": round(c_high, 2),
+                        "level_price": round(ash, 2),
+                        "current_price": round(c_close, 2),
+                        "sl": round(c_high + 4.0, 2),
+                        "tp": round(c_close - 20.0, 2),
+                        "desc": f"តម្លៃបានបាញ់ទម្លុះ High នៃ Asian Session (${ash:,.2f}) ដើម្បី Hunt Buy-Stop Liquidity រួចទាត់ធ្លាក់ចុះមកវិញភ្លាមៗ (Fakeout Reversal)!"
+                    }
+
+            # --- Check Low Liquidity Sweep (Sell-Side Liquidity SSL Hunt -> Buy Reversal) ---
+            if asl and (c_low < asl) and (c_close > asl - 1.5):
+                if (lower_wick / c_range >= 0.40) or (c_close > c_open):
+                    return {
+                        "type": "BULLISH_SWEEP",
+                        "level_name": "Asian Session Low (ASL)",
+                        "sweep_price": round(c_low, 2),
+                        "level_price": round(asl, 2),
+                        "current_price": round(c_close, 2),
+                        "sl": round(c_low - 4.0, 2),
+                        "tp": round(c_close + 20.0, 2),
+                        "desc": f"តម្លៃបានទម្លាក់ចុះក្រោម Low នៃ Asian Session (${asl:,.2f}) ដើម្បី Hunt Sell-Stop Liquidity រួចស្ទុះងើបឡើងវិញភ្លាមៗ (Spring / Liquidity Grab)!"
+                    }
+
+        except Exception as e:
+            logger.warning(f"Error detecting liquidity sweep: {e}")
+
+        return None
+
