@@ -535,12 +535,16 @@ class XAUUSDNewsAssistantBot:
                 heatmap_png = self.heatmap_builder.generate_heatmap_png(price_data, order_book)
                 if heatmap_png:
                     spot = price_data.get("price_oz", 0.0)
+                    bid_ratio = order_book.get("bid_dominance_pct", 50.0) if order_book else 50.0
+                    ask_ratio = order_book.get("ask_dominance_pct", 50.0) if order_book else 50.0
+                    bias = order_book.get("bias", "Normal") if order_book else "Balanced"
                     caption = (
                         f"🧠 <b>SMART MONEY ORDER FLOW HEATMAP (XAU/USD)</b>\n\n"
                         f"• 🥇 <b>Current Spot:</b> <code>${spot:,.2f}</code>\n"
-                        f"• 🔴 <b>BSL (Buy Side Liquidity):</b> តំបន់ប្រមូលផ្តុំ Buy Stop Loss (ខាងលើ)\n"
-                        f"• 🟢 <b>SSL (Sell Side Liquidity):</b> តំបន់ប្រមូលផ្តុំ Sell Stop Loss (ខាងក្រោម)\n"
-                        f"• 📊 <b>Depth Ratio:</b> Bids {order_book.get('bid_ratio', 50):.1f}% vs Asks {order_book.get('ask_ratio', 50):.1f}%\n\n"
+                        f"• 🔴 <b>BSL (Buy Side Liquidity):</b> តំបន់ Stop Loss Clusters (ខាងលើ)\n"
+                        f"• 🟢 <b>SSL (Sell Side Liquidity):</b> តំបន់ Stop Loss Clusters (ខាងក្រោម)\n"
+                        f"• 📊 <b>Depth Imbalance:</b> Bids {bid_ratio:.1f}% vs Asks {ask_ratio:.1f}%\n"
+                        f"• ⚖️ <b>ស្ថានភាព:</b> {bias}\n\n"
                         f"💡 <i>ផែនទីកម្តៅបង្ហាញពីតំបន់ដែលស្ថាប័នធំៗចូលចិត្តទាញតម្លៃទៅ Hunt Liquidity មុនពេលប្តូរទិសដៅ!</i>"
                     )
                     self.notifier.send_photo(heatmap_png, caption=caption, chat_id=chat_id, reply_markup=bottom_keyboard)
