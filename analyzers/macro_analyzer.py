@@ -99,30 +99,40 @@ class MacroAnalyzer:
 
     @classmethod
     def analyze_breaking_news(cls, title: str, description: str = "") -> dict:
-        """Analyzes breaking geopolitical or central bank event for gold impact."""
+        """Analyzes breaking geopolitical, tech/AI or central bank event for gold impact with full narrative context."""
         text = f"{title} {description}".lower()
+        full_story = f"{title} — {description}".strip(" —")
         
-        if any(w in text for w in ["war", "missile", "escalat", "geopolitical", "safe haven", "attack"]):
+        if any(w in text for w in ["war", "missile", "escalat", "geopolitical", "safe haven", "attack", "iran", "strait of hormuz"]):
             return {
-                "what_happened": f"មានការវិវត្តន៍ស្ថានភាពតានតឹងភូមិសាស្ត្រនយោបាយ / សង្គ្រាម៖ {title}",
-                "why_it_matters": "វិបត្តិភូមិសាស្ត្រនយោបាយជំរុញឱ្យវិនិយោគិនស្វែងរកទ្រព្យសកម្មសុវត្ថិភាព (Safe-Haven Assets)។",
-                "usd_impact": "USD អាចឡើងថ្លៃជា Safe Haven ប៉ុន្តែ Gold ទទួលបានអត្ថប្រយោជន៍ខ្លាំងជាង។",
-                "rate_yield_impact": "វិនិយោគិនសម្រុកទិញ Bonds ធ្វើឱ្យ Yields ធ្លាក់ចុះ។",
-                "xau_pressure": "🟢 Possible Bullish Pressure (កម្លាំងទិញមាស Safe-Haven កើនឡើង)",
+                "what_happened": f"ភាពតានតឹងភូមិសាស្ត្រនយោបាយកើនឡើង៖ {full_story}",
+                "why_it_matters": "🔴 នេះជាព័ត៌មានអវិជ្ជមានផ្នែកសន្តិសុខ ដែលជំរុញឱ្យវិនិយោគិនស្វែងរកទ្រព្យសកម្មសុវត្ថិភាព (Safe-Haven Assets) និងធ្វើឱ្យមានការព្រួយបារម្ភពីការរំខានដល់ការផ្គត់ផ្គង់ថាមពលពិភពលោក។",
+                "usd_impact": "USD អាចឡើងថ្លៃក្នុងនាមជា Safe Haven ប៉ុន្តែមាស (Gold) ទទួលបានអត្ថប្រយោជន៍ និងទំហំទិញខ្លាំងជាង។",
+                "rate_yield_impact": "វិនិយោគិនសម្រុកទិញសញ្ញាប័ណ្ណរដ្ឋាភិបាល (Bonds) ធ្វើឱ្យ Bond Yields ធ្លាក់ចុះ។",
+                "xau_pressure": "🟢 Possible Bullish Pressure (កម្លាំងទិញមាស Safe-Haven កើនឡើងខ្ពស់)",
                 "bias": "🟢 Bullish"
+            }
+        elif any(w in text for w in ["artificial intelligence", "ai", "tech", "nvidia", "super intelligence"]):
+            return {
+                "what_happened": f"ការវិវត្តន៍វិស័យបច្ចេកវិទ្យា និង AI៖ {full_story}",
+                "why_it_matters": "🟢 នេះជាព័ត៌មានវិជ្ជមាន ដែលបង្ហាញពីការផ្តល់តម្លៃកាន់តែខ្ពស់ទៅលើការអភិវឌ្ឍ សក្តានុពលនៃបច្ចេកវិទ្យាអនាគត និងការជំរុញសន្ទស្សន៍ទីផ្សារហ៊ុន (Tech Rally)។",
+                "usd_impact": "USD អាចរក្សាស្ថិរភាព ឬរឹងមាំតាមចរន្តវិនិយោគលើភាគហ៊ុនបច្ចេកវិទ្យាអាមេរិក។",
+                "rate_yield_impact": "ជំរុញអារម្មណ៍វិនិយោគិន Risk-On នៅក្នុងទីផ្សារហិរញ្ញវត្ថុ។",
+                "xau_pressure": "🟡 Possible Mixed / Consolidation (ទីផ្សារបង្វែរសាច់ប្រាក់មួយចំណែកទៅកាន់វិស័យបច្ចេកវិទ្យា)",
+                "bias": "🟡 Mixed / Unclear"
             }
         elif any(w in text for w in ["rate cut", "dovish", "easing"]):
             return {
-                "what_happened": f"សញ្ញានៃការបន្ធូរបន្ថយនយោបាយរូបិយវត្ថុ (Rate Cut/Dovish)៖ {title}",
+                "what_happened": f"សញ្ញានៃការបន្ធូរបន្ថយនយោបាយរូបិយវត្ថុ (Rate Cut/Dovish)៖ {full_story}",
                 "why_it_matters": "ការបញ្ចុះអត្រាការប្រាក់កាត់បន្ថយថ្លៃដើមនៃការកាន់កាប់មាស និងធ្វើឱ្យ USD ចុះខ្សោយ។",
                 "usd_impact": "USD ចុះខ្សោយ (Bearish USD)។",
                 "rate_yield_impact": "Bond Yields ធ្លាក់ចុះ គាំទ្រដល់លោហៈធាតុមានតម្លៃ។",
-                "xau_pressure": "🟢 Possible Bullish Pressure (សម្ពាធវិជ្ជមានលើមាស)",
+                "xau_pressure": "🟢 Possible Bullish Pressure (សម្ពាធវិជ្ជមានជំរុញតម្លៃមាស)",
                 "bias": "🟢 Bullish"
             }
         elif any(w in text for w in ["rate hike", "hawkish", "higher for longer"]):
             return {
-                "what_happened": f"សញ្ញារក្សាអត្រាការប្រាក់ខ្ពស់ ឬដំឡើងការប្រាក់ (Hawkish)៖ {title}",
+                "what_happened": f"សញ្ញារក្សាអត្រាការប្រាក់ខ្ពស់ ឬដំឡើងការប្រាក់ (Hawkish)៖ {full_story}",
                 "why_it_matters": "ការប្រាក់ខ្ពស់ផ្តល់ទិន្នផលលើសាច់ប្រាក់ និងសញ្ញាប័ណ្ណ ធ្វើឱ្យមាសបាត់បង់ភាពទាក់ទាញ។",
                 "usd_impact": "USD រឹងមាំឡើង (Bullish USD)។",
                 "rate_yield_impact": "Treasury Yields កើនឡើង បង្កើតសម្ពាធលើទ្រព្យសកម្មគ្មានការប្រាក់ដូចជាមាស។",
@@ -131,8 +141,8 @@ class MacroAnalyzer:
             }
         else:
             return {
-                "what_happened": f"ព័ត៌មានទីផ្សារទើបទទួលបាន៖ {title}",
-                "why_it_matters": "ព័ត៌មាននេះអាចបង្កើនបម្រែបម្រួលតម្លៃក្នុងរយៈពេលខ្លី។",
+                "what_happened": f"ព័ត៌មានទីផ្សារទើបទទួលបាន៖ {full_story}",
+                "why_it_matters": "ព័ត៌មាននេះមានសារៈសំខាន់ក្នុងការកំណត់ទិសដៅ និងអារម្មណ៍វិនិយោគិនក្នុងទីផ្សាររយៈពេលខ្លី។",
                 "usd_impact": "កំពុងតាមដានប្រតិកម្មលើសន្ទស្សន៍ DXY។",
                 "rate_yield_impact": "តាមដានទិន្នផល US 10-Year Treasury Yields។",
                 "xau_pressure": "🟡 Possible Mixed Pressure (រង់ចាំទីផ្សារឆ្លើយតប)",

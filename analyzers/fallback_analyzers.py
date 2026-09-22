@@ -13,8 +13,9 @@ logger = logging.getLogger(__name__)
 # OpenAI-compatible chat-completions endpoints. Any provider exposing this
 # API can be enabled by setting <NAME>_API_KEY (and optionally <NAME>_MODEL).
 OPENAI_COMPAT_PROVIDERS = {
-    "groq": ("https://api.groq.com/openai/v1", "llama-3.3-70b-versatile"),
+    "openrouter": ("https://openrouter.ai/api/v1", "deepseek/deepseek-chat"),
     "deepseek": ("https://api.deepseek.com", "deepseek-chat"),
+    "groq": ("https://api.groq.com/openai/v1", "llama-3.3-70b-versatile"),
     "openai": ("https://api.openai.com/v1", "gpt-4o-mini"),
     "qwen": ("https://dashscope-intl.aliyuncs.com/compatible-mode/v1", "qwen-plus"),
     "grok": ("https://api.x.ai/v1", "grok-4-fast"),
@@ -50,7 +51,7 @@ class OpenAICompatAnalyzer:
             f"{self.base_url}/chat/completions",
             headers={"Authorization": f"Bearer {self.api_key}"},
             json=payload,
-            timeout=40,
+            timeout=15,
         )
         resp.raise_for_status()
         return resp.json()["choices"][0]["message"]["content"] or ""

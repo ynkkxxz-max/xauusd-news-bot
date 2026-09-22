@@ -6,10 +6,12 @@ import requests
 logger = logging.getLogger(__name__)
 
 RSS_FEEDS = [
-    ("ForexLive Gold", "https://www.forexlive.com/feed/gold"),
+    ("Investing.com Central Banks", "https://www.investing.com/rss/news_301.rss"),
+    ("Investing.com Economy", "https://www.investing.com/rss/news_14.rss"),
+    ("MarketWatch Real-time", "https://feeds.content.dowjones.io/public/rss/mw_realtimeheadlines"),
     ("ForexLive News", "https://www.forexlive.com/feed/news"),
+    ("FXStreet Financial", "https://www.fxstreet.com/rss/news"),
     ("Investing.com Gold", "https://www.investing.com/rss/news_14.rss"),
-    ("FXStreet Gold", "https://www.fxstreet.com/rss/news")
 ]
 
 class BreakingNewsCollector:
