@@ -158,3 +158,17 @@ class TelegramNotifier:
         except Exception as e:
             logger.debug(f"[TelegramNotifier] getUpdates error: {e}")
         return []
+
+    def answer_callback_query(self, callback_query_id: str, text: str = None, show_alert: bool = False):
+        """Acknowledges incoming button clicks via answerCallbackQuery API."""
+        if not self.is_configured() or not callback_query_id:
+            return
+        url = f"{self.base_url}/answerCallbackQuery"
+        payload = {"callback_query_id": callback_query_id, "show_alert": show_alert}
+        if text:
+            payload["text"] = text
+        try:
+            requests.post(url, json=payload, timeout=5)
+        except Exception as e:
+            logger.debug(f"[TelegramNotifier] answerCallbackQuery error: {e}")
+
