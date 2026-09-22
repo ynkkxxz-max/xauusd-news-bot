@@ -6,6 +6,7 @@ import requests
 logger = logging.getLogger(__name__)
 
 RSS_FEEDS = [
+    ("Federal Reserve Official", "https://www.federalreserve.gov/feeds/press_monetary.xml"),
     ("Investing.com Central Banks", "https://www.investing.com/rss/news_301.rss"),
     ("Investing.com Economy", "https://www.investing.com/rss/news_14.rss"),
     ("MarketWatch Real-time", "https://feeds.content.dowjones.io/public/rss/mw_realtimeheadlines"),
