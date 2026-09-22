@@ -433,16 +433,23 @@ class XAUUSDNewsAssistantBot:
             lot_calculator_inline_buttons = {
                 "inline_keyboard": [
                     [
-                        {"text": "💵 $500 (Risk 1%)", "callback_data": "lot_calc:500:1:10"},
-                        {"text": "💵 $1,000 (Risk 1%)", "callback_data": "lot_calc:1000:1:10"}
+                        {"text": "💵 $50", "callback_data": "lot_calc:50:2:10"},
+                        {"text": "💵 $100", "callback_data": "lot_calc:100:2:10"},
+                        {"text": "💵 $200", "callback_data": "lot_calc:200:2:10"}
                     ],
                     [
-                        {"text": "💵 $2,000 (Risk 1%)", "callback_data": "lot_calc:2000:1:10"},
-                        {"text": "💵 $5,000 (Risk 1%)", "callback_data": "lot_calc:5000:1:10"}
+                        {"text": "💵 $500", "callback_data": "lot_calc:500:1.5:10"},
+                        {"text": "💵 $1,000", "callback_data": "lot_calc:1000:1.5:10"},
+                        {"text": "💵 $2,000", "callback_data": "lot_calc:2000:1:10"}
                     ],
                     [
-                        {"text": "⚡ $1,000 (Risk 2%)", "callback_data": "lot_calc:1000:2:10"},
-                        {"text": "🔥 $1,000 (Risk 3%)", "callback_data": "lot_calc:1000:3:10"}
+                        {"text": "💎 $3,000", "callback_data": "lot_calc:3000:1:10"},
+                        {"text": "💎 $5,000", "callback_data": "lot_calc:5000:1:10"},
+                        {"text": "👑 $10,000", "callback_data": "lot_calc:10000:1:10"}
+                    ],
+                    [
+                        {"text": "⚡ $100 (Risk 5%)", "callback_data": "lot_calc:100:5:10"},
+                        {"text": "🔥 $1,000 (Risk 2%)", "callback_data": "lot_calc:1000:2:10"}
                     ]
                 ]
             }
