@@ -80,6 +80,11 @@ try:
 except ImportError:
     from collectors.khmer_voice import KhmerVoiceSynthesizer
 
+try:
+    from order_book_tracker import OrderBookDepthTracker
+except ImportError:
+    from collectors.order_book_tracker import OrderBookDepthTracker
+
 from telegram_notifier import TelegramNotifier
 
 
@@ -100,6 +105,7 @@ class XAUUSDNewsAssistantBot:
         self.cot_collector = CotCollector()
         self.macro_collector = MarketMacroCorrelation()
         self.voice_synth = KhmerVoiceSynthesizer()
+        self.order_book_tracker = OrderBookDepthTracker()
         self.notifier = TelegramNotifier()
 
         self.analyzer = AnalyzerChain([GeminiAnalyzer()] + build_fallback_analyzers())
@@ -329,6 +335,23 @@ class XAUUSDNewsAssistantBot:
             self.notifier.send_message(msg)
             database.set_state("last_macro_divergence_ts", str(now))
 
+    def check_iceberg_orders(self):
+        """
+        Monitors 100-level Gold Order Book for abnormal institutional iceberg walls (> 20 oz block).
+        Alerts when an aggressive whale wall defends support or caps resistance.
+        """
+        now = time.time()
+        last_iceberg = float(database.get_state("last_iceberg_alert_ts") or 0.0)
+        if now - last_iceberg < 7200:  # 2-hour cooldown between iceberg wall alerts
+            return
+
+        iceberg = self.order_book_tracker.detect_iceberg_anomaly()
+        if iceberg:
+            logger.info(f"[WHALE ICEBERG DETECTED] {iceberg['type']} at ${iceberg['price']}")
+            msg = KhmerFormatter.format_iceberg_alert(iceberg)
+            self.notifier.send_message(msg)
+            database.set_state("last_iceberg_alert_ts", str(now))
+
     def check_weekly_sunday_outlook(self):
         """
         Broadcasts Weekly Macro Outlook every Sunday at 19:00 (7:00 PM Cambodia Time)
@@ -481,6 +504,11 @@ class XAUUSDNewsAssistantBot:
                 else:
                     self.notifier.send_message("⚠️ មិនអាចបង្កើតសំឡេងបាននៅពេលនេះទេ សូមព្យាយាមម្តងទៀត។", chat_id=chat_id, reply_markup=bottom_keyboard)
 
+            elif clean_cmd in ("/depth", "/orderbook", "/iceberg", "orderbook") or "ជម្រៅទីផ្សារ" in text:
+                depth = self.order_book_tracker.fetch_order_book_depth()
+                resp = KhmerFormatter.format_order_book_depth(depth)
+                self.notifier.send_message(resp, chat_id=chat_id, reply_markup=bottom_keyboard)
+
             elif clean_cmd in ("/help", "/start") or "ជំនួយ" in text:
                 parts = text.split()
                 if len(parts) > 1 and parts[1].lower() == "price":
@@ -514,6 +542,7 @@ class XAUUSDNewsAssistantBot:
                         f"• <b>SMC</b> ➡️ មើលកម្រិតបច្ចេកទេស AI Pivot & SMC Setup Zone\n"
                         f"• <code>/cot</code> ➡️ មើលរបាយការណ៍កុងត្រាស្ថាប័នធំៗ CFTC CoT Report\n"
                         f"• <code>/dxy</code> ➡️ មើលសន្ទស្សន៍ដុល្លារ និងសញ្ញា Macro Divergence\n"
+                        f"• <code>/depth</code> ➡️ មើលជម្រៅ Order Book Depth 100 Levels & Iceberg Walls\n"
                         f"• <code>/voice</code> ➡️ ស្តាប់សំឡេងនិយាយសង្ខេបហាងឆេងមាសភាសាខ្មែរ"
                     )
                     self.notifier.send_message(help_text, chat_id=chat_id, reply_markup=bottom_keyboard)
@@ -818,6 +847,9 @@ class XAUUSDNewsAssistantBot:
             # 5.3 Macro Divergence Alert (DXY vs Gold)
             self.check_macro_divergence()
 
+            # 5.4 Whale Order Book Depth & Iceberg Orders Tracker
+            self.check_iceberg_orders()
+
             # 6. Breaking News Alert (Strictly filtered: Only sends if 100% clear and high-impact)
             self.check_breaking_news()
 
@@ -858,6 +890,7 @@ class XAUUSDNewsAssistantBot:
                         self.check_candlestick_confirmation()
                         self.check_liquidity_sweep()
                         self.check_macro_divergence()
+                        self.check_iceberg_orders()
                         self.check_breaking_news()
                         background_interval = self.check_economic_events()
                     except Exception as err:
