@@ -87,6 +87,22 @@ class XAUUSDNewsAssistantBot:
         else:
             logger.info("No AI keys configured — using rule-based MacroAnalyzer fallback.")
         logger.info("Initializing XAUUSD News Assistant Bot (Cambodia Time UTC+7)...")
+        self._bootstrap_news_cache()
+
+    def _bootstrap_news_cache(self):
+        """On startup, marks any currently active news items in the feeds as already known
+        so the bot strictly broadcasts brand-new breaking news that appears AFTER startup."""
+        try:
+            items = self.news_collector.fetch_latest_news()
+            bootstrapped = 0
+            for item in items:
+                if not database.is_news_sent(item["id"]):
+                    database.record_news_sent(item["id"], item["title"], item.get("source", ""))
+                    bootstrapped += 1
+            if bootstrapped > 0:
+                logger.info(f"[Startup News Sync] Registered {bootstrapped} active feed items. Only future fresh news will trigger alerts.")
+        except Exception as e:
+            logger.warning(f"[Startup News Sync] Warning: {e}")
 
     def check_daily_gold_price(self):
         """Checks if daily gold price message needs to be sent and pinned at 07:00 AM Cambodia Time."""
