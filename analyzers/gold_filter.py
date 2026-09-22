@@ -82,3 +82,50 @@ class GoldNewsFilter:
             return True
 
         return False
+
+    @staticmethod
+    def is_duplicate_or_similar(new_title: str, existing_titles: list, threshold: float = 0.35) -> bool:
+        """
+        Semantic Deduplication: Checks if the new news article is covering the same topic/event
+        as any article broadcasted recently (e.g. within the last 4 hours) across different RSS feeds.
+        Returns True if a similar article was already broadcasted.
+        """
+        import re
+
+        def _stem(w: str) -> str:
+            # Simple, fast suffix stripping for English news
+            w = w.lower()
+            for suffix in ("ing", "tion", "ions", "ment", "ments", "ies", "es", "ed", "s"):
+                if w.endswith(suffix) and len(w) > len(suffix) + 3:
+                    return w[:-len(suffix)]
+            return w
+
+        def _tokenize(text: str) -> set:
+            # Clean punctuation, lower-case, and extract meaningful words (> 2 chars)
+            words = re.findall(r"\b[a-zA-Z0-9%]{3,}\b", text.lower())
+            stop_words = {
+                "news", "says", "said", "today", "market", "markets", "price", "prices",
+                "update", "live", "report", "breaking", "after", "amid", "with", "from",
+                "over", "more", "into", "their", "will", "than", "some", "what", "could",
+                "and", "the", "for"
+            }
+            return {_stem(w) for w in words if w not in stop_words}
+
+        new_tokens = _tokenize(new_title)
+        if not new_tokens:
+            return False
+
+        for past_title in existing_titles:
+            past_tokens = _tokenize(past_title)
+            if not past_tokens:
+                continue
+
+            intersection = new_tokens.intersection(past_tokens)
+            union = new_tokens.union(past_tokens)
+            similarity = len(intersection) / len(union) if union else 0.0
+
+            # If 35%+ of core words match, or 3+ critical subject entities overlap
+            if similarity >= threshold or len(intersection) >= 3:
+                return True
+
+        return False
