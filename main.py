@@ -85,6 +85,11 @@ try:
 except ImportError:
     from collectors.order_book_tracker import OrderBookDepthTracker
 
+try:
+    from fomc_interpreter import FomcSpeechInterpreter
+except ImportError:
+    from analyzers.fomc_interpreter import FomcSpeechInterpreter
+
 from telegram_notifier import TelegramNotifier
 
 
@@ -106,6 +111,7 @@ class XAUUSDNewsAssistantBot:
         self.macro_collector = MarketMacroCorrelation()
         self.voice_synth = KhmerVoiceSynthesizer()
         self.order_book_tracker = OrderBookDepthTracker()
+        self.fomc_interpreter = FomcSpeechInterpreter()
         self.notifier = TelegramNotifier()
 
         self.analyzer = AnalyzerChain([GeminiAnalyzer()] + build_fallback_analyzers())
@@ -509,6 +515,24 @@ class XAUUSDNewsAssistantBot:
                 resp = KhmerFormatter.format_order_book_depth(depth)
                 self.notifier.send_message(resp, chat_id=chat_id, reply_markup=bottom_keyboard)
 
+            elif clean_cmd in ("/fomc", "/powell") or "fed" in text.lower():
+                self.notifier.send_message("⚡ <i>AI កំពុងទាញយកសេចក្តីថ្លែងការណ៍ FOMC និងសុន្ទរកថា Fed ចុងក្រោយបង្អស់មកវិភាគបកប្រែ...</i>", chat_id=chat_id)
+                # Fetch latest Fed official press releases
+                fed_items = [it for it in self.news_collector.fetch_latest_news() if any(k in it['title'].lower() for k in ['fed', 'fomc', 'federal reserve', 'powell', 'monetary policy'])]
+                if fed_items:
+                    target = fed_items[0]
+                    interp = self.fomc_interpreter.interpret_powell_speech(f"{target['title']}\n{target.get('description', '')}", event_title=target['title'])
+                    if interp:
+                        resp = KhmerFormatter.format_fomc_speech_alert(target['title'], interp)
+                        self.notifier.send_message(resp, chat_id=chat_id, reply_markup=bottom_keyboard)
+                        if interp.get("voice_script"):
+                            v_b = self.voice_synth.text_to_speech(interp["voice_script"])
+                            if v_b and len(v_b) > 1000:
+                                self.notifier.send_voice(v_b, caption="🎙️ <b>សំឡេងបកប្រែសង្ខេប Fed / Powell Speech</b>", chat_id=chat_id)
+                        return
+
+                self.notifier.send_message("📅 មិនទាន់មានសេចក្តីថ្លែងការណ៍ FOMC ថ្មីភ្លាមៗក្នុងរយៈពេលប៉ុន្មានម៉ោងនេះទេ (រង់ចាំការប្រជុំ FOMC បន្ទាប់)។", chat_id=chat_id, reply_markup=bottom_keyboard)
+
             elif clean_cmd in ("/help", "/start") or "ជំនួយ" in text:
                 parts = text.split()
                 if len(parts) > 1 and parts[1].lower() == "price":
@@ -540,9 +564,10 @@ class XAUUSDNewsAssistantBot:
                         f"ចុចប៊ូតុង <b>[ Price ]</b> ឬ <b>[ SMC ]</b> នៅខាងក្រោម ឬវាយពាក្យបញ្ជា Bot៖\n"
                         f"• <b>Price</b> ➡️ មើលហាងឆេងមាស Spot និងផ្សារធំថ្មីបច្ចុប្បន្ន\n"
                         f"• <b>SMC</b> ➡️ មើលកម្រិតបច្ចេកទេស AI Pivot & SMC Setup Zone\n"
+                        f"• <code>/fomc</code> ➡️ AI បកប្រែផ្ទាល់ការថ្លែងសុន្ទរកថា Fed / Powell Speech + សំឡេង\n"
+                        f"• <code>/depth</code> ➡️ មើលជម្រៅ Order Book Depth 100 Levels & Iceberg Walls\n"
                         f"• <code>/cot</code> ➡️ មើលរបាយការណ៍កុងត្រាស្ថាប័នធំៗ CFTC CoT Report\n"
                         f"• <code>/dxy</code> ➡️ មើលសន្ទស្សន៍ដុល្លារ និងសញ្ញា Macro Divergence\n"
-                        f"• <code>/depth</code> ➡️ មើលជម្រៅ Order Book Depth 100 Levels & Iceberg Walls\n"
                         f"• <code>/voice</code> ➡️ ស្តាប់សំឡេងនិយាយសង្ខេបហាងឆេងមាសភាសាខ្មែរ"
                     )
                     self.notifier.send_message(help_text, chat_id=chat_id, reply_markup=bottom_keyboard)
@@ -782,17 +807,17 @@ class XAUUSDNewsAssistantBot:
         if not analysis:
             return
 
-        # STRICT USER DIRECTIVE:
-        # If the analysis is unclear, vague, or marked is_clear == False, DO NOT SEND TO TELEGRAM CHANNEL!
-        is_clear = analysis.get("is_clear")
-        bias = str(analysis.get("bias", "")).lower()
-        if is_clear is False or "unclear" in bias:
-            logger.info(f"[SKIPPED] News '{title}' skipped because market impact is unclear or low-confidence.")
-            # Record as sent so it won't loop re-analyzing the same item
-            database.record_news_sent(item["id"], title, item.get("source", ""))
-            return
+        # --- SPECIAL FOMC / POWELL LIVE SPEECH INTERPRETATION ---
+        is_fomc_or_powell = any(w in (title + " " + desc).lower() for w in ["fomc", "powell", "fed rate", "federal reserve issues", "rate decision"])
+        fomc_interp = None
+        if is_fomc_or_powell and self.fomc_interpreter.is_available():
+            logger.info(f"[LIVE FOMC/POWELL INTERPRETER] Detected Fed statement/speech: {title}")
+            fomc_interp = self.fomc_interpreter.interpret_powell_speech(f"{title}\n{desc}", event_title=title)
 
-        msg = KhmerFormatter.format_breaking_event_alert(item, analysis)
+        if fomc_interp:
+            msg = KhmerFormatter.format_fomc_speech_alert(title, fomc_interp)
+        else:
+            msg = KhmerFormatter.format_breaking_event_alert(item, analysis)
 
 
         # One single combined message: news photo (or calendar table) with the analysis as caption.
@@ -815,6 +840,19 @@ class XAUUSDNewsAssistantBot:
         if sent_ok:
             database.record_news_sent(item["id"], title, item.get("source", ""))
             database.set_state("last_breaking_alert_ts", str(time.time()))
+
+            # If FOMC / Powell Speech was interpreted, broadcast voice note immediately
+            if fomc_interp and fomc_interp.get("voice_script"):
+                try:
+                    v_bytes = self.voice_synth.text_to_speech(fomc_interp["voice_script"])
+                    if v_bytes and len(v_bytes) > 1000:
+                        self.notifier.send_voice(
+                            v_bytes,
+                            caption="🎙️ <b>សំឡេងបកប្រែសង្ខេប Fed / Powell Speech (Live Voice Brief)</b>"
+                        )
+                        logger.info("FOMC live voice translation broadcasted successfully.")
+                except Exception as e:
+                    logger.warning(f"Failed to send FOMC voice note: {e}")
         else:
             logger.error("Breaking alert send failed; item kept for retry next cycle.")
 
