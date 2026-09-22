@@ -13,19 +13,22 @@ class TelegramNotifier:
     def is_configured(self) -> bool:
         return bool(self.bot_token and self.chat_id and self.bot_token != "YOUR_TELEGRAM_BOT_TOKEN_HERE")
 
-    def send_message(self, text: str, parse_mode: str = "HTML", disable_web_page_preview: bool = True, auto_pin: bool = False) -> dict:
+    def send_message(self, text: str, parse_mode: str = "HTML", disable_web_page_preview: bool = True, auto_pin: bool = False, reply_markup: dict = None, chat_id: str = None) -> dict:
         """Send message directly to Telegram channel/chat. If auto_pin is True, pins the message."""
         if not self.is_configured():
             logger.warning("[TelegramNotifier] Credentials not set. Message output (Simulation):\n" + "="*50 + f"\n{text}\n" + "="*50)
             return {"ok": True, "result": {"message_id": 999999, "simulated": True}}
 
+        target_chat = str(chat_id or self.chat_id)
         url = f"{self.base_url}/sendMessage"
         payload = {
-            "chat_id": self.chat_id,
+            "chat_id": target_chat,
             "text": text,
             "parse_mode": parse_mode,
             "disable_web_page_preview": disable_web_page_preview
         }
+        if reply_markup:
+            payload["reply_markup"] = reply_markup
         
         try:
             resp = requests.post(url, json=payload, timeout=15)
@@ -45,18 +48,22 @@ class TelegramNotifier:
             logger.error(f"[TelegramNotifier] Exception while sending message: {e}")
             return {"ok": False, "error": str(e)}
 
-    def send_photo(self, photo_bytes: bytes, caption: str = "", parse_mode: str = "HTML") -> dict:
+    def send_photo(self, photo_bytes: bytes, caption: str = "", parse_mode: str = "HTML", reply_markup: dict = None, chat_id: str = None) -> dict:
         """Uploads a PNG image to the chat via the sendPhoto API."""
         if not self.is_configured():
             logger.warning(f"[TelegramNotifier] Credentials not set. Simulated photo upload ({len(photo_bytes)} bytes).")
             return {"ok": True, "result": {"message_id": 999998, "simulated": True}}
 
+        target_chat = str(chat_id or self.chat_id)
         url = f"{self.base_url}/sendPhoto"
         files = {"photo": ("calendar.png", photo_bytes, "image/png")}
-        data = {"chat_id": self.chat_id}
+        data = {"chat_id": target_chat}
         if caption:
             data["caption"] = caption
             data["parse_mode"] = parse_mode
+        if reply_markup:
+            import json
+            data["reply_markup"] = json.dumps(reply_markup)
 
         try:
             resp = requests.post(url, data=data, files=files, timeout=30)
@@ -94,3 +101,20 @@ class TelegramNotifier:
         except Exception as e:
             logger.error(f"[TelegramNotifier] Exception pinning message: {e}")
             return False
+
+    def get_updates(self, offset: int = None, timeout: int = 1) -> list:
+        """Fetches incoming user messages / commands via getUpdates API."""
+        if not self.is_configured():
+            return []
+        url = f"{self.base_url}/getUpdates"
+        params = {"timeout": timeout}
+        if offset is not None:
+            params["offset"] = offset
+        try:
+            resp = requests.get(url, params=params, timeout=timeout + 5)
+            data = resp.json()
+            if data.get("ok"):
+                return data.get("result", [])
+        except Exception as e:
+            logger.debug(f"[TelegramNotifier] getUpdates error: {e}")
+        return []

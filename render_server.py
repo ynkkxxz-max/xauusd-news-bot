@@ -4,15 +4,20 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from main import XAUUSDNewsAssistantBot
 
 # Simple HTTP health check server so free cloud platforms (Render, Railway) know the app is alive
+# and can be pinged by cron-job.org every 5-10 minutes.
 class HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
-        self.send_header("Content-type", "text/plain; charset=utf-8")
+        self.send_header("Content-type", "application/json; charset=utf-8")
         self.end_headers()
-        self.wfile.write("🥇 XAUUSD News Assistant is running 24/7!".encode("utf-8"))
+        status_json = (
+            '{"status":"online","service":"XAUUSD News Assistant","mode":"autonomous_24_7"}'
+        )
+        self.wfile.write(status_json.encode("utf-8"))
 
     def log_message(self, format, *args):
         pass # Suppress HTTP access log noise
+
 
 def run_http_server():
     port = int(os.getenv("PORT", "10000"))

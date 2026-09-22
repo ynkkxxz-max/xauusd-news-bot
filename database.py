@@ -143,7 +143,35 @@ def set_state(key: str, value: str):
     VALUES (?, ?, datetime('now'))
     """, (key, value))
     conn.commit()
+def cleanup_old_records(days: int = 30) -> int:
+    """
+    Cleans up logs and history older than `days` to keep data.db lightweight and fast.
+    Executes SQLite VACUUM to reclaim storage.
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+    DELETE FROM sent_news 
+    WHERE sent_at < datetime('now', ?)
+    """, (f"-{days} days",))
+    deleted_news = cursor.rowcount
+
+    cursor.execute("""
+    DELETE FROM sent_events 
+    WHERE sent_at < datetime('now', ?)
+    """, (f"-{days} days",))
+    deleted_events = cursor.rowcount
+
+    cursor.execute("""
+    DELETE FROM daily_price_logs 
+    WHERE sent_at < datetime('now', ?)
+    """, (f"-{days} days",))
+    deleted_prices = cursor.rowcount
+
+    conn.commit()
+    cursor.execute("VACUUM")
     conn.close()
+    return deleted_news + deleted_events + deleted_prices
 
 # Initialize upon import
 init_db()
