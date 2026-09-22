@@ -194,11 +194,10 @@ class XAUUSDNewsAssistantBot:
             if not text or not chat_id:
                 continue
 
-            # Standard keyboard buttons for Private Chat
-            menu_keyboard = {
+            # Clean 2-Button Custom Keyboard directly at the bottom (Price & SMC)
+            bottom_keyboard = {
                 "keyboard": [
-                    [{"text": "🥇 ហាងឆេងមាស (/price)"}, {"text": "🎯 កម្រិត SMC (/levels)"}],
-                    [{"text": "📅 ប្រតិទិនសេដ្ឋកិច្ច (/calendar)"}, {"text": "ℹ️ ជំនួយ (/help)"}]
+                    [{"text": "Price"}, {"text": "SMC"}]
                 ],
                 "resize_keyboard": True,
                 "persistent": True
@@ -216,12 +215,12 @@ class XAUUSDNewsAssistantBot:
             # Command routing
             clean_cmd = text.split()[0].lower()
 
-            if clean_cmd in ("/price", "/gold") or "ហាងឆេងមាស" in text:
+            if clean_cmd in ("/price", "/gold", "price") or "ហាងឆេងមាស" in text:
                 price_data = self.gold_collector.fetch_price()
                 resp = KhmerFormatter.format_daily_gold_price(price_data, summary="")
-                self.notifier.send_message(resp, chat_id=chat_id, reply_markup=inline_trading_buttons)
+                self.notifier.send_message(resp, chat_id=chat_id, reply_markup=bottom_keyboard)
 
-            elif clean_cmd in ("/levels", "/setup") or "កម្រិត smc" in text.lower():
+            elif clean_cmd in ("/levels", "/setup", "smc") or "កម្រិត smc" in text.lower():
                 price_data = self.gold_collector.fetch_price()
                 levels = price_data.get("key_levels", {})
                 oz = price_data.get("price_oz", 0.0)
@@ -235,25 +234,24 @@ class XAUUSDNewsAssistantBot:
                     f"• 🎯 <b>Pivot Point:</b> ${pivot:,.2f}\n\n"
                     f"💡 <i>អនុសាសន៍: រង់ចាំ Confirmation Candle នៅលើ M15 មុនចូល Order!</i>"
                 )
-                self.notifier.send_message(reply, chat_id=chat_id, reply_markup=inline_trading_buttons)
+                self.notifier.send_message(reply, chat_id=chat_id, reply_markup=bottom_keyboard)
 
             elif clean_cmd in ("/calendar", "/events") or "ប្រតិទិនសេដ្ឋកិច្ច" in text:
                 png = self._build_calendar_png()
                 if png:
-                    self.notifier.send_photo(png, caption="📅 <b>ប្រតិទិនសេដ្ឋកិច្ចថ្ងៃនេះ — ម៉ោងនៅកម្ពុជា (UTC+7)</b>", chat_id=chat_id, reply_markup=inline_trading_buttons)
+                    self.notifier.send_photo(png, caption="📅 <b>ប្រតិទិនសេដ្ឋកិច្ចថ្ងៃនេះ — ម៉ោងនៅកម្ពុជា (UTC+7)</b>", chat_id=chat_id, reply_markup=bottom_keyboard)
                 else:
-                    self.notifier.send_message("📅 មិនមានទិន្នន័យប្រតិទិនសេដ្ឋកិច្ចធំៗថ្ងៃនេះទេ។", chat_id=chat_id, reply_markup=inline_trading_buttons)
+                    self.notifier.send_message("📅 មិនមានទិន្នន័យប្រតិទិនសេដ្ឋកិច្ចធំៗថ្ងៃនេះទេ។", chat_id=chat_id, reply_markup=bottom_keyboard)
 
             elif clean_cmd in ("/help", "/start") or "ជំនួយ" in text:
                 help_text = (
                     f"👋 <b>សូមស្វាគមន៍មកកាន់ XAUUSD AI Assistant Bot!</b>\n\n"
-                    f"លោកអ្នកអាចចុចប៊ូតុង Menu ខាងក្រោមផ្ទាល់ ឬប្រើ Commands៖\n"
-                    f"• <code>/price</code> ➡️ មើលហាងឆេងមាស Spot និងផ្សារធំថ្មីបច្ចុប្បន្ន\n"
-                    f"• <code>/levels</code> ➡️ មើលកម្រិតបច្ចេកទេស AI Pivot & SMC Setup\n"
-                    f"• <code>/calendar</code> ➡️ មើលតារាងប្រតិទិនសេដ្ឋកិច្ចថ្ងៃនេះ\n"
-                    f"• <code>/help</code> ➡️ មើលសេចក្តីណែនាំទាំងអស់"
+                    f"ចុចប៊ូតុង <b>[ Price ]</b> ឬ <b>[ SMC ]</b> នៅខាងក្រោមដើម្បីបញ្ជា Bot ភ្លាមៗ៖\n"
+                    f"• <b>Price</b> ➡️ មើលហាងឆេងមាស Spot និងផ្សារធំថ្មីបច្ចុប្បន្ន\n"
+                    f"• <b>SMC</b> ➡️ មើលកម្រិតបច្ចេកទេស AI Pivot & SMC Setup Zone"
                 )
-                self.notifier.send_message(help_text, chat_id=chat_id, reply_markup=menu_keyboard)
+                self.notifier.send_message(help_text, chat_id=chat_id, reply_markup=bottom_keyboard)
+
 
 
     @staticmethod
