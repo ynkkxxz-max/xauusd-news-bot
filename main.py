@@ -16,7 +16,14 @@ from collectors.gold_price import GoldPriceCollector
 from collectors.economic_calendar import EconomicCalendarCollector
 from collectors.breaking_news import BreakingNewsCollector
 from collectors.calendar_image import CalendarImageBuilder
-from collectors.tradingview_chart import TradingViewChartBuilder
+try:
+    from collectors.tradingview_chart import TradingViewChartBuilder
+except ImportError:
+    try:
+        from tradingview_chart import TradingViewChartBuilder
+    except ImportError:
+        TradingViewChartBuilder = None
+
 from analyzers.gold_filter import GoldNewsFilter
 from analyzers.gemini_analyzer import GeminiAnalyzer
 from analyzers.fallback_analyzers import AnalyzerChain, build_fallback_analyzers
@@ -36,8 +43,9 @@ class XAUUSDNewsAssistantBot:
         self.calendar_collector = EconomicCalendarCollector()
         self.news_collector = BreakingNewsCollector()
         self.calendar_builder = CalendarImageBuilder()
-        self.tv_chart_builder = TradingViewChartBuilder()
+        self.tv_chart_builder = TradingViewChartBuilder() if TradingViewChartBuilder else None
         self.notifier = TelegramNotifier()
+
         self.analyzer = AnalyzerChain([GeminiAnalyzer()] + build_fallback_analyzers())
         if self.analyzer.is_available():
             names = [getattr(a, "name", a.__class__.__name__)
@@ -342,14 +350,16 @@ class XAUUSDNewsAssistantBot:
 
                         # Generate TradingView Live Chart with AI direction arrow
                         chart_png = None
-                        try:
-                            chart_png = self.tv_chart_builder.build_chart_image(
-                                event_title=f"{ev['title']} (Actual: {actual_val} vs F: {ev.get('forecast', 'N/A')})",
-                                bias=analysis.get("bias", "Bullish"),
-                                target_desc=analysis.get("xau_pressure", "")[:60]
-                            )
-                        except Exception as e:
-                            logger.warning(f"Failed to generate TradingView chart: {e}")
+                        if self.tv_chart_builder:
+                            try:
+                                chart_png = self.tv_chart_builder.build_chart_image(
+                                    event_title=f"{ev['title']} (Actual: {actual_val} vs F: {ev.get('forecast', 'N/A')})",
+                                    bias=analysis.get("bias", "Bullish"),
+                                    target_desc=analysis.get("xau_pressure", "")[:60]
+                                )
+                            except Exception as e:
+                                logger.warning(f"Failed to generate TradingView chart: {e}")
+
 
                         if chart_png and self._caption_fits(msg):
                             self.notifier.send_photo(chart_png, caption=msg)
