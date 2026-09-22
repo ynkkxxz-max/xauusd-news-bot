@@ -317,3 +317,25 @@ class KhmerFormatter:
             f"• ពិនិត្យមើលតំបន់ Key Support / Resistance មុនពេលចូល Trade។\n\n"
             f"🛡️ <b>ការគ្រប់គ្រងហានិភ័យ:</b> កំណត់ Stop Loss ជានិច្ច ជៀសវាងការដេញតម្លៃពេលទើបបើកផ្សារ!"
         )
+
+    @staticmethod
+    def format_spike_alert(current_price: float, prev_price: float, diff: float, minutes: int = 15) -> str:
+        """Formats real-time Gold Volatility Spike / Flash Crash Warning."""
+        sign = "+" if diff > 0 else ""
+        direction = "🟢 BULLISH SPIKE (ហោះឡើងខ្លាំង)" if diff > 0 else "🔴 FLASH DUMP (ទម្លាក់ចុះខ្លាំង)"
+        icon = "🚀" if diff > 0 else "⚡"
+        
+        return (
+            f"🚨 {icon} <b>XAUUSD VOLATILITY ALERT — បម្រែបម្រួលតម្លៃមាសខុសប្រក្រតី!</b>\n\n"
+            f"📊 <b>ចលនាទីផ្សារ:</b> <b>{direction}</b>\n"
+            f"• <b>តម្លៃបច្ចុប្បន្ន:</b> <code>${current_price:,.2f}</code>\n"
+            f"• <b>តម្លៃមុននេះ ({minutes}mn):</b> <code>${prev_price:,.2f}</code>\n"
+            f"• <b>បម្រែបម្រួលភ្លាមៗ:</b> <b>{sign}${diff:,.2f}</b> ក្នុងរយៈពេលខ្លី!\n\n"
+            f"🧠 <b>ការវិភាគសភាពការណ៍:</b>\n"
+            f"• មានការកើនឡើងនៃលំហូរ Order ស្ថាប័នធំៗ (High Volume Institutional Spike) ឬមានប្រតិកម្មនឹងព័ត៌មានបន្ទាន់!\n"
+            f"• Spread អាចរីកធំឡើង (Spread Widening) ខ្លាំងនៅតាម Broker នានា។\n\n"
+            f"🛡️ <b>ការណែនាំគ្រប់គ្រងហានិភ័យ (Trader Caution):</b>\n"
+            f"• ⚠️ <b>ហាមដេញតម្លៃ (Do NOT FOMO / Chase):</b> រង់ចាំទីផ្សារបង្កើត Base ឬ Pullback សិន\n"
+            f"• 🔒 <b>ការពារទុន:</b> ពិនិត្យ Margin Level និងរំកិល Stop Loss ការពារប្រាក់ចំណេញ (Trailing Stop) ភ្លាមៗ!\n\n"
+            f"📊 <i>មើល Chart ផ្ទាល់: <a href='https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD'>TradingView XAUUSD</a></i>"
+        )
