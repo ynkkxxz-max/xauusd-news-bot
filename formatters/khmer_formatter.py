@@ -363,7 +363,35 @@ class KhmerFormatter:
         )
 
     @staticmethod
-    def format_weekly_outlook(price_data: dict, high_impact_events: list, summary: str = "") -> str:
+    def format_cot_report(cot_data: dict) -> str:
+        """Formats CFTC Commitment of Traders (CoT) institutional report for Gold."""
+        if not cot_data or not cot_data.get("available"):
+            return "📊 <b>ទិន្នន័យ CFTC CoT Report មិនទាន់ត្រូវបានធ្វើបច្ចុប្បន្នភាពនៅឡើយទេ។</b>"
+
+        r_date = cot_data.get("report_date", "")
+        net_noncomm = cot_data.get("net_noncommercial", 0)
+        chg_noncomm = cot_data.get("change_noncommercial", 0)
+        oi = cot_data.get("open_interest", 0)
+        cot_idx = cot_data.get("cot_index_52w", 50.0)
+        bias = cot_data.get("bias", "Neutral")
+
+        chg_sign = "+" if chg_noncomm >= 0 else ""
+
+        return (
+            f"🏛️ <b>CFTC GOLD CoT REPORT — ជំហរស្ថាប័នធំៗ (Smart Money)</b>\n\n"
+            f"📅 <b>កាលបរិច្ឆេទរបាយការណ៍ (Report Date):</b> {r_date}\n"
+            f"💼 <b>កុងត្រា Hedge Funds (Net Non-Commercial):</b> <code>{net_noncomm:,} contracts</code>\n"
+            f"📊 <b>បម្រែបម្រួលប្រចាំសប្តាហ៍ (Weekly Change):</b> <code>{chg_sign}{chg_noncomm:,} contracts</code>\n"
+            f"📈 <b>កុងត្រាសរុបក្នុងទីផ្សារ (Open Interest):</b> <code>{oi:,}</code>\n"
+            f"🎚️ <b>CoT Index (52-Week Percentile):</b> <code>{cot_idx:.1f}%</code>\n\n"
+            f"🧠 <b>ការបកស្រាយអារម្មណ៍ស្ថាប័ន (Institutional Bias):</b>\n"
+            f"{bias}\n\n"
+            f"💡 <i>CoT Report បង្ហាញពីទំហំកុងត្រាទិញ/លក់ពិតប្រាកដរបស់ស្ថាប័នហិរញ្ញវត្ថុអន្តរជាតិនៅលើ COMEX Gold Futures!</i>\n"
+            f"🔗 <a href='https://futuresbench.com/cot/gold/'>CFTC Gold Data Source</a>"
+        )
+
+    @staticmethod
+    def format_weekly_outlook(price_data: dict, high_impact_events: list, summary: str = "", cot_data: dict = None) -> str:
         """Formats Sunday Evening Weekly Macro & Institutional Gold Outlook."""
         oz = price_data.get("price_oz", 0.0)
         levels = price_data.get("key_levels", {})
@@ -379,6 +407,17 @@ class KhmerFormatter:
         else:
             events_str = "• មិនមានទិន្នន័យក្រហមធំៗ (High Impact) ក្នុងសប្តាហ៍នេះទេ\n"
 
+        cot_block = ""
+        if cot_data and cot_data.get("available"):
+            net_nc = cot_data.get("net_noncommercial", 0)
+            chg_nc = cot_data.get("change_noncommercial", 0)
+            chg_sign = "+" if chg_nc >= 0 else ""
+            cot_block = (
+                f"🏛️ <b>ជំហរស្ថាប័នធំៗ (CFTC CoT Hedge Funds):</b>\n"
+                f"• Net Long: <code>{net_nc:,} contracts</code> ({chg_sign}{chg_nc:,})\n"
+                f"• អារម្មណ៍ស្ថាប័ន: {cot_data.get('bias', 'Bullish')}\n\n"
+            )
+
         summary_block = f"🧠 <b>ទស្សនវិស័យស្ថាប័ន (Institutional Bias):</b>\n{summary}\n\n" if summary else ""
 
         return (
@@ -389,6 +428,7 @@ class KhmerFormatter:
             f"• 🔴 <b>Weekly Resistance (Target Sell):</b> <code>${r1:,.2f}</code>\n"
             f"• 🎯 <b>Weekly Pivot Point (តុល្យភាព):</b> <code>${pivot:,.2f}</code>\n"
             f"• 🟢 <b>Weekly Support (Target Buy):</b> <code>${s1:,.2f}</code>\n\n"
+            f"{cot_block}"
             f"📅 <b>ព្រឹត្តិការណ៍សេដ្ឋកិច្ចសំខាន់ៗប្រចាំសប្តាហ៍ (High Impact Catalysts):</b>\n"
             f"{events_str}\n"
             f"{summary_block}"
@@ -396,3 +436,4 @@ class KhmerFormatter:
             f"📊 <i>មើល Chart: <a href='https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD'>TradingView XAUUSD</a></i> | "
             f"📅 <i><a href='https://www.forexfactory.com/calendar'>ForexFactory Calendar</a></i>"
         )
+
