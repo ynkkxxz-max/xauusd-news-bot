@@ -410,6 +410,25 @@ class KhmerFormatter:
         )
 
     @staticmethod
+    def format_fomc_speech_alert(event_title: str, interp: dict) -> str:
+        """Formats Real-Time AI Live Speech Interpretation of FOMC / Jerome Powell."""
+        is_dovish = interp.get("tone") == "DOVISH"
+        icon = "🟢" if is_dovish else ("🔴" if interp.get("tone") == "HAWKISH" else "🟡")
+        
+        return (
+            f"⚡ {icon} <b>LIVE FED AI INTERPRETER — ការថ្លែងសុន្ទរកថាប្រធាន FED ផ្ទាល់!</b>\n\n"
+            f"🎙️ <b>ព្រឹត្តិការណ៍:</b> <b>{event_title}</b>\n"
+            f"🎭 <b>សម្លេង និងអារម្មណ៍ Fed (Tone):</b> <b>{interp.get('tone_kh', 'N/A')}</b>\n\n"
+            f"💬 <b>ចំណុចគន្លឹះសំខាន់ៗដែល Powell ថ្លែង (Key Quotes):</b>\n"
+            f"«<i>{interp.get('key_quotes', '')}</i>»\n\n"
+            f"🥇 <b>ផលប៉ះពាល់លើតម្លៃមាស (XAUUSD Impact):</b>\n"
+            f"• {interp.get('gold_pressure', '')}\n"
+            f"• <b>ទស្សនវិស័យមាស:</b> <b>{interp.get('xau_bias', 'Mixed')}</b>\n\n"
+            f"🛡️ <b>ការគ្រប់គ្រងហានិភ័យ:</b> ទីផ្សារមានចលនារលកធំៗ និង Spikes ខ្លាំងក្នុងអំឡុងពេលសន្និសីទ Fed សូមប្រយ័ត្នខ្ពស់!\n\n"
+            f"📊 <i>ពិនិត្យ Chart ផ្ទាល់: <a href='https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD'>TradingView XAUUSD Live</a></i>"
+        )
+
+    @staticmethod
     def format_iceberg_alert(iceberg: dict) -> str:
         """Formats Real-Time Institutional Iceberg Order / Whale Wall Alert."""
         is_buy = iceberg.get("type") == "ICEBERG_BUY_WALL"
