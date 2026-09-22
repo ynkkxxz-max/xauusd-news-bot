@@ -436,14 +436,49 @@ class XAUUSDNewsAssistantBot:
             if not text or not chat_id:
                 continue
 
-            # Clean 2-Button Custom Keyboard directly at the bottom (Price & SMC)
+            # 3-Button Custom Keyboard directly at the bottom (Price, SMC, 🧮 គិត Lot)
             bottom_keyboard = {
                 "keyboard": [
-                    [{"text": "Price"}, {"text": "SMC"}]
+                    [{"text": "Price"}, {"text": "SMC"}, {"text": "🧮 គិត Lot"}]
                 ],
                 "resize_keyboard": True,
                 "persistent": True
             }
+
+            lot_calculator_inline_buttons = {
+                "inline_keyboard": [
+                    [
+                        {"text": "💵 $500 (Risk 1%)", "callback_data": "lot_calc:500:1:10"},
+                        {"text": "💵 $1,000 (Risk 1%)", "callback_data": "lot_calc:1000:1:10"}
+                    ],
+                    [
+                        {"text": "💵 $2,000 (Risk 1%)", "callback_data": "lot_calc:2000:1:10"},
+                        {"text": "💵 $5,000 (Risk 1%)", "callback_data": "lot_calc:5000:1:10"}
+                    ],
+                    [
+                        {"text": "⚡ $1,000 (Risk 2%)", "callback_data": "lot_calc:1000:2:10"},
+                        {"text": "🔥 $1,000 (Risk 3%)", "callback_data": "lot_calc:1000:3:10"}
+                    ]
+                ]
+            }
+
+            # Handle Callback Query clicks (Inline Buttons)
+            cb_query = u.get("callback_query")
+            if cb_query:
+                cb_id = cb_query.get("id")
+                cb_data = cb_query.get("data", "")
+                cb_chat_id = cb_query.get("message", {}).get("chat", {}).get("id")
+                if cb_data.startswith("lot_calc:") and cb_chat_id:
+                    self.notifier.answer_callback_query(cb_id, text="🧮 កំពុងគណនា Lot Size...")
+                    parts = cb_data.split(":")
+                    if len(parts) == 4:
+                        bal = float(parts[1])
+                        rp = float(parts[2])
+                        sl_usd = float(parts[3])
+                        calc = RiskLotCalculator.calculate_lot_size(balance=bal, risk_pct=rp, sl_points_usd=sl_usd)
+                        resp = KhmerFormatter.format_lot_size_calculator(calc)
+                        self.notifier.send_message(resp, chat_id=cb_chat_id, reply_markup=lot_calculator_inline_buttons)
+                continue
 
             inline_trading_buttons = {
                 "inline_keyboard": [
@@ -556,7 +591,7 @@ class XAUUSDNewsAssistantBot:
                 else:
                     self.notifier.send_message("⚠️ មិនអាចបង្កើត Heatmap បានទេនៅពេលនេះ។", chat_id=chat_id, reply_markup=bottom_keyboard)
 
-            elif clean_cmd in ("/lot", "/risk", "lot", "risk") or "គិតlot" in text.lower() or "ម៉ាស៊ីនគិតlot" in text:
+            elif clean_cmd in ("/lot", "/risk", "lot", "risk") or "គិតlot" in text.lower() or "ម៉ាស៊ីនគិតlot" in text or "🧮 គិត lot" in text:
                 parsed = RiskLotCalculator.parse_user_input(text)
                 if parsed:
                     calc = RiskLotCalculator.calculate_lot_size(
@@ -567,20 +602,17 @@ class XAUUSDNewsAssistantBot:
                         sl_points_usd=parsed.get("sl_points_usd")
                     )
                     resp = KhmerFormatter.format_lot_size_calculator(calc)
+                    self.notifier.send_message(resp, chat_id=chat_id, reply_markup=lot_calculator_inline_buttons)
                 else:
+                    # Provide default quick calculation with interactive buttons
+                    default_calc = RiskLotCalculator.calculate_lot_size(balance=1000, risk_pct=1.0, sl_points_usd=10.0)
                     resp = (
-                        f"🤖 <b>របៀបប្រើប្រាស់ម៉ាស៊ីនគណនា LOT SIZE & RISK (XAU/USD):</b>\n\n"
-                        f"វាយពាក្យបញ្ជាតាមទម្រង់ខាងក្រោម៖\n"
-                        f"1. <b>គិតតាមដើមទុន & Risk%:</b>\n"
-                        f"   <code>/lot 1000 1 10</code>\n"
-                        f"   <i>(ដើមទុន $1000, Risk 1%, SL $10 = 100 pips)</i>\n\n"
-                        f"2. <b>គិតតាមតម្លៃ Entry & Stop Loss:</b>\n"
-                        f"   <code>/lot 500 2 4365 4355</code>\n"
-                        f"   <i>(ដើមទុន $500, Risk 2%, Entry 4365, SL 4355)</i>\n\n"
-                        f"3. <b>គិតលឿនតាមដើមទុនសុទ្ធ (Default Risk 1%, SL $10):</b>\n"
-                        f"   <code>/lot 2000</code>"
+                        f"{KhmerFormatter.format_lot_size_calculator(default_calc)}\n\n"
+                        f"👇 <b>ចុចប៊ូតុងខាងក្រោមដើម្បីជ្រើសរើសដើមទុនភ្លាមៗ ឬវាយតាមទម្រង់ផ្ទាល់ខ្លួន៖</b>\n"
+                        f"• <code>/lot 1000 1 10</code> <i>(ដើមទុន $1000, Risk 1%, SL $10)</i>\n"
+                        f"• <code>/lot 500 2 4365 4355</code> <i>(Entry 4365, SL 4355)</i>"
                     )
-                self.notifier.send_message(resp, chat_id=chat_id, reply_markup=bottom_keyboard)
+                    self.notifier.send_message(resp, chat_id=chat_id, reply_markup=lot_calculator_inline_buttons)
 
             elif clean_cmd in ("/depth", "/orderbook", "/iceberg", "orderbook") or "ជម្រៅទីផ្សារ" in text:
                 depth = self.order_book_tracker.fetch_order_book_depth()
