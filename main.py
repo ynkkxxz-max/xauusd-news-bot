@@ -95,6 +95,11 @@ try:
 except ImportError:
     from collectors.heatmap_builder import LiquidityHeatmapBuilder
 
+try:
+    from risk_calculator import RiskLotCalculator
+except ImportError:
+    from collectors.risk_calculator import RiskLotCalculator
+
 from telegram_notifier import TelegramNotifier
 
 
@@ -551,6 +556,32 @@ class XAUUSDNewsAssistantBot:
                 else:
                     self.notifier.send_message("⚠️ មិនអាចបង្កើត Heatmap បានទេនៅពេលនេះ។", chat_id=chat_id, reply_markup=bottom_keyboard)
 
+            elif clean_cmd in ("/lot", "/risk", "lot", "risk") or "គិតlot" in text.lower() or "ម៉ាស៊ីនគិតlot" in text:
+                parsed = RiskLotCalculator.parse_user_input(text)
+                if parsed:
+                    calc = RiskLotCalculator.calculate_lot_size(
+                        balance=parsed["balance"],
+                        risk_pct=parsed["risk_pct"],
+                        entry_price=parsed.get("entry_price"),
+                        sl_price=parsed.get("sl_price"),
+                        sl_points_usd=parsed.get("sl_points_usd")
+                    )
+                    resp = KhmerFormatter.format_lot_size_calculator(calc)
+                else:
+                    resp = (
+                        f"🤖 <b>របៀបប្រើប្រាស់ម៉ាស៊ីនគណនា LOT SIZE & RISK (XAU/USD):</b>\n\n"
+                        f"វាយពាក្យបញ្ជាតាមទម្រង់ខាងក្រោម៖\n"
+                        f"1. <b>គិតតាមដើមទុន & Risk%:</b>\n"
+                        f"   <code>/lot 1000 1 10</code>\n"
+                        f"   <i>(ដើមទុន $1000, Risk 1%, SL $10 = 100 pips)</i>\n\n"
+                        f"2. <b>គិតតាមតម្លៃ Entry & Stop Loss:</b>\n"
+                        f"   <code>/lot 500 2 4365 4355</code>\n"
+                        f"   <i>(ដើមទុន $500, Risk 2%, Entry 4365, SL 4355)</i>\n\n"
+                        f"3. <b>គិតលឿនតាមដើមទុនសុទ្ធ (Default Risk 1%, SL $10):</b>\n"
+                        f"   <code>/lot 2000</code>"
+                    )
+                self.notifier.send_message(resp, chat_id=chat_id, reply_markup=bottom_keyboard)
+
             elif clean_cmd in ("/depth", "/orderbook", "/iceberg", "orderbook") or "ជម្រៅទីផ្សារ" in text:
                 depth = self.order_book_tracker.fetch_order_book_depth()
                 resp = KhmerFormatter.format_order_book_depth(depth)
@@ -605,6 +636,7 @@ class XAUUSDNewsAssistantBot:
                         f"ចុចប៊ូតុង <b>[ Price ]</b> ឬ <b>[ SMC ]</b> នៅខាងក្រោម ឬវាយពាក្យបញ្ជា Bot៖\n"
                         f"• <b>Price</b> ➡️ មើលហាងឆេងមាស Spot និងផ្សារធំថ្មីបច្ចុប្បន្ន\n"
                         f"• <b>SMC</b> ➡️ មើលកម្រិតបច្ចេកទេស AI Pivot & SMC Setup Zone\n"
+                        f"• <code>/lot</code> ➡️ ម៉ាស៊ីនគណនាទំហំ Lot Size & Risk ឆ្លាតវៃតាមដើមទុន\n"
                         f"• <code>/heatmap</code> ➡️ ផែនទីកម្តៅ Smart Money Liquidity Heatmap HD (Canvas)\n"
                         f"• <code>/fomc</code> ➡️ AI បកប្រែផ្ទាល់ការថ្លែងសុន្ទរកថា Fed / Powell Speech + សំឡេង\n"
                         f"• <code>/depth</code> ➡️ មើលជម្រៅ Order Book Depth 100 Levels & Iceberg Walls\n"
