@@ -414,11 +414,12 @@ class XAUUSDNewsAssistantBot:
                                 logger.warning(f"Failed to generate TradingView chart: {e}")
 
 
-                        if chart_png and self._caption_fits(msg):
-                            self.notifier.send_photo(chart_png, caption=msg)
+                        if chart_png:
+                            caption_text = msg
+                            if not self._caption_fits(caption_text, limit=1024):
+                                caption_text = caption_text[:1000] + "..."
+                            self.notifier.send_photo(chart_png, caption=caption_text)
                         else:
-                            if chart_png:
-                                self.notifier.send_photo(chart_png)
                             self.notifier.send_message(msg)
 
                         database.record_event_stage(
