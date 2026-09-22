@@ -7,7 +7,6 @@ from config import (
     GEMINI_API_KEY, GEMINI_MODEL, USE_GEMINI,
     GEMINI_MIN_INTERVAL, GEMINI_COOLDOWN,
 )
-from analyzers.macro_analyzer import MacroAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +34,51 @@ def _json_schema():
     }
 
 
+def breaking_prompt(title: str, description: str) -> str:
+    return (
+        f"វិភាគព័ត៌មានបន្ទាន់ខាងក្រោម និងផលប៉ះពាល់លើមាស (XAUUSD)៖\n"
+        f"ចំណងជើង: {title}\nខ្លឹមសារ: {description}\n\n"
+        f"ត្រឡប់ JSON ដែលមាន fields: {', '.join(_ANALYSIS_KEYS)}។\n"
+        f"- what_happened: 1-2 ប្រយោគខ្លី (អតិបរមា 110 តួអក្សរ)\n"
+        f"- why_it_matters: 2-3 ប្រយោគ ពន្យល់យន្តការ Fed rate expectations, USD, real yields, risk sentiment (អតិបរមា 200 តួអក្សរ)\n"
+        f"- usd_impact: 1 ប្រយោគ (អតិបរមា 80 តួអក្សរ)\n"
+        f"- rate_yield_impact: 1 ប្រយោគ (អតិបរមា 80 តួអក្សរ)\n"
+        f"- xau_pressure: ចាប់ផ្តើមដោយ 🟢/🔴/🟡 បូក 1 ប្រយោគ (អតិបរមា 110 តួអក្សរ)\n"
+        f"- bias: 🟢 Bullish / 🔴 Bearish / 🟡 Mixed / Unclear\n"
+        f"សរសេរទាំងអស់ជាភាសាខ្មែរ ខ្លី ច្បាស់លាស់ និងងាយយល់ — គោរពដែនកំណត់តួអក្សរខាងលើឱ្យបានម៉ឺងម៉ាត់។"
+    )
+
+
+def actual_prompt(event_name: str, actual: str, forecast: str, previous: str) -> str:
+    return (
+        f"ទិន្នន័យសេដ្ឋកិច្ចបានចេញផ្សាយ៖\n"
+        f"- ព្រឹត្តិការណ៍: {event_name}\n"
+        f"- ជាក់ស្តែង (Actual): {actual}\n"
+        f"- ការព្យាករណ៍ (Forecast): {forecast}\n"
+        f"- ទិន្នន័យមុន (Previous): {previous}\n\n"
+        f"ប្រៀបធៀប Actual vs Forecast ហើយវិភាគផលប៉ះពាល់លើ USD និងមាស។ "
+        f"ត្រឡប់ JSON ដែលមាន fields: {', '.join(_ANALYSIS_KEYS)}។ "
+        f"សរសេរជាភាសាខ្មែរ ខ្លី ច្បាស់លាស់ (what_happened ≤110 តួ, why_it_matters ≤200 តួ, ផ្សេងទៀត ≤80-110 តួ)។"
+    )
+
+
+def summary_prompt(price_data: dict) -> str:
+    return (
+        f"សរសេរសេចក្តីសង្ខេបខ្លី (1-2 ប្រយោគ) ជាភាសាខ្មែរអំពីស្ថានភាពតម្លៃមាសថ្ងៃនេះ៖\n"
+        f"- តម្លៃ 1 oz: ${price_data.get('price_oz', 0):,.2f}\n"
+        f"- បម្រែបម្រួល: {price_data.get('change', 0):,.2f} ({price_data.get('change_pct', 0):.2f}%)\n"
+        f"កុំប្រើ JSON កុំប្រើ emoji ច្រើន។ សរសេរតែអត្ថបទសង្ខេប។"
+    )
+
+
+def normalize_analysis(raw: dict) -> dict:
+    out = {}
+    for k in _ANALYSIS_KEYS:
+        val = str(raw.get(k, "")).strip()
+        out[k] = val if val else "កំពុងតាមដាន។"
+    return out
+
+
 def _extract_text(data: dict) -> str:
     """Concatenates all text parts from a Gemini response.
 
@@ -48,8 +92,9 @@ def _extract_text(data: dict) -> str:
 class GeminiAnalyzer:
     """Natural-language Khmer market analysis via the Gemini REST API.
 
-    Falls back to the rule-based MacroAnalyzer whenever Gemini is disabled,
-    unconfigured, or returns an error — so the bot never crashes on AI failure.
+    Returns None when Gemini is disabled, unconfigured, or errors out, so the
+    AnalyzerChain can try the next provider (and ultimately the rule-based
+    MacroAnalyzer) without the bot ever crashing on AI failure.
     """
 
     def __init__(self, api_key: str = None, model: str = None):
@@ -145,72 +190,38 @@ class GeminiAnalyzer:
         return json.loads(_extract_text(data))
 
     def _normalize(self, raw: dict) -> dict:
-        out = {}
-        for k in _ANALYSIS_KEYS:
-            val = str(raw.get(k, "")).strip()
-            out[k] = val if val else "កំពុងតាមដាន។"
-        return out
+        return normalize_analysis(raw)
 
     def analyze_breaking_news(self, title: str, description: str = "") -> dict:
         if not self.is_available():
-            return MacroAnalyzer.analyze_breaking_news(title, description)
-        prompt = (
-            f"វិភាគព័ត៌មានបន្ទាន់ខាងក្រោម និងផលប៉ះពាល់លើមាស (XAUUSD)៖\n"
-            f"ចំណងជើង: {title}\nខ្លឹមសារ: {description}\n\n"
-            f"ត្រឡប់ JSON ដែលមាន fields: {', '.join(_ANALYSIS_KEYS)}។\n"
-            f"- what_happened: 1-2 ប្រយោគខ្លី (អតិបរមា 110 តួអក្សរ)\n"
-            f"- why_it_matters: 2-3 ប្រយោគ ពន្យល់យន្តការ Fed rate expectations, USD, real yields, risk sentiment (អតិបរមា 200 តួអក្សរ)\n"
-            f"- usd_impact: 1 ប្រយោគ (អតិបរមា 80 តួអក្សរ)\n"
-            f"- rate_yield_impact: 1 ប្រយោគ (អតិបរមា 80 តួអក្សរ)\n"
-            f"- xau_pressure: ចាប់ផ្តើមដោយ 🟢/🔴/🟡 បូក 1 ប្រយោគ (អតិបរមា 110 តួអក្សរ)\n"
-            f"- bias: 🟢 Bullish / 🔴 Bearish / 🟡 Mixed / Unclear\n"
-            f"សរសេរទាំងអស់ជាភាសាខ្មែរ ខ្លី ច្បាស់លាស់ និងងាយយល់ — គោរពដែនកំណត់តួអក្សរខាងលើឱ្យបានម៉ឺងម៉ាត់។"
-        )
+            return None
         try:
-            return self._normalize(self._call(prompt))
+            return normalize_analysis(self._call(breaking_prompt(title, description)))
         except Exception as e:
-            logger.warning(f"[GeminiAnalyzer] breaking_news failed, falling back to rules: {e}")
-            return MacroAnalyzer.analyze_breaking_news(title, description)
+            logger.warning(f"[GeminiAnalyzer] breaking_news failed: {e}")
+            return None
 
     def analyze_actual_vs_forecast(self, event_name: str, actual: str, forecast: str, previous: str) -> dict:
         if not self.is_available():
-            return MacroAnalyzer.analyze_actual_vs_forecast(event_name, actual, forecast, previous)
-        prompt = (
-            f"ទិន្នន័យសេដ្ឋកិច្ចបានចេញផ្សាយ៖\n"
-            f"- ព្រឹត្តិការណ៍: {event_name}\n"
-            f"- ជាក់ស្តែង (Actual): {actual}\n"
-            f"- ការព្យាករណ៍ (Forecast): {forecast}\n"
-            f"- ទិន្នន័យមុន (Previous): {previous}\n\n"
-            f"ប្រៀបធៀប Actual vs Forecast ហើយវិភាគផលប៉ះពាល់លើ USD និងមាស។ "
-            f"ត្រឡប់ JSON ដែលមាន fields: {', '.join(_ANALYSIS_KEYS)}។"
-        )
+            return None
         try:
-            return self._normalize(self._call(prompt))
+            return normalize_analysis(self._call(actual_prompt(event_name, actual, forecast, previous)))
         except Exception as e:
-            logger.warning(f"[GeminiAnalyzer] actual_vs_forecast failed, falling back to rules: {e}")
-            return MacroAnalyzer.analyze_actual_vs_forecast(event_name, actual, forecast, previous)
+            logger.warning(f"[GeminiAnalyzer] actual_vs_forecast failed: {e}")
+            return None
 
     def summarize_daily_price(self, price_data: dict) -> str:
-        """Returns a short 1-2 sentence Khmer market note for the daily price message.
-
-        Returns an empty string if Gemini is unavailable, so the caller can skip it.
-        """
+        """Returns a short Khmer market note, or None so the chain tries the next provider."""
         if not self.is_available():
-            return ""
-        prompt = (
-            f"សរសេរសេចក្តីសង្ខេបខ្លី (1-2 ប្រយោគ) ជាភាសាខ្មែរអំពីស្ថានភាពតម្លៃមាសថ្ងៃនេះ៖\n"
-            f"- តម្លៃ 1 oz: ${price_data.get('price_oz', 0):,.2f}\n"
-            f"- បម្រែបម្រួល: {price_data.get('change', 0):,.2f} ({price_data.get('change_pct', 0):.2f}%)\n"
-            f"កុំប្រើ JSON កុំប្រើ emoji ច្រើន។ សរសេរតែអត្ថបទសង្ខេប។"
-        )
+            return None
         payload = {
-            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "contents": [{"role": "user", "parts": [{"text": summary_prompt(price_data)}]}],
             "systemInstruction": {"role": "system", "parts": [{"text": _SYSTEM_RULES}]},
             "generationConfig": {"temperature": 0.4, "maxOutputTokens": 2000},
         }
         try:
             data = self._post(payload)
-            return _extract_text(data).strip()
+            return _extract_text(data).strip() or None
         except Exception as e:
             logger.warning(f"[GeminiAnalyzer] summarize_daily_price failed: {e}")
-            return ""
+            return None

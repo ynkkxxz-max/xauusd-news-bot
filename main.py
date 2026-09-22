@@ -18,6 +18,7 @@ from collectors.breaking_news import BreakingNewsCollector
 from collectors.calendar_image import CalendarImageBuilder
 from analyzers.gold_filter import GoldNewsFilter
 from analyzers.gemini_analyzer import GeminiAnalyzer
+from analyzers.fallback_analyzers import AnalyzerChain, build_fallback_analyzers
 from formatters.khmer_formatter import KhmerFormatter
 from telegram_notifier import TelegramNotifier
 
@@ -35,11 +36,13 @@ class XAUUSDNewsAssistantBot:
         self.news_collector = BreakingNewsCollector()
         self.calendar_builder = CalendarImageBuilder()
         self.notifier = TelegramNotifier()
-        self.analyzer = GeminiAnalyzer()
+        self.analyzer = AnalyzerChain([GeminiAnalyzer()] + build_fallback_analyzers())
         if self.analyzer.is_available():
-            logger.info("Gemini AI analysis ENABLED (natural-language Khmer market analysis).")
+            names = [getattr(a, "name", a.__class__.__name__)
+                     for a in self.analyzer.analyzers if a.is_available()]
+            logger.info(f"AI analysis chain ENABLED: {' -> '.join(names)} -> rules")
         else:
-            logger.info("Gemini not configured — using rule-based MacroAnalyzer fallback.")
+            logger.info("No AI keys configured — using rule-based MacroAnalyzer fallback.")
         logger.info("Initializing XAUUSD News Assistant Bot (Cambodia Time UTC+7)...")
 
     def check_daily_gold_price(self):
