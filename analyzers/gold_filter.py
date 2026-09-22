@@ -10,7 +10,7 @@ USD_KEYWORDS = [
 # Major Economic, Central Bank, Technology, AI & Geopolitical Macro Drivers
 MACRO_KEYWORDS = [
     # Central Banks & Rates
-    "fed", "federal reserve", "powell", "fomc", "interest rate", "rate cut", "rate hike", 
+    "fed", "federal reserve", "powell", "warsh", "kevin warsh", "fomc", "interest rate", "rate cut", "rate hike", 
     "fomc statement", "fomc minutes", "fed speech", "monetary policy", "quantitative easing", "ecb", "boe", "boj", "pboc",
     # Major Macro Releases
     "cpi", "core cpi", "nfp", "non-farm", "nonfarm", "unemployment rate", "jobs report",
@@ -28,7 +28,7 @@ class GoldNewsFilter:
     # High-impact catalysts that MUST trigger immediate alert (Zero-delay bypass)
     IMMEDIATE_CATALYSTS = [
         "fomc", "fed rate", "rate decision", "interest rate", "cpi", "nfp", "non-farm", 
-        "nonfarm", "pce", "inflation rises", "inflation falls", "powell speech", "fed chair",
+        "nonfarm", "pce", "inflation rises", "inflation falls", "powell speech", "warsh speech", "kevin warsh", "fed chair",
         "emergency cut", "surprise hike", "war escalates", "missile", "attack", "invasion", "nuclear",
         "central bank reserves", "taiwan", "red sea crisis", "geopolitical shock", "strait of hormuz",
         "ai breakthrough", "tech disruption", "liquidity crisis", "market plunge", "gold surges",
@@ -40,7 +40,7 @@ class GoldNewsFilter:
         "breaking", "urgent", "surprise", "emergency", "rate cut", "rate hike",
         "fomc statement", "cpi rises", "cpi falls", "nfp surges", "nfp misses",
         "escalates", "missile", "war", "attack", "sanctions", "china central bank",
-        "powell", "fed announces", "unprecedented", "crash", "surge", "plunge",
+        "powell", "warsh", "fed announces", "unprecedented", "crash", "surge", "plunge",
         "sharp drop", "rally", "spike", "plummets", "skyrockets", "tensions rise"
     ]
 
