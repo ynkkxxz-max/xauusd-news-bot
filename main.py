@@ -266,6 +266,23 @@ class XAUUSDNewsAssistantBot:
             self.notifier.send_message(msg)
             database.set_state("last_candle_conf_ts", str(now))
 
+    def check_liquidity_sweep(self):
+        """
+        Monitors for real-time institutional liquidity sweeps (Stop Loss Hunts)
+        at Asian High/Low and Key Session levels.
+        """
+        now = time.time()
+        last_sweep = float(database.get_state("last_liquidity_sweep_ts") or 0.0)
+        if now - last_sweep < 3600:  # 1-hour cooldown between liquidity sweep alerts
+            return
+
+        sweep = self.candle_analyzer.detect_liquidity_sweep()
+        if sweep:
+            logger.info(f"[LIQUIDITY SWEEP DETECTED] {sweep['type']} at {sweep['level_name']}")
+            msg = KhmerFormatter.format_liquidity_sweep(sweep)
+            self.notifier.send_message(msg)
+            database.set_state("last_liquidity_sweep_ts", str(now))
+
     def check_weekly_sunday_outlook(self):
         """
         Broadcasts Weekly Macro Outlook every Sunday at 19:00 (7:00 PM Cambodia Time)
@@ -706,6 +723,9 @@ class XAUUSDNewsAssistantBot:
             # 5.1 Weekly Sunday Outlook (Every Sunday 19:00 Cambodia Time)
             self.check_weekly_sunday_outlook()
 
+            # 5.2 Real-Time Liquidity Sweep Alert (Hunt Stop Loss)
+            self.check_liquidity_sweep()
+
             # 6. Breaking News Alert (Strictly filtered: Only sends if 100% clear and high-impact)
             self.check_breaking_news()
 
@@ -744,6 +764,7 @@ class XAUUSDNewsAssistantBot:
                         self.check_weekly_sunday_outlook()
                         self.check_price_volatility_spike()
                         self.check_candlestick_confirmation()
+                        self.check_liquidity_sweep()
                         self.check_breaking_news()
                         background_interval = self.check_economic_events()
                     except Exception as err:
