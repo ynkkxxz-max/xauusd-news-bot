@@ -169,9 +169,14 @@ class KhmerFormatter:
         date_str = event.get("release_date_str", "")
         source = event.get("source", "ForexFactory / Global Institutional Calendar")
 
-        xau_pressure = analysis.get('xau_pressure', '').strip()
-        if xau_pressure.startswith("👉"):
-            xau_pressure = xau_pressure.lstrip("👉").strip()
+        # Clip fields so the photo with full analysis always fits in 1 single message (<= 1024 chars)
+        c_what = _clip(analysis.get("what_happened", ""), 160)
+        c_why = _clip(analysis.get("why_it_matters", ""), 220)
+        c_usd = _clip(analysis.get("usd_impact", ""), 110)
+        c_rate = _clip(analysis.get("rate_yield_impact", ""), 110)
+        c_xau = _clip(analysis.get("xau_pressure", ""), 110).strip()
+        if c_xau.startswith("👉"):
+            c_xau = c_xau.lstrip("👉").strip()
 
         msg = (
             f"🚨 <b>FLASH: ទិន្នន័យជាក់ស្តែងបានចេញផ្សាយ (ACTUAL RELEASE)</b>\n\n"
@@ -183,15 +188,15 @@ class KhmerFormatter:
             f"• <b>ការព្យាករណ៍ (Forecast):</b> <code>{forecast}</code>\n"
             f"• <b>ទិន្នន័យមុន (Previous):</b> <code>{previous}</code>\n\n"
             f"🚨 <b>តើមានអ្វីកើតឡើង?:</b>\n"
-            f"{analysis['what_happened']}\n\n"
+            f"{c_what}\n\n"
             f"🧠 <b>ហេតុអ្វីវាសំខាន់?:</b>\n"
-            f"{analysis['why_it_matters']}\n\n"
+            f"{c_why}\n\n"
             f"💵 <b>ផលប៉ះពាល់លើ USD:</b>\n"
-            f"{analysis['usd_impact']}\n\n"
+            f"{c_usd}\n\n"
             f"🏛️ <b>សម្ពាធលើ Yields / Fed Rates:</b>\n"
-            f"{analysis['rate_yield_impact']}\n\n"
+            f"{c_rate}\n\n"
             f"🥇 <b>សម្ពាធលើ XAUUSD:</b>\n"
-            f"👉 <b>{xau_pressure}</b>\n\n"
+            f"👉 <b>{c_xau}</b>\n\n"
             f"⚠️ <b>ការប្រែប្រួល (Volatility):</b> បម្រែបម្រួលខ្ពស់ សូមរង់ចាំទៀន M5/M15 បិទដើម្បីបញ្ជាក់ពីប្រតិកម្មពិត!\n\n"
             f'🔗 <i>ប្រភពព័ត៌មាន: <a href="https://www.forexfactory.com/calendar">{source}</a> (ចុចដើម្បីពិនិត្យតារាងទិន្នន័យ)</i>'
         )
