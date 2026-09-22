@@ -552,3 +552,52 @@ class KhmerFormatter:
             f"📅 <i><a href='https://www.forexfactory.com/calendar'>ForexFactory Calendar</a></i>"
         )
 
+    @staticmethod
+    def format_lot_size_calculator(calc: dict) -> str:
+        """Formats the interactive lot size and risk management response in Khmer."""
+        if "error" in calc:
+            return f"⚠️ <b>បញ្ហាគណនា Lot Size:</b> {calc['error']}"
+
+        bal = calc.get("balance", 0.0)
+        risk_pct = calc.get("risk_pct", 1.0)
+        risk_usd = calc.get("risk_amount_usd", 0.0)
+        dist_usd = calc.get("distance_usd", 10.0)
+        pips = calc.get("pips", 100.0)
+        lot = calc.get("lot_size", 0.01)
+        raw_lot = calc.get("raw_lot", 0.01)
+        style = calc.get("style", "")
+        lev = calc.get("effective_leverage", 1.0)
+
+        entry_line = ""
+        if calc.get("entry_price") and calc.get("sl_price"):
+            entry_line = (
+                f"• 🎯 <b>Entry Price:</b> <code>${calc['entry_price']:,.2f}</code>\n"
+                f"• 🛑 <b>Stop Loss Price:</b> <code>${calc['sl_price']:,.2f}</code>\n"
+            )
+
+        # Money Management Table
+        half_lot = max(0.01, round(lot / 2.0, 2))
+        tp1_profit = round(half_lot * dist_usd * 100.0, 2)
+        tp2_profit = round(half_lot * dist_usd * 2.0 * 100.0, 2)
+
+        return (
+            f"🤖 <b>SMART LOT SIZE & RISK CALCULATOR (XAU/USD)</b>\n"
+            f"<i>ម៉ាស៊ីនគណនាទំហំ Lot ស្តង់ដារតាមដើមទុន & Money Management</i>\n\n"
+            f"💰 <b>ដើមទុនគណនី (Balance):</b> <code>${bal:,.2f}</code>\n"
+            f"🛡️ <b>កម្រិត Risk %:</b> <code>{risk_pct:.1f}%</code> ({style})\n"
+            f"💸 <b>ទឹកប្រាក់ប្រថុយអតិបរមា (Max Risk $):</b> <code>${risk_usd:,.2f}</code>\n"
+            f"📏 <b>ចម្ងាយ Stop Loss:</b> <code>${dist_usd:,.2f}</code> (ស្មើនឹង <b>{pips:,.0f} Pips</b>)\n"
+            f"{entry_line}\n"
+            f"━━━━━━━━━━━━━━━━━━━\n"
+            f"🔥 <b>ទំហំ LOT ណែនាំ (RECOMMENDED LOT):</b>\n"
+            f"👉 <code><b>{lot:.2f} LOT</b></code> (ពិត: {raw_lot:.3f})\n"
+            f"━━━━━━━━━━━━━━━━━━━\n\n"
+            f"🎯 <b>យុទ្ធសាស្ត្របែងចែកទំហំ (Position Scaling 1:2 R:R):</b>\n"
+            f"• 📦 <b>Lot បំបែក (2 Orders):</b> <code>{half_lot:.2f}</code> + <code>{half_lot:.2f}</code>\n"
+            f"• 🎯 <b>TP1 (1:1 R:R):</b> ចម្ងាយ +${dist_usd:,.1f} ➡️ ចំណេញ <b>+${tp1_profit:,.2f}</b> (Lock BE)\n"
+            f"• 🏆 <b>TP2 (1:2 R:R):</b> ចម្ងាយ +${dist_usd * 2:,.1f} ➡️ ចំណេញ <b>+${tp2_profit:,.2f}</b>\n"
+            f"• ⚙️ <b>Effective Leverage:</b> <code>1:{lev}</code>\n\n"
+            f"💡 <i>អនុសាសន៍: មិនត្រូវចូល Trade លើសពីទំហំ Lot នេះឡើយ ដើម្បីការពារគណនីមិនឱ្យ Drawdown ធ្ងន់ធ្ងរ!</i>"
+        )
+
+
