@@ -193,7 +193,7 @@ class KhmerFormatter:
             f"🥇 <b>សម្ពាធលើ XAUUSD:</b>\n"
             f"👉 <b>{xau_pressure}</b>\n\n"
             f"⚠️ <b>ការប្រែប្រួល (Volatility):</b> បម្រែបម្រួលខ្ពស់ សូមរង់ចាំទៀន M5/M15 បិទដើម្បីបញ្ជាក់ពីប្រតិកម្មពិត!\n\n"
-            f"🔗 <i>ប្រភពព័ត៌មាន: {source}</i>"
+            f'🔗 <i>ប្រភពព័ត៌មាន: <a href="https://www.forexfactory.com/calendar">{source}</a> (ចុចដើម្បីពិនិត្យតារាងទិន្នន័យ)</i>'
         )
         return msg
 
@@ -203,7 +203,12 @@ class KhmerFormatter:
         title = _clip(news_item.get("title", ""), 100)
         analysis = {k: _clip(v, _BREAKING_CAPS.get(k, 200)) for k, v in analysis.items()}
 
-        source = (news_item.get("source") or "ForexLive / Global Financial Feeds").strip()
+        source_name = (news_item.get("source") or "ForexLive / Global Financial Feeds").strip()
+        article_url = (news_item.get("link") or news_item.get("url") or "").strip()
+        if article_url:
+            source_line = f'🔗 <i>ប្រភពព័ត៌មាន: <a href="{article_url}">{source_name}</a> (ចុចដើម្បីអានបន្ថែម)</i>'
+        else:
+            source_line = f'🔗 <i>ប្រភពព័ត៌មាន: {source_name}</i>'
 
         xau_pressure = analysis['xau_pressure'].strip()
         if xau_pressure.startswith("👉"):
@@ -221,7 +226,7 @@ class KhmerFormatter:
             f"{analysis['rate_yield_impact']}\n\n"
             f"🥇 <b>សម្ពាធលើ XAUUSD:</b>\n"
             f"👉 <b>{xau_pressure}</b>\n\n"
-            f"🔗 <i>ប្រភពព័ត៌មាន: {source}</i>"
+            f"{source_line}"
         )
         return msg
 
