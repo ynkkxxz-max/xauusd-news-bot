@@ -222,7 +222,11 @@ class GeminiAnalyzer:
         }
         try:
             data = self._post(payload)
-            return _extract_text(data).strip() or None
+            res_text = _extract_text(data).strip()
+            if res_text:
+                import re
+                res_text = re.sub(r"^is_clear\s*=\s*(true|false)\s*", "", res_text, flags=re.IGNORECASE).strip()
+            return res_text or None
         except Exception as e:
             logger.warning(f"[GeminiAnalyzer] summarize_daily_price failed: {e}")
             return None
