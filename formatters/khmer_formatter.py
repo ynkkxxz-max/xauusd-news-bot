@@ -1,14 +1,13 @@
 from datetime import datetime
 
 # Perfectly calibrated character limits so the full message with all headers,
-# emojis, HTML tags, and source credit fits within Telegram's 1024 photo caption limit
-# while preserving the rich, complete story narrative without excessive clipping:
+# emojis, HTML tags, and clickable source URL fits strictly within Telegram's 1024 photo caption limit:
 _BREAKING_CAPS = {
-    "what_happened": 280,
-    "why_it_matters": 350,
-    "usd_impact": 150,
-    "rate_yield_impact": 150,
-    "xau_pressure": 150,
+    "what_happened": 220,
+    "why_it_matters": 240,
+    "usd_impact": 100,
+    "rate_yield_impact": 100,
+    "xau_pressure": 100,
 }
 
 def _clip(text: str, cap: int) -> str:
