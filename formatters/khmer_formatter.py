@@ -387,6 +387,29 @@ class KhmerFormatter:
         )
 
     @staticmethod
+    def format_divergence_alert(div: dict) -> str:
+        """Formats Macro Divergence Alert between Gold and US Dollar (DXY)."""
+        is_bull = div.get("type") == "BULLISH_DIVERGENCE"
+        icon = "🟢" if is_bull else "🔴"
+        action = "BULLISH SMART MONEY ACCUMULATION" if is_bull else "BEARISH SMART MONEY DISTRIBUTION"
+
+        g_sign = "+" if div.get("gold_pct", 0) >= 0 else ""
+        d_sign = "+" if div.get("dxy_pct", 0) >= 0 else ""
+
+        return (
+            f"⚡ {icon} <b>MACRO DIVERGENCE ALERT — សញ្ញាផ្ទុយគ្នារវាងមាស និង USD!</b>\n\n"
+            f"📊 <b>ស្ថានភាព (Setup):</b> <b>{action}</b>\n"
+            f"• 🥇 <b>តម្លៃមាស (XAU/USD):</b> <code>${div['gold_price']:,.2f}</code> (<b>{g_sign}{div['gold_pct']}%</b>)\n"
+            f"• 💵 <b>សន្ទស្សន៍ដុល្លារ (DXY):</b> <code>{div['dxy_price']}</code> (<b>{d_sign}{div['dxy_pct']}%</b>)\n"
+            f"• 📈 <b>ទិន្នផលសហរដ្ឋអាមេរិក (US10Y):</b> <code>{div['us10y_yield']}%</code>\n\n"
+            f"🧠 <b>ការវិភាគសភាពការណ៍ (Macro Logic):</b>\n"
+            f"• {div['desc']}\n"
+            f"• <b>ទស្សនវិស័យទីផ្សារ:</b> {div['bias']}\n\n"
+            f"🛡️ <b>យុទ្ធសាស្ត្រ Trader:</b> ស្ថាប័នធំៗកំពុងបង្ហាញជំហរច្បាស់លាស់ ផ្តល់អាទិភាពតាមនិន្នាការស្ថាប័ន (Smart Money Trend)!\n\n"
+            f"📊 <i>ពិនិត្យ Chart: <a href='https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD'>TradingView XAUUSD Live</a></i>"
+        )
+
+    @staticmethod
     def format_cot_report(cot_data: dict) -> str:
         """Formats CFTC Commitment of Traders (CoT) institutional report for Gold."""
         if not cot_data or not cot_data.get("available"):
