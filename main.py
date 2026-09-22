@@ -60,6 +60,11 @@ try:
 except ImportError:
     from formatters.khmer_formatter import KhmerFormatter
 
+try:
+    from candlestick_analyzer import CandlestickPatternAnalyzer
+except ImportError:
+    from analyzers.candlestick_analyzer import CandlestickPatternAnalyzer
+
 from telegram_notifier import TelegramNotifier
 
 
@@ -76,7 +81,7 @@ class XAUUSDNewsAssistantBot:
         self.calendar_collector = EconomicCalendarCollector()
         self.news_collector = BreakingNewsCollector()
         self.calendar_builder = CalendarImageBuilder()
-        self.tv_chart_builder = TradingViewChartBuilder() if TradingViewChartBuilder else None
+        self.candle_analyzer = CandlestickPatternAnalyzer()
         self.notifier = TelegramNotifier()
 
         self.analyzer = AnalyzerChain([GeminiAnalyzer()] + build_fallback_analyzers())
@@ -226,6 +231,34 @@ class XAUUSDNewsAssistantBot:
                 database.set_state("last_tracked_price_data", json.dumps({"price": current_price, "ts": now}))
         else:
             database.set_state("last_tracked_price_data", json.dumps({"price": current_price, "ts": now}))
+
+    def check_candlestick_confirmation(self):
+        """
+        Monitors M15 candlestick confirmations when price arrives at SMC Key Zones.
+        Sends actionable Buy/Sell Confirmation Alerts when Pin Bar or Engulfing candle completes.
+        """
+        now = time.time()
+        last_conf = float(database.get_state("last_candle_conf_ts") or 0.0)
+        if now - last_conf < 2700:  # 45-minute cooldown between confirmation alerts
+            return
+
+        price_data = self.gold_collector.fetch_price()
+        current_price = price_data.get("price_oz", 0.0)
+        levels = price_data.get("key_levels", {})
+        oz = current_price
+        pivot = levels.get("pivot", oz)
+        r1 = levels.get("r1", oz + 20)
+        s1 = levels.get("s1", oz - 20)
+
+        buy_zone = (s1 - 4, s1 + 3)
+        sell_zone = (r1 - 3, r1 + 4)
+
+        conf = self.candle_analyzer.detect_confirmation(current_price, buy_zone, sell_zone)
+        if conf:
+            logger.info(f"[CANDLESTICK CONFIRMATION DETECTED] {conf['pattern']} at {conf['zone_name']}")
+            msg = KhmerFormatter.format_candlestick_confirmation(conf)
+            self.notifier.send_message(msg)
+            database.set_state("last_candle_conf_ts", str(now))
 
     def check_database_maintenance(self):
         """Performs automatic database cleanup (Point 3) keeping data.db fast and lightweight."""
@@ -665,6 +698,7 @@ class XAUUSDNewsAssistantBot:
                         self.check_session_open_alerts()
                         self.check_night_wrap_up()
                         self.check_price_volatility_spike()
+                        self.check_candlestick_confirmation()
                         self.check_breaking_news()
                         background_interval = self.check_economic_events()
                     except Exception as err:
