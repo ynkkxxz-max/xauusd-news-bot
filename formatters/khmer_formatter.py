@@ -1,5 +1,19 @@
 from datetime import datetime
 
+# Hard caps (characters) so a breaking alert always fits Telegram's 1024-char
+# caption limit when combined with the calendar photo.
+_BREAKING_CAPS = {
+    "what_happened": 110,
+    "why_it_matters": 200,
+    "usd_impact": 80,
+    "rate_yield_impact": 80,
+    "xau_pressure": 110,
+}
+
+def _clip(text: str, cap: int) -> str:
+    text = str(text).strip()
+    return text if len(text) <= cap else text[:cap].rstrip() + "…"
+
 class KhmerFormatter:
     @staticmethod
     def format_daily_gold_price(price_data: dict, summary: str = "") -> str:
@@ -114,7 +128,8 @@ class KhmerFormatter:
     @staticmethod
     def format_breaking_event_alert(news_item: dict, analysis: dict) -> str:
         """Formats breaking news / major geopolitical or unexpected central bank event alert."""
-        title = news_item.get("title", "")
+        title = _clip(news_item.get("title", ""), 100)
+        analysis = {k: _clip(v, _BREAKING_CAPS.get(k, 200)) for k, v in analysis.items()}
 
         msg = (
             f"🚨 <b>BREAKING EVENT — ព្រឹត្តិការណ៍ទីផ្សារប្រចាំថ្ងៃ!</b>\n\n"

@@ -18,6 +18,24 @@ class BreakingNewsCollector:
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
 
+    def _extract_image(self, entry) -> str:
+        """Pulls the article image URL from RSS enclosure / media:* tags."""
+        enc = entry.find("enclosure")
+        if enc is not None and "image" in (enc.get("type") or ""):
+            url = (enc.get("url") or "").strip()
+            if url:
+                return url
+        for tag, attr_medium in (("content", True), ("thumbnail", False)):
+            node = entry.find("{http://search.yahoo.com/mrss/}" + tag)
+            if node is None:
+                continue
+            if attr_medium and not ((node.get("medium") == "image") or (node.get("type") or "").startswith("image")):
+                continue
+            url = (node.get("url") or "").strip()
+            if url:
+                return url
+        return ""
+
     def fetch_latest_news(self) -> list:
         """Fetches news items from established RSS market feeds."""
         items = []
@@ -42,7 +60,8 @@ class BreakingNewsCollector:
                                     "link": link,
                                     "pub_date": pub_date,
                                     "description": desc,
-                                    "source": source_name
+                                    "source": source_name,
+                                    "image_url": self._extract_image(entry)
                                 })
             except Exception as e:
                 logger.debug(f"[BreakingNewsCollector] Fetch failed for {source_name}: {e}")

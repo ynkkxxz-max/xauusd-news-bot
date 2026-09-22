@@ -2,6 +2,8 @@ import re
 import time
 import logging
 from datetime import datetime
+from email.utils import parsedate_to_datetime
+import requests
 import pytz
 
 from config import (
@@ -66,6 +68,32 @@ class XAUUSDNewsAssistantBot:
     def _caption_fits(text: str, limit: int = 1024) -> bool:
         """Telegram captions are capped at 1024 characters (HTML tags not counted)."""
         return len(re.sub(r"<[^>]+>", "", text)) <= limit
+
+    @staticmethod
+    def _news_ts(item: dict) -> float:
+        try:
+            return parsedate_to_datetime(item.get("pub_date", "")).timestamp()
+        except Exception:
+            return 0.0
+
+    @staticmethod
+    def _fetch_news_image(item: dict) -> bytes:
+        """Downloads the article's own image so the alert shows real news photo."""
+        url = (item.get("image_url") or "").strip()
+        if not url:
+            return None
+        try:
+            resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+            if resp.status_code != 200:
+                return None
+            if not resp.headers.get("Content-Type", "").startswith("image/"):
+                return None
+            if len(resp.content) > 5_000_000:
+                return None
+            return resp.content
+        except Exception as e:
+            logger.warning(f"News image fetch failed: {e}")
+            return None
 
     def _build_calendar_png(self) -> bytes:
         try:
@@ -192,24 +220,34 @@ class XAUUSDNewsAssistantBot:
             )
             return
 
-        item = pending[0]
+        item = max(
+            pending,
+            key=lambda it: (GoldNewsFilter.urgency_score(it["title"]), self._news_ts(it)),
+        )
         title = item["title"]
         desc = item.get("description", "")
         logger.info(f"Sending breaking alert: {title}")
         analysis = self.analyzer.analyze_breaking_news(title, desc)
         msg = KhmerFormatter.format_breaking_event_alert(item, analysis)
 
-        # One combined message: calendar table photo with the analysis as caption
-        png = self._build_calendar_png()
-        if png and self._caption_fits(msg):
-            self.notifier.send_photo(png, caption=msg)
-            self._calendar_attached = True
+        # One combined message: news photo (or calendar table) with the analysis as caption
+        photo = self._fetch_news_image(item) or self._build_calendar_png()
+        if photo and self._caption_fits(msg):
+            res = self.notifier.send_photo(photo, caption=msg)
+            sent_ok = bool(res.get("ok"))
+            if sent_ok:
+                self._calendar_attached = True
         else:
-            if png:
-                self.notifier.send_photo(png)
-            self.notifier.send_message(msg)
-        database.record_news_sent(item["id"], title, item.get("source", ""))
-        database.set_state("last_breaking_alert_ts", str(time.time()))
+            if photo:
+                self.notifier.send_photo(photo)
+            res = self.notifier.send_message(msg)
+            sent_ok = bool(res.get("ok"))
+
+        if sent_ok:
+            database.record_news_sent(item["id"], title, item.get("source", ""))
+            database.set_state("last_breaking_alert_ts", str(time.time()))
+        else:
+            logger.error("Breaking alert send failed; item kept for retry next cycle.")
 
     def run_cycle(self) -> int:
         """Executes a single monitoring cycle and returns next sleep duration."""

@@ -14,6 +14,19 @@ MACRO_KEYWORDS = [
 ]
 
 class GoldNewsFilter:
+    URGENT_SIGNALS = [
+        "breaking", "urgent", "surprise", "emergency", "rate cut", "rate hike",
+        "fomc statement", "cpi rises", "cpi falls", "nfp surges", "nfp misses",
+        "escalates", "missile", "war", "attack", "sanctions", "china central bank",
+        "powell", "fed announces", "unprecedented", "crash", "surge", "plunge"
+    ]
+
+    @staticmethod
+    def urgency_score(title: str) -> int:
+        """1 when the headline carries an urgent/market-moving signal, else 0."""
+        text = title.lower()
+        return 1 if any(s in text for s in GoldNewsFilter.URGENT_SIGNALS) else 0
+
     @staticmethod
     def is_gold_relevant(title: str, description: str = "") -> bool:
         """Determines whether a piece of news directly influences XAUUSD."""
