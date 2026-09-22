@@ -172,8 +172,9 @@ class XAUUSDNewsAssistantBot:
             buttons = {
                 "inline_keyboard": [
                     [
-                        {"text": "🔄 ឆែកតម្លៃ Live ភ្លាមៗ", "url": "https://t.me/FFNewsAlertBot?start=price"},
-                        {"text": "🎯 AI SMC Setup", "url": "https://t.me/FFNewsAlertBot?start=smc"}
+                        {"text": "🔄 ឆែកតម្លៃ Live", "url": "https://t.me/FFNewsAlertBot?start=price"},
+                        {"text": "🎯 AI SMC Setup", "url": "https://t.me/FFNewsAlertBot?start=smc"},
+                        {"text": "🧮 គិត Lot Size", "url": "https://t.me/FFNewsAlertBot?start=lot"}
                     ],
                     [
                         {"text": "📊 មើល Chart ផ្ទាល់ (TradingView)", "url": "https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD"},
@@ -429,22 +430,6 @@ class XAUUSDNewsAssistantBot:
             up_id = u.get("update_id", 0)
             database.set_state("telegram_update_offset", str(up_id + 1))
 
-            msg_obj = u.get("message", {})
-            chat_id = msg_obj.get("chat", {}).get("id")
-            text = (msg_obj.get("text") or "").strip()
-
-            if not text or not chat_id:
-                continue
-
-            # 3-Button Custom Keyboard directly at the bottom (Price, SMC, 🧮 គិត Lot)
-            bottom_keyboard = {
-                "keyboard": [
-                    [{"text": "Price"}, {"text": "SMC"}, {"text": "🧮 គិត Lot"}]
-                ],
-                "resize_keyboard": True,
-                "persistent": True
-            }
-
             lot_calculator_inline_buttons = {
                 "inline_keyboard": [
                     [
@@ -462,7 +447,16 @@ class XAUUSDNewsAssistantBot:
                 ]
             }
 
-            # Handle Callback Query clicks (Inline Buttons)
+            # 3-Button Custom Keyboard directly at the bottom (Price, SMC, 🧮 គិត Lot)
+            bottom_keyboard = {
+                "keyboard": [
+                    [{"text": "Price"}, {"text": "SMC"}, {"text": "🧮 គិត Lot"}]
+                ],
+                "resize_keyboard": True,
+                "persistent": True
+            }
+
+            # 1. Handle Callback Query clicks (Inline Buttons)
             cb_query = u.get("callback_query")
             if cb_query:
                 cb_id = cb_query.get("id")
@@ -479,6 +473,16 @@ class XAUUSDNewsAssistantBot:
                         resp = KhmerFormatter.format_lot_size_calculator(calc)
                         self.notifier.send_message(resp, chat_id=cb_chat_id, reply_markup=lot_calculator_inline_buttons)
                 continue
+
+            # 2. Handle Text Messages
+            msg_obj = u.get("message", {})
+            chat_id = msg_obj.get("chat", {}).get("id")
+            text = (msg_obj.get("text") or "").strip()
+
+            if not text or not chat_id:
+                continue
+
+
 
             inline_trading_buttons = {
                 "inline_keyboard": [
@@ -658,6 +662,15 @@ class XAUUSDNewsAssistantBot:
                         f"💡 <i>អនុសាសន៍: រង់ចាំ Confirmation Candle នៅលើ M15 មុនចូល Order!</i>"
                     )
                     self.notifier.send_message(reply, chat_id=chat_id, reply_markup=bottom_keyboard)
+                elif len(parts) > 1 and parts[1].lower() in ("lot", "risk"):
+                    default_calc = RiskLotCalculator.calculate_lot_size(balance=1000, risk_pct=1.0, sl_points_usd=10.0)
+                    resp = (
+                        f"{KhmerFormatter.format_lot_size_calculator(default_calc)}\n\n"
+                        f"👇 <b>ចុចប៊ូតុងខាងក្រោមដើម្បីជ្រើសរើសដើមទុនភ្លាមៗ ឬវាយតាមទម្រង់ផ្ទាល់ខ្លួន៖</b>\n"
+                        f"• <code>/lot 1000 1 10</code> <i>(ដើមទុន $1000, Risk 1%, SL $10)</i>\n"
+                        f"• <code>/lot 500 2 4365 4355</code> <i>(Entry 4365, SL 4355)</i>"
+                    )
+                    self.notifier.send_message(resp, chat_id=chat_id, reply_markup=lot_calculator_inline_buttons)
                 elif len(parts) > 1 and parts[1].lower() == "cot":
                     cot_data = self.cot_collector.fetch_gold_cot()
                     resp = KhmerFormatter.format_cot_report(cot_data)
