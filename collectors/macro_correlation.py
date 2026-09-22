@@ -27,6 +27,7 @@ class MarketMacroCorrelation:
             "us10y_yield": us10y.get("price", 4.25),
             "us10y_change": us10y.get("change", 0.0),
             "gld_price": gld.get("price", 240.0),
+            "gld_pct": gld.get("pct", 0.0),
             "gld_volume": gld.get("volume", 0),
         }
 
