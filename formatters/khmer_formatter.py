@@ -76,17 +76,6 @@ class KhmerFormatter:
         elif chg < -20:
             sentiment = "Fear (សម្ពាធលក់ខ្លាំង)"
 
-        smc_block = ""
-        if include_smc:
-            smc_block = (
-                f"\n🎯 <b><u>ផែនការជួញដូរ AI SMC (Daily Trading Setup)</u></b>\n"
-                f"• 🟢 <b>Buy Setup (Discount OB):</b> ${buy_zone_low} - ${buy_zone_high}\n"
-                f"  └ <i>SL: ${buy_sl} | TP1: ${buy_tp1} | TP2: ${buy_tp2}</i>\n"
-                f"• 🔴 <b>Sell Setup (Premium OB):</b> ${sell_zone_low} - ${sell_zone_high}\n"
-                f"  └ <i>SL: ${sell_sl} | TP1: ${sell_tp1} | TP2: ${sell_tp2}</i>\n"
-                f"• 🎯 <b>Pivot Point:</b> ${pivot:,.2f} | <b>អារម្មណ៍ផ្សារ:</b> {sentiment}\n\n"
-            )
-
         macro_block = (
             f"\n📊 <b><u>សូចនាករម៉ាក្រូសេដ្ឋកិច្ច (Macro Correlation)</u></b>\n"
             f"• 💵 <b>DXY Index:</b> {dxy:.2f} ({'+' if dxy_chg >= 0 else ''}{dxy_chg:.2f})\n"
@@ -108,7 +97,6 @@ class KhmerFormatter:
             f"• <b>មាស (១ ហ៊ុន):</b> លក់ ${hun_sell:,.2f}\n"
             f"• <b>ប្លាទីន/មាសកែច្នៃ 18K (១ ជី):</b> ~${platin_chi:,.2f}\n"
             f"📍 <i>ប្រភព: {source_local}</i>\n"
-            f"{smc_block}"
             f"{macro_block}"
         )
         return msg.strip()
