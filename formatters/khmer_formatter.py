@@ -606,9 +606,8 @@ class KhmerFormatter:
     def format_single_smc_setup(setup: dict, key_levels: dict = None, current_price: float = 0.0) -> str:
         """
         Formats a comprehensive, institutional-grade SMC Trading Brief:
-        Part 1: 🗺️ ទិដ្ឋភាពបច្ចេកទេសទូទៅ (Key Support, Resistance & Pivot Zones)
-        Part 2: 🎯 ផែនការជួញដូរឆ្លាតវៃ AI SMC — ទិសដៅតែមួយគត់ (BUY ONLY ឬ SELL ONLY)
-                ជាមួយ Entry, SL, TP1, TP2, R:R និងហេតុផលលម្អិត «ហេតុអ្វីគួរធ្វើ & ហេតុអ្វីមិនគួរធ្វើផ្ទុយ»។
+        🎯 ផែនការជួញដូរឆ្លាតវៃ AI SMC — ទិសដៅតែមួយគត់ (BUY ONLY ឬ SELL ONLY)
+        ជាមួយ Entry, SL, TP1, TP2, R:R និងហេតុផលលម្អិត «ហេតុអ្វីគួរធ្វើ & ហេតុអ្វីមិនគួរធ្វើផ្ទុយ»។
         """
         levels = key_levels or {}
         oz = current_price or setup.get("entry", 0.0)
@@ -617,16 +616,6 @@ class KhmerFormatter:
         s1 = levels.get("s1", oz - 20)
         r2 = levels.get("r2", oz + 40)
         s2 = levels.get("s2", oz - 40)
-
-        # Part 1: Macro Technical Map & Key Levels
-        part1 = (
-            f"🎯 <b>កម្រិតបច្ចេកទេស & AI SMC Setup Zone</b>\n\n"
-            f"• 🟢 <b>Buy Zone:</b> <code>${s1 - 4:,.2f} - ${s1 + 3:,.2f}</code> (SL: ${s1 - 11:,.2f})\n"
-            f"• 🔴 <b>Sell Zone:</b> <code>${r1 - 3:,.2f} - ${r1 + 4:,.2f}</code> (SL: ${r1 + 11:,.2f})\n"
-            f"• 🎯 <b>Pivot Point:</b> <code>${pivot:,.2f}</code>\n\n"
-            f"💡 <i>អនុសាសន៍: រង់ចាំ Confirmation Candle នៅលើ M15 មុនចូល Order!</i>\n"
-            f"━━━━━━━━━━━━━━━━━━━\n\n"
-        )
 
         direction = setup.get("direction", "BUY").upper()
         is_buy = "BUY" in direction
@@ -678,7 +667,7 @@ class KhmerFormatter:
             f"💡 <i>អនុសាសន៍: {confirm}</i>\n"
             f"🛡️ <i>សូមប្រើប៊ូតុង <b>🧮 គិត Lot</b> មុនចូល Order ដើម្បីគ្រប់គ្រងហានិភ័យ!</i>"
         )
-        return part1 + part2
+        return part2
 
     @staticmethod
     def format_chart_vision_scan(current_price: float, vision_res: dict, timeframe: str = "M15") -> str:
