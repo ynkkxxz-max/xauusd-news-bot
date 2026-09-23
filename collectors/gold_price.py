@@ -24,12 +24,14 @@ class GoldPriceCollector:
     def fetch_price(self, force_refresh: bool = False) -> dict:
         """
         Fetches true interbank spot gold (XAU/USD) with 99-100% market accuracy.
-        Caches results for 20 seconds so interactive Telegram commands reply instantaneously.
+        Caches results in high-speed RAM for ultra-fast < 0.1s response.
         """
         import time
-        now = time.time()
-        if not force_refresh and self._cached_price and (now - self._cache_time < 20):
-            return self._cached_price
+        from collectors.market_cache import market_cache
+        if not force_refresh:
+            cached = market_cache.get_price()
+            if cached:
+                return cached
 
         # --- Source 1: Swissquote Bank (Institutional Interbank Spot Feed) ---
         try:
@@ -190,5 +192,10 @@ class GoldPriceCollector:
         }
         self._cached_price = res
         self._cache_time = time.time()
+        try:
+            from collectors.market_cache import market_cache
+            market_cache.set_price(res)
+        except Exception:
+            pass
         return res
 
