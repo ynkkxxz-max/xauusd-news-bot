@@ -120,8 +120,11 @@ class AnalyzerChain:
         for a in self.analyzers:
             if not a.is_available():
                 continue
+            if not hasattr(a, method):
+                continue
             try:
-                res = getattr(a, method)(*args)
+                fn = getattr(a, method)
+                res = fn(*args)
                 if res:
                     logger.info(f"[AnalyzerChain] {getattr(a, 'name', a.__class__.__name__)} answered {method}")
                     return res
@@ -139,6 +142,13 @@ class AnalyzerChain:
 
     def summarize_daily_price(self, price_data: dict) -> str:
         return self._first_result("summarize_daily_price", price_data) or ""
+
+    def generate_smart_smc_setup(self, current_price: float, key_levels: dict, macro_data: dict = None, order_book: dict = None) -> dict:
+        return self._first_result("generate_smart_smc_setup", current_price, key_levels, macro_data, order_book) \
+            or MacroAnalyzer.generate_smart_smc_setup(current_price, key_levels, macro_data, order_book)
+
+    def analyze_chart_image(self, image_bytes: bytes, current_price: float, key_levels: dict = None) -> dict:
+        return self._first_result("analyze_chart_image", image_bytes, current_price, key_levels)
 
 
 def build_fallback_analyzers() -> list:
