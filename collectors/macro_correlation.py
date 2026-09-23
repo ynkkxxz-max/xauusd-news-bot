@@ -17,11 +17,19 @@ class MarketMacroCorrelation:
         }
 
     def fetch_macro_correlations(self) -> dict:
+        try:
+            from collectors.market_cache import market_cache
+            cached = market_cache.get_macro()
+            if cached:
+                return cached
+        except Exception:
+            market_cache = None
+
         dxy = self._fetch_ticker("DX-Y.NYB")
         us10y = self._fetch_ticker("^TNX")
         gld = self._fetch_ticker("GLD")
 
-        return {
+        res = {
             "dxy_price": dxy.get("price", 100.50),
             "dxy_change": dxy.get("change", 0.0),
             "dxy_pct": dxy.get("pct", 0.0),
@@ -31,6 +39,9 @@ class MarketMacroCorrelation:
             "gld_pct": gld.get("pct", 0.0),
             "gld_volume": gld.get("volume", 0),
         }
+        if market_cache:
+            market_cache.set_macro(res)
+        return res
 
     def _fetch_ticker(self, symbol: str) -> dict:
         try:
