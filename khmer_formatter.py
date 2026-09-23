@@ -637,13 +637,20 @@ class KhmerFormatter:
         confirm = setup.get("confirmation_note", "រង់ចាំ Confirmation Candle នៅលើ M15 មុនចូល Order!").strip()
 
         def _clean_bullets(text: str) -> str:
-            lines = [l.strip() for l in text.split("\n") if l.strip()]
+            import re
+            # Split numbered items like "១. ... ២. ..." or "1. ... 2. ..."
+            parts = re.split(r"(?<=\S)\s+(?=[១-៩1-9]\.|\•|\-)", text.strip())
             formatted = []
-            for l in lines:
-                if not l.startswith("•") and not l.startswith("-"):
-                    formatted.append(f"• {l}")
+            for p in parts:
+                p = p.strip()
+                if not p:
+                    continue
+                # Remove leading numbers like "១. " or "1. "
+                p = re.sub(r"^[១-៩1-9]\.\s*", "", p)
+                if not p.startswith("•") and not p.startswith("-"):
+                    formatted.append(f"• {p}")
                 else:
-                    formatted.append(l)
+                    formatted.append(p)
             return "\n".join(formatted)
 
         formatted_why_trade = _clean_bullets(why_trade)
