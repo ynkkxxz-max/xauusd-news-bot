@@ -25,6 +25,14 @@ class OrderBookDepthTracker:
         - Order Book Imbalance (Bid/Ask Pressure)
         """
         try:
+            from collectors.market_cache import market_cache
+            cached = market_cache.get_order_book()
+            if cached:
+                return cached
+        except Exception:
+            market_cache = None
+
+        try:
             resp = requests.get(self.DEPTH_URL, headers=self.headers, timeout=8)
             if resp.status_code == 200:
                 data = resp.json()
@@ -73,7 +81,7 @@ class OrderBookDepthTracker:
                 else:
                     bias = "⚖️ Balanced Depth (តុល្យភាពកម្លាំងទិញ និងលក់)"
 
-                return {
+                res = {
                     "available": True,
                     "mid_price": round(current_mid, 2),
                     "total_bid_vol": round(total_bid_vol, 2),
@@ -84,6 +92,9 @@ class OrderBookDepthTracker:
                     "whale_sell_walls": parsed_whale_asks,
                     "bias": bias
                 }
+                if market_cache:
+                    market_cache.set_order_book(res)
+                return res
 
         except Exception as e:
             logger.warning(f"[OrderBookDepthTracker] Error fetching order book: {e}")
