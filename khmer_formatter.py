@@ -610,15 +610,6 @@ class KhmerFormatter:
         r1 = levels.get("r1", oz + 20)
         s1 = levels.get("s1", oz - 20)
 
-        part1 = (
-            f"🎯 <b>កម្រិតបច្ចេកទេស & AI SMC Setup Zone</b>\n\n"
-            f"• 🟢 <b>Buy Zone:</b> <code>${s1 - 4:,.2f} - ${s1 + 3:,.2f}</code> (SL: ${s1 - 11:,.2f})\n"
-            f"• 🔴 <b>Sell Zone:</b> <code>${r1 - 3:,.2f} - ${r1 + 4:,.2f}</code> (SL: ${r1 + 11:,.2f})\n"
-            f"• 🎯 <b>Pivot Point:</b> <code>${pivot:,.2f}</code>\n\n"
-            f"💡 <i>អនុសាសន៍: រង់ចាំ Confirmation Candle នៅលើ M15 មុនចូល Order!</i>\n"
-            f"━━━━━━━━━━━━━━━━━━━\n\n"
-        )
-
         direction = setup.get("direction", "BUY").upper()
         is_buy = "BUY" in direction
         icon = "🟢" if is_buy else "🔴"
@@ -671,7 +662,7 @@ class KhmerFormatter:
             f"💡 <i>អនុសាសន៍: {confirm}</i>\n"
             f"🛡️ <i>សូមប្រើប៊ូតុង <b>🧮 គិត Lot</b> មុនចូល Order ដើម្បីគ្រប់គ្រងហានិភ័យ!</i>"
         )
-        return part1 + part2
+        return part2
 
     @staticmethod
     def format_chart_vision_scan(current_price: float, vision_res: dict, timeframe: str = "M15") -> str:
