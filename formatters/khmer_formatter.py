@@ -652,6 +652,17 @@ class KhmerFormatter:
         formatted_why_trade = _clean_bullets(why_trade)
         formatted_why_not = _clean_bullets(why_not)
 
+        # Part 1: Top Technical Zones Header
+        part1 = (
+            f"🎯 <b>កម្រិតបច្ចេកទេស & AI SMC Setup Zone</b>\n\n"
+            f"• 🟢 <b>Buy Zone:</b> <code>${s1 - 4:,.2f} - ${s1 + 3:,.2f}</code> (SL: ${s1 - 11:,.2f})\n"
+            f"• 🔴 <b>Sell Zone:</b> <code>${r1 - 3:,.2f} - ${r1 + 4:,.2f}</code> (SL: ${r1 + 11:,.2f})\n"
+            f"• 🎯 <b>Pivot Point:</b> <code>${pivot:,.2f}</code>\n\n"
+            f"💡 <i>អនុសាសន៍: រង់ចាំ Confirmation Candle នៅលើ M15 មុនចូល Order!</i>\n"
+            f"━━━━━━━━━━━━━━━━━━━\n\n"
+        )
+
+        # Part 2: Decisive Single-Direction Institutional Plan
         part2 = (
             f"🎯 {icon} <b>ផែនការជួញដូរឆ្លាតវៃ AI SMC — ទិសដៅតែមួយគត់ ({action_kh})</b>\n\n"
             f"📍 <b>កម្រិតតម្លៃចូល និងគ្រប់គ្រងដើមទុន:</b>\n"
@@ -667,7 +678,7 @@ class KhmerFormatter:
             f"💡 <i>អនុសាសន៍: {confirm}</i>\n"
             f"🛡️ <i>សូមប្រើប៊ូតុង <b>🧮 គិត Lot</b> មុនចូល Order ដើម្បីគ្រប់គ្រងហានិភ័យ!</i>"
         )
-        return part2
+        return part1 + part2
 
     @staticmethod
     def format_chart_vision_scan(current_price: float, vision_res: dict, timeframe: str = "M15") -> str:
