@@ -100,6 +100,11 @@ try:
 except ImportError:
     from collectors.risk_calculator import RiskLotCalculator
 
+try:
+    from candlestick_chart_builder import CandlestickChartRenderer
+except ImportError:
+    from collectors.candlestick_chart_builder import CandlestickChartRenderer
+
 from telegram_notifier import TelegramNotifier
 
 
@@ -123,6 +128,7 @@ class XAUUSDNewsAssistantBot:
         self.order_book_tracker = OrderBookDepthTracker()
         self.fomc_interpreter = FomcSpeechInterpreter()
         self.heatmap_builder = LiquidityHeatmapBuilder()
+        self.chart_renderer = CandlestickChartRenderer()
         self.notifier = TelegramNotifier()
 
         self.analyzer = AnalyzerChain([GeminiAnalyzer()] + build_fallback_analyzers())
@@ -173,8 +179,7 @@ class XAUUSDNewsAssistantBot:
                 "inline_keyboard": [
                     [
                         {"text": "🔄 ឆែកតម្លៃ Live", "url": "https://t.me/FFNewsAlertBot?start=price"},
-                        {"text": "🎯 AI SMC Setup", "url": "https://t.me/FFNewsAlertBot?start=smc"},
-                        {"text": "🧮 គិត Lot Size", "url": "https://t.me/FFNewsAlertBot?start=lot"}
+                        {"text": "🎯 AI SMC Setup", "url": "https://t.me/FFNewsAlertBot?start=smc"}
                     ],
                     [
                         {"text": "📊 មើល Chart ផ្ទាល់ (TradingView)", "url": "https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD"},
@@ -183,23 +188,10 @@ class XAUUSDNewsAssistantBot:
                 ]
             }
 
-            # Send and Auto-Pin strictly to the Channel with Inline Buttons
-            res = self.notifier.send_message(msg, auto_pin=True, reply_markup=buttons)
+            # Send strictly to the Channel with Inline Buttons (Do NOT auto-pin to keep header clean)
+            res = self.notifier.send_message(msg, auto_pin=False, reply_markup=buttons)
             msg_id = res.get("result", {}).get("message_id")
             database.record_daily_price_sent(today_str, msg_id)
-
-            # Generate and send accompanying natural Khmer Voice Audio note (Podcast / Audio Brief)
-            try:
-                voice_script = self.voice_synth.build_morning_voice_script(price_data)
-                voice_bytes = self.voice_synth.text_to_speech(voice_script)
-                if voice_bytes and len(voice_bytes) > 1000:
-                    self.notifier.send_voice(
-                        voice_bytes, 
-                        caption="🎙️ <b>សំឡេងសង្ខេបហាងឆេងមាសប្រចាំព្រឹក (Morning Audio Note)</b>"
-                    )
-                    logger.info("Morning Khmer voice audio note broadcasted successfully.")
-            except Exception as e:
-                logger.warning(f"Failed to broadcast morning voice note: {e}")
 
     def check_session_open_alerts(self):
         """Monitors and alerts London Session (14:00) and New York Session (19:00) Openings."""
@@ -324,7 +316,21 @@ class XAUUSDNewsAssistantBot:
         if conf:
             logger.info(f"[CANDLESTICK CONFIRMATION DETECTED] {conf['pattern']} at {conf['zone_name']}")
             msg = KhmerFormatter.format_candlestick_confirmation(conf)
-            self.notifier.send_message(msg)
+            
+            # Render chart image for visual confirmation
+            candles = self.candle_analyzer.fetch_m15_candles(count=35)
+            chart_png = self.chart_renderer.render_candlestick_chart(
+                candles=candles,
+                current_price=current_price,
+                key_levels=levels,
+                setup={"entry": conf.get("entry", current_price), "sl": conf.get("sl"), "tp1": conf.get("tp")},
+                timeframe="M15",
+                title_extra=conf.get("pattern", "")
+            )
+            if chart_png:
+                self.notifier.send_photo(chart_png, caption=self._truncate_html_caption(msg, 950))
+            else:
+                self.notifier.send_message(msg)
             database.set_state("last_candle_conf_ts", str(now))
 
     def check_liquidity_sweep(self):
@@ -503,7 +509,30 @@ class XAUUSDNewsAssistantBot:
             # Command routing
             clean_cmd = text.split()[0].lower()
 
-            if clean_cmd in ("/price", "/gold", "price") or "ហាងឆេងមាស" in text:
+            if clean_cmd in ("/lot", "/risk", "lot", "risk") or "lot" in text.lower() or "risk" in text.lower() or "គិត" in text:
+                parsed = RiskLotCalculator.parse_user_input(text)
+                if parsed:
+                    calc = RiskLotCalculator.calculate_lot_size(
+                        balance=parsed["balance"],
+                        risk_pct=parsed["risk_pct"],
+                        entry_price=parsed.get("entry_price"),
+                        sl_price=parsed.get("sl_price"),
+                        sl_points_usd=parsed.get("sl_points_usd")
+                    )
+                    resp = KhmerFormatter.format_lot_size_calculator(calc)
+                    self.notifier.send_message(resp, chat_id=chat_id, reply_markup=lot_calculator_inline_buttons)
+                else:
+                    # Provide default quick calculation with interactive buttons
+                    default_calc = RiskLotCalculator.calculate_lot_size(balance=1000, risk_pct=1.0, sl_points_usd=10.0)
+                    resp = (
+                        f"{KhmerFormatter.format_lot_size_calculator(default_calc)}\n\n"
+                        f"👇 <b>ចុចប៊ូតុងខាងក្រោមដើម្បីជ្រើសរើសដើមទុនភ្លាមៗ ឬវាយតាមទម្រង់ផ្ទាល់ខ្លួន៖</b>\n"
+                        f"• <code>/lot 1000 1 10</code> <i>(ដើមទុន $1000, Risk 1%, SL $10)</i>\n"
+                        f"• <code>/lot 500 2 4365 4355</code> <i>(Entry 4365, SL 4355)</i>"
+                    )
+                    self.notifier.send_message(resp, chat_id=chat_id, reply_markup=lot_calculator_inline_buttons)
+
+            elif clean_cmd in ("/price", "/gold", "price") or "ហាងឆេងមាស" in text:
                 price_data = self.gold_collector.fetch_price()
                 # Clean, pure price report without SMC/Macro block when clicking 'Price' button
                 resp = KhmerFormatter.format_daily_gold_price(price_data, summary="", include_smc=False)
@@ -514,16 +543,29 @@ class XAUUSDNewsAssistantBot:
                 price_data = self.gold_collector.fetch_price()
                 levels = price_data.get("key_levels", {})
                 oz = price_data.get("price_oz", 0.0)
-                pivot = levels.get("pivot", oz)
-                r1 = levels.get("r1", oz + 20)
-                s1 = levels.get("s1", oz - 20)
-                reply = (
-                    f"🎯 <b>កម្រិតបច្ចេកទេស & AI SMC Setup Zone</b>\n\n"
-                    f"• 🟢 <b>Buy Zone:</b> ${s1 - 4:,.2f} - ${s1 + 3:,.2f} (SL: ${s1 - 11:,.2f})\n"
-                    f"• 🔴 <b>Sell Zone:</b> ${r1 - 3:,.2f} - ${r1 + 4:,.2f} (SL: ${r1 + 11:,.2f})\n"
-                    f"• 🎯 <b>Pivot Point:</b> ${pivot:,.2f}\n\n"
-                    f"💡 <i>អនុសាសន៍: រង់ចាំ Confirmation Candle នៅលើ M15 មុនចូល Order!</i>"
+                macro_data = self.macro_collector.fetch_macro_correlations()
+                order_book = self.order_book_tracker.fetch_order_book_depth()
+
+                # Generate AI Decisive Single-Direction Setup (Buy ONLY or Sell ONLY)
+                setup = self.analyzer.generate_smart_smc_setup(
+                    current_price=oz,
+                    key_levels=levels,
+                    macro_data=macro_data,
+                    order_book=order_book
                 )
+                if setup:
+                    reply = KhmerFormatter.format_single_smc_setup(setup, key_levels=levels, current_price=oz)
+                else:
+                    pivot = levels.get("pivot", oz)
+                    r1 = levels.get("r1", oz + 20)
+                    s1 = levels.get("s1", oz - 20)
+                    reply = (
+                        f"🎯 <b>កម្រិតបច្ចេកទេស & AI SMC Setup Zone</b>\n\n"
+                        f"• 🟢 <b>Buy Zone:</b> ${s1 - 4:,.2f} - ${s1 + 3:,.2f} (SL: ${s1 - 11:,.2f})\n"
+                        f"• 🔴 <b>Sell Zone:</b> ${r1 - 3:,.2f} - ${r1 + 4:,.2f} (SL: ${r1 + 11:,.2f})\n"
+                        f"• 🎯 <b>Pivot Point:</b> ${pivot:,.2f}\n\n"
+                        f"💡 <i>អនុសាសន៍: រង់ចាំ Confirmation Candle នៅលើ M15 មុនចូល Order!</i>"
+                    )
                 self.notifier.send_message(reply, chat_id=chat_id, reply_markup=bottom_keyboard)
 
             elif clean_cmd in ("/calendar", "/events") or "ប្រតិទិនសេដ្ឋកិច្ច" in text:
@@ -602,28 +644,57 @@ class XAUUSDNewsAssistantBot:
                 else:
                     self.notifier.send_message("⚠️ មិនអាចបង្កើត Heatmap បានទេនៅពេលនេះ។", chat_id=chat_id, reply_markup=bottom_keyboard)
 
-            elif clean_cmd in ("/lot", "/risk", "lot", "risk") or "គិតlot" in text.lower() or "ម៉ាស៊ីនគិតlot" in text or "🧮 គិត lot" in text:
-                parsed = RiskLotCalculator.parse_user_input(text)
-                if parsed:
-                    calc = RiskLotCalculator.calculate_lot_size(
-                        balance=parsed["balance"],
-                        risk_pct=parsed["risk_pct"],
-                        entry_price=parsed.get("entry_price"),
-                        sl_price=parsed.get("sl_price"),
-                        sl_points_usd=parsed.get("sl_points_usd")
+            elif clean_cmd in ("/chart", "/scan", "/scanner", "/pattern", "chart") or "ស្កេន" in text or "chart" in text.lower():
+                self.notifier.send_message("👁️‍🗨️ <i>AI Multimodal Vision កំពុងទាញយកទិន្នន័យទៀនផ្សារ Live និងស្កេនទម្រង់ Candlestick & SMC Patterns...</i>", chat_id=chat_id)
+                price_data = self.gold_collector.fetch_price()
+                oz = price_data.get("price_oz", 0.0)
+                levels = price_data.get("key_levels", {})
+                candles = self.candle_analyzer.fetch_m15_candles(count=40)
+                
+                # Fetch SMC setup context
+                macro_data = self.macro_collector.fetch_macro_correlations()
+                order_book = self.order_book_tracker.fetch_order_book_depth()
+                setup = self.analyzer.generate_smart_smc_setup(
+                    current_price=oz,
+                    key_levels=levels,
+                    macro_data=macro_data,
+                    order_book=order_book
+                )
+
+                # Render HD Candlestick Chart
+                chart_png = self.chart_renderer.render_candlestick_chart(
+                    candles=candles,
+                    current_price=oz,
+                    key_levels=levels,
+                    setup=setup,
+                    timeframe="M15",
+                    title_extra=setup.get("setup_title", "") if setup else ""
+                )
+
+                if chart_png:
+                    # Run Gemini Multimodal Vision analysis on the chart image
+                    vision_res = self.analyzer.analyze_chart_image(chart_png, current_price=oz, key_levels=levels)
+                    if vision_res:
+                        caption_text = KhmerFormatter.format_chart_vision_scan(oz, vision_res, timeframe="M15")
+                    else:
+                        pattern_name = "ទម្រង់ទៀនបញ្ជាក់ច្បាស់ (Confirmed Action)"
+                        caption_text = (
+                            f"👁️‍🗨️ <b>AI LIVE CANDLESTICK & SMC PATTERN SCANNER (M15)</b>\n\n"
+                            f"• 🥇 <b>Spot XAU/USD:</b> <code>${oz:,.2f}</code>\n"
+                            f"• 🕯️ <b>ស្ថានភាពទៀន:</b> <b>{pattern_name}</b>\n"
+                            f"• 🎯 <b>ទិសដៅ AI SMC:</b> <b>{setup.get('setup_title', 'BUY')}</b>\n\n"
+                            f"💡 <i>អនុសាសន៍: រង់ចាំទៀន M15 បិទដើម្បីបញ្ជាក់ពីប្រតិកម្មទាត់ចោលថ្លៃ (Rejection) មុនចូល Order!</i>"
+                        )
+
+                    caption_clean = self._truncate_html_caption(caption_text, max_visible_chars=950)
+                    self.notifier.send_photo(
+                        chart_png,
+                        caption=caption_clean,
+                        chat_id=chat_id,
+                        reply_markup=inline_trading_buttons
                     )
-                    resp = KhmerFormatter.format_lot_size_calculator(calc)
-                    self.notifier.send_message(resp, chat_id=chat_id, reply_markup=lot_calculator_inline_buttons)
                 else:
-                    # Provide default quick calculation with interactive buttons
-                    default_calc = RiskLotCalculator.calculate_lot_size(balance=1000, risk_pct=1.0, sl_points_usd=10.0)
-                    resp = (
-                        f"{KhmerFormatter.format_lot_size_calculator(default_calc)}\n\n"
-                        f"👇 <b>ចុចប៊ូតុងខាងក្រោមដើម្បីជ្រើសរើសដើមទុនភ្លាមៗ ឬវាយតាមទម្រង់ផ្ទាល់ខ្លួន៖</b>\n"
-                        f"• <code>/lot 1000 1 10</code> <i>(ដើមទុន $1000, Risk 1%, SL $10)</i>\n"
-                        f"• <code>/lot 500 2 4365 4355</code> <i>(Entry 4365, SL 4355)</i>"
-                    )
-                    self.notifier.send_message(resp, chat_id=chat_id, reply_markup=lot_calculator_inline_buttons)
+                    self.notifier.send_message("⚠️ មិនអាចទាញយក Chart បានទេនៅពេលនេះ សូមព្យាយាមម្តងទៀត។", chat_id=chat_id, reply_markup=bottom_keyboard)
 
             elif clean_cmd in ("/depth", "/orderbook", "/iceberg", "orderbook") or "ជម្រៅទីផ្សារ" in text:
                 depth = self.order_book_tracker.fetch_order_book_depth()
@@ -658,16 +729,29 @@ class XAUUSDNewsAssistantBot:
                     price_data = self.gold_collector.fetch_price()
                     levels = price_data.get("key_levels", {})
                     oz = price_data.get("price_oz", 0.0)
-                    pivot = levels.get("pivot", oz)
-                    r1 = levels.get("r1", oz + 20)
-                    s1 = levels.get("s1", oz - 20)
-                    reply = (
-                        f"🎯 <b>កម្រិតបច្ចេកទេស & AI SMC Setup Zone</b>\n\n"
-                        f"• 🟢 <b>Buy Zone:</b> ${s1 - 4:,.2f} - ${s1 + 3:,.2f} (SL: ${s1 - 11:,.2f})\n"
-                        f"• 🔴 <b>Sell Zone:</b> ${r1 - 3:,.2f} - ${r1 + 4:,.2f} (SL: ${r1 + 11:,.2f})\n"
-                        f"• 🎯 <b>Pivot Point:</b> ${pivot:,.2f}\n\n"
-                        f"💡 <i>អនុសាសន៍: រង់ចាំ Confirmation Candle នៅលើ M15 មុនចូល Order!</i>"
+                    macro_data = self.macro_collector.fetch_macro_correlations()
+                    order_book = self.order_book_tracker.fetch_order_book_depth()
+
+                    # Generate AI Decisive Single-Direction Setup (Buy ONLY or Sell ONLY)
+                    setup = self.analyzer.generate_smart_smc_setup(
+                        current_price=oz,
+                        key_levels=levels,
+                        macro_data=macro_data,
+                        order_book=order_book
                     )
+                    if setup:
+                        reply = KhmerFormatter.format_single_smc_setup(setup, key_levels=levels, current_price=oz)
+                    else:
+                        pivot = levels.get("pivot", oz)
+                        r1 = levels.get("r1", oz + 20)
+                        s1 = levels.get("s1", oz - 20)
+                        reply = (
+                            f"🎯 <b>កម្រិតបច្ចេកទេស & AI SMC Setup Zone</b>\n\n"
+                            f"• 🟢 <b>Buy Zone:</b> ${s1 - 4:,.2f} - ${s1 + 3:,.2f} (SL: ${s1 - 11:,.2f})\n"
+                            f"• 🔴 <b>Sell Zone:</b> ${r1 - 3:,.2f} - ${r1 + 4:,.2f} (SL: ${r1 + 11:,.2f})\n"
+                            f"• 🎯 <b>Pivot Point:</b> ${pivot:,.2f}\n\n"
+                            f"💡 <i>អនុសាសន៍: រង់ចាំ Confirmation Candle នៅលើ M15 មុនចូល Order!</i>"
+                        )
                     self.notifier.send_message(reply, chat_id=chat_id, reply_markup=bottom_keyboard)
                 elif len(parts) > 1 and parts[1].lower() in ("lot", "risk"):
                     default_calc = RiskLotCalculator.calculate_lot_size(balance=1000, risk_pct=1.0, sl_points_usd=10.0)
@@ -688,6 +772,7 @@ class XAUUSDNewsAssistantBot:
                         f"ចុចប៊ូតុង <b>[ Price ]</b> ឬ <b>[ SMC ]</b> នៅខាងក្រោម ឬវាយពាក្យបញ្ជា Bot៖\n"
                         f"• <b>Price</b> ➡️ មើលហាងឆេងមាស Spot និងផ្សារធំថ្មីបច្ចុប្បន្ន\n"
                         f"• <b>SMC</b> ➡️ មើលកម្រិតបច្ចេកទេស AI Pivot & SMC Setup Zone\n"
+                        f"• <code>/chart</code> ➡️ ស្កេនរូប Chart ទៀន Live + AI Vision Pattern Scanner (M15)\n"
                         f"• <code>/lot</code> ➡️ ម៉ាស៊ីនគណនាទំហំ Lot Size & Risk ឆ្លាតវៃតាមដើមទុន\n"
                         f"• <code>/heatmap</code> ➡️ ផែនទីកម្តៅ Smart Money Liquidity Heatmap HD (Canvas)\n"
                         f"• <code>/fomc</code> ➡️ AI បកប្រែផ្ទាល់ការថ្លែងសុន្ទរកថា Fed / Powell Speech + សំឡេង\n"
@@ -704,6 +789,32 @@ class XAUUSDNewsAssistantBot:
     def _caption_fits(text: str, limit: int = 1024) -> bool:
         """Telegram captions are capped at 1024 characters (HTML tags not counted)."""
         return len(re.sub(r"<[^>]+>", "", text)) <= limit
+
+    @staticmethod
+    def _truncate_html_caption(text: str, max_visible_chars: int = 900) -> str:
+        """Safely trims text to keep visible length <= 1024 while ensuring open HTML tags are closed."""
+        if XAUUSDNewsAssistantBot._caption_fits(text, limit=1000):
+            return text
+
+        # Split into blocks and keep essential alerts
+        blocks = text.split("\n\n")
+        trimmed_blocks = []
+        curr_len = 0
+        for b in blocks:
+            vis = len(re.sub(r"<[^>]+>", "", b))
+            if curr_len + vis > max_visible_chars:
+                break
+            trimmed_blocks.append(b)
+            curr_len += vis
+
+        res = "\n\n".join(trimmed_blocks)
+        # Auto-close open tags
+        for tag in ["i", "b", "code", "a"]:
+            open_count = len(re.findall(rf"<{tag}(?:\s+[^>]*)?>", res))
+            close_count = len(re.findall(rf"</{tag}>", res))
+            if open_count > close_count:
+                res += f"</{tag}>" * (open_count - close_count)
+        return res
 
     @staticmethod
     def _news_ts(item: dict) -> float:
@@ -734,21 +845,33 @@ class XAUUSDNewsAssistantBot:
                 logger.warning(f"Direct news image fetch failed: {e}")
 
         # 2. Contextual story-matching: find an image that directly reflects the topic
-        title_lower = (item.get("title", "") + " " + item.get("description", "")).lower()
+        full_text = (item.get("title", "") + " " + item.get("description", "")).lower()
         search_query = None
 
-        if "trump" in title_lower:
+        if "adb" in full_text or "asian development bank" in full_text:
+            search_query = "Asian Development Bank"
+        elif "china" in full_text or "chinese economy" in full_text or "beijing" in full_text:
+            search_query = "Economy of China Beijing"
+        elif "trump" in full_text:
             search_query = "Donald Trump United Nations General Assembly"
-        elif "powell" in title_lower or "federal reserve" in title_lower or "fomc" in title_lower or "fed" in title_lower:
+        elif "powell" in full_text or "federal reserve" in full_text or "fomc" in full_text or "fed" in full_text:
             search_query = "Jerome Powell Federal Reserve"
-        elif "putin" in title_lower or "russia" in title_lower:
+        elif "putin" in full_text or ("russia" in full_text and ("ukraine" in full_text or "war" in full_text or "sanction" in full_text)):
             search_query = "Vladimir Putin"
-        elif "ecb" in title_lower or "lagarde" in title_lower:
+        elif "ecb" in full_text or "lagarde" in full_text:
             search_query = "Christine Lagarde European Central Bank"
-        elif "iran" in title_lower or "middle east" in title_lower:
+        elif "iran" in full_text or "middle east" in full_text or "red sea" in full_text or "houthis" in full_text:
             search_query = "Middle East geopolitical tension"
-        elif "gold" in title_lower or "xau" in title_lower or "bullion" in title_lower:
+        elif "japan" in full_text or "boj" in full_text or "yen" in full_text:
+            search_query = "Bank of Japan Tokyo"
+        elif "oil" in full_text or "crude" in full_text or "opec" in full_text:
+            search_query = "Petroleum industry oil rig"
+        elif "gold" in full_text or "xau" in full_text or "bullion" in full_text or "precious metal" in full_text:
             search_query = "Gold bars bullion vault"
+        elif "inflation" in full_text or "cpi" in full_text:
+            search_query = "Inflation economics price index"
+        elif "dollar" in full_text or "dxy" in full_text:
+            search_query = "United States dollar banknote"
 
         if search_query:
             try:
@@ -946,21 +1069,27 @@ class XAUUSDNewsAssistantBot:
             msg = KhmerFormatter.format_breaking_event_alert(item, analysis)
 
 
-        # One single combined message: news photo (or calendar table) with the analysis as caption.
-        # NEVER send two separate messages (photo + text). Always send strictly ONE message.
+        article_url = (item.get("link") or item.get("url") or "").strip()
+        source_name = (item.get("source") or "ForexLive").strip()
+        news_button = None
+        if article_url:
+            news_button = {
+                "inline_keyboard": [
+                    [{"text": f"🔗 អានព័ត៌មានលម្អិត ({source_name})", "url": article_url}]
+                ]
+            }
+
         photo = self._fetch_news_image(item) or self._build_calendar_png()
         if photo:
-            # If caption exceeds Telegram's 1024 char limit, trim it cleanly so it always fits
-            caption_text = msg
-            if not self._caption_fits(caption_text, limit=1024):
-                caption_text = caption_text[:1000] + "..."
-            res = self.notifier.send_photo(photo, caption=caption_text)
+            # If caption exceeds Telegram's 1024 char limit, trim safely keeping HTML tags valid
+            caption_text = self._truncate_html_caption(msg, max_visible_chars=950)
+            res = self.notifier.send_photo(photo, caption=caption_text, reply_markup=news_button)
             sent_ok = bool(res.get("ok"))
             if sent_ok:
                 self._calendar_attached = True
         else:
             # If absolutely no photo is available, send as single text message
-            res = self.notifier.send_message(msg)
+            res = self.notifier.send_message(msg, reply_markup=news_button)
             sent_ok = bool(res.get("ok"))
 
         if sent_ok:
