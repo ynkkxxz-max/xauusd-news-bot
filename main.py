@@ -460,6 +460,9 @@ class XAUUSDNewsAssistantBot:
                     [
                         {"text": "⚡ $100 (Risk 5%)", "callback_data": "lot_calc:100:5:10"},
                         {"text": "🔥 $1,000 (Risk 2%)", "callback_data": "lot_calc:1000:2:10"}
+                    ],
+                    [
+                        {"text": "📱 បើក Mini App គិត Lot (Sliders)", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/"}}
                     ]
                 ]
             }
@@ -467,7 +470,11 @@ class XAUUSDNewsAssistantBot:
             # 3-Button Custom Keyboard directly at the bottom (Price, SMC, 🧮 គិត Lot)
             bottom_keyboard = {
                 "keyboard": [
-                    [{"text": "Price"}, {"text": "SMC"}, {"text": "🧮 គិត Lot"}]
+                    [
+                        {"text": "Price"},
+                        {"text": "SMC"},
+                        {"text": "🧮 គិត Lot", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/"}}
+                    ]
                 ],
                 "resize_keyboard": True,
                 "persistent": True
@@ -491,10 +498,11 @@ class XAUUSDNewsAssistantBot:
                         self.notifier.send_message(resp, chat_id=cb_chat_id, reply_markup=lot_calculator_inline_buttons)
                 continue
 
-            # 2. Handle Text Messages
+            # 2. Handle Text Messages or WebApp Data
             msg_obj = u.get("message", {})
             chat_id = msg_obj.get("chat", {}).get("id")
-            text = (msg_obj.get("text") or "").strip()
+            web_app_data = msg_obj.get("web_app_data", {}).get("data", "")
+            text = (web_app_data or msg_obj.get("text") or "").strip()
 
             if not text or not chat_id:
                 continue
