@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>XAU/USD Smart Lot & Risk Calculator</title>
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg: #0B0E14;
+      --card-bg: rgba(21, 26, 38, 0.85);
+      --card-border: rgba(255, 215, 0, 0.18);
+      --gold: #FFD700;
+      --gold-gradient: linear-gradient(135deg, #FFE259 0%, #FFA751 100%);
+      --bull: #00E676;
+      --bear: #FF3366;
+      --text: #F0F4F8;
+      --text-muted: #8E9BAE;
+      --accent: #2979FF;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      font-family: 'Outfit', 'Kantumruy Pro', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 16px;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 10% 10%, rgba(255, 215, 0, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 90%, rgba(41, 121, 255, 0.08) 0%, transparent 40%);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 215, 0, 0.12);
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      color: var(--gold);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .title {
+      font-size: 20px;
+      font-weight: 700;
+      background: var(--gold-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Live Price Card */
+    .live-pill {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+    }
+
+    .live-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pulse {
+      width: 8px;
+      height: 8px;
+      background: var(--bull);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--bull);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.4; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.2); }
+      100% { opacity: 0.4; transform: scale(0.9); }
+    }
+
+    .live-price {
+      font-size: 15px;
+      font-weight: 700;
+      color: #FFF;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Lot Result Showcase Card */
+    .result-card {
+      background: linear-gradient(135deg, rgba(26, 33, 49, 0.9), rgba(15, 20, 30, 0.95));
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      margin-bottom: 20px;
+    }
+
+    .result-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      animation: sweep 3s infinite;
+    }
+
+    @keyframes sweep {
+      0% { left: -100%; }
+      50%, 100% { left: 100%; }
+    }
+
+    .result-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .result-lot {
+      font-size: 44px;
+      font-weight: 800;
+      color: var(--gold);
+      margin: 4px 0;
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 25px rgba(255, 215, 0, 0.35);
+    }
+
+    .result-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .metric-item {
+      text-align: center;
+    }
+
+    .metric-title {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .metric-val {
+      font-size: 15px;
+      font-weight: 700;
+      color: #FFF;
+      margin-top: 2px;
+    }
+
+    .val-risk { color: var(--bear); }
+    .val-tp { color: var(--bull); }
+
+    /* Control Sections */
+    .section-card {
+      background: var(--card-bg);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 14px;
+      backdrop-filter: blur(10px);
+    }
+
+    .section-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #FFF;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .section-value {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--gold);
+    }
+
+    /* Range Slider */
+    .slider-container {
+      margin-bottom: 12px;
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.1);
+      height: 6px;
+      border-radius: 4px;
+      outline: none;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+      cursor: pointer;
+      border: 2px solid #000;
+    }
+
+    /* Preset Quick Buttons */
+    .preset-group {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .preset-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 4px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .preset-btn:active, .preset-btn.active {
+      background: var(--gold);
+      color: #000;
+      border-color: var(--gold);
+      box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+    }
+
+    /* Trade Plan Matrix (TP1 / TP2 / Scaling) */
+    .plan-box {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .plan-pill {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 10px;
+      padding: 10px;
+      border-left: 3px solid var(--bull);
+    }
+
+    .plan-pill.tp2 {
+      border-left-color: var(--gold);
+    }
+
+    .plan-pill-head {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .plan-pill-body {
+      font-size: 14px;
+      font-weight: 700;
+      color: #FFF;
+      margin-top: 2px;
+    }
+
+    .plan-pill-sub {
+      font-size: 10px;
+      color: var(--bull);
+    }
+
+    /* Action Button */
+    .apply-btn {
+      width: 100%;
+      background: var(--gold-gradient);
+      color: #0B0E14;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 14px;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 20px rgba(255, 167, 81, 0.35);
+      margin-top: 18px;
+      transition: transform 0.1s;
+    }
+
+    .apply-btn:active {
+      transform: scale(0.98);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="badge">Institutional Risk Engine</div>
+    <div class="title">🧮 Smart Lot & Risk Calculator</div>
+    <div class="subtitle">គណនាទំហំ Lot ស្តង់ដារ & ផែនការជួញដូរ XAU/USD</div>
+  </div>
+
+  <div class="live-pill">
+    <div class="live-label">
+      <span class="pulse"></span>
+      Spot XAU/USD (Live)
+    </div>
+    <div class="live-price" id="livePrice">$4,284.50</div>
+  </div>
+
+  <!-- Giant Result Showcase -->
+  <div class="result-card">
+    <div class="result-label">Recommended Lot Size</div>
+    <div class="result-lot" id="resLot">0.10 LOT</div>
+    
+    <div class="result-metrics">
+      <div class="metric-item">
+        <div class="metric-title">Max Risk Amount</div>
+        <div class="metric-val val-risk" id="resRiskUsd">-$10.00</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-title">Projected TP1 (1:1.5)</div>
+        <div class="metric-val val-tp" id="resTpUsd">+$15.00</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Balance Section -->
+  <div class="section-card">
+    <div class="section-title-row">
+      <div class="section-title">💰 ដើមទុនគណនី (Balance)</div>
+      <div class="section-value" id="valBal">$1,000</div>
+    </div>
+    <div class="slider-container">
+      <input type="range" id="sliderBal" min="100" max="20000" step="100" value="1000">
+    </div>
+    <div class="preset-group">
+      <button class="preset-btn" onclick="setBalance(100)">$100</button>
+      <button class="preset-btn active" id="btnBal1000" onclick="setBalance(1000)">$1,000</button>
+      <button class="preset-btn" onclick="setBalance(5000)">$5,000</button>
+      <button class="preset-btn" onclick="setBalance(10000)">$10,000</button>
+    </div>
+  </div>
+
+  <!-- Risk % Section -->
+  <div class="section-card">
+    <div class="section-title-row">
+      <div class="section-title">🛡️ កម្រិត Risk % (Money Management)</div>
+      <div class="section-value" id="valRisk">1.0%</div>
+    </div>
+    <div class="slider-container">
+      <input type="range" id="sliderRisk" min="0.5" max="5.0" step="0.5" value="1.0">
+    </div>
+    <div class="preset-group">
+      <button class="preset-btn" onclick="setRisk(0.5)">0.5%</button>
+      <button class="preset-btn active" id="btnRisk1" onclick="setRisk(1.0)">1.0%</button>
+      <button class="preset-btn" onclick="setRisk(2.0)">2.0%</button>
+      <button class="preset-btn" onclick="setRisk(3.0)">3.0%</button>
+    </div>
+  </div>
+
+  <!-- Stop Loss Distance Section -->
+  <div class="section-card">
+    <div class="section-title-row">
+      <div class="section-title">🛑 ចម្ងាយ Stop Loss ($ ឬ Pips)</div>
+      <div class="section-value" id="valSL">$10.0 (100 Pips)</div>
+    </div>
+    <div class="slider-container">
+      <input type="range" id="sliderSL" min="3" max="30" step="1" value="10">
+    </div>
+    <div class="preset-group">
+      <button class="preset-btn" onclick="setSL(6)">$6.0 (60p)</button>
+      <button class="preset-btn active" id="btnSL10" onclick="setSL(10)">$10 (100p)</button>
+      <button class="preset-btn" onclick="setSL(15)">$15 (150p)</button>
+      <button class="preset-btn" onclick="setSL(20)">$20 (200p)</button>
+    </div>
+
+    <!-- Smart Split Order Matrix -->
+    <div class="plan-box">
+      <div class="plan-pill">
+        <div class="plan-pill-head">TP1 Plan (1:1 R:R)</div>
+        <div class="plan-pill-body" id="resTp1Val">+$5.00</div>
+        <div class="plan-pill-sub" id="resTp1Sub">0.05 Lot | Lock BE</div>
+      </div>
+      <div class="plan-pill tp2">
+        <div class="plan-pill-head">TP2 Plan (1:2 R:R)</div>
+        <div class="plan-pill-body" id="resTp2Val">+$10.00</div>
+        <div class="plan-pill-sub" id="resTp2Sub">0.05 Lot | Runner</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="apply-btn" onclick="sendToBot()">
+    <span>📋 ផ្ញើផែនការនេះទៅកាន់ Telegram Bot</span>
+  </button>
+
+  <script>
+    // Initialize Telegram WebApp
+    const tg = window.Telegram ? window.Telegram.WebApp : null;
+    if (tg) {
+      tg.expand();
+      tg.enableClosingConfirmation();
+    }
+
+    let balance = 1000;
+    let riskPct = 1.0;
+    let slDistance = 10.0;
+
+    // Elements
+    const sliderBal = document.getElementById('sliderBal');
+    const sliderRisk = document.getElementById('sliderRisk');
+    const sliderSL = document.getElementById('sliderSL');
+
+    const valBal = document.getElementById('valBal');
+    const valRisk = document.getElementById('valRisk');
+    const valSL = document.getElementById('valSL');
+
+    const resLot = document.getElementById('resLot');
+    const resRiskUsd = document.getElementById('resRiskUsd');
+    const resTpUsd = document.getElementById('resTpUsd');
+
+    const resTp1Val = document.getElementById('resTp1Val');
+    const resTp2Val = document.getElementById('resTp2Val');
+    const resTp1Sub = document.getElementById('resTp1Sub');
+    const resTp2Sub = document.getElementById('resTp2Sub');
+
+    function calculate() {
+      // Risk Amount in USD = Balance * (Risk% / 100)
+      const riskUsd = balance * (riskPct / 100.0);
+      
+      // Stop Loss in Dollars per ounce (1 pip in gold = $0.10, $1.00 = 10 pips)
+      // 1 Standard Lot Gold = 100 oz.
+      // Loss for 1 Lot with $SL distance = SL * 100 USD.
+      // Lot = Risk_USD / (SL_USD * 100)
+      let rawLot = riskUsd / (slDistance * 100.0);
+      let roundedLot = Math.round(rawLot * 100.0) / 100.0;
+      if (roundedLot < 0.01) roundedLot = 0.01;
+
+      // Update UI
+      valBal.innerText = '$' + balance.toLocaleString();
+      valRisk.innerText = riskPct.toFixed(1) + '%';
+      valSL.innerText = '$' + slDistance.toFixed(1) + ' (' + (slDistance * 10).toFixed(0) + ' Pips)';
+
+      resLot.innerText = roundedLot.toFixed(2) + ' LOT';
+      resRiskUsd.innerText = '-$' + riskUsd.toFixed(2);
+      
+      // TP calculations (1:1.5 standard, Split TP1 & TP2)
+      const tpUsd = riskUsd * 1.5;
+      resTpUsd.innerText = '+$' + tpUsd.toFixed(2);
+
+      const halfLot = Math.max(0.01, Math.round((roundedLot / 2.0) * 100) / 100);
+      const tp1Profit = halfLot * slDistance * 100.0;
+      const tp2Profit = halfLot * slDistance * 2.0 * 100.0;
+
+      resTp1Val.innerText = '+$' + tp1Profit.toFixed(2);
+      resTp2Val.innerText = '+$' + tp2Profit.toFixed(2);
+      resTp1Sub.innerText = halfLot.toFixed(2) + ' Lot | Lock BE';
+      resTp2Sub.innerText = halfLot.toFixed(2) + ' Lot | Runner (1:2)';
+    }
+
+    // Sliders listeners
+    sliderBal.addEventListener('input', (e) => {
+      balance = parseFloat(e.target.value);
+      clearActivePreset('sliderBal');
+      calculate();
+    });
+
+    sliderRisk.addEventListener('input', (e) => {
+      riskPct = parseFloat(e.target.value);
+      clearActivePreset('sliderRisk');
+      calculate();
+    });
+
+    sliderSL.addEventListener('input', (e) => {
+      slDistance = parseFloat(e.target.value);
+      clearActivePreset('sliderSL');
+      calculate();
+    });
+
+    function setBalance(val) {
+      balance = val;
+      sliderBal.value = val;
+      calculate();
+    }
+
+    function setRisk(val) {
+      riskPct = val;
+      sliderRisk.value = val;
+      calculate();
+    }
+
+    function setSL(val) {
+      slDistance = val;
+      sliderSL.value = val;
+      calculate();
+    }
+
+    function clearActivePreset(type) {
+      // Soft feedback
+      if (tg && tg.HapticFeedback) {
+        tg.HapticFeedback.selectionChanged();
+      }
+    }
+
+    function sendToBot() {
+      if (tg && tg.HapticFeedback) {
+        tg.HapticFeedback.notificationOccurred('success');
+      }
+
+      const planText = `/lot ${balance} ${riskPct} ${slDistance}`;
+      if (tg && tg.sendData) {
+        tg.sendData(planText);
+      } else {
+        alert(`ផែនការរបស់អ្នក៖ ដើមទុន $${balance}, Risk ${riskPct}%, SL $${slDistance}\n\nLot ណែនាំ៖ ${resLot.innerText}`);
+      }
+    }
+
+    // Initial run
+    calculate();
+  </script>
+</body>
+</html>
