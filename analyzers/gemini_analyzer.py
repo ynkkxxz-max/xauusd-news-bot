@@ -152,19 +152,11 @@ class GeminiAnalyzer:
     _cooldown_until = 0.0
 
     def _throttle_wait(self):
-        """Enforces the quota cooldown and the minimum spacing between calls.
-
-        Raises immediately if we are inside a 429 cooldown so callers fall back
-        to rules without burning another request; otherwise sleeps just enough
-        to respect GEMINI_MIN_INTERVAL before the next call.
-        """
+        """Enforces the quota cooldown without blocking user commands unnecessarily."""
         now = time.time()
         if now < GeminiAnalyzer._cooldown_until:
             remaining = int(GeminiAnalyzer._cooldown_until - now)
             raise RuntimeError(f"Gemini cooldown active ({remaining}s left) after quota limit")
-        gap = now - GeminiAnalyzer._last_request_ts
-        if gap < GEMINI_MIN_INTERVAL:
-            time.sleep(GEMINI_MIN_INTERVAL - gap)
         GeminiAnalyzer._last_request_ts = time.time()
 
     def _trip_cooldown(self, seconds: float = None):
@@ -188,21 +180,19 @@ class GeminiAnalyzer:
                     self.endpoint,
                     params={"key": self.api_key},
                     json=payload,
-                    timeout=8,
+                    timeout=4,
                 )
                 GeminiAnalyzer._last_request_ts = time.time()
                 if resp.status_code == 429:
                     self._trip_cooldown()
                     raise RuntimeError(f"HTTP 429: {resp.text[:120]}")
                 if resp.status_code in (500, 503):
-                    # Fast fail to let fallback analyzers pick it up immediately and pause Gemini for 120s
                     self._trip_cooldown(120)
                     raise RuntimeError(f"HTTP {resp.status_code}: {resp.text[:120]}")
                 resp.raise_for_status()
                 return resp.json()
             except requests.RequestException as e:
                 last_exc = e
-                # Trip a short cooldown on timeouts/connection failures so fallback handles calls
                 self._trip_cooldown(60)
                 break
         raise last_exc if last_exc else RuntimeError("Gemini call failed")
