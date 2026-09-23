@@ -103,14 +103,27 @@ class MacroAnalyzer:
         text = f"{title} {description}".lower()
         full_story = f"{title} — {description}".strip(" —")
         
-        if any(w in text for w in ["war", "missile", "escalat", "geopolitical", "safe haven", "attack", "iran", "strait of hormuz"]):
+        # 1. Geopolitical Conflict / War / Military Attacks (Strict matching, NOT general economic news)
+        geopolitical_words = ["war", "missile", "airstrike", "invasion", "military attack", "strait of hormuz", "red sea attack", "iran strike"]
+        is_military_conflict = any(w in text for w in geopolitical_words) or ("escalat" in text and any(k in text for k in ["tension", "conflict", "threat", "military"]))
+
+        if is_military_conflict:
             return {
                 "what_happened": f"ភាពតានតឹងភូមិសាស្ត្រនយោបាយកើនឡើង៖ {full_story}",
-                "why_it_matters": "🔴 នេះជាព័ត៌មានអវិជ្ជមានផ្នែកសន្តិសុខ ដែលជំរុញឱ្យវិនិយោគិនស្វែងរកទ្រព្យសកម្មសុវត្ថិភាព (Safe-Haven Assets) និងធ្វើឱ្យមានការព្រួយបារម្ភពីការរំខានដល់ការផ្គត់ផ្គង់ថាមពលពិភពលោក។",
+                "why_it_matters": "🔴 នេះជាព័ត៌មានអវិជ្ជមានផ្នែកសន្តិសុខ ដែលជំរុញឱ្យវិនិយោគិនស្វែងរកទ្រព្យសកម្មសុវត្ថិភាព (Safe-Haven Assets) និងធ្វើឱ្យមានការព្រួយបារម្ភពីការរំខានដល់សន្តិសុខពិភពលោក។",
                 "usd_impact": "USD អាចឡើងថ្លៃក្នុងនាមជា Safe Haven ប៉ុន្តែមាស (Gold) ទទួលបានអត្ថប្រយោជន៍ និងទំហំទិញខ្លាំងជាង។",
                 "rate_yield_impact": "វិនិយោគិនសម្រុកទិញសញ្ញាប័ណ្ណរដ្ឋាភិបាល (Bonds) ធ្វើឱ្យ Bond Yields ធ្លាក់ចុះ។",
                 "xau_pressure": "🟢 Possible Bullish Pressure (កម្លាំងទិញមាស Safe-Haven កើនឡើងខ្ពស់)",
                 "bias": "🟢 Bullish"
+            }
+        elif any(w in text for w in ["china", "adb", "growth forecast", "asian development bank", "deflation", "soft demand", "pboc"]):
+            return {
+                "what_happened": f"របាយការណ៍សេដ្ឋកិច្ច និងអតិផរណាអាស៊ី/ចិន៖ {full_story}",
+                "why_it_matters": "📊 ការព្យាករណ៍ពីកំណើនសេដ្ឋកិច្ច និងអតិផរណាទាបនៅអាស៊ី/ចិន បង្ហាញពីតម្រូវការទំនិញប្រើប្រាស់ទន់ខ្សោយ ដែលអាចជំរុញឱ្យធនាគារកណ្តាល (PBOC) បន្តបន្ធូរបន្ថយរូបិយវត្ថុ ឬបញ្ចុះអត្រាការប្រាក់បន្ថែម។",
+                "usd_impact": "កម្លាំងរូបិយប័ណ្ណអាស៊ីអាចទន់ខ្សោយ គាំទ្រឱ្យ USD រក្សាស្ថិរភាព ឬរឹងមាំបន្តិច។",
+                "rate_yield_impact": "ទិន្នផលសញ្ញាបណ្ណសកលអាចប្រឈមសម្ពាធធ្លាក់ចុះដោយសារការធ្លាក់ចុះនៃសម្ពាធអតិផរណា (Disinflationary pressures)។",
+                "xau_pressure": "🟡 Possible Mixed / Consolidation (ទីផ្សារថ្លឹងថ្លែងរវាងតម្រូវការ Physical Gold និងការបន្ធូរបន្ថយការប្រាក់)",
+                "bias": "🟡 Mixed / Unclear"
             }
         elif any(w in text for w in ["artificial intelligence", "ai", "tech", "nvidia", "super intelligence"]):
             return {
@@ -148,3 +161,107 @@ class MacroAnalyzer:
                 "xau_pressure": "🟡 Possible Mixed Pressure (រង់ចាំទីផ្សារឆ្លើយតប)",
                 "bias": "🟡 Mixed / Unclear"
             }
+
+    @classmethod
+    def generate_smart_smc_setup(cls, current_price: float, key_levels: dict, macro_data: dict = None, order_book: dict = None) -> dict:
+        """
+        High-precision deterministic rule-based SMC Single-Direction setup generator.
+        Picks ONE clear direction (BUY or SELL) based on price position relative to Pivot,
+        Order Book imbalance, and Macro bias.
+        """
+        pivot = key_levels.get("pivot", current_price)
+        r1 = key_levels.get("r1", current_price + 20)
+        s1 = key_levels.get("s1", current_price - 20)
+        r2 = key_levels.get("r2", current_price + 40)
+        s2 = key_levels.get("s2", current_price - 40)
+
+        bid_dominance = (order_book.get("bid_dominance_pct", 50.0) if order_book else 50.0) or 50.0
+        dxy_pct = (macro_data.get("dxy_pct", 0.0) if macro_data else 0.0) or 0.0
+
+        # Scoring Direction Bias
+        bull_score = 0
+        bear_score = 0
+
+        # 1. Price relative to Pivot
+        if current_price >= pivot:
+            bull_score += 2
+        else:
+            bear_score += 2
+
+        # 2. Order book pressure
+        if bid_dominance > 50.5:
+            bull_score += 1
+        elif bid_dominance < 49.5:
+            bear_score += 1
+
+        # 3. DXY inverse correlation
+        if dxy_pct < 0:
+            bull_score += 1
+        elif dxy_pct > 0:
+            bear_score += 1
+
+        is_buy = bull_score >= bear_score
+
+        if is_buy:
+            entry_low = round(min(current_price - 1.5, pivot), 2)
+            entry_high = round(max(current_price + 1.0, pivot + 2.0), 2)
+            sl_price = round(entry_low - 7.5, 2)
+            tp1_price = round(r1, 2)
+            tp2_price = round(r2, 2)
+            rr = f"1:{max(1.8, round((tp1_price - entry_high) / (entry_low - sl_price), 1))}"
+
+            why_trade = (
+                f"• តម្លៃបច្ចុប្បន្នស្ថិតនៅពីលើ Pivot Point (${pivot:,.2f}) បង្ហាញថាកម្លាំងទិញគ្រប់គ្រងទីផ្សារ (Bullish Order Flow)។\n"
+                f"• Order Book បង្ហាញបន្ទាយ Bids ({bid_dominance:.1f}%) គាំទ្រកម្រាស់ក្រាស់ក្រែលនៅតំបន់ Discount Zone (${s1:,.2f})។\n"
+                f"• ស្ថាប័នធំៗកំពុងរក្សាលំនឹងពីលើតំបន់ទប់ទល់ ដើម្បីទាក់ទាញ Buy-Side Liquidity ឡើងទៅតេស្ត R1 (${r1:,.2f})។"
+            )
+            why_not_opp = (
+                f"• ការចូល Sell នៅចំណុចនេះគឺជាការលក់ប្រឆាំងទិសដៅធំ (Counter-Trend) និងប្រឈមនឹងការកិន Stop Loss ដោយសារ Bullish Momentum។\n"
+                f"• តម្លៃមិនទាន់បង្ហាញរចនាសម្ព័ន្ធបែកបាក់ធ្លាក់ចុះ (Break of Structure - BOS) នៅលើ M15 ឡើយ ដូច្នេះការ Sell គឺងាយជាប់ Liquidity Trap!"
+            )
+            confirm = "រង់ចាំការបិទទៀន M15 Bullish Pin Bar ឬ Bullish Engulfing មុននឹងសម្រេចចិត្តចូល Order!"
+            return {
+                "direction": "BUY",
+                "setup_title": "🟢 ផែនការទិញឡើង (BUY SETUP ONLY)",
+                "entry": current_price,
+                "entry_zone": f"${entry_low:,.2f} - ${entry_high:,.2f}",
+                "sl": sl_price,
+                "tp1": tp1_price,
+                "tp2": tp2_price,
+                "rr_ratio": rr,
+                "why_this_trade": why_trade,
+                "why_not_opposite": why_not_opp,
+                "confirmation_note": confirm
+            }
+        else:
+            entry_low = round(min(current_price - 1.0, pivot - 2.0), 2)
+            entry_high = round(max(current_price + 1.5, pivot), 2)
+            sl_price = round(entry_high + 7.5, 2)
+            tp1_price = round(s1, 2)
+            tp2_price = round(s2, 2)
+            rr = f"1:{max(1.8, round((entry_low - tp1_price) / (sl_price - entry_high), 1))}"
+
+            why_trade = (
+                f"• តម្លៃស្ថិតនៅក្រោម Pivot Point (${pivot:,.2f}) បញ្ជាក់ពីសម្ពាធលក់វាយសម្រុក (Bearish Structure)។\n"
+                f"• Order Book បង្ហាញជញ្ជាំង Asks រារាំងក្រាស់ក្រែលនៅតំបន់ Premium Zone (${r1:,.2f}) មិនឱ្យតម្លៃឡើងងាយៗឡើយ។\n"
+                f"• ទីផ្សារកំពុងស្វែងរក Sell-Side Liquidity (SSL) នៅតំបន់ខាងក្រោម (${s1:,.2f})។"
+            )
+            why_not_opp = (
+                f"• ការចូល Buy នៅចំណុចនេះមានហានិភ័យខ្ពស់ខ្លាំង (Falling Knife) ដោយសារគ្មានទម្រង់ Bottom Reversal ច្បាស់លាស់។\n"
+                f"• សម្ពាធលក់កំពុងគ្របដណ្តប់ ការ Buy អាចប្រឈមនឹងការទម្លុះ Support និងជាប់អន្ទាក់ទិញមុនស្ថាប័នធំៗ!"
+            )
+            confirm = "រង់ចាំការបិទទៀន M15 Bearish Rejection Wick ឬ Bearish Engulfing មុននឹងសម្រេចចិត្តចូល Order!"
+            return {
+                "direction": "SELL",
+                "setup_title": "🔴 ផែនការលក់ចុះ (SELL SETUP ONLY)",
+                "entry": current_price,
+                "entry_zone": f"${entry_low:,.2f} - ${entry_high:,.2f}",
+                "sl": sl_price,
+                "tp1": tp1_price,
+                "tp2": tp2_price,
+                "rr_ratio": rr,
+                "why_this_trade": why_trade,
+                "why_not_opposite": why_not_opp,
+                "confirmation_note": confirm
+            }
+
