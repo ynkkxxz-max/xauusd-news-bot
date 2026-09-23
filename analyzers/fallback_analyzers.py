@@ -4,7 +4,7 @@ import os
 import requests
 
 from analyzers.gemini_analyzer import (
-    _SYSTEM_RULES, actual_prompt, breaking_prompt, normalize_analysis, summary_prompt,
+    _SYSTEM_RULES, actual_prompt, breaking_prompt, normalize_analysis, summary_prompt, smc_setup_prompt,
 )
 from analyzers.macro_analyzer import MacroAnalyzer
 
@@ -67,6 +67,14 @@ class OpenAICompatAnalyzer:
     def summarize_daily_price(self, price_data: dict) -> str:
         return self._chat(summary_prompt(price_data), False).strip() or None
 
+    def generate_smart_smc_setup(self, current_price: float, key_levels: dict, macro_data: dict = None, order_book: dict = None) -> dict:
+        try:
+            content = self._chat(smc_setup_prompt(current_price, key_levels, macro_data, order_book), True)
+            return json.loads(content)
+        except Exception as e:
+            logger.warning(f"[{self.name}] generate_smart_smc_setup failed: {e}")
+            return None
+
 
 class ClaudeAnalyzer:
     """Talks to the Anthropic Messages API."""
@@ -105,6 +113,21 @@ class ClaudeAnalyzer:
 
     def summarize_daily_price(self, price_data: dict) -> str:
         return self._chat(summary_prompt(price_data)).strip() or None
+
+    def generate_smart_smc_setup(self, current_price: float, key_levels: dict, macro_data: dict = None, order_book: dict = None) -> dict:
+        try:
+            prompt = smc_setup_prompt(current_price, key_levels, macro_data, order_book) + "\n\nOutput strictly valid JSON with no markdown wrapping."
+            content = self._chat(prompt).strip()
+            if content.startswith("```json"):
+                content = content[7:]
+            if content.startswith("```"):
+                content = content[3:]
+            if content.endswith("```"):
+                content = content[:-3]
+            return json.loads(content.strip())
+        except Exception as e:
+            logger.warning(f"[claude] generate_smart_smc_setup failed: {e}")
+            return None
 
 
 class AnalyzerChain:
