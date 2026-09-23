@@ -56,6 +56,11 @@ except ImportError:
     from analyzers.fallback_analyzers import AnalyzerChain, build_fallback_analyzers
 
 try:
+    from macro_analyzer import MacroAnalyzer
+except ImportError:
+    from analyzers.macro_analyzer import MacroAnalyzer
+
+try:
     from khmer_formatter import KhmerFormatter
 except ImportError:
     from formatters.khmer_formatter import KhmerFormatter
@@ -552,19 +557,14 @@ class XAUUSDNewsAssistantBot:
                     macro_data=macro_data,
                     order_book=order_book
                 )
-                if setup:
-                    reply = KhmerFormatter.format_single_smc_setup(setup, key_levels=levels, current_price=oz)
-                else:
-                    pivot = levels.get("pivot", oz)
-                    r1 = levels.get("r1", oz + 20)
-                    s1 = levels.get("s1", oz - 20)
-                    reply = (
-                        f"🎯 <b>កម្រិតបច្ចេកទេស & AI SMC Setup Zone</b>\n\n"
-                        f"• 🟢 <b>Buy Zone:</b> ${s1 - 4:,.2f} - ${s1 + 3:,.2f} (SL: ${s1 - 11:,.2f})\n"
-                        f"• 🔴 <b>Sell Zone:</b> ${r1 - 3:,.2f} - ${r1 + 4:,.2f} (SL: ${r1 + 11:,.2f})\n"
-                        f"• 🎯 <b>Pivot Point:</b> ${pivot:,.2f}\n\n"
-                        f"💡 <i>អនុសាសន៍: រង់ចាំ Confirmation Candle នៅលើ M15 មុនចូល Order!</i>"
+                if not setup:
+                    setup = MacroAnalyzer.generate_smart_smc_setup(
+                        current_price=oz,
+                        key_levels=levels,
+                        macro_data=macro_data,
+                        order_book=order_book
                     )
+                reply = KhmerFormatter.format_single_smc_setup(setup, key_levels=levels, current_price=oz)
                 self.notifier.send_message(reply, chat_id=chat_id, reply_markup=bottom_keyboard)
 
             elif clean_cmd in ("/calendar", "/events") or "ប្រតិទិនសេដ្ឋកិច្ច" in text:
@@ -738,19 +738,14 @@ class XAUUSDNewsAssistantBot:
                         macro_data=macro_data,
                         order_book=order_book
                     )
-                    if setup:
-                        reply = KhmerFormatter.format_single_smc_setup(setup, key_levels=levels, current_price=oz)
-                    else:
-                        pivot = levels.get("pivot", oz)
-                        r1 = levels.get("r1", oz + 20)
-                        s1 = levels.get("s1", oz - 20)
-                        reply = (
-                            f"🎯 <b>កម្រិតបច្ចេកទេស & AI SMC Setup Zone</b>\n\n"
-                            f"• 🟢 <b>Buy Zone:</b> ${s1 - 4:,.2f} - ${s1 + 3:,.2f} (SL: ${s1 - 11:,.2f})\n"
-                            f"• 🔴 <b>Sell Zone:</b> ${r1 - 3:,.2f} - ${r1 + 4:,.2f} (SL: ${r1 + 11:,.2f})\n"
-                            f"• 🎯 <b>Pivot Point:</b> ${pivot:,.2f}\n\n"
-                            f"💡 <i>អនុសាសន៍: រង់ចាំ Confirmation Candle នៅលើ M15 មុនចូល Order!</i>"
+                    if not setup:
+                        setup = MacroAnalyzer.generate_smart_smc_setup(
+                            current_price=oz,
+                            key_levels=levels,
+                            macro_data=macro_data,
+                            order_book=order_book
                         )
+                    reply = KhmerFormatter.format_single_smc_setup(setup, key_levels=levels, current_price=oz)
                     self.notifier.send_message(reply, chat_id=chat_id, reply_markup=bottom_keyboard)
                 elif len(parts) > 1 and parts[1].lower() in ("lot", "risk"):
                     default_calc = RiskLotCalculator.calculate_lot_size(balance=1000, risk_pct=1.0, sl_points_usd=10.0)
