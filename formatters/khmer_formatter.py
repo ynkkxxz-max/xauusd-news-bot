@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 
 # Perfectly calibrated character limits so the full message with all headers,
 # emojis, HTML tags, and clickable source URL fits strictly within Telegram's 1024 photo caption limit:
@@ -16,12 +17,12 @@ def _clip(text: str, cap: int) -> str:
 
 class KhmerFormatter:
     @staticmethod
-    def format_daily_gold_price(price_data: dict, summary: str = "", include_smc: bool = True) -> str:
+    def format_daily_gold_price(price_data: dict, summary: str = "", include_smc: bool = False) -> str:
         """
         Formats daily gold price report in Khmer with clear distinction between:
         1. ទីផ្សារអន្តរជាតិ (International Market - XAU/USD Interbank Spot)
         2. ទីផ្សារកម្ពុជា (Cambodia Local Market - Central Market / Phnom Penh 24K & 18K)
-        If include_smc is False (used for private chat 'Price' button), only displays the pure gold price.
+        If include_smc is False (for channel and price check), keeps the message clean without SMC clutter.
         """
         oz = price_data.get("price_oz", 0.0)
         damlung_intl = price_data.get("price_damlung", 0.0)
@@ -84,11 +85,14 @@ class KhmerFormatter:
                 f"• 🔴 <b>Sell Setup (Premium OB):</b> ${sell_zone_low} - ${sell_zone_high}\n"
                 f"  └ <i>SL: ${sell_sl} | TP1: ${sell_tp1} | TP2: ${sell_tp2}</i>\n"
                 f"• 🎯 <b>Pivot Point:</b> ${pivot:,.2f} | <b>អារម្មណ៍ផ្សារ:</b> {sentiment}\n\n"
-                f"📊 <b><u>សូចនាករម៉ាក្រូសេដ្ឋកិច្ច (Macro Correlation)</u></b>\n"
-                f"• 💵 <b>DXY Index:</b> {dxy:.2f} ({'+' if dxy_chg >= 0 else ''}{dxy_chg:.2f})\n"
-                f"• 🏛️ <b>US 10-Year Yield:</b> {us10y:.2f}%\n\n"
-                f"{summary_block}"
             )
+
+        macro_block = (
+            f"\n📊 <b><u>សូចនាករម៉ាក្រូសេដ្ឋកិច្ច (Macro Correlation)</u></b>\n"
+            f"• 💵 <b>DXY Index:</b> {dxy:.2f} ({'+' if dxy_chg >= 0 else ''}{dxy_chg:.2f})\n"
+            f"• 🏛️ <b>US 10-Year Yield:</b> {us10y:.2f}%\n\n"
+            f"{summary_block}"
+        )
 
         msg = (
             f"🥇 <b>DAILY GOLD PRICE — ហាងឆេងមាសប្រចាំថ្ងៃ</b>\n\n"
@@ -105,6 +109,7 @@ class KhmerFormatter:
             f"• <b>ប្លាទីន/មាសកែច្នៃ 18K (១ ជី):</b> ~${platin_chi:,.2f}\n"
             f"📍 <i>ប្រភព: {source_local}</i>\n"
             f"{smc_block}"
+            f"{macro_block}"
         )
         return msg.strip()
 
@@ -173,9 +178,12 @@ class KhmerFormatter:
         c_why = _clip(analysis.get("why_it_matters", ""), 220)
         c_usd = _clip(analysis.get("usd_impact", ""), 110)
         c_rate = _clip(analysis.get("rate_yield_impact", ""), 110)
-        c_xau = _clip(analysis.get("xau_pressure", ""), 110).strip()
-        if c_xau.startswith("👉"):
-            c_xau = c_xau.lstrip("👉").strip()
+        raw_c_xau = _clip(analysis.get("xau_pressure", ""), 110).strip()
+        c_xau = re.sub(r'^[👉\s\-•]+', '', raw_c_xau).strip()
+        c_xau = re.sub(r'^([🟢🔴🟡])\s*\n+', r'\1 ', c_xau)
+        if not re.match(r'^[🟢🔴🟡]', c_xau):
+            bias_emoji = "🟢" if "Bullish" in analysis.get('bias', '') else ("🔴" if "Bearish" in analysis.get('bias', '') else "🟡")
+            c_xau = f"{bias_emoji} {c_xau}"
 
         msg = (
             f"🚨 <b>FLASH: ទិន្នន័យជាក់ស្តែងបានចេញផ្សាយ (ACTUAL RELEASE)</b>\n\n"
@@ -214,9 +222,15 @@ class KhmerFormatter:
         else:
             source_line = f'🔗 <i>ប្រភពព័ត៌មាន: {source_name}</i>'
 
-        xau_pressure = analysis['xau_pressure'].strip()
-        if xau_pressure.startswith("👉"):
-            xau_pressure = xau_pressure.lstrip("👉").strip()
+        raw_xau = (analysis.get('xau_pressure') or '').strip()
+        # Remove any leading pointers or whitespace
+        clean_xau = re.sub(r'^[👉\s\-•]+', '', raw_xau).strip()
+        # If Gemini returned an emoji followed by newline e.g. "🟡\n...", fix to single line
+        clean_xau = re.sub(r'^([🟢🔴🟡])\s*\n+', r'\1 ', clean_xau)
+        # Ensure it has a leading indicator emoji if missing
+        if not re.match(r'^[🟢🔴🟡]', clean_xau):
+            bias_emoji = "🟢" if "Bullish" in analysis.get('bias', '') else ("🔴" if "Bearish" in analysis.get('bias', '') else "🟡")
+            clean_xau = f"{bias_emoji} {clean_xau}"
 
         msg = (
             f"🚨 <b>BREAKING EVENT — ព្រឹត្តិការណ៍ទីផ្សារប្រចាំថ្ងៃ!</b>\n\n"
@@ -229,7 +243,7 @@ class KhmerFormatter:
             f"🏛️ <b>សម្ពាធលើ Yields / Risk Sentiment:</b>\n"
             f"{analysis['rate_yield_impact']}\n\n"
             f"🥇 <b>សម្ពាធលើ XAUUSD:</b>\n"
-            f"👉 <b>{xau_pressure}</b>\n\n"
+            f"👉 <b>{clean_xau}</b>\n\n"
             f"{source_line}"
         )
         return msg
@@ -599,5 +613,105 @@ class KhmerFormatter:
             f"• ⚙️ <b>Effective Leverage:</b> <code>1:{lev}</code>\n\n"
             f"💡 <i>អនុសាសន៍: មិនត្រូវចូល Trade លើសពីទំហំ Lot នេះឡើយ ដើម្បីការពារគណនីមិនឱ្យ Drawdown ធ្ងន់ធ្ងរ!</i>"
         )
+
+    @staticmethod
+    def format_single_smc_setup(setup: dict, key_levels: dict = None, current_price: float = 0.0) -> str:
+        """
+        Formats a comprehensive, institutional-grade SMC Trading Brief:
+        Part 1: 🗺️ ទិដ្ឋភាពបច្ចេកទេសទូទៅ (Key Support, Resistance & Pivot Zones)
+        Part 2: 🎯 ផែនការជួញដូរឆ្លាតវៃ AI SMC — ទិសដៅតែមួយគត់ (BUY ONLY ឬ SELL ONLY)
+                ជាមួយ Entry, SL, TP1, TP2, R:R និងហេតុផលលម្អិត «ហេតុអ្វីគួរធ្វើ & ហេតុអ្វីមិនគួរធ្វើផ្ទុយ»។
+        """
+        levels = key_levels or {}
+        oz = current_price or setup.get("entry", 0.0)
+        pivot = levels.get("pivot", oz)
+        r1 = levels.get("r1", oz + 20)
+        s1 = levels.get("s1", oz - 20)
+        r2 = levels.get("r2", oz + 40)
+        s2 = levels.get("s2", oz - 40)
+
+        # Part 1: Macro Technical Map & Key Levels
+        part1 = (
+            f"🎯 <b>កម្រិតបច្ចេកទេស & AI SMC Setup Zone</b>\n\n"
+            f"• 🟢 <b>Buy Zone:</b> <code>${s1 - 4:,.2f} - ${s1 + 3:,.2f}</code> (SL: ${s1 - 11:,.2f})\n"
+            f"• 🔴 <b>Sell Zone:</b> <code>${r1 - 3:,.2f} - ${r1 + 4:,.2f}</code> (SL: ${r1 + 11:,.2f})\n"
+            f"• 🎯 <b>Pivot Point:</b> <code>${pivot:,.2f}</code>\n\n"
+            f"💡 <i>អនុសាសន៍: រង់ចាំ Confirmation Candle នៅលើ M15 មុនចូល Order!</i>\n"
+            f"━━━━━━━━━━━━━━━━━━━\n\n"
+        )
+
+        direction = setup.get("direction", "BUY").upper()
+        is_buy = "BUY" in direction
+        icon = "🟢" if is_buy else "🔴"
+        action_kh = "ទិញឡើង (BUY)" if is_buy else "លក់ចុះ (SELL)"
+        opposite_action = "លក់ (SELL)" if is_buy else "ទិញ (BUY)"
+
+        entry_val = setup.get("entry", oz)
+        entry_zone = setup.get("entry_zone", f"${entry_val:,.2f}")
+        sl = setup.get("sl", 0.0)
+        tp1 = setup.get("tp1", 0.0)
+        tp2 = setup.get("tp2", 0.0)
+        rr = setup.get("rr_ratio", "1:2.0")
+
+        why_trade = setup.get("why_this_trade", "").strip()
+        why_not = setup.get("why_not_opposite", "").strip()
+        confirm = setup.get("confirmation_note", "រង់ចាំ Confirmation Candle នៅលើ M15 មុនចូល Order!").strip()
+
+        def _clean_bullets(text: str) -> str:
+            lines = [l.strip() for l in text.split("\n") if l.strip()]
+            formatted = []
+            for l in lines:
+                if not l.startswith("•") and not l.startswith("-"):
+                    formatted.append(f"• {l}")
+                else:
+                    formatted.append(l)
+            return "\n".join(formatted)
+
+        formatted_why_trade = _clean_bullets(why_trade)
+        formatted_why_not = _clean_bullets(why_not)
+
+        part2 = (
+            f"🎯 {icon} <b>ផែនការជួញដូរឆ្លាតវៃ AI SMC — ទិសដៅតែមួយគត់ ({action_kh})</b>\n\n"
+            f"📍 <b>កម្រិតតម្លៃចូល និងគ្រប់គ្រងដើមទុន:</b>\n"
+            f"• 🎯 <b>តំបន់ Entry:</b> <code>{entry_zone}</code>\n"
+            f"• 🛑 <b>Stop Loss (SL):</b> <code>${sl:,.2f}</code>\n"
+            f"• 🎯 <b>Take Profit 1 (TP1):</b> <code>${tp1:,.2f}</code> (Lock BE)\n"
+            f"• 🏆 <b>Take Profit 2 (TP2):</b> <code>${tp2:,.2f}</code>\n"
+            f"• ⚖️ <b>សមាមាត្រចំណេញ/ខាត (R:R):</b> <code>{rr}</code>\n\n"
+            f"🧠 <b>ហេតុផលច្បាស់លាស់ដែលគួរ {action_kh}:</b>\n"
+            f"{formatted_why_trade}\n\n"
+            f"🚫 <b>ហេតុផលដាច់ខាតដែលមិនគួរ {opposite_action}:</b>\n"
+            f"{formatted_why_not}\n\n"
+            f"💡 <i>អនុសាសន៍: {confirm}</i>\n"
+            f"🛡️ <i>សូមប្រើប៊ូតុង <b>🧮 គិត Lot</b> មុនចូល Order ដើម្បីគ្រប់គ្រងហានិភ័យ!</i>"
+        )
+        return part1 + part2
+
+    @staticmethod
+    def format_chart_vision_scan(current_price: float, vision_res: dict, timeframe: str = "M15") -> str:
+        """
+        Formats Multimodal AI Live Computer Vision Candlestick & Pattern Scan results.
+        """
+        bias = vision_res.get("bias", "🟢 Bullish")
+        pattern = vision_res.get("pattern_kh", "ទម្រង់ទៀនបញ្ជាក់ច្បាស់")
+        structure = vision_res.get("market_structure", "BOS").replace("_", " ")
+        observation = vision_res.get("key_observation", "")
+        action = vision_res.get("tactical_action", "")
+        conf = vision_res.get("confidence_score", "85%")
+
+        msg = (
+            f"👁️‍🗨️ <b>AI LIVE CHART PATTERN & CANDLESTICK SCANNER ({timeframe})</b>\n\n"
+            f"• 🥇 <b>Spot XAU/USD:</b> <code>${current_price:,.2f}</code>\n"
+            f"• 🕯️ <b>Pattern រកឃើញ:</b> <b>{pattern}</b>\n"
+            f"• 🏗️ <b>រចនាសម្ព័ន្ធទីផ្សារ:</b> <code>{structure}</code>\n"
+            f"• 🎯 <b>ទិសដៅ AI Bias:</b> <b>{bias}</b> (ទំនុកចិត្ត {conf})\n\n"
+            f"🧠 <b>ការសង្កេតទម្រង់ទៀន (Vision Observation):</b>\n"
+            f"• {observation}\n\n"
+            f"⚡ <b>អនុសាសន៍យុទ្ធសាស្ត្រ (Tactical Action):</b>\n"
+            f"👉 <b>{action}</b>\n\n"
+            f"📊 <i>ពិនិត្យ Chart ផ្ទាល់: <a href='https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD'>TradingView XAUUSD Live</a></i>"
+        )
+        return msg
+
 
 
