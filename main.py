@@ -179,10 +179,9 @@ class XAUUSDNewsAssistantBot:
                 "inline_keyboard": [
                     [
                         {"text": "🔄 ឆែកតម្លៃ Live", "url": "https://t.me/FFNewsAlertBot?start=price"},
-                        {"text": "🎯 AI SMC Setup", "url": "https://t.me/FFNewsAlertBot?start=smc"}
+                        {"text": "📊 មើល Chart ផ្ទាល់ (TradingView)", "url": "https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD"}
                     ],
                     [
-                        {"text": "📊 មើល Chart ផ្ទាល់ (TradingView)", "url": "https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD"},
                         {"text": "📅 ប្រតិទិនសេដ្ឋកិច្ច", "url": "https://www.forexfactory.com/calendar"}
                     ]
                 ]
