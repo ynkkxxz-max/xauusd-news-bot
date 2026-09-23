@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>XAU/USD Smart Lot & Risk Calculator</title>
+  <title>XAU/USD Smart Institutional Terminal</title>
   <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
   <style>
     :root {
-      --bg: #0B0E14;
-      --card-bg: rgba(21, 26, 38, 0.85);
-      --card-border: rgba(255, 215, 0, 0.18);
+      --bg: #0A0D14;
+      --card-bg: rgba(18, 24, 38, 0.85);
+      --card-border: rgba(255, 215, 0, 0.15);
       --gold: #FFD700;
       --gold-gradient: linear-gradient(135deg, #FFE259 0%, #FFA751 100%);
       --bull: #00E676;
@@ -37,49 +37,50 @@
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      padding: 16px;
+      padding: 14px 14px 28px 14px;
       overflow-x: hidden;
       background-image: 
         radial-gradient(circle at 10% 10%, rgba(255, 215, 0, 0.08) 0%, transparent 40%),
         radial-gradient(circle at 90% 90%, rgba(41, 121, 255, 0.08) 0%, transparent 40%);
     }
 
-    .header {
-      text-align: center;
-      margin-bottom: 20px;
+    /* Top Nav Tabs */
+    .tab-bar {
+      display: flex;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 4px;
+      margin-bottom: 16px;
+      gap: 4px;
     }
 
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(255, 215, 0, 0.12);
-      border: 1px solid rgba(255, 215, 0, 0.3);
-      color: var(--gold);
-      font-size: 11px;
-      font-weight: 600;
-      padding: 4px 12px;
-      border-radius: 20px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 8px;
-    }
-
-    .title {
-      font-size: 20px;
-      font-weight: 700;
-      background: var(--gold-gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .subtitle {
-      font-size: 12px;
+    .tab-btn {
+      flex: 1;
+      padding: 10px 4px;
+      border: none;
+      background: transparent;
       color: var(--text-muted);
-      margin-top: 4px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
     }
 
-    /* Live Price Card */
+    .tab-btn.active {
+      background: var(--gold-gradient);
+      color: #0A0D14;
+      box-shadow: 0 4px 14px rgba(255, 167, 81, 0.35);
+      font-weight: 700;
+    }
+
+    /* Live Header Pill */
     .live-pill {
       display: flex;
       justify-content: space-between;
@@ -87,12 +88,12 @@
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 12px;
-      padding: 10px 14px;
-      margin-bottom: 16px;
+      padding: 8px 14px;
+      margin-bottom: 14px;
     }
 
     .live-label {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-muted);
       display: flex;
       align-items: center;
@@ -115,43 +116,169 @@
     }
 
     .live-price {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
       color: #FFF;
       font-variant-numeric: tabular-nums;
     }
 
-    /* Lot Result Showcase Card */
+    /* TAB CONTENTS */
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ========================================= */
+    /* TAB 1: SMC INSTITUTIONAL SETUP STYLES     */
+    /* ========================================= */
+    .smc-card {
+      background: var(--card-bg);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 14px;
+      backdrop-filter: blur(12px);
+    }
+
+    .smc-hero-box {
+      background: linear-gradient(135deg, rgba(255, 51, 102, 0.12), rgba(26, 33, 49, 0.9));
+      border: 1px solid rgba(255, 51, 102, 0.35);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 14px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .smc-hero-box.bullish {
+      background: linear-gradient(135deg, rgba(0, 230, 118, 0.12), rgba(26, 33, 49, 0.9));
+      border-color: rgba(0, 230, 118, 0.35);
+    }
+
+    .smc-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      background: rgba(255, 51, 102, 0.2);
+      color: var(--bear);
+    }
+
+    .smc-hero-box.bullish .smc-badge {
+      background: rgba(0, 230, 118, 0.2);
+      color: var(--bull);
+    }
+
+    .smc-direction {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .smc-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .smc-metric-pill {
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 10px;
+      padding: 10px;
+      text-align: left;
+    }
+
+    .smc-pill-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .smc-pill-value {
+      font-size: 15px;
+      font-weight: 700;
+      color: #FFF;
+      margin-top: 2px;
+    }
+
+    .zone-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .zone-row:last-child {
+      border-bottom: none;
+    }
+
+    .zone-tag {
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .zone-val {
+      font-size: 13px;
+      font-weight: 700;
+      color: #FFF;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .reason-box {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 10px;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #D1D5DB;
+    }
+
+    .reason-title {
+      font-weight: 700;
+      color: #FFF;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ========================================= */
+    /* TAB 2: SMART LOT CALCULATOR STYLES        */
+    /* ========================================= */
     .result-card {
-      background: linear-gradient(135deg, rgba(26, 33, 49, 0.9), rgba(15, 20, 30, 0.95));
+      background: linear-gradient(135deg, rgba(26, 33, 49, 0.95), rgba(15, 20, 30, 0.98));
       border: 1px solid var(--card-border);
       border-radius: 16px;
-      padding: 20px;
+      padding: 18px;
       text-align: center;
       position: relative;
       overflow: hidden;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      margin-bottom: 20px;
-    }
-
-    .result-card::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--gold), transparent);
-      animation: sweep 3s infinite;
-    }
-
-    @keyframes sweep {
-      0% { left: -100%; }
-      50%, 100% { left: 100%; }
+      margin-bottom: 14px;
     }
 
     .result-label {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       color: var(--text-muted);
       text-transform: uppercase;
@@ -159,7 +286,7 @@
     }
 
     .result-lot {
-      font-size: 44px;
+      font-size: 40px;
       font-weight: 800;
       color: var(--gold);
       margin: 4px 0;
@@ -171,8 +298,8 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
-      margin-top: 14px;
-      padding-top: 14px;
+      margin-top: 12px;
+      padding-top: 12px;
       border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
 
@@ -186,7 +313,7 @@
     }
 
     .metric-val {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
       color: #FFF;
       margin-top: 2px;
@@ -195,13 +322,12 @@
     .val-risk { color: var(--bear); }
     .val-tp { color: var(--bull); }
 
-    /* Control Sections */
     .section-card {
       background: var(--card-bg);
       border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 14px;
-      padding: 16px;
-      margin-bottom: 14px;
+      padding: 14px;
+      margin-bottom: 12px;
       backdrop-filter: blur(10px);
     }
 
@@ -209,7 +335,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     .section-title {
@@ -222,14 +348,13 @@
     }
 
     .section-value {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
       color: var(--gold);
     }
 
-    /* Range Slider */
     .slider-container {
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     input[type=range] {
@@ -244,8 +369,8 @@
     input[type=range]::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 22px;
-      height: 22px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
       background: var(--gold);
       box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
@@ -253,7 +378,6 @@
       border: 2px solid #000;
     }
 
-    /* Preset Quick Buttons */
     .preset-group {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -264,9 +388,9 @@
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.08);
       color: var(--text);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
-      padding: 8px 4px;
+      padding: 7px 4px;
       border-radius: 8px;
       cursor: pointer;
       transition: all 0.2s;
@@ -279,61 +403,23 @@
       box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
     }
 
-    /* Trade Plan Matrix (TP1 / TP2 / Scaling) */
-    .plan-box {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 14px;
-    }
-
-    .plan-pill {
-      background: rgba(255, 255, 255, 0.03);
-      border-radius: 10px;
-      padding: 10px;
-      border-left: 3px solid var(--bull);
-    }
-
-    .plan-pill.tp2 {
-      border-left-color: var(--gold);
-    }
-
-    .plan-pill-head {
-      font-size: 10px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-    }
-
-    .plan-pill-body {
-      font-size: 14px;
-      font-weight: 700;
-      color: #FFF;
-      margin-top: 2px;
-    }
-
-    .plan-pill-sub {
-      font-size: 10px;
-      color: var(--bull);
-    }
-
-    /* Action Button */
     .apply-btn {
       width: 100%;
       background: var(--gold-gradient);
       color: #0B0E14;
       font-family: inherit;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
-      padding: 14px;
+      padding: 13px;
       border: none;
-      border-radius: 14px;
+      border-radius: 12px;
       cursor: pointer;
       display: flex;
       justify-content: center;
       align-items: center;
       gap: 8px;
-      box-shadow: 0 4px 20px rgba(255, 167, 81, 0.35);
-      margin-top: 18px;
+      box-shadow: 0 4px 18px rgba(255, 167, 81, 0.35);
+      margin-top: 14px;
       transition: transform 0.1s;
     }
 
@@ -344,105 +430,171 @@
 </head>
 <body>
 
-  <div class="header">
-    <div class="badge">Institutional Risk Engine</div>
-    <div class="title">🧮 Smart Lot & Risk Calculator</div>
-    <div class="subtitle">គណនាទំហំ Lot ស្តង់ដារ & ផែនការជួញដូរ XAU/USD</div>
+  <!-- Top Navigation Tabs (Switch between SMC & Lot Calculator) -->
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tabBtnSMC" onclick="switchTab('smc')">
+      <span>🎯</span> AI SMC Setup
+    </button>
+    <button class="tab-btn" id="tabBtnLot" onclick="switchTab('lot')">
+      <span>🧮</span> គិត Lot Size
+    </button>
   </div>
 
   <div class="live-pill">
     <div class="live-label">
       <span class="pulse"></span>
-      Spot XAU/USD (Live)
+      Spot XAU/USD (Live Feed)
     </div>
-    <div class="live-price" id="livePrice">$4,284.50</div>
+    <div class="live-price" id="livePrice">$4,275.50</div>
   </div>
 
-  <!-- Giant Result Showcase -->
-  <div class="result-card">
-    <div class="result-label">Recommended Lot Size</div>
-    <div class="result-lot" id="resLot">0.10 LOT</div>
+  <!-- ============================================== -->
+  <!-- TAB 1: AI SMC SETUP ZONE & DECISIVE PLAN       -->
+  <!-- ============================================== -->
+  <div class="tab-content active" id="tabContentSMC">
     
-    <div class="result-metrics">
-      <div class="metric-item">
-        <div class="metric-title">Max Risk Amount</div>
-        <div class="metric-val val-risk" id="resRiskUsd">-$10.00</div>
-      </div>
-      <div class="metric-item">
-        <div class="metric-title">Projected TP1 (1:1.5)</div>
-        <div class="metric-val val-tp" id="resTpUsd">+$15.00</div>
-      </div>
-    </div>
-  </div>
+    <!-- Hero Box: Single Direction Plan -->
+    <div class="smc-hero-box" id="smcHeroBox">
+      <div class="smc-badge" id="smcBadge">AI Institutional Bias</div>
+      <div class="smc-direction" id="smcDirection">🔴 SELL SETUP ONLY</div>
+      <div style="font-size: 12px; color: var(--text-muted);">ផែនការជួញដូរឆ្លាតវៃ AI SMC — ទិសដៅតែមួយគត់</div>
 
-  <!-- Balance Section -->
-  <div class="section-card">
-    <div class="section-title-row">
-      <div class="section-title">💰 ដើមទុនគណនី (Balance)</div>
-      <div class="section-value" id="valBal">$1,000</div>
-    </div>
-    <div class="slider-container">
-      <input type="range" id="sliderBal" min="100" max="20000" step="100" value="1000">
-    </div>
-    <div class="preset-group">
-      <button class="preset-btn" onclick="setBalance(100)">$100</button>
-      <button class="preset-btn active" id="btnBal1000" onclick="setBalance(1000)">$1,000</button>
-      <button class="preset-btn" onclick="setBalance(5000)">$5,000</button>
-      <button class="preset-btn" onclick="setBalance(10000)">$10,000</button>
-    </div>
-  </div>
-
-  <!-- Risk % Section -->
-  <div class="section-card">
-    <div class="section-title-row">
-      <div class="section-title">🛡️ កម្រិត Risk % (Money Management)</div>
-      <div class="section-value" id="valRisk">1.0%</div>
-    </div>
-    <div class="slider-container">
-      <input type="range" id="sliderRisk" min="0.5" max="5.0" step="0.5" value="1.0">
-    </div>
-    <div class="preset-group">
-      <button class="preset-btn" onclick="setRisk(0.5)">0.5%</button>
-      <button class="preset-btn active" id="btnRisk1" onclick="setRisk(1.0)">1.0%</button>
-      <button class="preset-btn" onclick="setRisk(2.0)">2.0%</button>
-      <button class="preset-btn" onclick="setRisk(3.0)">3.0%</button>
-    </div>
-  </div>
-
-  <!-- Stop Loss Distance Section -->
-  <div class="section-card">
-    <div class="section-title-row">
-      <div class="section-title">🛑 ចម្ងាយ Stop Loss ($ ឬ Pips)</div>
-      <div class="section-value" id="valSL">$10.0 (100 Pips)</div>
-    </div>
-    <div class="slider-container">
-      <input type="range" id="sliderSL" min="3" max="30" step="1" value="10">
-    </div>
-    <div class="preset-group">
-      <button class="preset-btn" onclick="setSL(6)">$6.0 (60p)</button>
-      <button class="preset-btn active" id="btnSL10" onclick="setSL(10)">$10 (100p)</button>
-      <button class="preset-btn" onclick="setSL(15)">$15 (150p)</button>
-      <button class="preset-btn" onclick="setSL(20)">$20 (200p)</button>
-    </div>
-
-    <!-- Smart Split Order Matrix -->
-    <div class="plan-box">
-      <div class="plan-pill">
-        <div class="plan-pill-head">TP1 Plan (1:1 R:R)</div>
-        <div class="plan-pill-body" id="resTp1Val">+$5.00</div>
-        <div class="plan-pill-sub" id="resTp1Sub">0.05 Lot | Lock BE</div>
-      </div>
-      <div class="plan-pill tp2">
-        <div class="plan-pill-head">TP2 Plan (1:2 R:R)</div>
-        <div class="plan-pill-body" id="resTp2Val">+$10.00</div>
-        <div class="plan-pill-sub" id="resTp2Sub">0.05 Lot | Runner</div>
+      <div class="smc-metrics-grid">
+        <div class="smc-metric-pill">
+          <div class="smc-pill-label">🎯 Entry Zone</div>
+          <div class="smc-pill-value" id="smcEntry">$4,274.00 - $4,277.50</div>
+        </div>
+        <div class="smc-metric-pill">
+          <div class="smc-pill-label">🛑 Stop Loss (SL)</div>
+          <div class="smc-pill-value" style="color: var(--bear);" id="smcSL">$4,285.00</div>
+        </div>
+        <div class="smc-metric-pill">
+          <div class="smc-pill-label">🎯 Take Profit 1</div>
+          <div class="smc-pill-value" style="color: var(--bull);" id="smcTP1">$4,260.00 (BE)</div>
+        </div>
+        <div class="smc-metric-pill">
+          <div class="smc-pill-label">🏆 Take Profit 2</div>
+          <div class="smc-pill-value" style="color: var(--gold);" id="smcTP2">$4,248.00</div>
+        </div>
       </div>
     </div>
+
+    <!-- Technical Setup Zones -->
+    <div class="smc-card">
+      <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #FFF;">
+        🎯 កម្រិតបច្ចេកទេស & AI SMC Setup Zone
+      </div>
+      <div class="zone-row">
+        <div class="zone-tag"><span style="color: var(--bull);">🟢</span> Buy Zone</div>
+        <div class="zone-val" id="smcBuyZone">$4,201.50 - $4,208.50</div>
+      </div>
+      <div class="zone-row">
+        <div class="zone-tag"><span style="color: var(--bear);">🔴</span> Sell Zone</div>
+        <div class="zone-val" id="smcSellZone">$4,346.90 - $4,353.90</div>
+      </div>
+      <div class="zone-row">
+        <div class="zone-tag"><span style="color: var(--gold);">🎯</span> Pivot Point</div>
+        <div class="zone-val" id="smcPivot">$4,275.30</div>
+      </div>
+    </div>
+
+    <!-- Dual Reasoning -->
+    <div class="smc-card">
+      <div class="reason-title">🧠 ហេតុផលច្បាស់លាស់ដែលគួរជួញដូរ៖</div>
+      <div class="reason-box" id="smcWhyTrade">
+        • តម្លៃស្ថិតនៅក្រោម Pivot Point បញ្ជាក់ពីសម្ពាធលក់វាយសម្រុក (Bearish Structure)។<br>
+        • Order Book បង្ហាញជញ្ជាំង Asks រារាំងក្រាស់ក្រែលនៅតំបន់ Premium Zone មិនឱ្យតម្លៃឡើងងាយៗឡើយ។<br>
+        • ទីផ្សារកំពុងស្វែងរក Sell-Side Liquidity (SSL) នៅតំបន់ខាងក្រោម។
+      </div>
+
+      <div class="reason-title" style="margin-top: 12px; color: var(--bear);">🚫 ហេតុផលដាច់ខាតដែលមិនគួរផ្ទុយ៖</div>
+      <div class="reason-box" style="border-left: 2px solid var(--bear);" id="smcWhyNot">
+        • ការចូល Buy នៅចំណុចនេះមានហានិភ័យខ្ពស់ខ្លាំង ដោយសារគ្មានទម្រង់ Bottom Reversal ច្បាស់លាស់។<br>
+        • សម្ពាធលក់កំពុងគ្របដណ្តប់ ការ Buy អាចប្រឈមនឹងការទម្លុះ Support និងជាប់អន្ទាក់ស្ថាប័នធំៗ!
+      </div>
+    </div>
+
+    <button class="apply-btn" onclick="sendSMCPlanToBot()">
+      <span>📋 ផ្ញើសេចក្តីសង្ខេប SMC នេះទៅ Telegram Bot</span>
+    </button>
   </div>
 
-  <button class="apply-btn" onclick="sendToBot()">
-    <span>📋 ផ្ញើផែនការនេះទៅកាន់ Telegram Bot</span>
-  </button>
+  <!-- ============================================== -->
+  <!-- TAB 2: SMART LOT & RISK CALCULATOR             -->
+  <!-- ============================================== -->
+  <div class="tab-content" id="tabContentLot">
+    <!-- Giant Result Showcase -->
+    <div class="result-card">
+      <div class="result-label">Recommended Lot Size</div>
+      <div class="result-lot" id="resLot">0.10 LOT</div>
+      
+      <div class="result-metrics">
+        <div class="metric-item">
+          <div class="metric-title">Max Risk Amount</div>
+          <div class="metric-val val-risk" id="resRiskUsd">-$10.00</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-title">Projected TP1 (1:1.5)</div>
+          <div class="metric-val val-tp" id="resTpUsd">+$15.00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Balance Section -->
+    <div class="section-card">
+      <div class="section-title-row">
+        <div class="section-title">💰 ដើមទុនគណនី (Balance)</div>
+        <div class="section-value" id="valBal">$1,000</div>
+      </div>
+      <div class="slider-container">
+        <input type="range" id="sliderBal" min="100" max="20000" step="100" value="1000">
+      </div>
+      <div class="preset-group">
+        <button class="preset-btn" onclick="setBalance(100)">$100</button>
+        <button class="preset-btn active" id="btnBal1000" onclick="setBalance(1000)">$1,000</button>
+        <button class="preset-btn" onclick="setBalance(5000)">$5,000</button>
+        <button class="preset-btn" onclick="setBalance(10000)">$10,000</button>
+      </div>
+    </div>
+
+    <!-- Risk % Section -->
+    <div class="section-card">
+      <div class="section-title-row">
+        <div class="section-title">🛡️ កម្រិត Risk % (Money Management)</div>
+        <div class="section-value" id="valRisk">1.0%</div>
+      </div>
+      <div class="slider-container">
+        <input type="range" id="sliderRisk" min="0.5" max="5.0" step="0.5" value="1.0">
+      </div>
+      <div class="preset-group">
+        <button class="preset-btn" onclick="setRisk(0.5)">0.5%</button>
+        <button class="preset-btn active" id="btnRisk1" onclick="setRisk(1.0)">1.0%</button>
+        <button class="preset-btn" onclick="setRisk(2.0)">2.0%</button>
+        <button class="preset-btn" onclick="setRisk(3.0)">3.0%</button>
+      </div>
+    </div>
+
+    <!-- Stop Loss Distance Section -->
+    <div class="section-card">
+      <div class="section-title-row">
+        <div class="section-title">🛑 ចម្ងាយ Stop Loss ($ ឬ Pips)</div>
+        <div class="section-value" id="valSL">$10.0 (100 Pips)</div>
+      </div>
+      <div class="slider-container">
+        <input type="range" id="sliderSL" min="3" max="30" step="1" value="10">
+      </div>
+      <div class="preset-group">
+        <button class="preset-btn" onclick="setSL(6)">$6.0 (60p)</button>
+        <button class="preset-btn active" id="btnSL10" onclick="setSL(10)">$10 (100p)</button>
+        <button class="preset-btn" onclick="setSL(15)">$15 (150p)</button>
+        <button class="preset-btn" onclick="setSL(20)">$20 (200p)</button>
+      </div>
+    </div>
+
+    <button class="apply-btn" onclick="sendLotPlanToBot()">
+      <span>📋 ផ្ញើទំហំ Lot នេះទៅកាន់ Telegram Bot</span>
+    </button>
+  </div>
 
   <script>
     // Initialize Telegram WebApp
@@ -452,11 +604,53 @@
       tg.enableClosingConfirmation();
     }
 
+    // Check URL query parameters to auto-select tab e.g. ?tab=smc or ?tab=lot
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialTab = urlParams.get('tab') || 'smc';
+
+    function switchTab(tab) {
+      if (tg && tg.HapticFeedback) {
+        tg.HapticFeedback.selectionChanged();
+      }
+
+      document.getElementById('tabBtnSMC').classList.remove('active');
+      document.getElementById('tabBtnLot').classList.remove('active');
+      document.getElementById('tabContentSMC').classList.remove('active');
+      document.getElementById('tabContentLot').classList.remove('active');
+
+      if (tab === 'smc') {
+        document.getElementById('tabBtnSMC').classList.add('active');
+        document.getElementById('tabContentSMC').classList.add('active');
+      } else {
+        document.getElementById('tabBtnLot').classList.add('active');
+        document.getElementById('tabContentLot').classList.add('active');
+      }
+    }
+
+    // Switch to initial tab
+    switchTab(initialTab);
+
+    // Dynamic Live Gold Price
+    async function updateLivePrice() {
+      try {
+        const res = await fetch('https://api.gold-api.com/price/XAU');
+        const data = await res.json();
+        if (data && data.price) {
+          const p = parseFloat(data.price);
+          document.getElementById('livePrice').innerText = '$' + p.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+      } catch (e) {
+        console.log('Price feed update failed, using fallback.');
+      }
+    }
+    updateLivePrice();
+    setInterval(updateLivePrice, 10000);
+
+    // LOT CALCULATOR LOGIC
     let balance = 1000;
     let riskPct = 1.0;
     let slDistance = 10.0;
 
-    // Elements
     const sliderBal = document.getElementById('sliderBal');
     const sliderRisk = document.getElementById('sliderRisk');
     const sliderSL = document.getElementById('sliderSL');
@@ -469,24 +663,12 @@
     const resRiskUsd = document.getElementById('resRiskUsd');
     const resTpUsd = document.getElementById('resTpUsd');
 
-    const resTp1Val = document.getElementById('resTp1Val');
-    const resTp2Val = document.getElementById('resTp2Val');
-    const resTp1Sub = document.getElementById('resTp1Sub');
-    const resTp2Sub = document.getElementById('resTp2Sub');
-
     function calculate() {
-      // Risk Amount in USD = Balance * (Risk% / 100)
       const riskUsd = balance * (riskPct / 100.0);
-      
-      // Stop Loss in Dollars per ounce (1 pip in gold = $0.10, $1.00 = 10 pips)
-      // 1 Standard Lot Gold = 100 oz.
-      // Loss for 1 Lot with $SL distance = SL * 100 USD.
-      // Lot = Risk_USD / (SL_USD * 100)
       let rawLot = riskUsd / (slDistance * 100.0);
       let roundedLot = Math.round(rawLot * 100.0) / 100.0;
       if (roundedLot < 0.01) roundedLot = 0.01;
 
-      // Update UI
       valBal.innerText = '$' + balance.toLocaleString();
       valRisk.innerText = riskPct.toFixed(1) + '%';
       valSL.innerText = '$' + slDistance.toFixed(1) + ' (' + (slDistance * 10).toFixed(0) + ' Pips)';
@@ -494,36 +676,22 @@
       resLot.innerText = roundedLot.toFixed(2) + ' LOT';
       resRiskUsd.innerText = '-$' + riskUsd.toFixed(2);
       
-      // TP calculations (1:1.5 standard, Split TP1 & TP2)
       const tpUsd = riskUsd * 1.5;
       resTpUsd.innerText = '+$' + tpUsd.toFixed(2);
-
-      const halfLot = Math.max(0.01, Math.round((roundedLot / 2.0) * 100) / 100);
-      const tp1Profit = halfLot * slDistance * 100.0;
-      const tp2Profit = halfLot * slDistance * 2.0 * 100.0;
-
-      resTp1Val.innerText = '+$' + tp1Profit.toFixed(2);
-      resTp2Val.innerText = '+$' + tp2Profit.toFixed(2);
-      resTp1Sub.innerText = halfLot.toFixed(2) + ' Lot | Lock BE';
-      resTp2Sub.innerText = halfLot.toFixed(2) + ' Lot | Runner (1:2)';
     }
 
-    // Sliders listeners
     sliderBal.addEventListener('input', (e) => {
       balance = parseFloat(e.target.value);
-      clearActivePreset('sliderBal');
       calculate();
     });
 
     sliderRisk.addEventListener('input', (e) => {
       riskPct = parseFloat(e.target.value);
-      clearActivePreset('sliderRisk');
       calculate();
     });
 
     sliderSL.addEventListener('input', (e) => {
       slDistance = parseFloat(e.target.value);
-      clearActivePreset('sliderSL');
       calculate();
     });
 
@@ -545,27 +713,29 @@
       calculate();
     }
 
-    function clearActivePreset(type) {
-      // Soft feedback
-      if (tg && tg.HapticFeedback) {
-        tg.HapticFeedback.selectionChanged();
-      }
-    }
-
-    function sendToBot() {
+    function sendLotPlanToBot() {
       if (tg && tg.HapticFeedback) {
         tg.HapticFeedback.notificationOccurred('success');
       }
-
       const planText = `/lot ${balance} ${riskPct} ${slDistance}`;
       if (tg && tg.sendData) {
         tg.sendData(planText);
       } else {
-        alert(`ផែនការរបស់អ្នក៖ ដើមទុន $${balance}, Risk ${riskPct}%, SL $${slDistance}\n\nLot ណែនាំ៖ ${resLot.innerText}`);
+        alert(`ផែនការ Lot៖ ដើមទុន $${balance}, Risk ${riskPct}%, SL $${slDistance}\nLot: ${resLot.innerText}`);
       }
     }
 
-    // Initial run
+    function sendSMCPlanToBot() {
+      if (tg && tg.HapticFeedback) {
+        tg.HapticFeedback.notificationOccurred('success');
+      }
+      if (tg && tg.sendData) {
+        tg.sendData("SMC");
+      } else {
+        alert("បានជ្រើសរើសផែនការ SMC!");
+      }
+    }
+
     calculate();
   </script>
 </body>
