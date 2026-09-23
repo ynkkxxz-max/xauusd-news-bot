@@ -552,26 +552,34 @@ class XAUUSDNewsAssistantBot:
 
 
             elif clean_cmd in ("/levels", "/setup", "smc") or "កម្រិត smc" in text.lower():
+                from collectors.market_cache import market_cache
                 price_data = self.gold_collector.fetch_price()
                 levels = price_data.get("key_levels", {})
                 oz = price_data.get("price_oz", 0.0)
-                macro_data = self.macro_collector.fetch_macro_correlations()
-                order_book = self.order_book_tracker.fetch_order_book_depth()
 
-                # Generate AI Decisive Single-Direction Setup (Buy ONLY or Sell ONLY)
-                setup = self.analyzer.generate_smart_smc_setup(
-                    current_price=oz,
-                    key_levels=levels,
-                    macro_data=macro_data,
-                    order_book=order_book
-                )
+                # 1. Ultra-Fast Check In-Memory RAM Cache (< 0.01s)
+                setup = market_cache.get_smc_setup()
                 if not setup:
-                    setup = MacroAnalyzer.generate_smart_smc_setup(
+                    macro_data = self.macro_collector.fetch_macro_correlations()
+                    order_book = self.order_book_tracker.fetch_order_book_depth()
+
+                    # Generate AI Decisive Single-Direction Setup (Buy ONLY or Sell ONLY)
+                    setup = self.analyzer.generate_smart_smc_setup(
                         current_price=oz,
                         key_levels=levels,
                         macro_data=macro_data,
                         order_book=order_book
                     )
+                    if not setup:
+                        setup = MacroAnalyzer.generate_smart_smc_setup(
+                            current_price=oz,
+                            key_levels=levels,
+                            macro_data=macro_data,
+                            order_book=order_book
+                        )
+                    if setup:
+                        market_cache.set_smc_setup(setup)
+
                 reply = KhmerFormatter.format_single_smc_setup(setup, key_levels=levels, current_price=oz)
                 self.notifier.send_message(reply, chat_id=chat_id, reply_markup=bottom_keyboard)
 
