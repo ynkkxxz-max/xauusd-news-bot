@@ -83,6 +83,35 @@ def summary_prompt(price_data: dict) -> str:
     )
 
 
+def smc_setup_prompt(current_price: float, key_levels: dict, macro_data: dict = None, order_book: dict = None) -> str:
+    return (
+        f"អ្នកគឺជា Senior SMC Institutional Trader ជំនាញ XAU/USD (Gold)។\n"
+        f"ទិន្នន័យទីផ្សារបច្ចុប្បន្ន៖\n"
+        f"- តម្លៃបច្ចុប្បន្ន (Spot): ${current_price:,.2f}\n"
+        f"- Key Levels: Pivot=${key_levels.get('pivot', current_price):,.2f}, "
+        f"R1=${key_levels.get('r1', current_price+20):,.2f}, R2=${key_levels.get('r2', current_price+40):,.2f}, "
+        f"S1=${key_levels.get('s1', current_price-20):,.2f}, S2=${key_levels.get('s2', current_price-40):,.2f}\n"
+        f"- Macro: DXY={macro_data.get('dxy_price') if macro_data else 'N/A'} ({macro_data.get('dxy_pct') if macro_data else 'N/A'}%), "
+        f"US10Y={macro_data.get('us10y_yield') if macro_data else 'N/A'}%\n"
+        f"- Order Book: Bid={order_book.get('bid_dominance_pct') if order_book else '50'}%, Ask={order_book.get('ask_dominance_pct') if order_book else '50'}%\n\n"
+        f"តម្រូវការពិសេស៖ ចូរជ្រើសរើសទិសដៅតែមួយគត់ (ទិសដៅតែមួយដាច់ណាត់ គឺ BUY តែមួយ ឬ SELL តែមួយ) "
+        f"ដែលមានប្រូបាប៊ីលីតេឈ្នះខ្ពស់បំផុត (High Probability Win Rate)។ "
+        f"ហាមប្រាប់ទាំងពីរទិស (ហាមដាក់ទាំង Buy ទាំង Sell)។\n\n"
+        f"ត្រឡប់ JSON ដែលមានទម្រង់ដូចខាងក្រោមជាភាសាខ្មែរផ្លូវការ មុតស្រួច ជំនាញ Technical Analysis:\n"
+        f"- direction: 'BUY' ឬ 'SELL'\n"
+        f"- setup_title: e.g. '🟢 ផែនការទិញឡើង (BUY SETUP ONLY)' ឬ '🔴 ផែនការលក់ចុះ (SELL SETUP ONLY)'\n"
+        f"- entry: តម្លៃ Entry (number float ឬ range e.g. 4330.00)\n"
+        f"- entry_zone: string បញ្ជាក់តំបន់ចូលច្បាស់លាស់ (e.g. '$4,328.00 - $4,332.00')\n"
+        f"- sl: តម្លៃ Stop Loss (number float e.g. 4322.00) (ចម្ងាយសមរម្យ $6 - $12)\n"
+        f"- tp1: Take Profit 1 (number float, R:R ~ 1:1.5)\n"
+        f"- tp2: Take Profit 2 (number float, R:R ~ 1:2.5 or key level)\n"
+        f"- rr_ratio: string (e.g. '1:2.2')\n"
+        f"- why_this_trade: ពន្យល់ហេតុផល ២-៣ ចំណុចថាហេតុអ្វីគួរ [BUY ឬ SELL] (Confluence: SMC Order Block, Support/Resistance, DXY, Liquidity)\n"
+        f"- why_not_opposite: ពន្យល់ហេតុផលច្បាស់ៗ ២ ចំណុចថាហេតុអ្វីដាច់ខាតមិនគួរ [SELL ឬ BUY ផ្ទុយ] នៅត្រង់ចំណុចនេះ (បញ្ចៀស Trap/Fakeout)\n"
+        f"- confirmation_note: អនុសាសន៍ខ្លីបញ្ជាក់ទៀន M15 ឬ Session\n"
+    )
+
+
 def normalize_analysis(raw: dict) -> dict:
     out = {}
     for k in _ANALYSIS_KEYS:
@@ -244,32 +273,7 @@ class GeminiAnalyzer:
         if not self.is_available():
             return None
 
-        prompt = (
-            f"អ្នកគឺជា Senior SMC Institutional Trader ជំនាញ XAU/USD (Gold)។\n"
-            f"ទិន្នន័យទីផ្សារបច្ចុប្បន្ន៖\n"
-            f"- តម្លៃបច្ចុប្បន្ន (Spot): ${current_price:,.2f}\n"
-            f"- Key Levels: Pivot=${key_levels.get('pivot', current_price):,.2f}, "
-            f"R1=${key_levels.get('r1', current_price+20):,.2f}, R2=${key_levels.get('r2', current_price+40):,.2f}, "
-            f"S1=${key_levels.get('s1', current_price-20):,.2f}, S2=${key_levels.get('s2', current_price-40):,.2f}\n"
-            f"- Macro: DXY={macro_data.get('dxy_price') if macro_data else 'N/A'} ({macro_data.get('dxy_pct') if macro_data else 'N/A'}%), "
-            f"US10Y={macro_data.get('us10y_yield') if macro_data else 'N/A'}%\n"
-            f"- Order Book: Bid={order_book.get('bid_dominance_pct') if order_book else '50'}%, Ask={order_book.get('ask_dominance_pct') if order_book else '50'}%\n\n"
-            f"តម្រូវការពិសេស៖ ចូរជ្រើសរើសទិសដៅតែមួយគត់ (ទិសដៅតែមួយដាច់ណាត់ គឺ BUY តែមួយ ឬ SELL តែមួយ) "
-            f"ដែលមានប្រូបាប៊ីលីតេឈ្នះខ្ពស់បំផុត (High Probability Win Rate)។ "
-            f"ហាមប្រាប់ទាំងពីរទិស (ហាមដាក់ទាំង Buy ទាំង Sell)។\n\n"
-            f"ត្រឡប់ JSON ដែលមានទម្រង់ដូចខាងក្រោមជាភាសាខ្មែរផ្លូវការ មុតស្រួច ជំនាញ Technical Analysis:\n"
-            f"- direction: 'BUY' ឬ 'SELL'\n"
-            f"- setup_title: e.g. '🟢 ផែនការទិញឡើង (BUY SETUP ONLY)' ឬ '🔴 ផែនការលក់ចុះ (SELL SETUP ONLY)'\n"
-            f"- entry: តម្លៃ Entry (number float ឬ range e.g. 4330.00)\n"
-            f"- entry_zone: string បញ្ជាក់តំបន់ចូលច្បាស់លាស់ (e.g. '$4,328.00 - $4,332.00')\n"
-            f"- sl: តម្លៃ Stop Loss (number float e.g. 4322.00) (ចម្ងាយសមរម្យ $6 - $12)\n"
-            f"- tp1: Take Profit 1 (number float, R:R ~ 1:1.5)\n"
-            f"- tp2: Take Profit 2 (number float, R:R ~ 1:2.5 or key level)\n"
-            f"- rr_ratio: string (e.g. '1:2.2')\n"
-            f"- why_this_trade: ពន្យល់ហេតុផល ២-៣ ចំណុចថាហេតុអ្វីគួរ [BUY ឬ SELL] (Confluence: SMC Order Block, Support/Resistance, DXY, Liquidity)\n"
-            f"- why_not_opposite: ពន្យល់ហេតុផលច្បាស់ៗ ២ ចំណុចថាហេតុអ្វីដាច់ខាតមិនគួរ [SELL ឬ BUY ផ្ទុយ] នៅត្រង់ចំណុចនេះ (បញ្ចៀស Trap/Fakeout)\n"
-            f"- confirmation_note: អនុសាសន៍ខ្លីបញ្ជាក់ទៀន M15 ឬ Session\n"
-        )
+        prompt = smc_setup_prompt(current_price, key_levels, macro_data, order_book)
 
         schema = {
             "type": "OBJECT",
