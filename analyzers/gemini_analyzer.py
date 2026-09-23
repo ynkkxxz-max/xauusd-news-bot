@@ -139,6 +139,7 @@ class GeminiAnalyzer:
     """
 
     def __init__(self, api_key: str = None, model: str = None):
+        self.name = "gemini"
         self.api_key = (api_key or GEMINI_API_KEY).strip()
         self.model = (model or GEMINI_MODEL).strip()
         self.endpoint = (
@@ -177,7 +178,7 @@ class GeminiAnalyzer:
     def is_available(self) -> bool:
         return bool(USE_GEMINI and self.api_key and self.api_key != "YOUR_GEMINI_API_KEY_HERE")
 
-    def _post(self, payload: dict, max_retries: int = 2) -> dict:
+    def _post(self, payload: dict, max_retries: int = 1) -> dict:
         """POSTs to Gemini with fast-fail retry on transient errors (500/503)."""
         self._throttle_wait()
         last_exc = None
@@ -187,21 +188,23 @@ class GeminiAnalyzer:
                     self.endpoint,
                     params={"key": self.api_key},
                     json=payload,
-                    timeout=15,
+                    timeout=8,
                 )
                 GeminiAnalyzer._last_request_ts = time.time()
                 if resp.status_code == 429:
                     self._trip_cooldown()
                     raise RuntimeError(f"HTTP 429: {resp.text[:120]}")
                 if resp.status_code in (500, 503):
-                    last_exc = RuntimeError(f"HTTP {resp.status_code}: {resp.text[:120]}")
-                    time.sleep(1.0)
-                    continue
+                    # Fast fail to let fallback analyzers pick it up immediately and pause Gemini for 120s
+                    self._trip_cooldown(120)
+                    raise RuntimeError(f"HTTP {resp.status_code}: {resp.text[:120]}")
                 resp.raise_for_status()
                 return resp.json()
             except requests.RequestException as e:
                 last_exc = e
-                time.sleep(1.0)
+                # Trip a short cooldown on timeouts/connection failures so fallback handles calls
+                self._trip_cooldown(60)
+                break
         raise last_exc if last_exc else RuntimeError("Gemini call failed")
 
     def _call(self, prompt: str) -> dict:
