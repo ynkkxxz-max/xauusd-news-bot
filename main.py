@@ -467,13 +467,13 @@ class XAUUSDNewsAssistantBot:
                 ]
             }
 
-            # 3-Button Custom Keyboard directly at the bottom (Price, SMC, 🧮 គិត Lot)
+            # 3-Button Custom Keyboard directly at the bottom with Instant Mini App WebApp
             bottom_keyboard = {
                 "keyboard": [
                     [
                         {"text": "Price"},
-                        {"text": "SMC"},
-                        {"text": "🧮 គិត Lot", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/"}}
+                        {"text": "SMC", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=smc"}},
+                        {"text": "🧮 គិត Lot", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=lot"}}
                     ]
                 ],
                 "resize_keyboard": True,
