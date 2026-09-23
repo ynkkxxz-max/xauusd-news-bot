@@ -51,7 +51,7 @@ class OpenAICompatAnalyzer:
             f"{self.base_url}/chat/completions",
             headers={"Authorization": f"Bearer {self.api_key}"},
             json=payload,
-            timeout=15,
+            timeout=5,
         )
         resp.raise_for_status()
         return resp.json()["choices"][0]["message"]["content"] or ""
