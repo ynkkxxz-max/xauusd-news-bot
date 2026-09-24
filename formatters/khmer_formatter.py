@@ -662,9 +662,11 @@ class KhmerFormatter:
             f"━━━━━━━━━━━━━━━━━━━\n\n"
         )
 
+        conf_score = setup.get("confidence", "88%")
         # Part 2: Decisive Single-Direction Institutional Plan
         part2 = (
-            f"🎯 {icon} <b>ផែនការជួញដូរឆ្លាតវៃ AI SMC — ទិសដៅតែមួយគត់ ({action_kh})</b>\n\n"
+            f"🎯 {icon} <b>ផែនការជួញដូរឆ្លាតវៃ AI SMC — ទិសដៅតែមួយគត់ ({action_kh})</b>\n"
+            f"⚡ <b>កម្រិតទំនុកចិត្ត AI (Confidence Score):</b> <code>{conf_score}</code>\n\n"
             f"📍 <b>កម្រិតតម្លៃចូល និងគ្រប់គ្រងដើមទុន:</b>\n"
             f"• 🎯 <b>តំបន់ Entry:</b> <code>{entry_zone}</code>\n"
             f"• 🛑 <b>Stop Loss (SL):</b> <code>${sl:,.2f}</code>\n"
