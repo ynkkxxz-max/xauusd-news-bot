@@ -577,11 +577,18 @@ class XAUUSDNewsAssistantBot:
                             macro_data=macro_data,
                             order_book=order_book
                         )
-                    if setup:
-                        market_cache.set_smc_setup(setup)
-
+                smc_inline_buttons = {
+                    "inline_keyboard": [
+                        [
+                            {"text": "📱 បើក Mini App (Live SMC Terminal)", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=smc"}}
+                        ],
+                        [
+                            {"text": "🧮 គិត Lot Size តាមដើមទុន", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=lot"}}
+                        ]
+                    ]
+                }
                 reply = KhmerFormatter.format_single_smc_setup(setup, key_levels=levels, current_price=oz)
-                self.notifier.send_message(reply, chat_id=chat_id, reply_markup=bottom_keyboard)
+                self.notifier.send_message(reply, chat_id=chat_id, reply_markup=smc_inline_buttons)
 
             elif clean_cmd in ("/calendar", "/events") or "ប្រតិទិនសេដ្ឋកិច្ច" in text:
                 png = self._build_calendar_png()
@@ -761,8 +768,18 @@ class XAUUSDNewsAssistantBot:
                             macro_data=macro_data,
                             order_book=order_book
                         )
+                    smc_inline_buttons = {
+                        "inline_keyboard": [
+                            [
+                                {"text": "📱 បើក Mini App (Live SMC Terminal)", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=smc"}}
+                            ],
+                            [
+                                {"text": "🧮 គិត Lot Size តាមដើមទុន", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=lot"}}
+                            ]
+                        ]
+                    }
                     reply = KhmerFormatter.format_single_smc_setup(setup, key_levels=levels, current_price=oz)
-                    self.notifier.send_message(reply, chat_id=chat_id, reply_markup=bottom_keyboard)
+                    self.notifier.send_message(reply, chat_id=chat_id, reply_markup=smc_inline_buttons)
                 elif len(parts) > 1 and parts[1].lower() in ("lot", "risk"):
                     default_calc = RiskLotCalculator.calculate_lot_size(balance=1000, risk_pct=1.0, sl_points_usd=10.0)
                     resp = (
