@@ -788,14 +788,18 @@
           dir.style.color = 'var(--bull)';
         }
         if (badge) {
-          badge.innerText = 'AI Institutional Bias: BUY';
+          badge.innerText = 'AI Institutional Bias: BUY (PULLBACK)';
         }
 
-        const entryLow = (price - 1.5).toFixed(2);
-        const entryHigh = (price + 1.2).toFixed(2);
-        const sl = (price - 8.5).toFixed(2);
-        const tp1 = (price + 12.0).toFixed(2);
-        const tp2 = (r1).toFixed(2);
+        // Smart Institutional Pullback Entry: Do NOT chase current high price!
+        // E.g., if price is $4,300, wait for discount pullback to ~$4,295
+        const pullbackTarget = Number((Math.max(price - 4.5, s1 + 2.0, pivot + 0.5)).toFixed(2));
+        const effectivePullback = pullbackTarget >= price ? Number((price - 3.0).toFixed(2)) : pullbackTarget;
+        const entryLow = (effectivePullback - 1.5).toFixed(2);
+        const entryHigh = (effectivePullback + 1.2).toFixed(2);
+        const sl = (Math.min(Number(entryLow) - 7.0, s1 - 3.0)).toFixed(2);
+        const tp1 = (Math.max(price + 10.0, pivot + 14.0)).toFixed(2);
+        const tp2 = (Math.max(price + 22.0, r1 + 5.0)).toFixed(2);
 
         document.getElementById('smcEntry').innerText = `$${Number(entryLow).toLocaleString('en-US', {minimumFractionDigits: 2})} - $${Number(entryHigh).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
         document.getElementById('smcSL').innerText = `$${Number(sl).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
@@ -804,32 +808,35 @@
 
         if (whyTradeEl) {
           whyTradeEl.innerHTML = `
-            • តម្លៃកំពុងឈរនៅពីលើ Pivot Point ($${pivot.toFixed(2)}) បញ្ជាក់ពីកម្លាំង Bullish Order Flow គ្របដណ្តប់ទីផ្សារ។<br>
-            • Order Book បង្ហាញកម្លាំងទិញ Bids គាំទ្រយ៉ាងរឹងមាំនៅតំបន់ Discount Zone (${bzLow} - ${bzHigh})។<br>
-            • ស្ថាប័នធំៗកំពុងរុញតម្លៃទៅ Hunt Buy-Side Liquidity (BSL) នៅតំបន់ R1 ($${r1.toFixed(2)})។
+            • <b>ការគ្រប់គ្រងហានិភ័យ (Smart Risk Management):</b> តម្លៃបច្ចុប្បន្នកំពុងរត់នៅ $${price.toFixed(2)} — AI <b>ហាមដាច់ខាតកុំឱ្យដេញទិញនៅចំណុចខ្ពស់</b>!<br>
+            • ត្រូវរង់ចាំតម្លៃទម្លាក់ស្រូបយក Liquidity (Pullback មក Discount Zone: <b>$${entryLow} - $${entryHigh}</b>) ទើបចូល Buy ដើម្បីទទួលបានតម្លៃទាបបំផុត និងហានិភ័យតូចបំផុត។<br>
+            • ស្ថាប័នធំៗការពារតំបន់ Support ($${s1.toFixed(2)}) មុននឹងរុញតម្លៃឡើងទៅ Hunt Buy-Side Liquidity នៅ $${tp1}។
           `;
         }
         if (whyNotEl) {
           whyNotEl.innerHTML = `
-            • ការចូល Sell ពេលនេះគឺផ្ទុយនឹងទិសដៅចរន្តសាច់ប្រាក់ធំ (Counter-Trend) ដែលប្រឈមនឹងការកាត់ SL ខ្ពស់។<br>
-            • មិនទាន់មានទម្រង់ Bearish Divergence ឬ Rejection នៅលើ M15 ដើម្បីបញ្ជាក់ការលក់នៅឡើយទេ។
+            • ហាម Sell ដាច់ខាតព្រោះទិសដៅចរន្តសាច់ប្រាក់ធំ (Macro Order Flow) គាំទ្រការឡើងថ្លៃ ការ Sell គឺដើរបញ្ច្រាសរថភ្លើង!<br>
+            • ការធ្លាក់ចុះមក $${effectivePullback.toFixed(2)} គ្រាន់តែជាការ Retracement ដើម្បីប្រមូលទិញ (Discount Accumulation) ប៉ុណ្ណោះ មិនមែនជាការប្តូរទៅ Bearish ឡើយ!
           `;
         }
       } else {
         if (hero) hero.classList.remove('bullish');
         if (dir) {
-          dir.innerText = '🔴 SELL SETUP ONLY';
+          dir.innerText = '🔴 SELL RETRACEMENT ONLY';
           dir.style.color = 'var(--bear)';
         }
         if (badge) {
-          badge.innerText = 'AI Institutional Bias: SELL';
+          badge.innerText = 'AI Institutional Bias: SELL (BOUNCE)';
         }
 
-        const entryLow = (price - 1.2).toFixed(2);
-        const entryHigh = (price + 1.5).toFixed(2);
-        const sl = (price + 8.5).toFixed(2);
-        const tp1 = (price - 12.0).toFixed(2);
-        const tp2 = (s1).toFixed(2);
+        // Smart Institutional Bounce Entry: Do NOT sell into the bottom!
+        const bounceTarget = Number((Math.min(price + 4.5, r1 - 2.0, pivot - 0.5)).toFixed(2));
+        const effectiveBounce = bounceTarget <= price ? Number((price + 3.0).toFixed(2)) : bounceTarget;
+        const entryLow = (effectiveBounce - 1.2).toFixed(2);
+        const entryHigh = (effectiveBounce + 1.5).toFixed(2);
+        const sl = (Math.max(Number(entryHigh) + 7.0, r1 + 3.0)).toFixed(2);
+        const tp1 = (Math.min(price - 10.0, pivot - 14.0)).toFixed(2);
+        const tp2 = (Math.min(price - 22.0, s1 - 5.0)).toFixed(2);
 
         document.getElementById('smcEntry').innerText = `$${Number(entryLow).toLocaleString('en-US', {minimumFractionDigits: 2})} - $${Number(entryHigh).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
         document.getElementById('smcSL').innerText = `$${Number(sl).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
@@ -838,15 +845,15 @@
 
         if (whyTradeEl) {
           whyTradeEl.innerHTML = `
-            • តម្លៃបានធ្លាក់ចុះក្រោម Pivot Point ($${pivot.toFixed(2)}) បញ្ជាក់ពី Bearish Market Structure លើកម្រិតខ្លី។<br>
-            • ជញ្ជាំង Asks រារាំងនៅតំបន់ Premium (${szLow} - ${szHigh}) បង្កើតសម្ពាធទម្លាក់តម្លៃបន្ត។<br>
-            • គោលដៅទីផ្សារគឺបោសសម្អាត Sell-Side Liquidity (SSL) នៅតំបន់ Support S1 ($${s1.toFixed(2)})។
+            • <b>ការគ្រប់គ្រងហានិភ័យ (Smart Risk Management):</b> តម្លៃបច្ចុប្បន្ននៅ $${price.toFixed(2)} — AI <b>ហាមដាច់ខាតកុំឱ្យ Sell ដេញតាមបាត</b>!<br>
+            • ត្រូវរង់ចាំតម្លៃលោតឡើងវិញ (Bounce Retracement ទៅ Premium Supply: <b>$${entryLow} - $${entryHigh}</b>) ទើបចូល Sell ដើម្បីទទួលបានតម្លៃខ្ពស់បំផុត និង SL ខ្លីបំផុត។<br>
+            • ជញ្ជាំង Asks រារាំងនៅតំបន់ Premium ($${szLow} - $${szHigh}) រុញតម្លៃទៅ Hunt Sell-Side Liquidity នៅ $${tp1}។
           `;
         }
         if (whyNotEl) {
           whyNotEl.innerHTML = `
-            • ការចូល Buy នៅពេលនេះងាយប្រឈមនឹងការជាប់អន្ទាក់ Liquidity Hunt និងការទម្លុះ Support បន្ថែម។<br>
-            • គ្មានទម្រង់ Bottom Confirmation នៅលើ Timeframe M15 គាំទ្រការទិញឡើងវិញឡើយ។
+            • ហាម Buy ដាច់ខាតព្រោះតម្លៃបានបំបែក Market Structure ទៅខាងក្រោមរួចហើយ ការ Buy ងាយជាប់អន្ទាក់ Trap!<br>
+            • ការឡើងវិញបន្តិចបន្តួចទៅ $${effectiveBounce.toFixed(2)} គ្រាន់តែជាការបោកបញ្ឆោត (Liquidity Grab) មុននឹងធ្លាក់បន្ត។
           `;
         }
       }
