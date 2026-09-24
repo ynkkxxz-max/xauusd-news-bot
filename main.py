@@ -462,7 +462,7 @@ class XAUUSDNewsAssistantBot:
                         {"text": "🔥 $1,000 (Risk 2%)", "callback_data": "lot_calc:1000:2:10"}
                     ],
                     [
-                        {"text": "📱 បើក Mini App គិត Lot (Sliders)", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/"}}
+                        {"text": "📱 បើក Mini App គិត Lot (Sliders)", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=lot"}
                     ]
                 ]
             }
@@ -580,10 +580,10 @@ class XAUUSDNewsAssistantBot:
                 smc_inline_buttons = {
                     "inline_keyboard": [
                         [
-                            {"text": "📱 បើក Mini App (Live SMC Terminal)", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=smc"}}
+                            {"text": "📱 បើក Mini App (Live SMC Terminal)", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=smc"}
                         ],
                         [
-                            {"text": "🧮 គិត Lot Size តាមដើមទុន", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=lot"}}
+                            {"text": "🧮 គិត Lot Size តាមដើមទុន", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=lot"}
                         ]
                     ]
                 }
@@ -771,10 +771,10 @@ class XAUUSDNewsAssistantBot:
                     smc_inline_buttons = {
                         "inline_keyboard": [
                             [
-                                {"text": "📱 បើក Mini App (Live SMC Terminal)", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=smc"}}
+                                {"text": "📱 បើក Mini App (Live SMC Terminal)", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=smc"}
                             ],
                             [
-                                {"text": "🧮 គិត Lot Size តាមដើមទុន", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=lot"}}
+                                {"text": "🧮 គិត Lot Size តាមដើមទុន", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=lot"}
                             ]
                         ]
                     }
