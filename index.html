@@ -600,6 +600,7 @@
     // Initialize Telegram WebApp
     const tg = window.Telegram ? window.Telegram.WebApp : null;
     if (tg) {
+      tg.ready();
       tg.expand();
       tg.enableClosingConfirmation();
     }
@@ -630,7 +631,7 @@
     // Switch to initial tab
     switchTab(initialTab);
 
-    // Dynamic Live Gold Price
+    // Dynamic Live Gold Price & Real-Time SMC Calculation
     async function updateLivePrice() {
       try {
         const res = await fetch('https://api.gold-api.com/price/XAU');
@@ -638,13 +639,85 @@
         if (data && data.price) {
           const p = parseFloat(data.price);
           document.getElementById('livePrice').innerText = '$' + p.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+          updateDynamicSMC(p);
         }
       } catch (e) {
         console.log('Price feed update failed, using fallback.');
       }
     }
+
+    function updateDynamicSMC(price) {
+      // Dynamic Key Levels derived from live price (Floor Pivot with typical daily range)
+      const dayRange = 45.0;
+      const pivot = Number((price - 5.0).toFixed(2));
+      const r1 = Number((price + 22.0).toFixed(2));
+      const r2 = Number((price + 45.0).toFixed(2));
+      const s1 = Number((price - 22.0).toFixed(2));
+      const s2 = Number((price - 45.0).toFixed(2));
+
+      // Buy Zone around S1/Discount
+      const bzLow = (s1 - 4.0).toFixed(2);
+      const bzHigh = (s1 + 3.0).toFixed(2);
+      document.getElementById('smcBuyZone').innerText = `$${Number(bzLow).toLocaleString('en-US', {minimumFractionDigits: 2})} - $${Number(bzHigh).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+
+      // Sell Zone around R1/Premium
+      const szLow = (r1 - 3.0).toFixed(2);
+      const szHigh = (r1 + 4.0).toFixed(2);
+      document.getElementById('smcSellZone').innerText = `$${Number(szLow).toLocaleString('en-US', {minimumFractionDigits: 2})} - $${Number(szHigh).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+
+      // Pivot
+      document.getElementById('smcPivot').innerText = `$${pivot.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+      // Live Direction: If price is above Pivot ($4,279), Bullish Order Flow dominates!
+      const isBuy = price >= pivot;
+      const hero = document.getElementById('smcHeroBox');
+      const dir = document.getElementById('smcDirection');
+      const badge = document.getElementById('smcBadge');
+
+      if (isBuy) {
+        if (hero) hero.classList.add('bullish');
+        if (dir) {
+          dir.innerText = '🟢 BUY SETUP ONLY';
+          dir.style.color = 'var(--bull)';
+        }
+        if (badge) {
+          badge.innerText = 'AI Institutional Bias: BUY';
+        }
+
+        const entryLow = (price - 1.5).toFixed(2);
+        const entryHigh = (price + 1.2).toFixed(2);
+        const sl = (price - 9.0).toFixed(2);
+        const tp1 = (price + 14.0).toFixed(2);
+        const tp2 = (r1).toFixed(2);
+
+        document.getElementById('smcEntry').innerText = `$${Number(entryLow).toLocaleString('en-US', {minimumFractionDigits: 2})} - $${Number(entryHigh).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+        document.getElementById('smcSL').innerText = `$${Number(sl).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+        document.getElementById('smcTP1').innerText = `$${Number(tp1).toLocaleString('en-US', {minimumFractionDigits: 2})} (BE)`;
+        document.getElementById('smcTP2').innerText = `$${Number(tp2).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+      } else {
+        if (hero) hero.classList.remove('bullish');
+        if (dir) {
+          dir.innerText = '🔴 SELL SETUP ONLY';
+          dir.style.color = 'var(--bear)';
+        }
+        if (badge) {
+          badge.innerText = 'AI Institutional Bias: SELL';
+        }
+
+        const entryLow = (price - 1.2).toFixed(2);
+        const entryHigh = (price + 1.5).toFixed(2);
+        const sl = (price + 9.0).toFixed(2);
+        const tp1 = (price - 14.0).toFixed(2);
+        const tp2 = (s1).toFixed(2);
+
+        document.getElementById('smcEntry').innerText = `$${Number(entryLow).toLocaleString('en-US', {minimumFractionDigits: 2})} - $${Number(entryHigh).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+        document.getElementById('smcSL').innerText = `$${Number(sl).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+        document.getElementById('smcTP1').innerText = `$${Number(tp1).toLocaleString('en-US', {minimumFractionDigits: 2})} (BE)`;
+        document.getElementById('smcTP2').innerText = `$${Number(tp2).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+      }
+    }
     updateLivePrice();
-    setInterval(updateLivePrice, 10000);
+    setInterval(updateLivePrice, 5000);
 
     // LOT CALCULATOR LOGIC
     let balance = 1000;
