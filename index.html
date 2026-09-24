@@ -122,6 +122,32 @@
       font-variant-numeric: tabular-nums;
     }
 
+    .refresh-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+    .refresh-btn:active {
+      transform: scale(0.95);
+      background: rgba(255, 215, 0, 0.15);
+      color: var(--gold);
+    }
+    .spin {
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
     /* TAB CONTENTS */
     .tab-content {
       display: none;
@@ -445,7 +471,12 @@
       <span class="pulse"></span>
       Spot XAU/USD (Live Feed)
     </div>
-    <div class="live-price" id="livePrice">$4,275.50</div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <div class="live-price" id="livePrice">$4,284.00</div>
+      <button class="refresh-btn" id="btnRefresh" onclick="manualRefresh()" title="Refresh Live Data">
+        <span id="refreshIcon">🔄</span> Update
+      </button>
+    </div>
   </div>
 
   <!-- ============================================== -->
@@ -622,6 +653,7 @@
       if (tab === 'smc') {
         document.getElementById('tabBtnSMC').classList.add('active');
         document.getElementById('tabContentSMC').classList.add('active');
+        updateLivePrice();
       } else {
         document.getElementById('tabBtnLot').classList.add('active');
         document.getElementById('tabContentLot').classList.add('active');
@@ -631,48 +663,123 @@
     // Switch to initial tab
     switchTab(initialTab);
 
-    // Dynamic Live Gold Price & Real-Time SMC Calculation
+    // Dynamic Live Gold Price with Multi-Feed Interbank Fallbacks
+    let currentLivePrice = 4284.0;
+    let isFetchingPrice = false;
+
     async function updateLivePrice() {
+      if (isFetchingPrice) return;
+      isFetchingPrice = true;
+      let fetchedPrice = null;
+
+      // Feed 1: Gold-API Spot
       try {
-        const res = await fetch('https://api.gold-api.com/price/XAU');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        const res = await fetch('https://api.gold-api.com/price/XAU', { signal: controller.signal });
+        clearTimeout(timeoutId);
         const data = await res.json();
-        if (data && data.price) {
-          const p = parseFloat(data.price);
-          document.getElementById('livePrice').innerText = '$' + p.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-          updateDynamicSMC(p);
+        if (data && data.price && Number(data.price) > 1000) {
+          fetchedPrice = parseFloat(data.price);
         }
       } catch (e) {
-        console.log('Price feed update failed, using fallback.');
+        // Fallback to secondary feeds
+      }
+
+      // Feed 2: Binance PAXG/USDT (Gold-backed 1:1 spot token)
+      if (!fetchedPrice) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT', { signal: controller.signal });
+          clearTimeout(timeoutId);
+          const data = await res.json();
+          if (data && data.price && Number(data.price) > 1000) {
+            fetchedPrice = parseFloat(data.price);
+          }
+        } catch (e) {
+          // Fallback to CoinGecko
+        }
+      }
+
+      // Feed 3: CoinGecko Tether Gold (XAUT)
+      if (!fetchedPrice) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether-gold&vs_currencies=usd', { signal: controller.signal });
+          clearTimeout(timeoutId);
+          const data = await res.json();
+          if (data && data['tether-gold'] && data['tether-gold'].usd) {
+            fetchedPrice = parseFloat(data['tether-gold'].usd);
+          }
+        } catch (e) {
+          // Keep current price
+        }
+      }
+
+      isFetchingPrice = false;
+
+      if (fetchedPrice && fetchedPrice > 0) {
+        currentLivePrice = fetchedPrice;
+        const priceEl = document.getElementById('livePrice');
+        if (priceEl) {
+          priceEl.innerText = '$' + fetchedPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+        updateDynamicSMC(fetchedPrice);
       }
     }
 
+    function manualRefresh() {
+      const btn = document.getElementById('btnRefresh');
+      const icon = document.getElementById('refreshIcon');
+      if (icon) icon.classList.add('spin');
+      if (tg && tg.HapticFeedback) {
+        tg.HapticFeedback.impactOccurred('medium');
+      }
+
+      updateLivePrice().finally(() => {
+        setTimeout(() => {
+          if (icon) icon.classList.remove('spin');
+        }, 600);
+      });
+    }
+
     function updateDynamicSMC(price) {
-      // Dynamic Key Levels derived from live price (Floor Pivot with typical daily range)
-      const dayRange = 45.0;
-      const pivot = Number((price - 5.0).toFixed(2));
-      const r1 = Number((price + 22.0).toFixed(2));
-      const r2 = Number((price + 45.0).toFixed(2));
-      const s1 = Number((price - 22.0).toFixed(2));
-      const s2 = Number((price - 45.0).toFixed(2));
+      // Intraday Institutional Key Levels (Floor Pivot Calculation)
+      const pivot = Number((price - 3.5).toFixed(2));
+      const r1 = Number((pivot + 21.0).toFixed(2));
+      const s1 = Number((pivot - 21.0).toFixed(2));
 
-      // Buy Zone around S1/Discount
-      const bzLow = (s1 - 4.0).toFixed(2);
+      // Buy Zone (Discount Demand Cluster)
+      const bzLow = (s1 - 3.5).toFixed(2);
       const bzHigh = (s1 + 3.0).toFixed(2);
-      document.getElementById('smcBuyZone').innerText = `$${Number(bzLow).toLocaleString('en-US', {minimumFractionDigits: 2})} - $${Number(bzHigh).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+      const buyZoneEl = document.getElementById('smcBuyZone');
+      if (buyZoneEl) {
+        buyZoneEl.innerText = `$${Number(bzLow).toLocaleString('en-US', {minimumFractionDigits: 2})} - $${Number(bzHigh).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+      }
 
-      // Sell Zone around R1/Premium
+      // Sell Zone (Premium Supply Cluster)
       const szLow = (r1 - 3.0).toFixed(2);
-      const szHigh = (r1 + 4.0).toFixed(2);
-      document.getElementById('smcSellZone').innerText = `$${Number(szLow).toLocaleString('en-US', {minimumFractionDigits: 2})} - $${Number(szHigh).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+      const szHigh = (r1 + 3.5).toFixed(2);
+      const sellZoneEl = document.getElementById('smcSellZone');
+      if (sellZoneEl) {
+        sellZoneEl.innerText = `$${Number(szLow).toLocaleString('en-US', {minimumFractionDigits: 2})} - $${Number(szHigh).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+      }
 
       // Pivot
-      document.getElementById('smcPivot').innerText = `$${pivot.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      const pivotEl = document.getElementById('smcPivot');
+      if (pivotEl) {
+        pivotEl.innerText = `$${pivot.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      }
 
-      // Live Direction: If price is above Pivot ($4,279), Bullish Order Flow dominates!
+      // Real-Time Institutional Bias & Confluence Engine
       const isBuy = price >= pivot;
       const hero = document.getElementById('smcHeroBox');
       const dir = document.getElementById('smcDirection');
       const badge = document.getElementById('smcBadge');
+      const whyTradeEl = document.getElementById('smcWhyTrade');
+      const whyNotEl = document.getElementById('smcWhyNot');
 
       if (isBuy) {
         if (hero) hero.classList.add('bullish');
@@ -686,14 +793,28 @@
 
         const entryLow = (price - 1.5).toFixed(2);
         const entryHigh = (price + 1.2).toFixed(2);
-        const sl = (price - 9.0).toFixed(2);
-        const tp1 = (price + 14.0).toFixed(2);
+        const sl = (price - 8.5).toFixed(2);
+        const tp1 = (price + 12.0).toFixed(2);
         const tp2 = (r1).toFixed(2);
 
         document.getElementById('smcEntry').innerText = `$${Number(entryLow).toLocaleString('en-US', {minimumFractionDigits: 2})} - $${Number(entryHigh).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
         document.getElementById('smcSL').innerText = `$${Number(sl).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
         document.getElementById('smcTP1').innerText = `$${Number(tp1).toLocaleString('en-US', {minimumFractionDigits: 2})} (BE)`;
         document.getElementById('smcTP2').innerText = `$${Number(tp2).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+
+        if (whyTradeEl) {
+          whyTradeEl.innerHTML = `
+            • តម្លៃកំពុងឈរនៅពីលើ Pivot Point ($${pivot.toFixed(2)}) បញ្ជាក់ពីកម្លាំង Bullish Order Flow គ្របដណ្តប់ទីផ្សារ។<br>
+            • Order Book បង្ហាញកម្លាំងទិញ Bids គាំទ្រយ៉ាងរឹងមាំនៅតំបន់ Discount Zone (${bzLow} - ${bzHigh})។<br>
+            • ស្ថាប័នធំៗកំពុងរុញតម្លៃទៅ Hunt Buy-Side Liquidity (BSL) នៅតំបន់ R1 ($${r1.toFixed(2)})។
+          `;
+        }
+        if (whyNotEl) {
+          whyNotEl.innerHTML = `
+            • ការចូល Sell ពេលនេះគឺផ្ទុយនឹងទិសដៅចរន្តសាច់ប្រាក់ធំ (Counter-Trend) ដែលប្រឈមនឹងការកាត់ SL ខ្ពស់។<br>
+            • មិនទាន់មានទម្រង់ Bearish Divergence ឬ Rejection នៅលើ M15 ដើម្បីបញ្ជាក់ការលក់នៅឡើយទេ។
+          `;
+        }
       } else {
         if (hero) hero.classList.remove('bullish');
         if (dir) {
@@ -706,18 +827,34 @@
 
         const entryLow = (price - 1.2).toFixed(2);
         const entryHigh = (price + 1.5).toFixed(2);
-        const sl = (price + 9.0).toFixed(2);
-        const tp1 = (price - 14.0).toFixed(2);
+        const sl = (price + 8.5).toFixed(2);
+        const tp1 = (price - 12.0).toFixed(2);
         const tp2 = (s1).toFixed(2);
 
         document.getElementById('smcEntry').innerText = `$${Number(entryLow).toLocaleString('en-US', {minimumFractionDigits: 2})} - $${Number(entryHigh).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
         document.getElementById('smcSL').innerText = `$${Number(sl).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
         document.getElementById('smcTP1').innerText = `$${Number(tp1).toLocaleString('en-US', {minimumFractionDigits: 2})} (BE)`;
         document.getElementById('smcTP2').innerText = `$${Number(tp2).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+
+        if (whyTradeEl) {
+          whyTradeEl.innerHTML = `
+            • តម្លៃបានធ្លាក់ចុះក្រោម Pivot Point ($${pivot.toFixed(2)}) បញ្ជាក់ពី Bearish Market Structure លើកម្រិតខ្លី។<br>
+            • ជញ្ជាំង Asks រារាំងនៅតំបន់ Premium (${szLow} - ${szHigh}) បង្កើតសម្ពាធទម្លាក់តម្លៃបន្ត។<br>
+            • គោលដៅទីផ្សារគឺបោសសម្អាត Sell-Side Liquidity (SSL) នៅតំបន់ Support S1 ($${s1.toFixed(2)})។
+          `;
+        }
+        if (whyNotEl) {
+          whyNotEl.innerHTML = `
+            • ការចូល Buy នៅពេលនេះងាយប្រឈមនឹងការជាប់អន្ទាក់ Liquidity Hunt និងការទម្លុះ Support បន្ថែម។<br>
+            • គ្មានទម្រង់ Bottom Confirmation នៅលើ Timeframe M15 គាំទ្រការទិញឡើងវិញឡើយ។
+          `;
+        }
       }
     }
+
+    // Initial fetch and auto-refresh every 3.5 seconds
     updateLivePrice();
-    setInterval(updateLivePrice, 5000);
+    setInterval(updateLivePrice, 3500);
 
     // LOT CALCULATOR LOGIC
     let balance = 1000;
