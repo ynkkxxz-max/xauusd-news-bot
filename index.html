@@ -786,7 +786,8 @@
         <div style="font-size: 13px; font-weight: 700; color: #FFF; display: flex; align-items: center; gap: 6px;">
           <span>📈</span> XAU/USD Live Candlestick
         </div>
-        <div style="display: flex; gap: 4px;">
+        <div style="display: flex; gap: 4px; align-items: center;">
+          <button class="tv-tf-btn" id="btnToggleOverlay" onclick="toggleSmcOverlay()" style="border-color: rgba(255, 215, 0, 0.4); color: var(--gold); padding: 4px 8px; font-size: 10px;">👁️ Lines</button>
           <button class="tv-tf-btn" id="btnTf5" onclick="changeTvInterval('5')">5m</button>
           <button class="tv-tf-btn active" id="btnTf15" onclick="changeTvInterval('15')">15m</button>
           <button class="tv-tf-btn" id="btnTf60" onclick="changeTvInterval('60')">1H</button>
@@ -795,8 +796,8 @@
       </div>
       
       <div class="tv-chart-wrapper">
-        <!-- AI SMC Live Chart Overlay (Draws Entry, SL, TP, FVG lines) -->
-        <div class="smc-visual-overlay" id="smcVisualOverlay">
+        <!-- AI SMC Live Chart Overlay (Hidden by default to keep chart crystal clear) -->
+        <div class="smc-visual-overlay" id="smcVisualOverlay" style="display: none;">
           <div class="smc-overlay-line tp2" id="lineTP2" style="top: 14%;">
             <span class="smc-overlay-tag">🏆 TP2 (Max Liquidity)</span>
             <span id="overlayValTP2">$4,285.00</span>
@@ -972,6 +973,26 @@
       const iframe = document.getElementById('tvIframe');
       if (iframe) {
         iframe.src = `https://s.tradingview.com/widgetembed/?frameElementId=tradingview_widget&symbol=OANDA%3AXAUUSD&interval=${interval}&hidesidetoolbar=1&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=%5B%5D&theme=dark&style=1&timezone=Asia%2FPhnom_Penh&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=en`;
+      }
+    }
+
+    function toggleSmcOverlay() {
+      const overlay = document.getElementById('smcVisualOverlay');
+      const btn = document.getElementById('btnToggleOverlay');
+      if (overlay) {
+        if (overlay.style.display === 'none' || overlay.style.display === '') {
+          overlay.style.display = 'block';
+          if (btn) {
+            btn.style.background = 'rgba(255, 215, 0, 0.2)';
+            btn.innerText = '👁️ Hide';
+          }
+        } else {
+          overlay.style.display = 'none';
+          if (btn) {
+            btn.style.background = 'transparent';
+            btn.innerText = '👁️ Lines';
+          }
+        }
       }
     }
 
