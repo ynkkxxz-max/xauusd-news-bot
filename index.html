@@ -574,6 +574,70 @@
       height: 480px;
       border: none;
     }
+
+    /* SMC Visual Overlay Lines over Chart */
+    .smc-visual-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+      overflow: hidden;
+    }
+
+    .smc-overlay-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 2px 10px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      border-top: 1.5px dashed;
+      background: linear-gradient(90deg, rgba(15, 20, 31, 0.75) 0%, transparent 80%);
+      transition: top 0.4s ease;
+    }
+
+    .smc-overlay-line.tp2 {
+      border-color: #00E5FF;
+      color: #00E5FF;
+    }
+
+    .smc-overlay-line.tp1 {
+      border-color: #00E676;
+      color: #00E676;
+    }
+
+    .smc-overlay-line.fvg {
+      border-color: #FFD700;
+      background: rgba(255, 215, 0, 0.08);
+      border-top: 1px solid #FFD700;
+      border-bottom: 1px solid #FFD700;
+      color: #FFD700;
+    }
+
+    .smc-overlay-line.entry {
+      border-color: #FFA751;
+      color: #FFA751;
+      border-top: 2px solid #FFA751;
+    }
+
+    .smc-overlay-line.sl {
+      border-color: #FF3366;
+      color: #FF3366;
+    }
+
+    .smc-overlay-tag {
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: rgba(10, 13, 20, 0.85);
+      border: 1px solid currentColor;
+    }
   </style>
 </head>
 <body>
@@ -731,6 +795,30 @@
       </div>
       
       <div class="tv-chart-wrapper">
+        <!-- AI SMC Live Chart Overlay (Draws Entry, SL, TP, FVG lines) -->
+        <div class="smc-visual-overlay" id="smcVisualOverlay">
+          <div class="smc-overlay-line tp2" id="lineTP2" style="top: 14%;">
+            <span class="smc-overlay-tag">🏆 TP2 (Max Liquidity)</span>
+            <span id="overlayValTP2">$4,285.00</span>
+          </div>
+          <div class="smc-overlay-line tp1" id="lineTP1" style="top: 32%;">
+            <span class="smc-overlay-tag">🎯 TP1 (Break-Even)</span>
+            <span id="overlayValTP1">$4,268.00</span>
+          </div>
+          <div class="smc-overlay-line fvg" id="lineFVG" style="top: 52%; height: 26px;">
+            <span class="smc-overlay-tag">⚡ FVG / Institutional Imbalance</span>
+            <span id="overlayValFVG">$4,256.00</span>
+          </div>
+          <div class="smc-overlay-line entry" id="lineEntry" style="top: 65%;">
+            <span class="smc-overlay-tag">🎯 ENTRY ZONE (Discount Order Block)</span>
+            <span id="overlayValEntry">$4,250.00 - $4,253.50</span>
+          </div>
+          <div class="smc-overlay-line sl" id="lineSL" style="top: 86%;">
+            <span class="smc-overlay-tag">🛑 STOP LOSS (Safety Liquidity)</span>
+            <span id="overlayValSL">$4,242.00</span>
+          </div>
+        </div>
+
         <iframe 
           id="tvIframe"
           class="tv-chart-frame"
@@ -1083,6 +1171,29 @@
         const tvTP2El = document.getElementById('tvChartTP2');
         if (tvTP2El) tvTP2El.innerText = `$${Number(tp2).toFixed(2)}`;
 
+        // Update In-Chart Glassmorphic SMC Visual Overlay Lines (BUY Mode)
+        const lineTP2 = document.getElementById('lineTP2');
+        const lineTP1 = document.getElementById('lineTP1');
+        const lineFVG = document.getElementById('lineFVG');
+        const lineEntry = document.getElementById('lineEntry');
+        const lineSL = document.getElementById('lineSL');
+        const valTP2 = document.getElementById('overlayValTP2');
+        const valTP1 = document.getElementById('overlayValTP1');
+        const valFVG = document.getElementById('overlayValFVG');
+        const valEntry = document.getElementById('overlayValEntry');
+        const valSL = document.getElementById('overlayValSL');
+
+        if (lineTP2) { lineTP2.style.top = '14%'; lineTP2.querySelector('.smc-overlay-tag').innerText = '🏆 TP2 (Max Liquidity Target)'; }
+        if (valTP2) valTP2.innerText = `$${Number(tp2).toFixed(2)}`;
+        if (lineTP1) { lineTP1.style.top = '32%'; lineTP1.querySelector('.smc-overlay-tag').innerText = '🎯 TP1 (Break-Even Secured)'; }
+        if (valTP1) valTP1.innerText = `$${Number(tp1).toFixed(2)}`;
+        if (lineFVG) { lineFVG.style.top = '50%'; lineFVG.querySelector('.smc-overlay-tag').innerText = '⚡ Bullish FVG Imbalance'; }
+        if (valFVG) valFVG.innerText = `$${(Number(entryHigh) + 2.5).toFixed(2)}`;
+        if (lineEntry) { lineEntry.style.top = '66%'; lineEntry.querySelector('.smc-overlay-tag').innerText = '🎯 BUY ENTRY (Discount Demand)'; }
+        if (valEntry) valEntry.innerText = `$${Number(entryLow).toFixed(2)} - $${Number(entryHigh).toFixed(2)}`;
+        if (lineSL) { lineSL.style.top = '86%'; lineSL.querySelector('.smc-overlay-tag').innerText = '🛑 STOP LOSS (Safety Liquidity)'; }
+        if (valSL) valSL.innerText = `$${Number(sl).toFixed(2)}`;
+
         // Update Prominent TradingView Setup Hero Card (for BUY)
         const tvHeroEl = document.getElementById('tvSetupHero');
         if (tvHeroEl) tvHeroEl.classList.add('bullish');
@@ -1168,6 +1279,40 @@
             • ជញ្ជាំង Asks រារាំងនៅតំបន់ Premium ($${szLow} - $${szHigh}) រុញតម្លៃទៅ Hunt Sell-Side Liquidity នៅ $${tp1}។
           `;
         }
+
+        // Update TradingView AI Overlay HUD & Levels Bar (for SELL)
+        const tvEntryEl = document.getElementById('tvChartEntry');
+        if (tvEntryEl) tvEntryEl.innerText = `$${Number(entryLow).toFixed(1)} - $${Number(entryHigh).toFixed(1)}`;
+        const tvSLEl = document.getElementById('tvChartSL');
+        if (tvSLEl) tvSLEl.innerText = `$${Number(sl).toFixed(2)}`;
+        const tvTP1El = document.getElementById('tvChartTP1');
+        if (tvTP1El) tvTP1El.innerText = `$${Number(tp1).toFixed(2)}`;
+        const tvTP2El = document.getElementById('tvChartTP2');
+        if (tvTP2El) tvTP2El.innerText = `$${Number(tp2).toFixed(2)}`;
+
+        // Update In-Chart Glassmorphic SMC Visual Overlay Lines (SELL Mode - Inverted order)
+        const lineTP2 = document.getElementById('lineTP2');
+        const lineTP1 = document.getElementById('lineTP1');
+        const lineFVG = document.getElementById('lineFVG');
+        const lineEntry = document.getElementById('lineEntry');
+        const lineSL = document.getElementById('lineSL');
+        const valTP2 = document.getElementById('overlayValTP2');
+        const valTP1 = document.getElementById('overlayValTP1');
+        const valFVG = document.getElementById('overlayValFVG');
+        const valEntry = document.getElementById('overlayValEntry');
+        const valSL = document.getElementById('overlayValSL');
+
+        if (lineSL) { lineSL.style.top = '14%'; lineSL.querySelector('.smc-overlay-tag').innerText = '🛑 STOP LOSS (Safety Liquidity)'; }
+        if (valSL) valSL.innerText = `$${Number(sl).toFixed(2)}`;
+        if (lineEntry) { lineEntry.style.top = '30%'; lineEntry.querySelector('.smc-overlay-tag').innerText = '🎯 SELL ENTRY (Premium Supply Zone)'; }
+        if (valEntry) valEntry.innerText = `$${Number(entryLow).toFixed(2)} - $${Number(entryHigh).toFixed(2)}`;
+        if (lineFVG) { lineFVG.style.top = '48%'; lineFVG.querySelector('.smc-overlay-tag').innerText = '⚡ Bearish FVG / Imbalance'; }
+        if (valFVG) valFVG.innerText = `$${(Number(entryLow) - 2.5).toFixed(2)}`;
+        if (lineTP1) { lineTP1.style.top = '68%'; lineTP1.querySelector('.smc-overlay-tag').innerText = '🎯 TP1 (Break-Even Secured)'; }
+        if (valTP1) valTP1.innerText = `$${Number(tp1).toFixed(2)}`;
+        if (lineTP2) { lineTP2.style.top = '86%'; lineTP2.querySelector('.smc-overlay-tag').innerText = '🏆 TP2 (Max Liquidity Target)'; }
+        if (valTP2) valTP2.innerText = `$${Number(tp2).toFixed(2)}`;
+
         // Update Prominent TradingView Setup Hero Card (for SELL)
         const tvHeroEl = document.getElementById('tvSetupHero');
         if (tvHeroEl) tvHeroEl.classList.remove('bullish');
