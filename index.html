@@ -682,31 +682,45 @@
   <!-- TAB 2: TRADINGVIEW LIVE PRO CHART (XAUUSD)     -->
   <!-- ============================================== -->
   <div class="tab-content" id="tabContentChart">
-    <div class="tv-container">
-      <!-- Quick AI SMC Levels Bar on Chart Header -->
-      <div class="tv-levels-bar">
-        <div class="tv-lvl-box">
-          <div class="tv-lvl-lbl">🎯 Entry Zone</div>
-          <div class="tv-lvl-price" style="color: var(--gold);" id="tvChartEntry">$4,274 - $4,277</div>
-        </div>
-        <div class="tv-lvl-box">
-          <div class="tv-lvl-lbl">🛑 Stop Loss</div>
-          <div class="tv-lvl-price" style="color: var(--bear);" id="tvChartSL">$4,285.00</div>
-        </div>
-        <div class="tv-lvl-box">
-          <div class="tv-lvl-lbl">🎯 TP1 (BE)</div>
-          <div class="tv-lvl-price" style="color: var(--bull);" id="tvChartTP1">$4,260.00</div>
-        </div>
-        <div class="tv-lvl-box">
-          <div class="tv-lvl-lbl">🏆 TP2 (Max)</div>
-          <div class="tv-lvl-price" style="color: var(--gold);" id="tvChartTP2">$4,248.00</div>
-        </div>
+    <!-- Prominent AI Setup Execution Card (Direct Action Setup) -->
+    <div class="smc-hero-box" id="tvSetupHero" style="margin-bottom: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span class="smc-badge" id="tvHeroBadge">AI SMC SETUP EXECUTION</span>
+        <span id="tvHeroLiveStatus" style="font-size: 11px; font-weight: 800; color: var(--gold); padding: 3px 8px; border-radius: 10px; background: rgba(255, 215, 0, 0.15); border: 1px solid rgba(255, 215, 0, 0.3);">
+          ⏳ WAITING PULLBACK
+        </span>
+      </div>
+      
+      <div class="smc-direction" id="tvHeroDirection" style="font-size: 22px;">🟢 BUY PULLBACK ONLY</div>
+      <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
+        ផែនការចូល Order លើក្រាហ្វិក — ផ្ទៀងផ្ទាត់ទៀន M15/M5 មុនចុច BUY
       </div>
 
-      <!-- Timeframe Selector -->
+      <div class="smc-metrics-grid">
+        <div class="smc-metric-pill" style="border-left: 3px solid var(--gold);">
+          <div class="smc-pill-label">🎯 Entry Zone (តំបន់ទិញ)</div>
+          <div class="smc-pill-value" style="color: var(--gold);" id="tvChartEntry">$4,250.00 - $4,253.50</div>
+        </div>
+        <div class="smc-metric-pill" style="border-left: 3px solid var(--bear);">
+          <div class="smc-pill-label">🛑 Stop Loss (SL)</div>
+          <div class="smc-pill-value" style="color: var(--bear);" id="tvChartSL">$4,242.00</div>
+        </div>
+        <div class="smc-metric-pill" style="border-left: 3px solid var(--bull);">
+          <div class="smc-pill-label">🎯 Take Profit 1 (BE)</div>
+          <div class="smc-pill-value" style="color: var(--bull);" id="tvChartTP1">$4,268.00</div>
+        </div>
+        <div class="smc-metric-pill" style="border-left: 3px solid #00E5FF;">
+          <div class="smc-pill-label">🏆 Take Profit 2 (Max)</div>
+          <div class="smc-pill-value" style="color: #00E5FF;" id="tvChartTP2">$4,285.00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TradingView Chart Container with Timeframe Switcher -->
+    <div class="tv-container">
       <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(255, 255, 255, 0.03); border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
         <div style="font-size: 13px; font-weight: 700; color: #FFF; display: flex; align-items: center; gap: 6px;">
-          <span>📈</span> XAU/USD (Gold Spot Live)
+          <span>📈</span> XAU/USD Live Candlestick
         </div>
         <div style="display: flex; gap: 4px;">
           <button class="tv-tf-btn" id="btnTf5" onclick="changeTvInterval('5')">5m</button>
@@ -716,19 +730,7 @@
         </div>
       </div>
       
-      <!-- Chart Wrapper with Floating Real-time HUD -->
       <div class="tv-chart-wrapper">
-        <div class="tv-ai-hud" id="tvAiHud">
-          <div class="tv-hud-col">
-            <span class="tv-hud-label">AI Execution Signal</span>
-            <span class="tv-hud-val" id="tvHudSignal" style="color: var(--bull);">🟢 BUY PULLBACK ONLY</span>
-          </div>
-          <div class="tv-hud-col" style="text-align: right;">
-            <span class="tv-hud-label">Live Status</span>
-            <span class="tv-hud-val" id="tvHudStatus" style="color: var(--gold);">⚡ READY IN ZONE</span>
-          </div>
-        </div>
-
         <iframe 
           id="tvIframe"
           class="tv-chart-frame"
@@ -1081,22 +1083,32 @@
         const tvTP2El = document.getElementById('tvChartTP2');
         if (tvTP2El) tvTP2El.innerText = `$${Number(tp2).toFixed(2)}`;
 
-        const tvHudSignalEl = document.getElementById('tvHudSignal');
-        if (tvHudSignalEl) {
-          tvHudSignalEl.innerText = '🟢 BUY PULLBACK ONLY';
-          tvHudSignalEl.style.color = 'var(--bull)';
+        // Update Prominent TradingView Setup Hero Card (for BUY)
+        const tvHeroEl = document.getElementById('tvSetupHero');
+        if (tvHeroEl) tvHeroEl.classList.add('bullish');
+        const tvHeroDirEl = document.getElementById('tvHeroDirection');
+        if (tvHeroDirEl) {
+          tvHeroDirEl.innerText = '🟢 BUY PULLBACK ONLY';
+          tvHeroDirEl.style.color = 'var(--bull)';
         }
-        const tvHudStatusEl = document.getElementById('tvHudStatus');
-        if (tvHudStatusEl) {
+        const tvHeroStatusEl = document.getElementById('tvHeroLiveStatus');
+        if (tvHeroStatusEl) {
           if (inZone) {
-            tvHudStatusEl.innerText = '⚡ READY IN BUY ZONE';
-            tvHudStatusEl.style.color = 'var(--bull)';
+            tvHeroStatusEl.innerText = '⚡ READY TO BUY';
+            tvHeroStatusEl.style.color = '#00E676';
+            tvHeroStatusEl.style.borderColor = '#00E676';
+            tvHeroStatusEl.style.background = 'rgba(0, 230, 118, 0.2)';
           } else if (price > Number(entryHigh)) {
-            tvHudStatusEl.innerText = '⏳ WAITING PULLBACK';
-            tvHudStatusEl.style.color = 'var(--gold)';
+            const waitP = (price - Number(entryHigh)).toFixed(1);
+            tvHeroStatusEl.innerText = `⏳ WAITING PULLBACK (-$${waitP})`;
+            tvHeroStatusEl.style.color = 'var(--gold)';
+            tvHeroStatusEl.style.borderColor = 'rgba(255, 215, 0, 0.3)';
+            tvHeroStatusEl.style.background = 'rgba(255, 215, 0, 0.15)';
           } else {
-            tvHudStatusEl.innerText = '⚡ DEEP DISCOUNT BUY';
-            tvHudStatusEl.style.color = 'var(--bull)';
+            tvHeroStatusEl.innerText = '⚡ DEEP DISCOUNT BUY';
+            tvHeroStatusEl.style.color = 'var(--bull)';
+            tvHeroStatusEl.style.borderColor = 'rgba(0, 230, 118, 0.3)';
+            tvHeroStatusEl.style.background = 'rgba(0, 230, 118, 0.15)';
           }
         }
       } else {
@@ -1156,36 +1168,34 @@
             • ជញ្ជាំង Asks រារាំងនៅតំបន់ Premium ($${szLow} - $${szHigh}) រុញតម្លៃទៅ Hunt Sell-Side Liquidity នៅ $${tp1}។
           `;
         }
-        // Update TradingView AI Overlay HUD & Levels Bar (for SELL)
-        const tvEntryEl = document.getElementById('tvChartEntry');
-        if (tvEntryEl) tvEntryEl.innerText = `$${Number(entryLow).toFixed(1)} - $${Number(entryHigh).toFixed(1)}`;
-        const tvSLEl = document.getElementById('tvChartSL');
-        if (tvSLEl) tvSLEl.innerText = `$${Number(sl).toFixed(2)}`;
-        const tvTP1El = document.getElementById('tvChartTP1');
-        if (tvTP1El) tvTP1El.innerText = `$${Number(tp1).toFixed(2)}`;
-        const tvTP2El = document.getElementById('tvChartTP2');
-        if (tvTP2El) tvTP2El.innerText = `$${Number(tp2).toFixed(2)}`;
-
-        const tvHudSignalEl = document.getElementById('tvHudSignal');
-        if (tvHudSignalEl) {
-          tvHudSignalEl.innerText = '🔴 SELL RETRACEMENT ONLY';
-          tvHudSignalEl.style.color = 'var(--bear)';
+        // Update Prominent TradingView Setup Hero Card (for SELL)
+        const tvHeroEl = document.getElementById('tvSetupHero');
+        if (tvHeroEl) tvHeroEl.classList.remove('bullish');
+        const tvHeroDirEl = document.getElementById('tvHeroDirection');
+        if (tvHeroDirEl) {
+          tvHeroDirEl.innerText = '🔴 SELL RETRACEMENT ONLY';
+          tvHeroDirEl.style.color = 'var(--bear)';
         }
-        const tvHudStatusEl = document.getElementById('tvHudStatus');
-        if (tvHudStatusEl) {
+        const tvHeroStatusEl = document.getElementById('tvHeroLiveStatus');
+        if (tvHeroStatusEl) {
           if (inZone) {
-            tvHudStatusEl.innerText = '⚡ READY IN SELL ZONE';
-            tvHudStatusEl.style.color = 'var(--bear)';
+            tvHeroStatusEl.innerText = '⚡ READY TO SELL';
+            tvHeroStatusEl.style.color = '#00E676';
+            tvHeroStatusEl.style.borderColor = '#00E676';
+            tvHeroStatusEl.style.background = 'rgba(0, 230, 118, 0.2)';
           } else if (price < Number(entryLow)) {
-            tvHudStatusEl.innerText = '⏳ WAITING BOUNCE';
-            tvHudStatusEl.style.color = 'var(--gold)';
+            const waitP = (Number(entryLow) - price).toFixed(1);
+            tvHeroStatusEl.innerText = `⏳ WAITING BOUNCE (+$${waitP})`;
+            tvHeroStatusEl.style.color = 'var(--gold)';
+            tvHeroStatusEl.style.borderColor = 'rgba(255, 215, 0, 0.3)';
+            tvHeroStatusEl.style.background = 'rgba(255, 215, 0, 0.15)';
           } else {
-            tvHudStatusEl.innerText = '⚡ HIGH PREMIUM SELL';
-            tvHudStatusEl.style.color = 'var(--bear)';
+            tvHeroStatusEl.innerText = '⚡ HIGH PREMIUM SELL';
+            tvHeroStatusEl.style.color = 'var(--bear)';
+            tvHeroStatusEl.style.borderColor = 'rgba(255, 51, 102, 0.3)';
+            tvHeroStatusEl.style.background = 'rgba(255, 51, 102, 0.15)';
           }
         }
-      }
-    }
 
     // Initial fetch and auto-refresh every 3.5 seconds
     updateLivePrice();
