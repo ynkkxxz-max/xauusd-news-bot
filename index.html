@@ -498,50 +498,80 @@
       position: relative;
     }
 
-    .tv-header {
+    .tv-chart-wrapper {
+      position: relative;
+      width: 100%;
+      height: 480px;
+    }
+
+    .tv-ai-hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      background: rgba(15, 20, 31, 0.88);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 8px 12px;
+      z-index: 10;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 14px;
-      background: rgba(255, 255, 255, 0.03);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+
+    .tv-hud-col {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tv-hud-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .tv-hud-val {
+      font-size: 13px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tv-levels-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.02);
       border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
 
-    .tv-title {
-      font-size: 13px;
+    .tv-lvl-box {
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 8px;
+      padding: 6px;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .tv-lvl-lbl {
+      font-size: 9px;
       font-weight: 700;
-      color: #FFF;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .tv-tf-group {
-      display: flex;
-      gap: 4px;
-    }
-
-    .tv-tf-btn {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      text-transform: uppercase;
       color: var(--text-muted);
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.2s;
     }
 
-    .tv-tf-btn.active, .tv-tf-btn:active {
-      background: var(--gold);
-      color: #000;
-      border-color: var(--gold);
+    .tv-lvl-price {
+      font-size: 12px;
+      font-weight: 800;
+      margin-top: 2px;
     }
 
     .tv-chart-frame {
       width: 100%;
-      height: 440px;
+      height: 480px;
       border: none;
     }
   </style>
@@ -653,11 +683,32 @@
   <!-- ============================================== -->
   <div class="tab-content" id="tabContentChart">
     <div class="tv-container">
-      <div class="tv-header">
-        <div class="tv-title">
+      <!-- Quick AI SMC Levels Bar on Chart Header -->
+      <div class="tv-levels-bar">
+        <div class="tv-lvl-box">
+          <div class="tv-lvl-lbl">🎯 Entry Zone</div>
+          <div class="tv-lvl-price" style="color: var(--gold);" id="tvChartEntry">$4,274 - $4,277</div>
+        </div>
+        <div class="tv-lvl-box">
+          <div class="tv-lvl-lbl">🛑 Stop Loss</div>
+          <div class="tv-lvl-price" style="color: var(--bear);" id="tvChartSL">$4,285.00</div>
+        </div>
+        <div class="tv-lvl-box">
+          <div class="tv-lvl-lbl">🎯 TP1 (BE)</div>
+          <div class="tv-lvl-price" style="color: var(--bull);" id="tvChartTP1">$4,260.00</div>
+        </div>
+        <div class="tv-lvl-box">
+          <div class="tv-lvl-lbl">🏆 TP2 (Max)</div>
+          <div class="tv-lvl-price" style="color: var(--gold);" id="tvChartTP2">$4,248.00</div>
+        </div>
+      </div>
+
+      <!-- Timeframe Selector -->
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(255, 255, 255, 0.03); border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
+        <div style="font-size: 13px; font-weight: 700; color: #FFF; display: flex; align-items: center; gap: 6px;">
           <span>📈</span> XAU/USD (Gold Spot Live)
         </div>
-        <div class="tv-tf-group">
+        <div style="display: flex; gap: 4px;">
           <button class="tv-tf-btn" id="btnTf5" onclick="changeTvInterval('5')">5m</button>
           <button class="tv-tf-btn active" id="btnTf15" onclick="changeTvInterval('15')">15m</button>
           <button class="tv-tf-btn" id="btnTf60" onclick="changeTvInterval('60')">1H</button>
@@ -665,7 +716,19 @@
         </div>
       </div>
       
-      <div id="tradingview_widget_container" style="height: 440px; width: 100%;">
+      <!-- Chart Wrapper with Floating Real-time HUD -->
+      <div class="tv-chart-wrapper">
+        <div class="tv-ai-hud" id="tvAiHud">
+          <div class="tv-hud-col">
+            <span class="tv-hud-label">AI Execution Signal</span>
+            <span class="tv-hud-val" id="tvHudSignal" style="color: var(--bull);">🟢 BUY PULLBACK ONLY</span>
+          </div>
+          <div class="tv-hud-col" style="text-align: right;">
+            <span class="tv-hud-label">Live Status</span>
+            <span class="tv-hud-val" id="tvHudStatus" style="color: var(--gold);">⚡ READY IN ZONE</span>
+          </div>
+        </div>
+
         <iframe 
           id="tvIframe"
           class="tv-chart-frame"
@@ -1007,6 +1070,35 @@
             • ការធ្លាក់ចុះមក $${effectivePullback.toFixed(2)} គ្រាន់តែជាការ Retracement ដើម្បីប្រមូលទិញ (Discount Accumulation) ប៉ុណ្ណោះ មិនមែនជាការប្តូរទៅ Bearish ឡើយ!
           `;
         }
+
+        // Update TradingView AI Overlay HUD & Levels Bar (for BUY)
+        const tvEntryEl = document.getElementById('tvChartEntry');
+        if (tvEntryEl) tvEntryEl.innerText = `$${Number(entryLow).toFixed(1)} - $${Number(entryHigh).toFixed(1)}`;
+        const tvSLEl = document.getElementById('tvChartSL');
+        if (tvSLEl) tvSLEl.innerText = `$${Number(sl).toFixed(2)}`;
+        const tvTP1El = document.getElementById('tvChartTP1');
+        if (tvTP1El) tvTP1El.innerText = `$${Number(tp1).toFixed(2)}`;
+        const tvTP2El = document.getElementById('tvChartTP2');
+        if (tvTP2El) tvTP2El.innerText = `$${Number(tp2).toFixed(2)}`;
+
+        const tvHudSignalEl = document.getElementById('tvHudSignal');
+        if (tvHudSignalEl) {
+          tvHudSignalEl.innerText = '🟢 BUY PULLBACK ONLY';
+          tvHudSignalEl.style.color = 'var(--bull)';
+        }
+        const tvHudStatusEl = document.getElementById('tvHudStatus');
+        if (tvHudStatusEl) {
+          if (inZone) {
+            tvHudStatusEl.innerText = '⚡ READY IN BUY ZONE';
+            tvHudStatusEl.style.color = 'var(--bull)';
+          } else if (price > Number(entryHigh)) {
+            tvHudStatusEl.innerText = '⏳ WAITING PULLBACK';
+            tvHudStatusEl.style.color = 'var(--gold)';
+          } else {
+            tvHudStatusEl.innerText = '⚡ DEEP DISCOUNT BUY';
+            tvHudStatusEl.style.color = 'var(--bull)';
+          }
+        }
       } else {
         if (hero) hero.classList.remove('bullish');
         if (dir) {
@@ -1064,11 +1156,33 @@
             • ជញ្ជាំង Asks រារាំងនៅតំបន់ Premium ($${szLow} - $${szHigh}) រុញតម្លៃទៅ Hunt Sell-Side Liquidity នៅ $${tp1}។
           `;
         }
-        if (whyNotEl) {
-          whyNotEl.innerHTML = `
-            • ហាម Buy ដាច់ខាតព្រោះតម្លៃបានបំបែក Market Structure ទៅខាងក្រោមរួចហើយ ការ Buy ងាយជាប់អន្ទាក់ Trap!<br>
-            • ការឡើងវិញបន្តិចបន្តួចទៅ $${effectiveBounce.toFixed(2)} គ្រាន់តែជាការបោកបញ្ឆោត (Liquidity Grab) មុននឹងធ្លាក់បន្ត។
-          `;
+        // Update TradingView AI Overlay HUD & Levels Bar (for SELL)
+        const tvEntryEl = document.getElementById('tvChartEntry');
+        if (tvEntryEl) tvEntryEl.innerText = `$${Number(entryLow).toFixed(1)} - $${Number(entryHigh).toFixed(1)}`;
+        const tvSLEl = document.getElementById('tvChartSL');
+        if (tvSLEl) tvSLEl.innerText = `$${Number(sl).toFixed(2)}`;
+        const tvTP1El = document.getElementById('tvChartTP1');
+        if (tvTP1El) tvTP1El.innerText = `$${Number(tp1).toFixed(2)}`;
+        const tvTP2El = document.getElementById('tvChartTP2');
+        if (tvTP2El) tvTP2El.innerText = `$${Number(tp2).toFixed(2)}`;
+
+        const tvHudSignalEl = document.getElementById('tvHudSignal');
+        if (tvHudSignalEl) {
+          tvHudSignalEl.innerText = '🔴 SELL RETRACEMENT ONLY';
+          tvHudSignalEl.style.color = 'var(--bear)';
+        }
+        const tvHudStatusEl = document.getElementById('tvHudStatus');
+        if (tvHudStatusEl) {
+          if (inZone) {
+            tvHudStatusEl.innerText = '⚡ READY IN SELL ZONE';
+            tvHudStatusEl.style.color = 'var(--bear)';
+          } else if (price < Number(entryLow)) {
+            tvHudStatusEl.innerText = '⏳ WAITING BOUNCE';
+            tvHudStatusEl.style.color = 'var(--gold)';
+          } else {
+            tvHudStatusEl.innerText = '⚡ HIGH PREMIUM SELL';
+            tvHudStatusEl.style.color = 'var(--bear)';
+          }
         }
       }
     }
