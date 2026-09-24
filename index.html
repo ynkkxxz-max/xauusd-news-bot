@@ -209,6 +209,41 @@
       color: var(--bull);
     }
 
+    .smc-exec-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 6px 14px;
+      border-radius: 20px;
+      margin-top: 6px;
+      margin-bottom: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      letter-spacing: 0.3px;
+    }
+
+    .smc-exec-badge.ready {
+      background: linear-gradient(135deg, rgba(0, 230, 118, 0.25), rgba(0, 230, 118, 0.1));
+      color: #00E676;
+      border-color: #00E676;
+      box-shadow: 0 0 14px rgba(0, 230, 118, 0.4);
+      animation: readyPulse 1.6s infinite;
+    }
+
+    .smc-exec-badge.waiting {
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(255, 215, 0, 0.1));
+      color: #FFD700;
+      border-color: #FFD700;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.25);
+    }
+
+    @keyframes readyPulse {
+      0% { box-shadow: 0 0 4px rgba(0, 230, 118, 0.4); }
+      50% { box-shadow: 0 0 18px rgba(0, 230, 118, 0.8); }
+      100% { box-shadow: 0 0 4px rgba(0, 230, 118, 0.4); }
+    }
+
     .smc-direction {
       font-size: 20px;
       font-weight: 800;
@@ -488,6 +523,9 @@
     <div class="smc-hero-box" id="smcHeroBox">
       <div class="smc-badge" id="smcBadge">AI Institutional Bias</div>
       <div class="smc-direction" id="smcDirection">🔴 SELL SETUP ONLY</div>
+      <div id="smcExecBadge" class="smc-exec-badge waiting">
+        <span id="smcExecDot">🟡</span> <span id="smcExecText">WAITING FOR PULLBACK (កុំទាន់ចូល)</span>
+      </div>
       <div style="font-size: 12px; color: var(--text-muted);">ផែនការជួញដូរឆ្លាតវៃ AI SMC — ទិសដៅតែមួយគត់</div>
 
       <div class="smc-metrics-grid">
@@ -801,6 +839,32 @@
         const tp1 = (Math.max(price + 10.0, pivot + 14.0)).toFixed(2);
         const tp2 = (Math.max(price + 22.0, r1 + 5.0)).toFixed(2);
 
+        const execBadge = document.getElementById('smcExecBadge');
+        const execDot = document.getElementById('smcExecDot');
+        const execText = document.getElementById('smcExecText');
+        const inZone = (price >= Number(entryLow) && price <= Number(entryHigh));
+
+        if (inZone) {
+          if (execBadge) {
+            execBadge.className = 'smc-exec-badge ready';
+          }
+          if (execDot) execDot.innerText = '🟢';
+          if (execText) execText.innerText = '⚡ READY TO BUY (តម្លៃដល់តំបន់ទិញហើយ)';
+        } else if (price > Number(entryHigh)) {
+          if (execBadge) {
+            execBadge.className = 'smc-exec-badge waiting';
+          }
+          if (execDot) execDot.innerText = '🟡';
+          const waitPips = (price - Number(entryHigh)).toFixed(1);
+          if (execText) execText.innerText = `⏳ WAITING PULLBACK (រង់ចាំចុះ $${waitPips} ទៀត)`;
+        } else {
+          if (execBadge) {
+            execBadge.className = 'smc-exec-badge ready';
+          }
+          if (execDot) execDot.innerText = '🟢';
+          if (execText) execText.innerText = '⚡ DEEP DISCOUNT BUY (តំបន់បញ្ចុះតម្លៃពិសេស)';
+        }
+
         document.getElementById('smcEntry').innerText = `$${Number(entryLow).toLocaleString('en-US', {minimumFractionDigits: 2})} - $${Number(entryHigh).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
         document.getElementById('smcSL').innerText = `$${Number(sl).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
         document.getElementById('smcTP1').innerText = `$${Number(tp1).toLocaleString('en-US', {minimumFractionDigits: 2})} (BE)`;
@@ -837,6 +901,32 @@
         const sl = (Math.max(Number(entryHigh) + 7.0, r1 + 3.0)).toFixed(2);
         const tp1 = (Math.min(price - 10.0, pivot - 14.0)).toFixed(2);
         const tp2 = (Math.min(price - 22.0, s1 - 5.0)).toFixed(2);
+
+        const execBadge = document.getElementById('smcExecBadge');
+        const execDot = document.getElementById('smcExecDot');
+        const execText = document.getElementById('smcExecText');
+        const inZone = (price >= Number(entryLow) && price <= Number(entryHigh));
+
+        if (inZone) {
+          if (execBadge) {
+            execBadge.className = 'smc-exec-badge ready';
+          }
+          if (execDot) execDot.innerText = '🟢';
+          if (execText) execText.innerText = '⚡ READY TO SELL (តម្លៃដល់តំបន់លក់ហើយ)';
+        } else if (price < Number(entryLow)) {
+          if (execBadge) {
+            execBadge.className = 'smc-exec-badge waiting';
+          }
+          if (execDot) execDot.innerText = '🟡';
+          const waitPips = (Number(entryLow) - price).toFixed(1);
+          if (execText) execText.innerText = `⏳ WAITING BOUNCE (រង់ចាំលោតឡើង $${waitPips} ទៀត)`;
+        } else {
+          if (execBadge) {
+            execBadge.className = 'smc-exec-badge ready';
+          }
+          if (execDot) execDot.innerText = '🟢';
+          if (execText) execText.innerText = '⚡ HIGH PREMIUM SELL (តំបន់លក់បានថ្លៃខ្ពស់)';
+        }
 
         document.getElementById('smcEntry').innerText = `$${Number(entryLow).toLocaleString('en-US', {minimumFractionDigits: 2})} - $${Number(entryHigh).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
         document.getElementById('smcSL').innerText = `$${Number(sl).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
