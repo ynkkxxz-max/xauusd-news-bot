@@ -163,6 +163,13 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
+    @keyframes pulseDanger {
+      0% { box-shadow: 0 0 10px rgba(255, 51, 102, 0.2); }
+      50% { box-shadow: 0 0 25px rgba(255, 51, 102, 0.6); }
+      100% { box-shadow: 0 0 10px rgba(255, 51, 102, 0.2); }
+    }
+
+
     /* ========================================= */
     /* TAB 1: SMC INSTITUTIONAL SETUP STYLES     */
     /* ========================================= */
@@ -665,6 +672,20 @@
       <button class="refresh-btn" id="btnRefresh" onclick="manualRefresh()" title="Refresh Live Data">
         <span id="refreshIcon">🔄</span> Update
       </button>
+    </div>
+  </div>
+
+  <!-- AI HIGH-IMPACT NEWS DANGER ZONE PROTOCOL BANNER -->
+  <div id="newsDangerBanner" style="display: none; margin-bottom: 14px; padding: 12px 14px; border-radius: 12px; background: linear-gradient(135deg, rgba(255, 51, 102, 0.25) 0%, rgba(15, 20, 31, 0.95) 100%); border: 1.5px solid #FF3366; box-shadow: 0 0 20px rgba(255, 51, 102, 0.3); animation: pulseDanger 2s infinite;">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 20px;">🚨</span>
+        <div>
+          <div style="font-size: 13px; font-weight: 800; color: #FF3366; letter-spacing: 0.5px;">⚠️ AI NEWS DANGER ZONE — NO TRADE!</div>
+          <div style="font-size: 11px; color: #FFF; margin-top: 2px;" id="newsDangerTitle">ព័ត៌មានធំជិតចេញ: CPI / NFP / FOMC</div>
+        </div>
+      </div>
+      <span style="font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: #FF3366; color: #FFF;">PAUSED</span>
     </div>
   </div>
 
