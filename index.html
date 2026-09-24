@@ -487,17 +487,77 @@
     .apply-btn:active {
       transform: scale(0.98);
     }
+
+    /* TradingView Tab Styling */
+    .tv-container {
+      background: var(--card-bg);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 14px;
+      position: relative;
+    }
+
+    .tv-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .tv-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #FFF;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tv-tf-group {
+      display: flex;
+      gap: 4px;
+    }
+
+    .tv-tf-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tv-tf-btn.active, .tv-tf-btn:active {
+      background: var(--gold);
+      color: #000;
+      border-color: var(--gold);
+    }
+
+    .tv-chart-frame {
+      width: 100%;
+      height: 440px;
+      border: none;
+    }
   </style>
 </head>
 <body>
 
-  <!-- Top Navigation Tabs (Switch between SMC & Lot Calculator) -->
+  <!-- Top Navigation Tabs (Switch between SMC, Chart & Lot Calculator) -->
   <div class="tab-bar">
     <button class="tab-btn active" id="tabBtnSMC" onclick="switchTab('smc')">
-      <span>🎯</span> AI SMC Setup
+      <span>🎯</span> AI Setup
+    </button>
+    <button class="tab-btn" id="tabBtnChart" onclick="switchTab('chart')">
+      <span>📊</span> TradingView
     </button>
     <button class="tab-btn" id="tabBtnLot" onclick="switchTab('lot')">
-      <span>🧮</span> គិត Lot Size
+      <span>🧮</span> គិត Lot
     </button>
   </div>
 
@@ -589,7 +649,48 @@
   </div>
 
   <!-- ============================================== -->
-  <!-- TAB 2: SMART LOT & RISK CALCULATOR             -->
+  <!-- TAB 2: TRADINGVIEW LIVE PRO CHART (XAUUSD)     -->
+  <!-- ============================================== -->
+  <div class="tab-content" id="tabContentChart">
+    <div class="tv-container">
+      <div class="tv-header">
+        <div class="tv-title">
+          <span>📈</span> XAU/USD (Gold Spot Live)
+        </div>
+        <div class="tv-tf-group">
+          <button class="tv-tf-btn" id="btnTf5" onclick="changeTvInterval('5')">5m</button>
+          <button class="tv-tf-btn active" id="btnTf15" onclick="changeTvInterval('15')">15m</button>
+          <button class="tv-tf-btn" id="btnTf60" onclick="changeTvInterval('60')">1H</button>
+          <button class="tv-tf-btn" id="btnTf240" onclick="changeTvInterval('240')">4H</button>
+        </div>
+      </div>
+      
+      <div id="tradingview_widget_container" style="height: 440px; width: 100%;">
+        <iframe 
+          id="tvIframe"
+          class="tv-chart-frame"
+          src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_widget&symbol=OANDA%3AXAUUSD&interval=15&hidesidetoolbar=1&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=%5B%5D&theme=dark&style=1&timezone=Asia%2FPhnom_Penh&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=en"
+          allowtransparency="true" 
+          frameborder="0">
+        </iframe>
+      </div>
+    </div>
+
+    <!-- SMC Key Levels Overlay helper -->
+    <div class="smc-card">
+      <div style="font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #FFF;">
+        💡 របៀបផ្ទៀងផ្ទាត់លើក្រាហ្វិក (How to Validate):
+      </div>
+      <div style="font-size: 12px; color: var(--text-muted); line-height: 1.6;">
+        • ពិនិត្យមើលទៀន <b>M15 / M5</b> នៅពេលតម្លៃធ្លាក់មកដល់តំបន់ <b>Discount Demand</b>។<br>
+        • បើឃើញមាន <b>Rejection Wick (កន្ទុយស្រូបវែងខាងក្រោម)</b> រួចទៀនបន្ទាប់បិទបៃតង នោះគឺជាការបញ្ជាក់ចូល Buy ដែលមានសុវត្ថិភាពបំផុត!<br>
+        • ជៀសវាងការចូល Order នៅចំកណ្តាលចន្លោះ Pivot Point (គ្មាន Edge ច្បាស់លាស់)។
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- TAB 3: SMART LOT & RISK CALCULATOR             -->
   <!-- ============================================== -->
   <div class="tab-content" id="tabContentLot">
     <!-- Giant Result Showcase -->
@@ -684,17 +785,40 @@
       }
 
       document.getElementById('tabBtnSMC').classList.remove('active');
+      document.getElementById('tabBtnChart').classList.remove('active');
       document.getElementById('tabBtnLot').classList.remove('active');
+      
       document.getElementById('tabContentSMC').classList.remove('active');
+      document.getElementById('tabContentChart').classList.remove('active');
       document.getElementById('tabContentLot').classList.remove('active');
 
       if (tab === 'smc') {
         document.getElementById('tabBtnSMC').classList.add('active');
         document.getElementById('tabContentSMC').classList.add('active');
         updateLivePrice();
+      } else if (tab === 'chart') {
+        document.getElementById('tabBtnChart').classList.add('active');
+        document.getElementById('tabContentChart').classList.add('active');
       } else {
         document.getElementById('tabBtnLot').classList.add('active');
         document.getElementById('tabContentLot').classList.add('active');
+      }
+    }
+
+    function changeTvInterval(interval) {
+      if (tg && tg.HapticFeedback) {
+        tg.HapticFeedback.selectionChanged();
+      }
+      ['btnTf5', 'btnTf15', 'btnTf60', 'btnTf240'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+      });
+      const activeBtn = document.getElementById('btnTf' + interval);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const iframe = document.getElementById('tvIframe');
+      if (iframe) {
+        iframe.src = `https://s.tradingview.com/widgetembed/?frameElementId=tradingview_widget&symbol=OANDA%3AXAUUSD&interval=${interval}&hidesidetoolbar=1&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=%5B%5D&theme=dark&style=1&timezone=Asia%2FPhnom_Penh&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=en`;
       }
     }
 
