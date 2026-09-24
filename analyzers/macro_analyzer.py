@@ -253,32 +253,40 @@ class MacroAnalyzer:
         confidence_pct = min(95, 82 + (total_signals * 2))
 
         if is_buy:
-            entry_low = round(max(current_price - 1.5, s1), 2)
-            entry_high = round(current_price + 1.2, 2)
-            # Tight, high-precision institutional SL below swing discount
-            sl_price = round(min(entry_low - 6.5, s1 - 3.5), 2)
-            tp1_price = round(max(current_price + 12.0, pivot + 4.0), 2)
-            tp2_price = round(max(current_price + 24.0, r1), 2)
+            # Smart Institutional Pullback / Retracement Entry:
+            # If current price is stretched above pivot/discount, institutions never chase the top.
+            # They wait for a pullback to discount demand ($4,295 instead of chasing $4,300)
+            pullback_target = round(max(current_price - 4.5, s1 + 2.0, pivot + 0.5), 2)
+            if pullback_target >= current_price:
+                pullback_target = round(current_price - 3.0, 2)
+            
+            entry_low = round(pullback_target - 1.5, 2)
+            entry_high = round(pullback_target + 1.2, 2)
+            
+            # Optimal Institutional SL placed safely below key discount liquidity
+            sl_price = round(min(entry_low - 7.0, s1 - 3.0), 2)
+            tp1_price = round(max(current_price + 10.0, pivot + 14.0), 2)
+            tp2_price = round(max(current_price + 22.0, r1 + 5.0), 2)
             sl_dist = max(entry_high - sl_price, 3.0)
-            tp1_dist = tp1_price - entry_low
+            tp1_dist = tp1_price - entry_high
             rr_val = round(tp1_dist / sl_dist, 1)
             rr = f"1:{max(1.8, rr_val)}"
 
             why_trade = (
-                f"• {confluences[0] if len(confluences) > 0 else 'តម្លៃរក្សាលំនឹងលើតំបន់ទប់ទល់ Discount Zone'}\n"
-                f"• {confluences[1] if len(confluences) > 1 else 'Order Flow បង្ហាញបន្ទាយទិញទប់រឹងមាំ'}\n"
-                f"• ស្ថាប័នធំៗកំពុងការពារតំបន់ Support (${s1:,.2f}) ដើម្បីទាញយក Buy-Side Liquidity ឆ្ពោះទៅកាន់ ${tp1_price:,.2f}។"
+                f"• {confluences[0] if len(confluences) > 0 else 'ទិសដៅមេគឺកម្លាំងទិញ (Bullish Bias)'} ប៉ុន្តែ AI ណែនាំកុំឱ្យដេញទិញនៅចំណុចខ្ពស់ (${current_price:,.2f})។\n"
+                f"• រង់ចាំតម្លៃទម្លាក់ស្រូបយកសាច់ប្រាក់ងាយស្រួល (Pullback to Discount Zone ${entry_low:,.2f} - ${entry_high:,.2f}) ដើម្បីទទួលបានតម្លៃទាបចំណេញខ្ពស់។\n"
+                f"• ស្ថាប័នធំៗការពារតំបន់ Support (${s1:,.2f}) មុននឹងរុញតម្លៃឡើងទៅបោសសម្អាត Buy-Side Liquidity នៅ ${tp1_price:,.2f}។"
             )
             why_not_opp = (
-                f"• ការចូល Sell នៅពេលនេះគឺជាការលក់នៅជិតតំបន់បាត (Selling into Demand/Support) ដែលមានហានិភ័យជាប់អន្ទាក់ស្ថាប័នទិញត្រឡប់ឡើងវិញ!\n"
-                f"• សន្ទុះតម្លៃមិនទាន់បំបែកទម្លុះ Support (${s1:,.2f}) ឡើយ ដូច្នេះការ Sell ប្រឈមមុខនឹងការរង Stop Hunt ខ្ពស់បំផុត!"
+                f"• ហាម Sell ដាច់ខាតព្រោះទិសដៅចរន្តសាច់ប្រាក់ធំ (Macro Order Flow) គាំទ្រការឡើងថ្លៃ ការ Sell គឺដើរបញ្ច្រាសរថភ្លើង!\n"
+                f"• ការធ្លាក់ចុះមក ${pullback_target:,.2f} គ្រាន់តែជាការ Retracement ដើម្បីប្រមូលទិញ (Institutional Accumulation) ប៉ុណ្ណោះ មិនមែនជាការប្តូរទៅ Bearish ឡើយ!"
             )
-            confirm = "រង់ចាំទៀន M15 បិទបៃតង ឬបន្សល់កន្ទុយក្រោម (Lower Wick Rejection) មុនចុចបញ្ជាទិញ!"
+            confirm = f"កុំប្រញាប់ទិញភ្លាមៗនៅ ${current_price:,.2f}! រង់ចាំតម្លៃ Pullback មកដល់តំបន់ ${pullback_target:,.2f} រួចលេចចេញ Confirmation Candle M15 ទើបចុច Buy!"
 
             return {
                 "direction": "BUY",
-                "setup_title": f"🟢 ផែនការទិញឡើង (BUY SETUP ONLY) — ទំនុកចិត្ត {confidence_pct}%",
-                "entry": current_price,
+                "setup_title": f"🟢 ផែនការទិញឡើង (BUY PULLBACK SETUP) — ទំនុកចិត្ត {confidence_pct}%",
+                "entry": pullback_target,
                 "entry_zone": f"${entry_low:,.2f} - ${entry_high:,.2f}",
                 "sl": sl_price,
                 "tp1": tp1_price,
@@ -290,32 +298,40 @@ class MacroAnalyzer:
                 "confirmation_note": confirm
             }
         else:
-            entry_low = round(current_price - 1.2, 2)
-            entry_high = round(min(current_price + 1.5, r1), 2)
-            # Tight, high-precision institutional SL above swing premium
-            sl_price = round(max(entry_high + 6.5, r1 + 3.5), 2)
-            tp1_price = round(min(current_price - 12.0, pivot - 4.0), 2)
-            tp2_price = round(min(current_price - 24.0, s1), 2)
+            # Smart Institutional Rally / Retracement Entry:
+            # If current price is falling, institutions never sell at the bottom.
+            # They wait for price to bounce/retrace into Premium supply before dropping heavy orders!
+            bounce_target = round(min(current_price + 4.5, r1 - 2.0, pivot - 0.5), 2)
+            if bounce_target <= current_price:
+                bounce_target = round(current_price + 3.0, 2)
+
+            entry_low = round(bounce_target - 1.2, 2)
+            entry_high = round(bounce_target + 1.5, 2)
+            
+            # Optimal Institutional SL placed safely above key premium liquidity
+            sl_price = round(max(entry_high + 7.0, r1 + 3.0), 2)
+            tp1_price = round(min(current_price - 10.0, pivot - 14.0), 2)
+            tp2_price = round(min(current_price - 22.0, s1 - 5.0), 2)
             sl_dist = max(sl_price - entry_low, 3.0)
-            tp1_dist = entry_high - tp1_price
+            tp1_dist = entry_low - tp1_price
             rr_val = round(tp1_dist / sl_dist, 1)
             rr = f"1:{max(1.8, rr_val)}"
 
             why_trade = (
-                f"• {confluences[0] if len(confluences) > 0 else 'តម្លៃស្ថិតក្រោមសម្ពាធលក់ Premium Supply Zone'}\n"
-                f"• {confluences[1] if len(confluences) > 1 else 'Order Book បង្ហាញជញ្ជាំង Asks រារាំងក្រាស់ក្រែល'}\n"
-                f"• ទីផ្សារកំពុងស្វែងរក Sell-Side Liquidity (SSL) នៅតំបន់ខាងក្រោម (${tp1_price:,.2f})។"
+                f"• {confluences[0] if len(confluences) > 0 else 'ទិសដៅមេគឺសម្ពាធលក់ (Bearish Bias)'} ប៉ុន្តែ AI ណែនាំកុំឱ្យដេញលក់នៅបាត (${current_price:,.2f})។\n"
+                f"• រង់ចាំតម្លៃងើបឡើងសាកល្បងតំបន់ថ្លៃ (Pullback to Premium Zone ${entry_low:,.2f} - ${entry_high:,.2f}) ដើម្បីបានតម្លៃលក់ខ្ពស់ និង SL ខ្លី។\n"
+                f"• ស្ថាប័នធំៗរារាំងការឡើងថ្លៃនៅ R1 (${r1:,.2f}) ដើម្បីទម្លាក់តម្លៃទៅបោសសម្អាត Sell-Side Liquidity នៅ ${tp1_price:,.2f}។"
             )
             why_not_opp = (
-                f"• ការចូល Buy នៅចំណុចនេះគឺជាការទិញនៅតំបន់កំពូល (Buying at Resistance) ដែលប្រឈមនឹងការកិន Stop Loss ធ្ងន់ធ្ងរ!\n"
-                f"• សម្ពាធលក់កំពុងគ្របដណ្តប់ ការ Buy ដោយគ្មានសញ្ញាទម្លុះ R1 គឺជាការចាប់កាំបិតធ្លាក់ (Falling Knife)!"
+                f"• ហាម Buy ដាច់ខាតដោយសារ Structure ធំកំពុងចុះខ្សោយ ការ Buy នៅពេលនេះងាយរងគ្រោះដោយ Stop Hunt!\n"
+                f"• ការងើបឡើងទៅ ${bounce_target:,.2f} គ្រាន់តែជាការទាក់ទាញ Liquidity (Bull Trap) មុនពេលស្ថាប័នធំៗសង្កត់លក់ទម្លាក់យ៉ាងគំហុកប៉ុណ្ណោះ!"
             )
-            confirm = "រង់ចាំទៀន M15 បិទក្រហម ឬបន្សល់កន្ទុយលើ (Upper Wick Rejection) មុនចុចបញ្ជាលក់!"
+            confirm = f"កុំប្រញាប់លក់ភ្លាមៗនៅ ${current_price:,.2f}! រង់ចាំតម្លៃងើបឡើង (Bounce) ទៅដល់តំបន់ ${bounce_target:,.2f} រួចលេចចេញ Rejection Candle M15 ទើបចុច Sell!"
 
             return {
                 "direction": "SELL",
-                "setup_title": f"🔴 ផែនការលក់ចុះ (SELL SETUP ONLY) — ទំនុកចិត្ត {confidence_pct}%",
-                "entry": current_price,
+                "setup_title": f"🔴 ផែនការលក់ចុះ (SELL PULLBACK SETUP) — ទំនុកចិត្ត {confidence_pct}%",
+                "entry": bounce_target,
                 "entry_zone": f"${entry_low:,.2f} - ${entry_high:,.2f}",
                 "sl": sl_price,
                 "tp1": tp1_price,
