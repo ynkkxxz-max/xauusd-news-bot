@@ -671,7 +671,7 @@ class KhmerFormatter:
             f"🚫 <b>ហេតុផលដាច់ខាតដែលមិនគួរ {opposite_action}:</b>\n"
             f"{formatted_why_not}\n\n"
             f"💡 <i>អនុសាសន៍: {confirm}</i>\n"
-            f"🛡️ <i>សូមប្រើប៊ូតុង <b>🧮 គិត Lot</b> មុនចូល Order ដើម្បីគ្រប់គ្រងហានិភ័យ!</i>"
+            f"🛡️ <i>គ្រប់គ្រងហានិភ័យដោយបើក <b>📱 Mini App</b> ឬវាយ <code>/lot</code> មុនចូល Order!</i>"
         )
         return part1 + part2
 
@@ -697,5 +697,55 @@ class KhmerFormatter:
             f"📊 <i>ពិនិត្យ Chart ផ្ទាល់: <a href='https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD'>TradingView XAUUSD Live</a></i>"
         )
         return msg
+
+    @staticmethod
+    def format_sniper_instant_alert(sig: dict) -> str:
+        """Formats Real-Time AI Sniper Instant Signal Notification (BUY NOW / SELL NOW)."""
+        is_buy = sig.get("action") == "BUY"
+        icon = "🟢" if is_buy else "🔴"
+        action_title = sig.get("action_title", "INSTANT SETUP")
+        entry = sig.get("entry", 0.0)
+        sl = sig.get("sl", 0.0)
+        tp1 = sig.get("tp1", 0.0)
+        tp2 = sig.get("tp2", 0.0)
+        pips = sig.get("risk_pips", 50)
+        reason = sig.get("reason", "")
+        rr = sig.get("rr_ratio", "1:2.0")
+
+        return (
+            f"⚡ {icon} <b>AI SNIPER INSTANT ALERT — សញ្ញាចូលជួញដូរភ្លាមៗ!</b>\n\n"
+            f"🎯 <b>សកម្មភាព (Action):</b> <b>{action_title}</b>\n"
+            f"• 🥇 <b>Entry Price:</b> <code>${entry:,.2f}</code>\n"
+            f"• 🛑 <b>Stop Loss (SL):</b> <code>${sl:,.2f}</code> (Risk ~ {pips:,.0f} Pips)\n"
+            f"• 🎯 <b>Take Profit 1 (TP1):</b> <code>${tp1:,.2f}</code> (Lock BE)\n"
+            f"• 🏆 <b>Take Profit 2 (TP2):</b> <code>${tp2:,.2f}</code> (Max Target)\n"
+            f"• ⚖️ <b>សមាមាត្រ R:R:</b> <code>{rr}</code>\n\n"
+            f"🧠 <b>មូលហេតុបច្ចេកទេស (Sniper Confirmation):</b>\n"
+            f"• {reason}\n\n"
+            f"🛡️ <b>ការគ្រប់គ្រងហានិភ័យ:</b>\n"
+            f"• ប្រើទំហំ Risk ត្រឹម ១% - ២% នៃទុនប៉ុណ្ណោះ!\n"
+            f"• ពេលតម្លៃដល់ TP1 សូមរំកិល Stop Loss មកស្មើដើម (Break-Even) ភ្លាម!\n\n"
+            f"📊 <i>ពិនិត្យ Chart: <a href='https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD'>TradingView Live</a></i>"
+        )
+
+    @staticmethod
+    def format_danger_zone_alert(danger: dict) -> str:
+        """Formats High-Impact News Danger Zone Warning (NO TRADE ALERT)."""
+        mins_text = f"នៅសល់ប្រហែល <b>{danger['mins_left']} នាទីទៀត</b>" if danger['mins_left'] > 0 else "<b>កំពុងចេញផ្សាយឥឡូវនេះ!</b>"
+        return (
+            f"🚨 <b>⚠️ AI NEWS DANGER ZONE — ផ្អាកការចូលជួញដូរជាបន្ទាន់ (NO TRADE)!</b>\n\n"
+            f"⚡ <b>ព្រឹត្តិការណ៍សេដ្ឋកិច្ចធំ (High-Impact Event):</b>\n"
+            f"• 🔴 <b>{danger['title']}</b> (USD)\n"
+            f"• ⏰ <b>ម៉ោងចេញផ្សាយ:</b> <code>{danger['release_time']}</code> ({mins_text})\n\n"
+            f"🧠 <b>មូលហេតុដែល AI ណែនាំឱ្យឈប់ជួញដូរ (Danger Protocol):</b>\n"
+            f"• ទីផ្សារមាស (XAU/USD) នឹងមានរលក Spikes បោកខ្លាំងទាំងសងខាង ក្នុងរយៈពេលខ្លី។\n"
+            f"• Spread តាម Broker នានានឹងរីកធំខុសប្រក្រតី ហើយអាចរអិល SL (Slippage) ធ្ងន់ធ្ងរ។\n\n"
+            f"🛡️ <b>ការការពារដើមទុន (Capital Preservation):</b>\n"
+            f"👉 <b>ហាមដាច់ខាតកុំបើក Order ថ្មី</b>\n"
+            f"👉 ប្រសិនបើមាន Order ចាស់ស្រាប់ សូម Lock Break-Even ឬកាត់ប្រាក់ចំណេញមួយចំនួនទុកជាមុន!\n\n"
+            f"⏳ <i>AI នឹងបន្តផ្ញើសញ្ញាជួញដូរឡើងវិញ បន្ទាប់ពីព័ត៌មានចេញរួច ហើយទីផ្សារត្រជាក់ចុះ!</i>"
+        )
+
+
 
 
