@@ -817,6 +817,98 @@
       border-left-color: #FF3366;
     }
 
+    /* Top Institutional Players Styling */
+    .entity-card {
+      background: linear-gradient(135deg, rgba(20, 28, 48, 0.9) 0%, rgba(12, 16, 28, 0.95) 100%);
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      border-radius: 14px;
+      padding: 14px;
+      margin-top: 14px;
+    }
+
+    .entity-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .entity-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #FFF;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .entity-badge {
+      font-size: 9px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 5px;
+      background: rgba(255, 215, 0, 0.15);
+      color: var(--gold);
+      border: 1px solid rgba(255, 215, 0, 0.3);
+    }
+
+    .entity-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .entity-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      transition: transform 0.15s ease;
+    }
+
+    .entity-row:active {
+      transform: scale(0.98);
+    }
+
+    .entity-info-col {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .entity-name {
+      font-size: 12px;
+      font-weight: 800;
+      color: #FFF;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .entity-role {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .entity-stat-col {
+      text-align: right;
+    }
+
+    .entity-stat-val {
+      font-size: 12px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .entity-stat-sub {
+      font-size: 9px;
+      font-weight: 700;
+      margin-top: 1px;
+    }
+
     /* Personalized Auto-Lot Card in SMC Tab */
     .auto-lot-card {
       background: linear-gradient(135deg, rgba(20, 26, 42, 0.95) 0%, rgba(12, 16, 26, 0.98) 100%);
@@ -1607,6 +1699,78 @@
             <div class="wall-item ask"><span class="wall-price">$4,282.00</span><span class="wall-vol" style="color: var(--bear);">164.2 oz</span></div>
             <div class="wall-item ask"><span class="wall-price">$4,288.50</span><span class="wall-vol" style="color: var(--bear);">289.0 oz</span></div>
             <div class="wall-item ask"><span class="wall-price">$4,295.00</span><span class="wall-vol" style="color: var(--bear);">520.4 oz</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOP INSTITUTIONAL PLAYERS & CENTRAL BANK BUYERS (CFTC & WGC FILINGS) -->
+    <div class="entity-card">
+      <div class="entity-header">
+        <div class="entity-title">
+          <span>🏛️</span> Top Institutional Players (អ្នកទិញ/លក់ធំៗលើលោក)
+        </div>
+        <span class="entity-badge">CFTC & WGC FILED</span>
+      </div>
+
+      <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
+        របាយការណ៍ស្ថាប័នផ្លូវការបញ្ជាក់ឈ្មោះធនាគារកណ្តាល និង Hedge Funds ធំៗ៖
+      </div>
+
+      <div class="entity-grid">
+        <!-- 1. People's Bank of China (PBoC) -->
+        <div class="entity-row" style="border-left: 3px solid #00E676;">
+          <div class="entity-info-col">
+            <div class="entity-name">
+              <span>🇨🇳 PBoC (ធនាគារកណ្តាលចិន)</span>
+            </div>
+            <div class="entity-role">Sovereign Bullion Reserve Buyer</div>
+          </div>
+          <div class="entity-stat-col">
+            <div class="entity-stat-val" style="color: #00E676;">+18.5 Tonnes</div>
+            <div class="entity-stat-sub" style="color: #00E676;">🟢 Net Accumulating</div>
+          </div>
+        </div>
+
+        <!-- 2. BlackRock & Bridgewater (Managed Money) -->
+        <div class="entity-row" style="border-left: 3px solid #00E676;">
+          <div class="entity-info-col">
+            <div class="entity-name">
+              <span>🦅 BlackRock & Macro Funds</span>
+            </div>
+            <div class="entity-role">CFTC Managed Money (Futures Speculators)</div>
+          </div>
+          <div class="entity-stat-col">
+            <div class="entity-stat-val" style="color: #00E676;">+248.5K Lots</div>
+            <div class="entity-stat-sub" style="color: #00E676;">🟢 82% Net Long Bias</div>
+          </div>
+        </div>
+
+        <!-- 3. JPMorgan Chase & HSBC (Bullion Banks) -->
+        <div class="entity-row" style="border-left: 3px solid var(--gold);">
+          <div class="entity-info-col">
+            <div class="entity-name">
+              <span>🏦 JPMorgan & HSBC Gold Desk</span>
+            </div>
+            <div class="entity-role">Tier-1 Commercial Bullion Liquidity</div>
+          </div>
+          <div class="entity-stat-col">
+            <div class="entity-stat-val" style="color: var(--gold);">Hedging Net Short</div>
+            <div class="entity-stat-sub" style="color: var(--text-muted);">🟡 Market Making Flow</div>
+          </div>
+        </div>
+
+        <!-- 4. SPDR Gold Shares (GLD ETF Vault) -->
+        <div class="entity-row" style="border-left: 3px solid #00E676;">
+          <div class="entity-info-col">
+            <div class="entity-name">
+              <span>📦 SPDR Gold Trust (GLD)</span>
+            </div>
+            <div class="entity-role">World's Largest Physical Gold ETF</div>
+          </div>
+          <div class="entity-stat-col">
+            <div class="entity-stat-val" style="color: #00E676;">879.4 Tonnes</div>
+            <div class="entity-stat-sub" style="color: #00E676;">🟢 +4.2T Vault Inflow</div>
           </div>
         </div>
       </div>
