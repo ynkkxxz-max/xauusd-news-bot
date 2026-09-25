@@ -633,10 +633,20 @@
       display: flex;
       align-items: center;
       gap: 4px;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      border-radius: 8px;
+      padding: 4px 8px;
+      transition: border-color 0.2s;
+    }
+
+    .auto-balance-input-wrap:focus-within {
+      border-color: var(--gold);
+      box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
     }
 
     .auto-balance-input-wrap span {
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 800;
       color: var(--gold);
     }
@@ -647,9 +657,15 @@
       border: none;
       outline: none;
       font-family: inherit;
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 800;
       color: #FFF;
+      letter-spacing: 0.5px;
+    }
+
+    .auto-balance-input::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+      font-weight: 500;
     }
 
     .auto-risk-selector {
@@ -1014,21 +1030,22 @@
         AI យកចម្ងាយ Stop Loss នៃ Setup SMC មកគណនាទំហំ Lot សមស្របភ្លាមៗតាមដើមទុនផ្ទាល់ខ្លួន៖
       </div>
 
-      <!-- Quick Preset Capital Chips -->
-      <div class="auto-preset-chips">
-        <button class="auto-chip" onclick="setAutoBalance(500)">$500</button>
+      <!-- Quick Preset Capital Chips ($50 to $10,000) -->
+      <div class="auto-preset-chips" style="grid-template-columns: repeat(5, 1fr); margin-bottom: 10px;">
+        <button class="auto-chip" id="chipBal50" onclick="setAutoBalance(50)">$50</button>
+        <button class="auto-chip" id="chipBal100" onclick="setAutoBalance(100)">$100</button>
+        <button class="auto-chip" id="chipBal500" onclick="setAutoBalance(500)">$500</button>
         <button class="auto-chip active" id="chipBal1000" onclick="setAutoBalance(1000)">$1,000</button>
-        <button class="auto-chip" id="chipBal2000" onclick="setAutoBalance(2000)">$2,000</button>
-        <button class="auto-chip" onclick="setAutoBalance(10000)">$10,000</button>
+        <button class="auto-chip" id="chipBal5000" onclick="setAutoBalance(5000)">$5,000</button>
       </div>
 
       <!-- Inputs: Capital & Risk % -->
       <div class="auto-lot-inputs-row">
         <div class="auto-input-group">
-          <div class="auto-input-label">💰 ដើមទុនគណនី ($)</div>
+          <div class="auto-input-label">💰 ដើមទុនគណនី ($10 ដល់ ច្រើនបំផុត)</div>
           <div class="auto-balance-input-wrap">
             <span>$</span>
-            <input type="number" id="autoBalInput" class="auto-balance-input" value="1000" min="50" step="50" oninput="onAutoBalChange(this.value)">
+            <input type="number" id="autoBalInput" class="auto-balance-input" value="1000" min="10" max="10000000" step="10" placeholder="បញ្ចូលដើមទុន..." oninput="onAutoBalChange(this.value)">
           </div>
         </div>
 
@@ -1907,7 +1924,13 @@
       // Lot = Risk_USD / (SL_Distance_USD * 100)
       const rawLot = riskUsd / (slDist * 100.0);
       let calcLot = Math.round(rawLot * 100.0) / 100.0;
-      if (calcLot < 0.01) calcLot = 0.01;
+      
+      let noteExtra = '';
+      if (calcLot < 0.01) {
+        calcLot = 0.01; // Minimum allowable lot on MT4/MT5 standard brokers
+        const actualRiskIfMin = (0.01 * slDist * 100.0).toFixed(2);
+        noteExtra = ` <span style="color:#FFA751; font-size:10px;">(អប្បបរមា 0.01 Lot ស្មើនឹង Risk -$${actualRiskIfMin})</span>`;
+      }
 
       const lotEl = document.getElementById('autoRecommendedLot');
       if (lotEl) lotEl.innerText = `${calcLot.toFixed(2)} LOT`;
@@ -1915,20 +1938,20 @@
       const slPips = Math.round(slDist * 10);
       const detailEl = document.getElementById('autoLotDetail');
       if (detailEl) {
-        detailEl.innerHTML = `ដើមទុន <span style="color:#FFF;">$${autoCapital.toLocaleString()}</span> | Risk ${autoRiskPct.toFixed(1)}% = <span style="color:var(--bear);">-$${riskUsd.toFixed(2)}</span> | SL: <span style="color:var(--gold);">$${slDist.toFixed(2)} (${slPips} Pips)</span>`;
+        detailEl.innerHTML = `ដើមទុន <span style="color:#FFF;">$${autoCapital.toLocaleString()}</span> | Risk ${autoRiskPct.toFixed(1)}% = <span style="color:var(--bear);">-$${riskUsd.toFixed(2)}</span> | SL: <span style="color:var(--gold);">$${slDist.toFixed(2)} (${slPips} Pips)</span>${noteExtra}`;
       }
 
       const tpRewardEl = document.getElementById('autoTpReward');
       if (tpRewardEl) {
-        const tpReward = riskUsd * 1.5;
+        const tpReward = (calcLot * (slDist * 1.5) * 100.0);
         tpRewardEl.innerText = `+$${tpReward.toFixed(2)}`;
       }
 
-      // Sync active state of chips
-      const chip1000 = document.getElementById('chipBal1000');
-      const chip2000 = document.getElementById('chipBal2000');
-      if (chip1000) chip1000.classList.toggle('active', autoCapital === 1000);
-      if (chip2000) chip2000.classList.toggle('active', autoCapital === 2000);
+      // Sync active state of chips ($50, $100, $500, $1000, $5000)
+      ['50', '100', '500', '1000', '5000'].forEach(val => {
+        const chip = document.getElementById('chipBal' + val);
+        if (chip) chip.classList.toggle('active', autoCapital === Number(val));
+      });
 
       // Sync active state of risk buttons
       const btnR1 = document.getElementById('btnAutoRisk1');
@@ -1940,7 +1963,7 @@
     }
 
     function setAutoBalance(val) {
-      autoCapital = Number(val);
+      autoCapital = Math.max(1, Number(val));
       const inputEl = document.getElementById('autoBalInput');
       if (inputEl) inputEl.value = autoCapital;
       try { localStorage.setItem('xauusd_auto_capital', autoCapital); } catch(e) {}
