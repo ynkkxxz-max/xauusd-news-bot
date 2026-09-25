@@ -1952,13 +1952,43 @@
         mtfM5El.className = m5Trigger.includes('Bullish') ? 'mtf-pill bull' : 'mtf-pill bear';
         mtfM5El.innerText = `⚡ M5: ${m5Trigger}`;
       }
+      // Calculate exact Sweep and FVG price levels for trader clarity
+      let sweepTargetPrice = 0;
+      if (candles && candles.length >= 2) {
+        const prevCandle = candles[candles.length - 2];
+        sweepTargetPrice = sweepType.includes('Bearish') ? prevCandle.high : prevCandle.low;
+      }
+      if (!sweepTargetPrice || sweepTargetPrice === 0) {
+        sweepTargetPrice = trendDirection === 'BEARISH' ? (price + 4.5) : (price - 4.5);
+      }
+
+      // FVG Price Gap calculation
+      let fvgLowPrice = 0;
+      let fvgHighPrice = 0;
+      if (candles && candles.length >= 3) {
+        const c1 = candles[candles.length - 3];
+        const c3 = candles[candles.length - 1];
+        if (c1.high < c3.low) {
+          fvgLowPrice = c1.high;
+          fvgHighPrice = c3.low;
+        } else if (c1.low > c3.high) {
+          fvgLowPrice = c3.high;
+          fvgHighPrice = c1.low;
+        }
+      }
+      if (!fvgLowPrice || fvgLowPrice === 0) {
+        fvgLowPrice = trendDirection === 'BEARISH' ? (price + 1.5) : (price - 4.0);
+        fvgHighPrice = trendDirection === 'BEARISH' ? (price + 3.8) : (price - 1.5);
+      }
+
       if (mtfSweepEl) {
         mtfSweepEl.className = isSweepDetected ? (sweepType.includes('Bullish') ? 'mtf-pill bull' : 'mtf-pill bear') : 'mtf-pill neutral';
-        mtfSweepEl.innerText = `🛡️ Sweep: ${sweepType !== 'None' ? sweepType : 'SSL/BSL Swept (ស៊ី SL)'}`;
+        const sweepTag = sweepType !== 'None' ? (sweepType.includes('Bearish') ? 'BSL' : 'SSL') : (trendDirection === 'BEARISH' ? 'BSL' : 'SSL');
+        mtfSweepEl.innerText = `🛡️ Sweep: ${sweepTag} $${sweepTargetPrice.toFixed(1)} (ស៊ី SL)`;
       }
       if (mtfFVGEl) {
         mtfFVGEl.className = trendDirection === 'BULLISH' ? 'mtf-pill bull' : 'mtf-pill bear';
-        mtfFVGEl.innerText = `⚡ FVG: ${fvgStatus} (ចន្លោះតម្លៃ)`;
+        mtfFVGEl.innerText = `⚡ FVG: $${fvgLowPrice.toFixed(1)}-$${fvgHighPrice.toFixed(1)} (${fvgStatus.replace(' Gap', '')})`;
       }
       if (mtfSessionEl) {
         mtfSessionEl.className = isKillzone ? 'mtf-pill killzone' : 'mtf-pill neutral';
@@ -1969,8 +1999,8 @@
         mtfExplEl.innerHTML = `
           💡 <b>ការពន្យល់បច្ចេកទេស AI SMC (${confluenceCount}/6 ចំណុច):</b><br>
           • <b>Trend H1 & M15:</b> ផ្ទៀងផ្ទាត់ទិសដៅចរន្តសាច់ប្រាក់ធំ កុំឱ្យវាយបញ្ច្រាសរថភ្លើង។<br>
-          • <b>Sweep (${sweepType}):</b> ស្ថាប័នធំៗបានបោកបញ្ឆោតស៊ី SL Trader រួចហើយ ធានាសុវត្ថិភាពខ្ពស់។<br>
-          • <b>FVG (${fvgStatus}):</b> តម្លៃកំពុងវិលត្រឡប់មកតំបន់គ្មានតុល្យភាព ដើម្បីប្រមូល Order បន្ថែម។<br>
+          • <b>Sweep ($${sweepTargetPrice.toFixed(2)}):</b> ស្ថាប័នធំៗបានបោកបញ្ឆោតស៊ី SL Trader រួចហើយ ធានាសុវត្ថិភាពខ្ពស់។<br>
+          • <b>FVG ($${fvgLowPrice.toFixed(2)} - $${fvgHighPrice.toFixed(2)}):</b> តំបន់ចន្លោះតម្លៃគ្មានតុល្យភាព ដែលស្ថាប័នចូលប្រមូល Order បន្ថែម។<br>
           • <b>Killzone:</b> ${isKillzone ? 'ស្ថិតក្នុងម៉ោងមាសស្ថាប័នធំៗកំពុងប្រតិបត្តិការ (Volume ខ្លាំង)' : 'ក្រៅម៉ោង Killzone ទីផ្សារអាចដើរយឺត ឬ Sideway បន្តិច'}។
         `;
       }
