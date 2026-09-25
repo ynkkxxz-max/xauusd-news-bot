@@ -966,25 +966,15 @@
       <div class="smc-direction" id="smcDirection">🔴 SELL SETUP ONLY</div>
       <div id="smcWinRate" class="smc-winrate-tag">🎯 ប្រូបាប៊ីលីតេឈ្នះ (Win Rate): 82% | Trend: Bearish CHoCH</div>
       
-      <!-- Advanced Institutional Confluence Engine (MTF + Sweep + FVG + Killzone) -->
-      <div class="mtf-confluence-bar" id="mtfConfluenceBar">
-        <div class="mtf-pill bear" id="mtfH1">🏛️ H1: Bearish</div>
-        <div class="mtf-pill bear" id="mtfM15">📉 M15: CHoCH</div>
-        <div class="mtf-pill bear" id="mtfM5">⚡ M5: Engulfing</div>
-        <div class="mtf-pill bear" id="mtfSweep">🛡️ Sweep: SSL Hunt</div>
-        <div class="mtf-pill neutral" id="mtfFVG">⚡ FVG: Bearish Gap</div>
-        <div class="mtf-pill killzone" id="mtfSession">⏰ Session: NY Killzone</div>
-        <div class="mtf-pill full-width" id="mtfStatus" style="background: rgba(255, 215, 0, 0.15); border-color: rgba(255, 215, 0, 0.4); color: var(--gold);">🎯 Triple Confluence (94%)</div>
-      </div>
-
       <div id="smcExecBadge" class="smc-exec-badge waiting">
         <span id="smcExecDot">🟡</span> <span id="smcExecText">WAITING FOR PULLBACK (កុំទាន់ចូល)</span>
       </div>
-      <div style="font-size: 12px; color: var(--text-muted);">ផែនការជួញដូរឆ្លាតវៃ AI SMC — ផ្ទៀងផ្ទាត់រចនាសម្ព័ន្ធទីផ្សារ & Volume</div>
+      <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">ផែនការជួញដូរឆ្លាតវៃ AI SMC — ផ្ទៀងផ្ទាត់រចនាសម្ព័ន្ធទីផ្សារ & Volume</div>
 
+      <!-- Core Institutional Levels (Entry, SL, TP1, TP2) -->
       <div class="smc-metrics-grid">
         <div class="smc-metric-pill">
-          <div class="smc-pill-label">🎯 Entry Zone</div>
+          <div class="smc-pill-label">🎯 Entry Zone (តំបន់ចូល)</div>
           <div class="smc-pill-value" id="smcEntry">$4,274.00 - $4,277.50</div>
         </div>
         <div class="smc-metric-pill">
@@ -992,12 +982,38 @@
           <div class="smc-pill-value" style="color: var(--bear);" id="smcSL">$4,285.00</div>
         </div>
         <div class="smc-metric-pill">
-          <div class="smc-pill-label">🎯 Take Profit 1</div>
-          <div class="smc-pill-value" style="color: var(--bull);" id="smcTP1">$4,260.00 (BE)</div>
+          <div class="smc-pill-label">🎯 Take Profit 1 (BE)</div>
+          <div class="smc-pill-value" style="color: var(--bull);" id="smcTP1">$4,260.00</div>
         </div>
         <div class="smc-metric-pill">
-          <div class="smc-pill-label">🏆 Take Profit 2</div>
+          <div class="smc-pill-label">🏆 Take Profit 2 (Max)</div>
           <div class="smc-pill-value" style="color: var(--gold);" id="smcTP2">$4,248.00</div>
+        </div>
+      </div>
+
+      <!-- Advanced Institutional Confluence Engine (Positioned Elegantly Below Levels) -->
+      <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+        <div style="font-size: 11px; font-weight: 800; color: var(--gold); margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+          <span>🧠 ការផ្ទៀងផ្ទាត់លក្ខខណ្ឌស្ថាប័នធំៗ (Institutional Confluence):</span>
+          <span id="mtfConfluenceScore" style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255, 215, 0, 0.15); color: var(--gold);">6/6 កម្រិត</span>
+        </div>
+
+        <div class="mtf-confluence-bar" id="mtfConfluenceBar" style="max-width: 100%; margin: 6px 0;">
+          <div class="mtf-pill bear" id="mtfH1">🏛️ H1: Bearish (Trend មេធ្លាក់)</div>
+          <div class="mtf-pill bear" id="mtfM15">📉 M15: CHoCH (ប្តូររចនាសម្ព័ន្ធ)</div>
+          <div class="mtf-pill bear" id="mtfM5">⚡ M5: Engulfing (ទៀនបញ្ជាក់)</div>
+          <div class="mtf-pill bear" id="mtfSweep">🛡️ Sweep: SSL Hunt (ស៊ី SL រួចបក)</div>
+          <div class="mtf-pill neutral" id="mtfFVG">⚡ FVG: Bearish Gap (បំពេញចន្លោះ)</div>
+          <div class="mtf-pill killzone" id="mtfSession">⏰ Session: NY Killzone (ម៉ោងមាស)</div>
+          <div class="mtf-pill full-width" id="mtfStatus" style="background: rgba(255, 215, 0, 0.15); border-color: rgba(255, 215, 0, 0.4); color: var(--gold);">🎯 Triple Confluence (94%)</div>
+        </div>
+
+        <!-- Easy Khmer Explanations of Confluences -->
+        <div style="font-size: 11px; color: var(--text-muted); line-height: 1.6; text-align: left; background: rgba(0, 0, 0, 0.25); border-radius: 8px; padding: 8px 10px; margin-top: 8px; border: 1px solid rgba(255, 255, 255, 0.05);" id="mtfKhmerExpl">
+          💡 <b>ការពន្យល់បច្ចេកទេស AI:</b><br>
+          • <b>Sweep:</b> តម្លៃបានលោតស៊ី Stop Loss Trader រួចហើយ ធានាគ្មាន Fakeout បោកប្រាស់។<br>
+          • <b>FVG:</b> តម្លៃបានវិលត្រឡប់មកបំពេញចន្លោះ Price Imbalance មុននឹងបន្តដំណើរ។<br>
+          • <b>Killzone:</b> ស្ថិតក្នុងម៉ោងស្ថាប័នធំៗជួញដូរ មាន Volume ខ្លាំង ងាយរត់ដល់ TP1/TP2 ឆាប់រហ័ស!
         </div>
       </div>
     </div>
@@ -1610,10 +1626,16 @@
       const mtfFVGEl = document.getElementById('mtfFVG');
       const mtfSessionEl = document.getElementById('mtfSession');
       const mtfStatusEl = document.getElementById('mtfStatus');
+      const mtfScoreEl = document.getElementById('mtfConfluenceScore');
+      const mtfExplEl = document.getElementById('mtfKhmerExpl');
+
+      if (mtfScoreEl) {
+        mtfScoreEl.innerText = `${confluenceCount}/6 កម្រិតផ្ទៀងផ្ទាត់`;
+      }
 
       if (mtfH1El) {
         mtfH1El.className = h1Bias === 'BULLISH' ? 'mtf-pill bull' : 'mtf-pill bear';
-        mtfH1El.innerText = `🏛️ H1: ${h1Bias === 'BULLISH' ? 'Bullish Trend' : 'Bearish Trend'}`;
+        mtfH1El.innerText = `🏛️ H1: ${h1Bias === 'BULLISH' ? 'Bullish (ឡើង)' : 'Bearish (ធ្លាក់)'}`;
       }
       if (mtfM15El) {
         mtfM15El.className = trendDirection === 'BULLISH' ? 'mtf-pill bull' : 'mtf-pill bear';
@@ -1625,15 +1647,25 @@
       }
       if (mtfSweepEl) {
         mtfSweepEl.className = isSweepDetected ? (sweepType.includes('Bullish') ? 'mtf-pill bull' : 'mtf-pill bear') : 'mtf-pill neutral';
-        mtfSweepEl.innerText = `🛡️ Sweep: ${sweepType !== 'None' ? sweepType : 'SSL/BSL Swept'}`;
+        mtfSweepEl.innerText = `🛡️ Sweep: ${sweepType !== 'None' ? sweepType : 'SSL/BSL Swept (ស៊ី SL)'}`;
       }
       if (mtfFVGEl) {
         mtfFVGEl.className = trendDirection === 'BULLISH' ? 'mtf-pill bull' : 'mtf-pill bear';
-        mtfFVGEl.innerText = `⚡ FVG: ${fvgStatus}`;
+        mtfFVGEl.innerText = `⚡ FVG: ${fvgStatus} (ចន្លោះតម្លៃ)`;
       }
       if (mtfSessionEl) {
         mtfSessionEl.className = isKillzone ? 'mtf-pill killzone' : 'mtf-pill neutral';
         mtfSessionEl.innerText = `⏰ Session: ${sessionName}`;
+      }
+
+      if (mtfExplEl) {
+        mtfExplEl.innerHTML = `
+          💡 <b>ការពន្យល់បច្ចេកទេស AI SMC (${confluenceCount}/6 ចំណុច):</b><br>
+          • <b>Trend H1 & M15:</b> ផ្ទៀងផ្ទាត់ទិសដៅចរន្តសាច់ប្រាក់ធំ កុំឱ្យវាយបញ្ច្រាសរថភ្លើង។<br>
+          • <b>Sweep (${sweepType}):</b> ស្ថាប័នធំៗបានបោកបញ្ឆោតស៊ី SL Trader រួចហើយ ធានាសុវត្ថិភាពខ្ពស់។<br>
+          • <b>FVG (${fvgStatus}):</b> តម្លៃកំពុងវិលត្រឡប់មកតំបន់គ្មានតុល្យភាព ដើម្បីប្រមូល Order បន្ថែម។<br>
+          • <b>Killzone:</b> ${isKillzone ? 'ស្ថិតក្នុងម៉ោងមាសស្ថាប័នធំៗកំពុងប្រតិបត្តិការ (Volume ខ្លាំង)' : 'ក្រៅម៉ោង Killzone ទីផ្សារអាចដើរយឺត ឬ Sideway បន្តិច'}។
+        `;
       }
 
       if (mtfStatusEl) {
