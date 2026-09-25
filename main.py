@@ -144,6 +144,7 @@ class XAUUSDNewsAssistantBot:
         else:
             logger.info("No AI keys configured — using rule-based MacroAnalyzer fallback.")
         logger.info("Initializing XAUUSD News Assistant Bot (Cambodia Time UTC+7)...")
+        self._calendar_attached = False
         self._bootstrap_news_cache()
 
     def _bootstrap_news_cache(self):
@@ -337,6 +338,76 @@ class XAUUSDNewsAssistantBot:
                 self.notifier.send_message(msg)
             database.set_state("last_candle_conf_ts", str(now))
 
+    def check_news_danger_zone(self):
+        """
+        AI Market Regime & High-Impact News Filter:
+        Monitors if market is within 15 minutes of a High-Impact USD release (CPI, NFP, FOMC).
+        Broadcasts high-priority Danger Warning and sets temporary No-Trade lock.
+        """
+        now = time.time()
+        danger_info = self.calendar_collector.is_news_danger_zone(buffer_minutes=15)
+        
+        if danger_info.get("is_danger"):
+            # Mark danger state in database
+            database.set_state("news_danger_zone_active", "true")
+            database.set_state("news_danger_event_title", danger_info.get("title", ""))
+            
+            last_alert = float(database.get_state("last_danger_zone_alert_ts") or 0.0)
+            # Send alert once per danger event (cooldown 45 mins)
+            if now - last_alert >= 2700:
+                logger.warning(f"[AI NEWS DANGER ZONE] High-impact event approaching: {danger_info['title']}")
+                msg = KhmerFormatter.format_danger_zone_alert(danger_info)
+                self.notifier.send_message(msg)
+                database.set_state("last_danger_zone_alert_ts", str(now))
+        else:
+            database.set_state("news_danger_zone_active", "false")
+
+    def check_sniper_instant_signals(self):
+        """
+        Monitors live market for AI Sniper Instant Entry (BUY DIP / SELL TOP) with precise SL & TP.
+        Sends immediate high-priority alert directly to Telegram when a high-probability setup triggers!
+        Blocked automatically if AI News Danger Zone is active.
+        """
+        # Safety Gate: Do NOT send buy/sell signals during High-Impact News Danger Zone!
+        danger_info = self.calendar_collector.is_news_danger_zone(buffer_minutes=15)
+        if danger_info.get("is_danger"):
+            logger.info(f"[SNIPER SIGNAL BLOCKED] Danger zone active for {danger_info.get('title')}. Capital protection active.")
+            return
+
+        now = time.time()
+        last_sniper = float(database.get_state("last_sniper_signal_ts") or 0.0)
+        last_action = database.get_state("last_sniper_action") or ""
+        
+        # 30-minute cooldown or until opposite signal appears
+        if now - last_sniper < 1800:
+            return
+
+        price_data = self.gold_collector.fetch_price()
+        current_price = price_data.get("price_oz", 0.0)
+        levels = price_data.get("key_levels", {})
+
+        sig = self.candle_analyzer.detect_sniper_instant_signal(current_price, levels)
+        if sig:
+            # Avoid repeating the same direction consecutively within short period
+            if sig.get("action") == last_action and (now - last_sniper < 3600):
+                return
+
+            logger.info(f"[AI SNIPER INSTANT SIGNAL] {sig['action_title']} at ${sig['entry']}")
+            msg = KhmerFormatter.format_sniper_instant_alert(sig)
+            
+            # Interactive action buttons
+            buttons = {
+                "inline_keyboard": [
+                    [
+                        {"text": "📊 មើល TradingView Chart", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=chart"},
+                        {"text": "🧮 គិត Lot Size ភ្លាម", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=lot"}
+                    ]
+                ]
+            }
+            self.notifier.send_message(msg, reply_markup=buttons)
+            database.set_state("last_sniper_signal_ts", str(now))
+            database.set_state("last_sniper_action", sig.get("action", ""))
+
     def check_liquidity_sweep(self):
         """
         Monitors for real-time institutional liquidity sweeps (Stop Loss Hunts)
@@ -467,13 +538,12 @@ class XAUUSDNewsAssistantBot:
                 ]
             }
 
-            # 3-Button Custom Keyboard directly at the bottom with Instant Mini App WebApp
+            # 2-Button Clean Custom Keyboard directly at the bottom (Price & SMC)
             bottom_keyboard = {
                 "keyboard": [
                     [
                         {"text": "Price"},
-                        {"text": "SMC", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=smc"}},
-                        {"text": "🧮 គិត Lot", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=lot"}}
+                        {"text": "SMC", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=smc"}}
                     ]
                 ],
                 "resize_keyboard": True,
@@ -583,7 +653,8 @@ class XAUUSDNewsAssistantBot:
                             {"text": "📱 បើក Mini App (Live SMC Terminal)", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=smc"}
                         ],
                         [
-                            {"text": "🧮 គិត Lot Size តាមដើមទុន", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=lot"}
+                            {"text": "📊 មើល TradingView Live Chart", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=chart"},
+                            {"text": "🧮 គិត Lot Size", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=lot"}
                         ]
                     ]
                 }
@@ -1161,6 +1232,12 @@ class XAUUSDNewsAssistantBot:
             # 5.1 Weekly Sunday Outlook (Every Sunday 19:00 Cambodia Time)
             self.check_weekly_sunday_outlook()
 
+            # 5.12 AI High-Impact News Danger Zone Check (NO TRADE Filter)
+            self.check_news_danger_zone()
+
+            # 5.15 Real-Time AI Sniper Instant Signals (BUY DIP / SELL TOP with SL/TP)
+            self.check_sniper_instant_signals()
+
             # 5.2 Real-Time Liquidity Sweep Alert (Hunt Stop Loss)
             self.check_liquidity_sweep()
 
@@ -1207,6 +1284,8 @@ class XAUUSDNewsAssistantBot:
                         self.check_night_wrap_up()
                         self.check_weekly_sunday_outlook()
                         self.check_price_volatility_spike()
+                        self.check_news_danger_zone()
+                        self.check_sniper_instant_signals()
                         self.check_candlestick_confirmation()
                         self.check_liquidity_sweep()
                         self.check_macro_divergence()
