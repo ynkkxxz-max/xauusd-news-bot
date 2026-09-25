@@ -663,10 +663,37 @@ class KhmerFormatter:
         )
 
         conf_score = setup.get("confidence", "88%")
+        
+        # Calculate Real-Time Execution Status for Telegram
+        exec_status_line = ""
+        try:
+            entry_parts = [float(x.replace("$", "").replace(",", "").strip()) for x in entry_zone.split("-") if x.strip()]
+            if len(entry_parts) == 2:
+                e_low, e_high = min(entry_parts), max(entry_parts)
+                if is_buy:
+                    if e_low <= oz <= e_high:
+                        exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ READY TO BUY (តម្លៃដល់តំបន់ទិញហើយ)</b>\n"
+                    elif oz > e_high:
+                        wait_diff = oz - e_high
+                        exec_status_line = f"🟡 <b>ស្ថានភាព (Status): ⏳ WAITING PULLBACK (រង់ចាំចុះ ${wait_diff:.1f} ទៀត)</b>\n"
+                    else:
+                        exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ DEEP DISCOUNT BUY (តំបន់បញ្ចុះតម្លៃពិសេស)</b>\n"
+                else:
+                    if e_low <= oz <= e_high:
+                        exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ READY TO SELL (តម្លៃដល់តំបន់លក់ហើយ)</b>\n"
+                    elif oz < e_low:
+                        wait_diff = e_low - oz
+                        exec_status_line = f"🟡 <b>ស្ថានភាព (Status): ⏳ WAITING BOUNCE (រង់ចាំឡើង ${wait_diff:.1f} ទៀត)</b>\n"
+                    else:
+                        exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ HIGH PREMIUM SELL (តំបន់លក់បានថ្លៃខ្ពស់)</b>\n"
+        except Exception:
+            pass
+
         # Part 2: Decisive Single-Direction Institutional Plan
         part2 = (
             f"🎯 {icon} <b>ផែនការជួញដូរឆ្លាតវៃ AI SMC — ទិសដៅតែមួយគត់ ({action_kh})</b>\n"
-            f"⚡ <b>កម្រិតទំនុកចិត្ត AI (Confidence Score):</b> <code>{conf_score}</code>\n\n"
+            f"⚡ <b>កម្រិតទំនុកចិត្ត AI (Confidence Score):</b> <code>{conf_score}</code>\n"
+            f"{exec_status_line}\n"
             f"📍 <b>កម្រិតតម្លៃចូល និងគ្រប់គ្រងដើមទុន:</b>\n"
             f"• 🎯 <b>តំបន់ Entry:</b> <code>{entry_zone}</code>\n"
             f"• 🛑 <b>Stop Loss (SL):</b> <code>${sl:,.2f}</code>\n"
@@ -678,7 +705,7 @@ class KhmerFormatter:
             f"🚫 <b>ហេតុផលដាច់ខាតដែលមិនគួរ {opposite_action}:</b>\n"
             f"{formatted_why_not}\n\n"
             f"💡 <i>អនុសាសន៍: {confirm}</i>\n"
-            f"🛡️ <i>សូមប្រើប៊ូតុង <b>🧮 គិត Lot</b> មុនចូល Order ដើម្បីគ្រប់គ្រងហានិភ័យ!</i>"
+            f"🛡️ <i>គ្រប់គ្រងហានិភ័យដោយបើក <b>📱 Mini App</b> ឬវាយ <code>/lot</code> មុនចូល Order!</i>"
         )
         return part1 + part2
 
