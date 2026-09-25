@@ -1559,21 +1559,21 @@
 
       <!-- Core Institutional Levels (Entry, SL, TP1, TP2) -->
       <div class="smc-metrics-grid">
-        <div class="smc-metric-pill">
-          <div class="smc-pill-label">🎯 Entry Zone (តំបន់ចូល)</div>
-          <div class="smc-pill-value" id="smcEntry">$4,274.00 - $4,277.50</div>
+        <div class="smc-metric-pill" style="border-left: 3px solid var(--gold);">
+          <div class="smc-pill-label">🎯 Entry Zone (តំបន់ទិញ)</div>
+          <div class="smc-pill-value" style="color: var(--gold);" id="smcEntry">$4,268.00 - $4,272.50</div>
         </div>
-        <div class="smc-metric-pill">
+        <div class="smc-metric-pill" style="border-left: 3px solid var(--bear);">
           <div class="smc-pill-label">🛑 Stop Loss (SL)</div>
-          <div class="smc-pill-value" style="color: var(--bear);" id="smcSL">$4,285.00</div>
+          <div class="smc-pill-value" style="color: var(--bear);" id="smcSL">$4,258.00</div>
         </div>
-        <div class="smc-metric-pill">
+        <div class="smc-metric-pill" style="border-left: 3px solid var(--bull);">
           <div class="smc-pill-label">🎯 Take Profit 1 (BE)</div>
-          <div class="smc-pill-value" style="color: var(--bull);" id="smcTP1">$4,260.00</div>
+          <div class="smc-pill-value" style="color: var(--bull);" id="smcTP1">$4,295.00</div>
         </div>
-        <div class="smc-metric-pill">
+        <div class="smc-metric-pill" style="border-left: 3px solid #00E5FF;">
           <div class="smc-pill-label">🏆 Take Profit 2 (Max)</div>
-          <div class="smc-pill-value" style="color: var(--gold);" id="smcTP2">$4,248.00</div>
+          <div class="smc-pill-value" style="color: #00E5FF;" id="smcTP2">$4,310.00</div>
         </div>
       </div>
 
@@ -3043,6 +3043,7 @@
         const tp1 = (dayHigh + 4.0).toFixed(2); // Liquidity Pool target 1 (BSL)
         const tp2 = (dayHigh + 18.0).toFixed(2); // Institutional Expansion target 2
 
+        const inZone = (price >= Number(entryLow) && price <= Number(entryHigh));
         const execBadge = document.getElementById('smcExecBadge');
         const execDot = document.getElementById('smcExecDot');
         const execText = document.getElementById('smcExecText');
