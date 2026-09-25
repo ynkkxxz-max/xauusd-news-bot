@@ -1131,22 +1131,6 @@
   <!-- TAB 3: SMART LOT & RISK CALCULATOR             -->
   <!-- ============================================== -->
   <div class="tab-content" id="tabContentLot">
-    <!-- Giant Result Showcase -->
-    <div class="result-card">
-      <div class="result-label">Recommended Lot Size</div>
-      <div class="result-lot" id="resLot">0.10 LOT</div>
-      
-      <div class="result-metrics">
-        <div class="metric-item">
-          <div class="metric-title">Max Risk Amount</div>
-          <div class="metric-val val-risk" id="resRiskUsd">-$10.00</div>
-        </div>
-        <div class="metric-item">
-          <div class="metric-title">Projected TP1 (1:1.5)</div>
-          <div class="metric-val val-tp" id="resTpUsd">+$15.00</div>
-        </div>
-      </div>
-    </div>
 
     <!-- Balance Section -->
     <div class="section-card" style="border: 1px solid rgba(255, 215, 0, 0.25); background: linear-gradient(135deg, rgba(20, 26, 42, 0.8) 0%, rgba(12, 16, 26, 0.95) 100%);">
@@ -1209,6 +1193,23 @@
         <button class="preset-btn active" id="btnSL10" onclick="setSL(10)">$10 (100p)</button>
         <button class="preset-btn" onclick="setSL(15)">$15 (150p)</button>
         <button class="preset-btn" onclick="setSL(20)">$20 (200p)</button>
+      </div>
+    </div>
+
+    <!-- Giant Result Showcase (Positioned directly above Apply Button) -->
+    <div class="result-card" style="margin-top: 14px; margin-bottom: 14px; border: 1.5px solid rgba(255, 215, 0, 0.4); box-shadow: 0 0 25px rgba(255, 215, 0, 0.15);">
+      <div class="result-label">Recommended Lot Size (ទំហំ Lot ណែនាំ)</div>
+      <div class="result-lot" id="resLot">0.01 LOT</div>
+      
+      <div class="result-metrics">
+        <div class="metric-item">
+          <div class="metric-title">Max Risk Amount</div>
+          <div class="metric-val val-risk" id="resRiskUsd">-$10.00</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-title">Projected TP1 (1:1.5)</div>
+          <div class="metric-val val-tp" id="resTpUsd">+$15.00</div>
+        </div>
       </div>
     </div>
 
