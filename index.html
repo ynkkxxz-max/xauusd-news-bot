@@ -1568,12 +1568,12 @@
         }
 
         // Binance Spot WebSocket stream for PAXG/USDT (1:1 Troy Ounce Gold)
-        // Provides real-time aggTrade and ticker events directly in milliseconds!
+        // Works seamlessly on desktop and mobile webviews
         wsConnection = new WebSocket('wss://stream.binance.com:9443/ws/paxgusdt@ticker');
 
         wsConnection.onopen = () => {
           if (badge) {
-            badge.innerText = '⚡ WS LIVE';
+            badge.innerText = '⚡ LIVE 24/7';
             badge.style.background = 'rgba(0, 230, 118, 0.15)';
             badge.style.borderColor = 'rgba(0, 230, 118, 0.4)';
             badge.style.color = '#00E676';
@@ -1584,7 +1584,6 @@
         wsConnection.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            // 'c' is the latest close/current trade price in Binance ticker
             const liveTick = parseFloat(data.c || data.p);
             if (liveTick && liveTick > 1000) {
               onPriceTickReceived(liveTick);
@@ -1593,22 +1592,29 @@
         };
 
         wsConnection.onerror = () => {
+          // If mobile carrier/firewall blocks WebSocket, smoothly fallback to HTTP Auto-Sync
           if (badge) {
-            badge.innerText = '🔄 POLLING';
-            badge.style.background = 'rgba(255, 215, 0, 0.15)';
-            badge.style.borderColor = 'rgba(255, 215, 0, 0.4)';
-            badge.style.color = 'var(--gold)';
+            badge.innerText = '🟢 AUTO-SYNC';
+            badge.style.background = 'rgba(0, 230, 118, 0.12)';
+            badge.style.borderColor = 'rgba(0, 230, 118, 0.35)';
+            badge.style.color = '#00E676';
           }
+          updateLivePrice();
         };
 
         wsConnection.onclose = () => {
-          // Auto-reconnect after 3 seconds
+          // Auto-reconnect after 2 seconds
           clearTimeout(wsReconnectTimer);
-          wsReconnectTimer = setTimeout(initWebSocketPriceFeed, 3000);
+          wsReconnectTimer = setTimeout(initWebSocketPriceFeed, 2000);
         };
 
       } catch (err) {
-        // Fallback to HTTP polling if WebSockets are blocked
+        if (badge) {
+          badge.innerText = '🟢 AUTO-SYNC';
+          badge.style.background = 'rgba(0, 230, 118, 0.12)';
+          badge.style.borderColor = 'rgba(0, 230, 118, 0.35)';
+          badge.style.color = '#00E676';
+        }
         updateLivePrice();
       }
     }
@@ -2359,12 +2365,12 @@
     // Initialize Millisecond WebSocket Feed immediately
     initWebSocketPriceFeed();
     updateLivePrice();
-    // Safety fallback interval every 10 seconds (only if WS dropped)
+    // Safety fallback interval every 3 seconds (guarantees fresh data even if mobile carrier drops WS)
     setInterval(() => {
       if (!wsConnection || wsConnection.readyState !== WebSocket.OPEN) {
         updateLivePrice();
       }
-    }, 10000);
+    }, 3000);
 
     // Initial fetch and regular polling for Order Book Liquidity Radar (every 6s)
     fetchLiveOrderBookRadar();
