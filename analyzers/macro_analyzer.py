@@ -225,32 +225,78 @@ class MacroAnalyzer:
             bear_score += 1
             confluences.append(f"សន្ទស្សន៍ដុល្លារ DXY រឹងមាំ ({dxy_pct:+.2f}%) បង្កើតសម្ពាធដកថយលើមាស")
 
-        # Check for Live Candlestick Rejection if available
+        # Multi-Timeframe Confirmation (M5 + M15 + H1 Confluence)
+        mtf_summary = []
         try:
-            from analyzers.candlestick_analyzer import CandlestickPatternAnalyzer
-            c_analyzer = CandlestickPatternAnalyzer()
-            candles = c_analyzer.fetch_m15_candles(count=3)
-            if candles and len(candles) >= 2:
-                last_c = candles[-1]
-                l_open, l_close = last_c["open"], last_c["close"]
-                l_high, l_low = last_c["high"], last_c["low"]
-                c_range = max(l_high - l_low, 0.01)
-                lower_wick = min(l_open, l_close) - l_low
-                upper_wick = l_high - max(l_open, l_close)
+            import requests
+            headers = {"User-Agent": "Mozilla/5.0"}
+            r_m15 = requests.get("https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=15m&limit=5", headers=headers, timeout=3.5)
+            r_m5 = requests.get("https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=5m&limit=4", headers=headers, timeout=3.5)
+            r_h1 = requests.get("https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=1h&limit=3", headers=headers, timeout=3.5)
+            
+            # H1 Trend Confirmation
+            if r_h1.status_code == 200:
+                h1_data = r_h1.json()
+                if len(h1_data) >= 2:
+                    h1_open, h1_close = float(h1_data[-1][1]), float(h1_data[-1][4])
+                    if h1_close > h1_open:
+                        bull_score += 2
+                        mtf_summary.append("🏛️ H1: Bullish Trend")
+                    else:
+                        bear_score += 2
+                        mtf_summary.append("🏛️ H1: Bearish Trend")
 
-                if lower_wick / c_range >= 0.40:
-                    bull_score += 2
-                    confluences.append("ទៀន M15 ចុងក្រោយបន្សល់ Rejection Wick ខាងក្រោម (ទាត់ចោលការធ្លាក់ថ្លៃ)")
-                elif upper_wick / c_range >= 0.40:
-                    bear_score += 2
-                    confluences.append("ទៀន M15 ចុងក្រោយបន្សល់ Rejection Wick ខាងលើ (ទាត់ចោលការឡើងថ្លៃ)")
+            # M15 Structure Confirmation (CHoCH / BOS)
+            if r_m15.status_code == 200:
+                m15_data = r_m15.json()
+                if len(m15_data) >= 3:
+                    m15_last = m15_data[-1]
+                    m15_o, m15_c = float(m15_last[1]), float(m15_last[4])
+                    m15_h, m15_l = float(m15_last[2]), float(m15_last[3])
+                    c_range = max(m15_h - m15_l, 0.01)
+                    lower_wick = min(m15_o, m15_c) - m15_l
+                    upper_wick = m15_h - max(m15_o, m15_c)
+
+                    if m15_c < m15_o and (m15_o - m15_c) > 2.0:
+                        bear_score += 2
+                        mtf_summary.append("📉 M15: Bearish CHoCH (ធ្លាក់ខ្លាំង)")
+                    elif m15_c > m15_o and (m15_c - m15_o) > 2.0:
+                        bull_score += 2
+                        mtf_summary.append("📈 M15: Bullish BOS")
+                    elif lower_wick / c_range >= 0.40:
+                        bull_score += 2
+                        mtf_summary.append("🔨 M15: Bullish Rejection Wick")
+                    elif upper_wick / c_range >= 0.40:
+                        bear_score += 2
+                        mtf_summary.append("⚡ M15: Bearish Rejection Wick")
+
+            # M5 Sniper Entry Confirmation (Engulfing / Momentum)
+            if r_m5.status_code == 200:
+                m5_data = r_m5.json()
+                if len(m5_data) >= 2:
+                    m5_prev_o, m5_prev_c = float(m5_data[-2][1]), float(m5_data[-2][4])
+                    m5_cur_o, m5_cur_c = float(m5_data[-1][1]), float(m5_data[-1][4])
+                    if m5_cur_c < m5_cur_o and m5_cur_c < min(m5_prev_o, m5_prev_c):
+                        bear_score += 2
+                        mtf_summary.append("⚡ M5: Bearish Engulfing")
+                    elif m5_cur_c > m5_cur_o and m5_cur_c > max(m5_prev_o, m5_prev_c):
+                        bull_score += 2
+                        mtf_summary.append("⚡ M5: Bullish Engulfing")
         except Exception:
             pass
+
+        if mtf_summary:
+            confluences.append("ផ្ទៀងផ្ទាត់ Multi-Timeframe: " + " | ".join(mtf_summary))
 
         # Final Deterministic Decision
         is_buy = bull_score >= bear_score
         total_signals = max(bull_score, bear_score)
-        confidence_pct = min(95, 82 + (total_signals * 2))
+        
+        # Triple Confluence boost up to 95%
+        if len(mtf_summary) >= 3 and ((is_buy and bull_score > bear_score + 3) or (not is_buy and bear_score > bull_score + 3)):
+            confidence_pct = min(95, 92 + (total_signals % 3))
+        else:
+            confidence_pct = min(91, 84 + (total_signals * 2))
 
         if is_buy:
             # Smart Institutional Pullback / Retracement Entry:
