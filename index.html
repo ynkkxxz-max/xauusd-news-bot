@@ -2593,20 +2593,21 @@
     }
 
     async function updateDynamicSMC(price) {
-      const mtf = await fetchMultiTimeframeCandles();
-      const candles = mtf.m15.length > 0 ? mtf.m15 : [];
-      const m5Candles = mtf.m5;
-      const h1Candles = mtf.h1;
-      
-      // Calculate Intraday High, Low, and Reference Open
-      let dayHigh = price + 15.0;
-      let dayLow = price - 15.0;
-      let trendDirection = 'BEARISH';
-      let winRate = 82;
-      let h1Bias = 'BEARISH';
-      let m15Structure = 'CHoCH';
-      let m5Trigger = 'Engulfing';
-      let confluenceCount = 0;
+      try {
+        const mtf = await fetchMultiTimeframeCandles();
+        const candles = mtf.m15.length > 0 ? mtf.m15 : [];
+        const m5Candles = mtf.m5;
+        const h1Candles = mtf.h1;
+        
+        // Calculate Intraday High, Low, and Reference Open
+        let dayHigh = price + 15.0;
+        let dayLow = price - 15.0;
+        let trendDirection = 'BULLISH';
+        let winRate = 90;
+        let h1Bias = 'BULLISH';
+        let m15Structure = 'Bullish Expansion';
+        let m5Trigger = 'Bullish Momentum';
+        let confluenceCount = 0;
 
       // 1. Analyze H1 Trend (Macro Direction)
       if (h1Candles && h1Candles.length >= 2) {
@@ -3425,7 +3426,10 @@
       const dynamicSLVal = Math.abs(price - Number(sl));
       currentSMC_SLDistance = dynamicSLVal > 1.0 ? dynamicSLVal : 10.0;
       updateAutoLotWidget();
+    } catch (err) {
+      console.warn('[updateDynamicSMC] caught error safely:', err);
     }
+  }
 
     // ==========================================
     // LIQUIDITY HEATMAP RADAR (REAL ORDER BOOK)
