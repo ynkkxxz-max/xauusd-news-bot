@@ -256,24 +256,26 @@
     }
 
     .smc-exec-badge.ready {
-      background: linear-gradient(135deg, rgba(0, 230, 118, 0.25), rgba(0, 230, 118, 0.1));
+      background: linear-gradient(135deg, rgba(0, 230, 118, 0.35), rgba(0, 200, 83, 0.15));
       color: #00E676;
-      border-color: #00E676;
-      box-shadow: 0 0 14px rgba(0, 230, 118, 0.4);
-      animation: readyPulse 1.6s infinite;
+      border: 1.5px solid #00E676;
+      box-shadow: 0 0 20px rgba(0, 230, 118, 0.6);
+      animation: readyPulse 1.2s infinite;
+      font-size: 13px;
+      padding: 8px 16px;
     }
 
     .smc-exec-badge.waiting {
-      background: linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(255, 215, 0, 0.1));
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 215, 0, 0.05));
       color: #FFD700;
-      border-color: #FFD700;
-      box-shadow: 0 0 10px rgba(255, 215, 0, 0.25);
+      border: 1px solid rgba(255, 215, 0, 0.4);
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
     }
 
     @keyframes readyPulse {
-      0% { box-shadow: 0 0 4px rgba(0, 230, 118, 0.4); }
-      50% { box-shadow: 0 0 18px rgba(0, 230, 118, 0.8); }
-      100% { box-shadow: 0 0 4px rgba(0, 230, 118, 0.4); }
+      0% { box-shadow: 0 0 6px rgba(0, 230, 118, 0.4); transform: scale(1); }
+      50% { box-shadow: 0 0 25px rgba(0, 230, 118, 0.9); transform: scale(1.02); }
+      100% { box-shadow: 0 0 6px rgba(0, 230, 118, 0.4); transform: scale(1); }
     }
 
     .smc-direction {
@@ -1113,6 +1115,17 @@
       <div id="smcExecBadge" class="smc-exec-badge waiting">
         <span id="smcExecDot">🟡</span> <span id="smcExecText">WAITING FOR PULLBACK (កុំទាន់ចូល)</span>
       </div>
+
+      <!-- High-Confidence Safe Sniper Confirmation Banner (Appears only when inZone) -->
+      <div id="smcSniperAlert" style="display: none; margin: 8px auto 10px auto; padding: 10px 14px; border-radius: 12px; background: linear-gradient(135deg, rgba(0, 230, 118, 0.25) 0%, rgba(10, 25, 18, 0.95) 100%); border: 1.5px solid #00E676; box-shadow: 0 0 20px rgba(0, 230, 118, 0.5); animation: readyPulse 1.2s infinite;">
+        <div style="font-size: 13px; font-weight: 800; color: #00E676; letter-spacing: 0.5px;">
+          🎯 សញ្ញាបញ្ជាក់៖ ដល់ចំណុចចូលហើយ (SAFE SNIPER ENTRY)!
+        </div>
+        <div style="font-size: 11px; color: #FFF; margin-top: 3px;" id="smcSniperAlertDesc">
+          AI បានផ្ទៀងផ្ទាត់រចនាសម្ព័ន្ធទីផ្សារ & Liquidity រួចរាល់ — មានសុវត្ថិភាពខ្ពស់ក្នុងការបើក Order!
+        </div>
+      </div>
+
       <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">ផែនការជួញដូរឆ្លាតវៃ AI SMC — ផ្ទៀងផ្ទាត់រចនាសម្ព័ន្ធទីផ្សារ & Volume</div>
 
       <!-- Core Institutional Levels (Entry, SL, TP1, TP2) -->
@@ -2107,19 +2120,34 @@
         const execText = document.getElementById('smcExecText');
         const inZone = (price >= Number(entryLow) && price <= Number(entryHigh));
 
+        const sniperAlertEl = document.getElementById('smcSniperAlert');
+        const sniperAlertDesc = document.getElementById('smcSniperAlertDesc');
+
         if (inZone) {
           if (execBadge) execBadge.className = 'smc-exec-badge ready';
           if (execDot) execDot.innerText = '🟢';
           if (execText) execText.innerText = '⚡ READY TO BUY (តម្លៃដល់តំបន់ទិញហើយ)';
+          if (sniperAlertEl) {
+            sniperAlertEl.style.display = 'block';
+            if (sniperAlertDesc) sniperAlertDesc.innerText = `AI បានផ្ទៀងផ្ទាត់រចនាសម្ព័ន្ធទីផ្សារ Bullish ($${entryLow}-$${entryHigh}) រួចរាល់ — មានសុវត្ថិភាពខ្ពស់ អាចចូល BUY បាន!`;
+          }
+          if (tg && tg.HapticFeedback) {
+            tg.HapticFeedback.notificationOccurred('success');
+          }
         } else if (price > Number(entryHigh)) {
           if (execBadge) execBadge.className = 'smc-exec-badge waiting';
           if (execDot) execDot.innerText = '🟡';
           const waitPips = (price - Number(entryHigh)).toFixed(1);
           if (execText) execText.innerText = `⏳ WAITING PULLBACK (រង់ចាំចុះ $${waitPips} ទៀត)`;
+          if (sniperAlertEl) sniperAlertEl.style.display = 'none';
         } else {
           if (execBadge) execBadge.className = 'smc-exec-badge ready';
           if (execDot) execDot.innerText = '🟢';
           if (execText) execText.innerText = '⚡ DEEP DISCOUNT BUY (តំបន់បញ្ចុះតម្លៃពិសេស)';
+          if (sniperAlertEl) {
+            sniperAlertEl.style.display = 'block';
+            if (sniperAlertDesc) sniperAlertDesc.innerText = `តម្លៃធ្លាក់ចុះដល់តំបន់ Discount ជ្រៅ ($${price.toFixed(2)}) ស្ថាប័នធំៗត្រៀមស្រូបយកទិញ!`;
+          }
         }
 
         document.getElementById('smcEntry').innerText = `$${Number(entryLow).toLocaleString('en-US', {minimumFractionDigits: 2})} - $${Number(entryHigh).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
@@ -2233,19 +2261,34 @@
         const execText = document.getElementById('smcExecText');
         const inZone = (price >= Number(entryLow) && price <= Number(entryHigh));
 
+        const sniperAlertEl = document.getElementById('smcSniperAlert');
+        const sniperAlertDesc = document.getElementById('smcSniperAlertDesc');
+
         if (inZone) {
           if (execBadge) execBadge.className = 'smc-exec-badge ready';
           if (execDot) execDot.innerText = '🟢';
           if (execText) execText.innerText = '⚡ READY TO SELL (តម្លៃដល់តំបន់លក់ហើយ)';
+          if (sniperAlertEl) {
+            sniperAlertEl.style.display = 'block';
+            if (sniperAlertDesc) sniperAlertDesc.innerText = `AI បានផ្ទៀងផ្ទាត់តំបន់ Supply ($${entryLow}-$${entryHigh}) រួចរាល់ — មានសុវត្ថិភាពខ្ពស់ អាចចូល SELL បាន!`;
+          }
+          if (tg && tg.HapticFeedback) {
+            tg.HapticFeedback.notificationOccurred('success');
+          }
         } else if (price < Number(entryLow)) {
           if (execBadge) execBadge.className = 'smc-exec-badge waiting';
           if (execDot) execDot.innerText = '🟡';
           const waitPips = (Number(entryLow) - price).toFixed(1);
           if (execText) execText.innerText = `⏳ WAITING BOUNCE (រង់ចាំលោតឡើង $${waitPips} ទៀត)`;
+          if (sniperAlertEl) sniperAlertEl.style.display = 'none';
         } else {
           if (execBadge) execBadge.className = 'smc-exec-badge ready';
           if (execDot) execDot.innerText = '🟢';
           if (execText) execText.innerText = '⚡ HIGH PREMIUM SELL (តំបន់លក់បានថ្លៃខ្ពស់)';
+          if (sniperAlertEl) {
+            sniperAlertEl.style.display = 'block';
+            if (sniperAlertDesc) sniperAlertDesc.innerText = `តម្លៃស្ថិតនៅតំបន់ Premium ខ្ពស់ ($${price.toFixed(2)}) ស្ថាប័នធំៗចាប់ផ្តើមបញ្ចេញ Order Sell!`;
+          }
         }
 
         document.getElementById('smcEntry').innerText = `$${Number(entryLow).toLocaleString('en-US', {minimumFractionDigits: 2})} - $${Number(entryHigh).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
