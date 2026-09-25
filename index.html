@@ -1850,15 +1850,34 @@
       </div>
     </div>
 
-    <!-- SMC Key Levels Overlay helper -->
-    <div class="smc-card">
-      <div style="font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #FFF;">
-        💡 របៀបផ្ទៀងផ្ទាត់លើក្រាហ្វិក (How to Validate):
+    <!-- AI LIVE CANDLE STRUCTURE & PATTERN DECODER -->
+    <div class="smc-card" id="aiCandleExplCard" style="border: 1.5px solid rgba(0, 229, 255, 0.3); background: linear-gradient(135deg, rgba(16, 26, 46, 0.95) 0%, rgba(10, 15, 28, 0.98) 100%); box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #FFF; display: flex; align-items: center; gap: 6px;">
+          <span>🕯️</span> AI វិភាគទៀនផ្សាយផ្ទាល់ (Live Candle Interpreter)
+        </div>
+        <span id="aiCandleTypeBadge" style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: rgba(0, 230, 118, 0.15); color: #00E676; border: 1px solid rgba(0, 230, 118, 0.35);">
+          ⚡ M15 LIQUIDITY SWEEP
+        </span>
       </div>
-      <div style="font-size: 12px; color: var(--text-muted); line-height: 1.6;">
-        • ពិនិត្យមើលទៀន <b>M15 / M5</b> នៅពេលតម្លៃធ្លាក់មកដល់តំបន់ <b>Discount Demand</b>។<br>
-        • បើឃើញមាន <b>Rejection Wick (កន្ទុយស្រូបវែងខាងក្រោម)</b> រួចទៀនបន្ទាប់បិទបៃតង នោះគឺជាការបញ្ជាក់ចូល Buy ដែលមានសុវត្ថិភាពបំផុត!<br>
-        • ជៀសវាងការចូល Order នៅចំកណ្តាលចន្លោះ Pivot Point (គ្មាន Edge ច្បាស់លាស់)។
+
+      <!-- Live Dynamic Candle Explanation Box -->
+      <div style="font-size: 12px; color: #E0E8F5; line-height: 1.7; background: rgba(0, 0, 0, 0.35); border-radius: 10px; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.08);" id="aiLiveCandleDetails">
+        • <b>ទម្រង់ទៀនបច្ចុប្បន្ន (Candle Anatomy):</b> ទៀន M15 បច្ចុប្បន្នកំពុងបង្កើត <b>Rejection Wick (កន្ទុយស្រូបវែង)</b> បញ្ជាក់ពីការបដិសេធតម្លៃនៅតំបន់គន្លឹះ។<br>
+        • <b>ចិត្តសាស្ត្រស្ថាប័ន (Institutional Psychology):</b> ឆ្លាមធំៗបានរុញតម្លៃចុះដើម្បីបង្ខំឱ្យ Trader តូចតាចលក់ខាត រួចស្រូបយកទិញទាំងអស់ត្រឡប់ឡើងលើវិញ (Stop-Hunt Trapped Sellers)។<br>
+        • <b>សកម្មភាពត្រូវធ្វើលើក្រាហ្វិក (Action Rule):</b> រង់ចាំទៀន M5 បន្ទាប់បិទបៃតងរឹងមាំ (Bullish Engulfing) នោះគឺជា <b>Safe Entry Trigger</b> អាចចុច BUY បានដោយសុវត្ថិភាពបំផុត!
+      </div>
+
+      <!-- Action Confirmation Pills -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px;">
+        <div style="padding: 6px 8px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); font-size: 11px;">
+          <span style="color: var(--text-muted);">ទៀនបញ្ជាក់ M5:</span> 
+          <span id="aiCandleM5Pill" style="font-weight: 800; color: #00E676;">Bullish Engulfing ✓</span>
+        </div>
+        <div style="padding: 6px 8px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); font-size: 11px;">
+          <span style="color: var(--text-muted);">សម្ពាធ Liquidity:</span> 
+          <span id="aiCandleWickPill" style="font-weight: 800; color: var(--gold);">Bottom Wick 吸收 ✓</span>
+        </div>
       </div>
     </div>
   </div>
@@ -2857,6 +2876,56 @@
       if (mtfSessionEl) {
         mtfSessionEl.className = isKillzone ? 'mtf-pill killzone' : 'mtf-pill neutral';
         mtfSessionEl.innerText = `⏰ Session: ${sessionName}`;
+      }
+
+      // Update AI Live Candle Interpreter on TradingView Chart tab
+      const aiCandleTypeBadge = document.getElementById('aiCandleTypeBadge');
+      const aiLiveCandleDetails = document.getElementById('aiLiveCandleDetails');
+      const aiCandleM5Pill = document.getElementById('aiCandleM5Pill');
+      const aiCandleWickPill = document.getElementById('aiCandleWickPill');
+
+      if (aiLiveCandleDetails) {
+        if (trendDirection === 'BULLISH') {
+          if (aiCandleTypeBadge) {
+            aiCandleTypeBadge.className = 'radar-badge';
+            aiCandleTypeBadge.innerText = isSweepDetected ? '⚡ SSL LIQUIDITY SWEEP & BOUNCE' : '🟢 BULLISH EXPANSION CANDLE';
+            aiCandleTypeBadge.style.color = '#00E676';
+            aiCandleTypeBadge.style.borderColor = 'rgba(0, 230, 118, 0.4)';
+          }
+          aiLiveCandleDetails.innerHTML = `
+            • <b>ទម្រង់ទៀន M15 បច្ចុប្បន្ន (Candle Anatomy):</b> ${isSweepDetected ? 'ទៀនបានធ្លាក់ចុះស៊ី Liquidity រួចបង្កើត <b>Bottom Rejection Wick (កន្ទុយស្រូបវែងខាងក្រោម)</b> បដិសេធការធ្លាក់ចុះ។' : 'ទៀន M15 បង្កើត <b>Bullish Body បិទពីលើ EMA</b> រក្សាកម្លាំងទិញយ៉ាងរឹងមាំ។'}<br>
+            • <b>ចិត្តសាស្ត្រស្ថាប័ន (Institutional Psychology):</b> ស្ថាប័នធំៗបានទាក់ទាញឱ្យ Trader តូចតាចលក់នៅបាត រួចស្រូបទិញទាំងអស់ត្រឡប់ឡើងលើវិញ (Liquidity Absorption)។<br>
+            • <b>សកម្មភាពត្រេតជាក់ស្តែង (Action Trigger):</b> នៅពេលទៀន M5 បិទបៃតងរឹងមាំ <b>(${m5Trigger})</b> គួបផ្សំតម្លៃស្ថិតក្នុង OTE Zone នោះគឺជាចំណុច <b>BUY Sniper</b> ដែលមាន Win Rate ខ្ពស់បំផុត!
+          `;
+          if (aiCandleM5Pill) {
+            aiCandleM5Pill.innerText = `${m5Trigger} ✓`;
+            aiCandleM5Pill.style.color = '#00E676';
+          }
+          if (aiCandleWickPill) {
+            aiCandleWickPill.innerText = isSweepDetected ? 'Bottom Wick ស្រូបទិញ ✓' : 'Bullish Volume Push ✓';
+            aiCandleWickPill.style.color = '#00E676';
+          }
+        } else {
+          if (aiCandleTypeBadge) {
+            aiCandleTypeBadge.className = 'radar-badge';
+            aiCandleTypeBadge.innerText = isSweepDetected ? '⚡ BSL BUY-STOP HUNT & REJECTION' : '🔴 BEARISH CHoCH IMPULSE';
+            aiCandleTypeBadge.style.color = '#FF3366';
+            aiCandleTypeBadge.style.borderColor = 'rgba(255, 51, 102, 0.4)';
+          }
+          aiLiveCandleDetails.innerHTML = `
+            • <b>ទម្រង់ទៀន M15 បច្ចុប្បន្ន (Candle Anatomy):</b> ${isSweepDetected ? 'ទៀនបានបាញ់ឡើងស៊ី Buy Stops រួចបង្កើត <b>Top Rejection Wick (កន្ទុយស្រូបវែងខាងលើ)</b> បង្ហាញពីកម្លាំងលក់ធ្លាក់ចុះយ៉ាងគំហុក។' : 'ទៀន M15 បង្កើត <b>Bearish Body បិទក្រោម EMA</b> រក្សាសម្ពាធលក់វាយសម្រុក។'}<br>
+            • <b>ចិត្តសាស្ត្រស្ថាប័ន (Institutional Psychology):</b> ស្ថាប័នធំៗបានបញ្ឆោតឱ្យ Retail Traders ចូលទិញនៅកំពូល (Bull Trap) រួចបញ្ចេញ Order Sell ធំៗទម្លាក់តម្លៃ។<br>
+            • <b>សកម្មភាពត្រេតជាក់ស្តែង (Action Trigger):</b> រង់ចាំទៀនលោតឡើងប៉ះតំបន់ OTE 0.618 រួចទៀន M5 បិទក្រហម <b>(${m5Trigger})</b> នោះគឺជាចំណុច <b>SELL Sniper</b> ដែលមានសុវត្ថិភាពបំផុត!
+          `;
+          if (aiCandleM5Pill) {
+            aiCandleM5Pill.innerText = `${m5Trigger} ✓`;
+            aiCandleM5Pill.style.color = '#FF3366';
+          }
+          if (aiCandleWickPill) {
+            aiCandleWickPill.innerText = isSweepDetected ? 'Top Wick បដិសេធតម្លៃ ✓' : 'Bearish Pressure ✓';
+            aiCandleWickPill.style.color = 'var(--gold)';
+          }
+        }
       }
 
       if (mtfExplEl) {
