@@ -2074,14 +2074,21 @@
           badge.innerText = 'AI Institutional Bias: BUY (PULLBACK)';
         }
 
-        // Smart Institutional Pullback Entry
-        const pullbackTarget = Number((Math.max(price - 4.5, s1 + 2.0, pivot + 0.5)).toFixed(2));
-        const effectivePullback = pullbackTarget >= price ? Number((price - 3.0).toFixed(2)) : pullbackTarget;
-        const entryLow = (effectivePullback - 1.5).toFixed(2);
-        const entryHigh = (effectivePullback + 1.2).toFixed(2);
-        const sl = (Math.min(Number(entryLow) - 7.0, s1 - 3.0)).toFixed(2);
-        const tp1 = (Math.max(price + 10.0, pivot + 14.0)).toFixed(2);
-        const tp2 = (Math.max(price + 22.0, r1 + 5.0)).toFixed(2);
+        // Smart Institutional Pullback Entry anchored to Stable Discount Demand Zone
+        // In Bullish setup, the institutional demand cluster is anchored around Support / Discount zone
+        let anchorBuyTarget = Number(bzHigh);
+        if (candles && candles.length >= 2) {
+          // Find lowest swing of the recent consolidation
+          const recentLows = candles.slice(-5).map(c => c.low);
+          const swingLow = Math.min(...recentLows);
+          anchorBuyTarget = Math.max(swingLow, Number(bzHigh));
+        }
+        // If current price is far above, demand zone remains firmly anchored at discount
+        const entryLow = (anchorBuyTarget - 3.0).toFixed(2);
+        const entryHigh = anchorBuyTarget.toFixed(2);
+        const sl = (Math.min(Number(entryLow) - 8.0, s1 - 4.0)).toFixed(2);
+        const tp1 = (Number(entryHigh) + 16.0).toFixed(2);
+        const tp2 = (Number(entryHigh) + 28.0).toFixed(2);
 
         const execBadge = document.getElementById('smcExecBadge');
         const execDot = document.getElementById('smcExecDot');
@@ -2193,14 +2200,21 @@
           badge.innerText = 'AI Institutional Bias: SELL (BOUNCE)';
         }
 
-        // Smart Institutional Bounce Entry: Wait for bounce to supply zone
-        const bounceTarget = Number((Math.min(price + 4.5, r1 - 1.5, pivot - 0.5)).toFixed(2));
-        const effectiveBounce = bounceTarget <= price ? Number((price + 3.0).toFixed(2)) : bounceTarget;
-        const entryLow = (effectiveBounce - 1.2).toFixed(2);
-        const entryHigh = (effectiveBounce + 1.5).toFixed(2);
-        const sl = (Math.max(Number(entryHigh) + 6.5, r1 + 2.5)).toFixed(2);
-        const tp1 = (Math.min(price - 8.5, pivot - 12.0)).toFixed(2);
-        const tp2 = (Math.min(price - 18.0, s1 - 4.0)).toFixed(2);
+        // Smart Institutional Bounce Entry: Anchored to stable Technical Resistance / Supply Zone
+        // In Bearish setup, the institutional supply cluster is anchored to szLow / Resistance swing
+        let anchorSellTarget = Number(szLow);
+        if (candles && candles.length >= 2) {
+          // Find high swing of the recent pullback consolidation
+          const recentHighs = candles.slice(-5).map(c => c.high);
+          const swingHigh = Math.max(...recentHighs);
+          anchorSellTarget = Math.max(swingHigh, Number(szLow));
+        }
+        // If price is far below, the sell supply zone stays firmly waiting at Resistance
+        const entryLow = anchorSellTarget.toFixed(2);
+        const entryHigh = (anchorSellTarget + 3.0).toFixed(2);
+        const sl = (Math.max(Number(entryHigh) + 8.0, r1 + 3.5)).toFixed(2);
+        const tp1 = (Number(entryLow) - 16.0).toFixed(2);
+        const tp2 = (Number(entryLow) - 28.0).toFixed(2);
 
         const execBadge = document.getElementById('smcExecBadge');
         const execDot = document.getElementById('smcExecDot');
