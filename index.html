@@ -595,6 +595,128 @@
       transform: scale(0.98);
     }
 
+    /* Liquidity Heatmap Radar Card Styles */
+    .radar-card {
+      background: linear-gradient(135deg, rgba(16, 22, 36, 0.95) 0%, rgba(10, 14, 24, 0.98) 100%);
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 14px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .radar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .radar-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #FFF;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .radar-badge {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 5px;
+      background: rgba(0, 229, 255, 0.15);
+      color: #00E5FF;
+      border: 1px solid rgba(0, 229, 255, 0.3);
+    }
+
+    .liquidity-ratio-bar-wrap {
+      margin-bottom: 12px;
+    }
+
+    .ratio-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .ratio-bar {
+      display: flex;
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .ratio-fill-bid {
+      background: linear-gradient(90deg, #00C853, #00E676);
+      transition: width 0.4s ease;
+    }
+
+    .ratio-fill-ask {
+      background: linear-gradient(90deg, #FF1744, #FF5252);
+      transition: width 0.4s ease;
+    }
+
+    .whale-walls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .wall-column {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 8px;
+    }
+
+    .wall-col-title {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .wall-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 6px;
+      margin-bottom: 4px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+      background: rgba(255, 255, 255, 0.02);
+      border-left: 2.5px solid transparent;
+    }
+
+    .wall-item.bid {
+      border-left-color: #00E676;
+    }
+
+    .wall-item.ask {
+      border-left-color: #FF3366;
+    }
+
+    .wall-price {
+      font-weight: 800;
+      color: #FFF;
+    }
+
+    .wall-vol {
+      font-weight: 700;
+      font-size: 10px;
+    }
+
     /* Personalized Auto-Lot Card in SMC Tab */
     .auto-lot-card {
       background: linear-gradient(135deg, rgba(20, 26, 42, 0.95) 0%, rgba(12, 16, 26, 0.98) 100%);
@@ -1056,6 +1178,79 @@
       <div class="zone-row">
         <div class="zone-tag"><span style="color: var(--gold);">🎯</span> Pivot Point</div>
         <div class="zone-val" id="smcPivot">$4,275.30</div>
+      </div>
+    </div>
+
+    <!-- Institutional Liquidity Heatmap Radar (ជញ្ជាំងទិញលក់របស់ស្ថាប័នធំៗ) -->
+    <div class="radar-card" id="liquidityRadarCard">
+      <div class="radar-header">
+        <div class="radar-title">
+          <span>📡</span> Liquidity Heatmap Radar (ជញ្ជាំងស្ថាប័ន)
+        </div>
+        <span class="radar-badge" id="radarStatusBadge">⚡ LIVE ORDER BOOK</span>
+      </div>
+
+      <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
+        រ៉ាដាចាប់ជញ្ជាំងបញ្ជាទិញ/លក់ធំៗ (Whale Iceberg Orders) ជាក់ស្តែងក្នុងទីផ្សារ៖
+      </div>
+
+      <!-- Ratio Bar (Bids vs Asks) -->
+      <div class="liquidity-ratio-bar-wrap">
+        <div class="ratio-labels">
+          <span style="color: var(--bull);" id="radarBidPct">🟢 Bids: 54.2%</span>
+          <span style="color: var(--bear);" id="radarAskPct">🔴 Asks: 45.8%</span>
+        </div>
+        <div class="ratio-bar">
+          <div class="ratio-fill-bid" id="radarBidFill" style="width: 54.2%;"></div>
+          <div class="ratio-fill-ask" id="radarAskFill" style="width: 45.8%;"></div>
+        </div>
+      </div>
+
+      <!-- Top Institutional Whale Walls -->
+      <div class="whale-walls-grid">
+        <!-- Whale Buy Walls -->
+        <div class="wall-column">
+          <div class="wall-col-title">
+            <span style="color: var(--bull);">🟢 ជញ្ជាំងទិញ (Buy Walls)</span>
+            <span style="color: var(--text-muted); font-size: 9px;">Bids</span>
+          </div>
+          <div id="whaleBidWallsList">
+            <div class="wall-item bid">
+              <span class="wall-price">$4,272.50</span>
+              <span class="wall-vol" style="color: var(--bull);">128.5 oz</span>
+            </div>
+            <div class="wall-item bid">
+              <span class="wall-price">$4,268.00</span>
+              <span class="wall-vol" style="color: var(--bull);">245.0 oz</span>
+            </div>
+            <div class="wall-item bid">
+              <span class="wall-price">$4,260.00</span>
+              <span class="wall-vol" style="color: var(--bull);">412.0 oz</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Whale Sell Walls -->
+        <div class="wall-column">
+          <div class="wall-col-title">
+            <span style="color: var(--bear);">🔴 ជញ្ជាំងលក់ (Sell Walls)</span>
+            <span style="color: var(--text-muted); font-size: 9px;">Asks</span>
+          </div>
+          <div id="whaleAskWallsList">
+            <div class="wall-item ask">
+              <span class="wall-price">$4,282.00</span>
+              <span class="wall-vol" style="color: var(--bear);">164.2 oz</span>
+            </div>
+            <div class="wall-item ask">
+              <span class="wall-price">$4,288.50</span>
+              <span class="wall-vol" style="color: var(--bear);">289.0 oz</span>
+            </div>
+            <div class="wall-item ask">
+              <span class="wall-price">$4,295.00</span>
+              <span class="wall-vol" style="color: var(--bear);">520.4 oz</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2080,6 +2275,87 @@
       updateAutoLotWidget();
     }
 
+    // ==========================================
+    // LIQUIDITY HEATMAP RADAR (REAL ORDER BOOK)
+    // ==========================================
+    async function fetchLiveOrderBookRadar() {
+      try {
+        const res = await fetch('https://api.binance.com/api/v3/depth?symbol=PAXGUSDT&limit=20');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.bids || !data.asks) return;
+
+        let totalBidVol = 0;
+        let totalAskVol = 0;
+
+        const bidItems = data.bids.map(b => {
+          const price = parseFloat(b[0]);
+          const qty = parseFloat(b[1]);
+          totalBidVol += qty;
+          return { price, qty };
+        });
+
+        const askItems = data.asks.map(a => {
+          const price = parseFloat(a[0]);
+          const qty = parseFloat(a[1]);
+          totalAskVol += qty;
+          return { price, qty };
+        });
+
+        const sumVol = totalBidVol + totalAskVol;
+        let bidPct = 50.0;
+        let askPct = 50.0;
+        if (sumVol > 0) {
+          bidPct = (totalBidVol / sumVol) * 100.0;
+          askPct = (totalAskVol / sumVol) * 100.0;
+        }
+
+        // Update Ratio Bar
+        const radarBidPct = document.getElementById('radarBidPct');
+        const radarAskPct = document.getElementById('radarAskPct');
+        const radarBidFill = document.getElementById('radarBidFill');
+        const radarAskFill = document.getElementById('radarAskFill');
+
+        if (radarBidPct) radarBidPct.innerText = `🟢 Bids: ${bidPct.toFixed(1)}%`;
+        if (radarAskPct) radarAskPct.innerText = `🔴 Asks: ${askPct.toFixed(1)}%`;
+        if (radarBidFill) radarBidFill.style.width = `${bidPct.toFixed(1)}%`;
+        if (radarAskFill) radarAskFill.style.width = `${askPct.toFixed(1)}%`;
+
+        // Find top 3 Whale walls by volume (Iceberg Walls)
+        const sortedBids = [...bidItems].sort((a, b) => b.qty - a.qty).slice(0, 3);
+        const sortedAsks = [...askItems].sort((a, b) => b.qty - a.qty).slice(0, 3);
+
+        const bidWallsList = document.getElementById('whaleBidWallsList');
+        if (bidWallsList && sortedBids.length > 0) {
+          bidWallsList.innerHTML = sortedBids.map(item => `
+            <div class="wall-item bid">
+              <span class="wall-price">$${item.price.toFixed(2)}</span>
+              <span class="wall-vol" style="color: var(--bull);">${item.qty.toFixed(2)} oz</span>
+            </div>
+          `).join('');
+        }
+
+        const askWallsList = document.getElementById('whaleAskWallsList');
+        if (askWallsList && sortedAsks.length > 0) {
+          askWallsList.innerHTML = sortedAsks.map(item => `
+            <div class="wall-item ask">
+              <span class="wall-price">$${item.price.toFixed(2)}</span>
+              <span class="wall-vol" style="color: var(--bear);">${item.qty.toFixed(2)} oz</span>
+            </div>
+          `).join('');
+        }
+
+        const badge = document.getElementById('radarStatusBadge');
+        if (badge) {
+          badge.innerText = '⚡ LIVE RADAR ACTIVE';
+          badge.style.color = '#00E676';
+          badge.style.borderColor = 'rgba(0, 230, 118, 0.4)';
+        }
+      } catch (e) {
+        console.warn('Liquidity Radar fetch error:', e);
+      }
+    }
+
     // Initialize Millisecond WebSocket Feed immediately
     initWebSocketPriceFeed();
     updateLivePrice();
@@ -2089,6 +2365,10 @@
         updateLivePrice();
       }
     }, 10000);
+
+    // Initial fetch and regular polling for Order Book Liquidity Radar (every 6s)
+    fetchLiveOrderBookRadar();
+    setInterval(fetchLiveOrderBookRadar, 6000);
 
     // ==========================================
     // PERSONALIZED AUTO-LOT CALCULATION LOGIC
