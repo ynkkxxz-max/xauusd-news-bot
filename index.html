@@ -1253,6 +1253,9 @@
       }
     }
 
+    // Apply initial tab
+    switchTab(initialTab);
+
     function changeTvInterval(interval) {
       if (tg && tg.HapticFeedback) {
         tg.HapticFeedback.selectionChanged();
