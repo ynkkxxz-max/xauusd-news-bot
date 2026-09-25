@@ -1766,7 +1766,7 @@
   <!-- ============================================== -->
   <div class="tab-content" id="tabContentChart">
     <!-- Prominent AI Setup Execution Card (Direct Action Setup) -->
-    <div class="smc-hero-box" id="tvSetupHero" style="margin-bottom: 12px;">
+    <div class="smc-hero-box bullish" id="tvSetupHero" style="margin-bottom: 12px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
         <span class="smc-badge" id="tvHeroBadge">AI SMC SETUP EXECUTION</span>
         <span id="tvHeroLiveStatus" style="font-size: 11px; font-weight: 800; color: var(--gold); padding: 3px 8px; border-radius: 10px; background: rgba(255, 215, 0, 0.15); border: 1px solid rgba(255, 215, 0, 0.3);">
@@ -1774,8 +1774,8 @@
         </span>
       </div>
       
-      <div class="smc-direction" id="tvHeroDirection" style="font-size: 22px;">🔴 SELL RETRACEMENT ONLY</div>
-      <div id="tvHeroWinRate" class="smc-winrate-tag" style="margin-bottom: 8px;">🎯 ភាគរយឈ្នះ (Confidence): 80%</div>
+      <div class="smc-direction" id="tvHeroDirection" style="font-size: 22px; color: var(--bull);">🟢 BUY PULLBACK ONLY</div>
+      <div id="tvHeroWinRate" class="smc-winrate-tag" style="margin-bottom: 8px;">🎯 ភាគរយឈ្នះ (Confidence): 90% | Bullish Structure</div>
       <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
         ផែនការចូល Order លើក្រាហ្វិក — ផ្ទៀងផ្ទាត់ទៀន M15/M5 មុនចូលទីផ្សារ
       </div>
@@ -1783,19 +1783,19 @@
       <div class="smc-metrics-grid">
         <div class="smc-metric-pill" style="border-left: 3px solid var(--gold);">
           <div class="smc-pill-label">🎯 Entry Zone (តំបន់ទិញ)</div>
-          <div class="smc-pill-value" style="color: var(--gold);" id="tvChartEntry">$4,250.00 - $4,253.50</div>
+          <div class="smc-pill-value" style="color: var(--gold);" id="tvChartEntry">$4,268.00 - $4,272.50</div>
         </div>
         <div class="smc-metric-pill" style="border-left: 3px solid var(--bear);">
           <div class="smc-pill-label">🛑 Stop Loss (SL)</div>
-          <div class="smc-pill-value" style="color: var(--bear);" id="tvChartSL">$4,242.00</div>
+          <div class="smc-pill-value" style="color: var(--bear);" id="tvChartSL">$4,258.00</div>
         </div>
         <div class="smc-metric-pill" style="border-left: 3px solid var(--bull);">
           <div class="smc-pill-label">🎯 Take Profit 1 (BE)</div>
-          <div class="smc-pill-value" style="color: var(--bull);" id="tvChartTP1">$4,268.00</div>
+          <div class="smc-pill-value" style="color: var(--bull);" id="tvChartTP1">$4,295.00</div>
         </div>
         <div class="smc-metric-pill" style="border-left: 3px solid #00E5FF;">
           <div class="smc-pill-label">🏆 Take Profit 2 (Max)</div>
-          <div class="smc-pill-value" style="color: #00E5FF;" id="tvChartTP2">$4,285.00</div>
+          <div class="smc-pill-value" style="color: #00E5FF;" id="tvChartTP2">$4,310.00</div>
         </div>
       </div>
     </div>
@@ -2286,6 +2286,7 @@
       } else if (tab === 'chart') {
         document.getElementById('tabBtnChart').classList.add('active');
         document.getElementById('tabContentChart').classList.add('active');
+        updateDynamicSMC(currentLivePrice);
       } else if (tab === 'flow') {
         document.getElementById('tabBtnFlow').classList.add('active');
         document.getElementById('tabContentFlow').classList.add('active');
