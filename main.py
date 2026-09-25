@@ -543,7 +543,7 @@ class XAUUSDNewsAssistantBot:
                 "keyboard": [
                     [
                         {"text": "Price"},
-                        {"text": "SMC", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=107&tab=smc"}}
+                        {"text": "SMC", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=108&tab=smc"}}
                     ]
                 ],
                 "resize_keyboard": True,
