@@ -1207,19 +1207,24 @@
     </div>
 
     <!-- Balance Section -->
+    <!-- Balance Section -->
     <div class="section-card">
       <div class="section-title-row">
         <div class="section-title">💰 ដើមទុនគណនី (Balance)</div>
-        <div class="section-value" id="valBal">$1,000</div>
+        <div class="auto-balance-input-wrap" style="width: 140px; padding: 2px 6px;">
+          <span>$</span>
+          <input type="number" id="inputBalManual" class="auto-balance-input" value="1000" min="10" max="10000000" step="10" placeholder="បញ្ចូលដើមទុន..." oninput="onManualBalInput(this.value)">
+        </div>
       </div>
       <div class="slider-container">
-        <input type="range" id="sliderBal" min="100" max="20000" step="100" value="1000">
+        <input type="range" id="sliderBal" min="10" max="20000" step="10" value="1000">
       </div>
-      <div class="preset-group">
-        <button class="preset-btn" onclick="setBalance(100)">$100</button>
+      <div class="preset-group" style="grid-template-columns: repeat(5, 1fr);">
+        <button class="preset-btn" id="btnBal10" onclick="setBalance(10)">$10</button>
+        <button class="preset-btn" id="btnBal50" onclick="setBalance(50)">$50</button>
+        <button class="preset-btn" id="btnBal100" onclick="setBalance(100)">$100</button>
         <button class="preset-btn active" id="btnBal1000" onclick="setBalance(1000)">$1,000</button>
-        <button class="preset-btn" onclick="setBalance(5000)">$5,000</button>
-        <button class="preset-btn" onclick="setBalance(10000)">$10,000</button>
+        <button class="preset-btn" id="btnBal5000" onclick="setBalance(5000)">$5,000</button>
       </div>
     </div>
 
@@ -2010,7 +2015,10 @@
       let roundedLot = Math.round(rawLot * 100.0) / 100.0;
       if (roundedLot < 0.01) roundedLot = 0.01;
 
-      valBal.innerText = '$' + balance.toLocaleString();
+      const inputMan = document.getElementById('inputBalManual');
+      if (inputMan && document.activeElement !== inputMan) {
+        inputMan.value = balance;
+      }
       valRisk.innerText = riskPct.toFixed(1) + '%';
       valSL.innerText = '$' + slDistance.toFixed(1) + ' (' + (slDistance * 10).toFixed(0) + ' Pips)';
 
@@ -2019,12 +2027,29 @@
       
       const tpUsd = riskUsd * 1.5;
       resTpUsd.innerText = '+$' + tpUsd.toFixed(2);
+
+      // Sync active state of preset buttons ($10, $50, $100, $1000, $5000)
+      ['10', '50', '100', '1000', '5000'].forEach(b => {
+        const btn = document.getElementById('btnBal' + b);
+        if (btn) btn.classList.toggle('active', balance === Number(b));
+      });
     }
 
     sliderBal.addEventListener('input', (e) => {
       balance = parseFloat(e.target.value);
       calculate();
     });
+
+    function onManualBalInput(val) {
+      const num = parseFloat(val);
+      if (!isNaN(num) && num > 0) {
+        balance = num;
+        if (num <= 20000) {
+          sliderBal.value = num;
+        }
+        calculate();
+      }
+    }
 
     sliderRisk.addEventListener('input', (e) => {
       riskPct = parseFloat(e.target.value);
@@ -2038,7 +2063,9 @@
 
     function setBalance(val) {
       balance = val;
-      sliderBal.value = val;
+      sliderBal.value = val <= 20000 ? val : 20000;
+      const inputMan = document.getElementById('inputBalManual');
+      if (inputMan) inputMan.value = val;
       calculate();
     }
 
