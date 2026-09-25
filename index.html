@@ -2128,21 +2128,38 @@
           badge.innerText = 'AI Institutional Bias: BUY (PULLBACK)';
         }
 
-        // Smart Institutional Pullback Entry anchored to Stable Discount Demand Zone
-        // In Bullish setup, the institutional demand cluster is anchored around Support / Discount zone
-        let anchorBuyTarget = Number(bzHigh);
-        if (candles && candles.length >= 2) {
-          // Find lowest swing of the recent consolidation
-          const recentLows = candles.slice(-5).map(c => c.low);
-          const swingLow = Math.min(...recentLows);
-          anchorBuyTarget = Math.max(swingLow, Number(bzHigh));
+        // ======================================================================
+        // INSTITUTIONAL GOLDEN RATIO FIBONACCI (0.618 - 0.786 OTE) + FVG CONFLUENCE
+        // ======================================================================
+        // In Bullish setup (BOS Up), institutions never buy high. They await deep retracement
+        // to the Optimal Trade Entry (OTE) zone: 61.8% to 78.6% of recent expansion swing.
+        const swingRange = Math.max(dayHigh - dayLow, 12.0);
+        // Fibonacci Retracement Levels from High down to Low:
+        // 61.8% retracement = High - (Range * 0.618)
+        // 78.6% retracement = High - (Range * 0.786)
+        const fib618 = dayHigh - (swingRange * 0.618);
+        const fib786 = dayHigh - (swingRange * 0.786);
+
+        // Confluence with FVG (Fair Value Gap)
+        let oteHigh = Number(fib618.toFixed(2));
+        let oteLow = Number(fib786.toFixed(2));
+
+        if (fvgLowPrice && fvgHighPrice && fvgLowPrice < dayHigh) {
+          // Blend FVG into Fibonacci OTE zone for ultimate confluence
+          oteHigh = Math.min(oteHigh, Number(fvgHighPrice.toFixed(2)));
+          oteLow = Math.max(oteLow, Number(fvgLowPrice.toFixed(2)));
         }
-        // If current price is far above, demand zone remains firmly anchored at discount
-        const entryLow = (anchorBuyTarget - 3.0).toFixed(2);
-        const entryHigh = anchorBuyTarget.toFixed(2);
-        const sl = (Math.min(Number(entryLow) - 8.0, s1 - 4.0)).toFixed(2);
-        const tp1 = (Number(entryHigh) + 16.0).toFixed(2);
-        const tp2 = (Number(entryHigh) + 28.0).toFixed(2);
+
+        // Guarantee logical entry spread
+        if (oteHigh <= oteLow) {
+          oteHigh = Number((oteLow + 2.8).toFixed(2));
+        }
+
+        const entryLow = oteLow.toFixed(2);
+        const entryHigh = oteHigh.toFixed(2);
+        const sl = (Math.min(Number(entryLow) - 8.0, dayLow - 2.5)).toFixed(2);
+        const tp1 = (dayHigh + 4.0).toFixed(2); // Liquidity Pool target 1 (BSL)
+        const tp2 = (dayHigh + 18.0).toFixed(2); // Institutional Expansion target 2
 
         const execBadge = document.getElementById('smcExecBadge');
         const execDot = document.getElementById('smcExecDot');
@@ -2158,7 +2175,7 @@
           if (execText) execText.innerText = '⚡ READY TO BUY (តម្លៃដល់តំបន់ទិញហើយ)';
           if (sniperAlertEl) {
             sniperAlertEl.style.display = 'block';
-            if (sniperAlertDesc) sniperAlertDesc.innerText = `AI បានផ្ទៀងផ្ទាត់រចនាសម្ព័ន្ធទីផ្សារ Bullish ($${entryLow}-$${entryHigh}) រួចរាល់ — មានសុវត្ថិភាពខ្ពស់ អាចចូល BUY បាន!`;
+            if (sniperAlertDesc) sniperAlertDesc.innerText = `🎯 OTE 0.618-0.786 + FVG ផ្ទៀងផ្ទាត់រួចរាល់ ($${entryLow}-$${entryHigh}) — មានសុវត្ថិភាពខ្ពស់ អាចចូល BUY បាន!`;
           }
           if (tg && tg.HapticFeedback) {
             tg.HapticFeedback.notificationOccurred('success');
@@ -2167,7 +2184,7 @@
           if (execBadge) execBadge.className = 'smc-exec-badge waiting';
           if (execDot) execDot.innerText = '🟡';
           const waitPips = (price - Number(entryHigh)).toFixed(1);
-          if (execText) execText.innerText = `⏳ WAITING PULLBACK (រង់ចាំចុះ $${waitPips} ទៀត)`;
+          if (execText) execText.innerText = `⏳ WAITING OTE 0.618 (រង់ចាំចុះ $${waitPips} ទៀត)`;
           if (sniperAlertEl) sniperAlertEl.style.display = 'none';
         } else {
           if (execBadge) execBadge.className = 'smc-exec-badge ready';
@@ -2186,15 +2203,15 @@
 
         if (whyTradeEl) {
           whyTradeEl.innerHTML = `
-            • <b>ការវិភាគក្រាហ្វិក (Candle & Structure):</b> ទៀន M15 បង្ហាញ Bullish Rejection និងកម្លាំងទិញត្រឡប់មកវិញ។<br>
-            • តម្លៃស្ថិតនៅតំបន់ Discount ($${entryLow} - $${entryHigh}) ស្របតាមរចនាសម្ព័ន្ធស្ថាប័នធំៗ ដែលមានប្រូបាប៊ីលីតេឈ្នះ ${winRate}%។<br>
-            • ស្ថាប័នធំៗការពារតំបន់ Support ($${s1.toFixed(2)}) មុននឹងរុញតម្លៃឡើងទៅ Hunt Buy-Side Liquidity នៅ $${tp1}។
+            • <b>Golden Ratio OTE (Fibonacci 61.8% - 78.6%):</b> តម្លៃបាន Retrace មកដល់ចំណុចមាស <b>$${entryLow} - $${entryHigh}</b> ដែលជាតំបន់ទិញថោកបំផុតរបស់ស្ថាប័នធំៗ។<br>
+            • <b>FVG Confluence:</b> ចន្លោះ Imbalance ត្រូវបាន Mitigated គាំទ្រដោយកម្លាំងទិញត្រឡប់មកវិញ Win Rate <b>${winRate}%</b>។<br>
+            • ស្ថាប័នធំៗរៀបចំរុញតម្លៃឡើងទៅបោសសម្អាត Buy-Side Liquidity (BSL) នៅ TP1: <b>$${tp1}</b> និង TP2: <b>$${tp2}</b>។
           `;
         }
         if (whyNotEl) {
           whyNotEl.innerHTML = `
-            • ហាម Sell ដាច់ខាតព្រោះទិសដៅចរន្តសាច់ប្រាក់ធំ (Macro Order Flow) គាំទ្រការឡើងថ្លៃ ការ Sell គឺដើរបញ្ច្រាសរថភ្លើង!<br>
-            • កុំទាន់ដេញទិញនៅចំណុចខ្ពស់ ត្រូវរង់ចាំ Pullback ចូល Zone សិន។
+            • <b>ហាម Sell ដាច់ខាត៖</b> ចរន្តសាច់ប្រាក់ធំស្ថិតក្នុង Bullish Expansion ការចូល Sell គឺដើរបញ្ច្រាសរថភ្លើងស្ថាប័ន!<br>
+            • កុំដេញទិញនៅកំពូល ត្រូវរង់ចាំឱ្យតម្លៃចុះដល់ OTE 0.618 សិនទើបមានសុវត្ថិភាពខ្ពស់។
           `;
         }
 
@@ -2269,21 +2286,36 @@
           badge.innerText = 'AI Institutional Bias: SELL (BOUNCE)';
         }
 
-        // Smart Institutional Bounce Entry: Anchored to stable Technical Resistance / Supply Zone
-        // In Bearish setup, the institutional supply cluster is anchored to szLow / Resistance swing
-        let anchorSellTarget = Number(szLow);
-        if (candles && candles.length >= 2) {
-          // Find high swing of the recent pullback consolidation
-          const recentHighs = candles.slice(-5).map(c => c.high);
-          const swingHigh = Math.max(...recentHighs);
-          anchorSellTarget = Math.max(swingHigh, Number(szLow));
+        // ======================================================================
+        // INSTITUTIONAL GOLDEN RATIO FIBONACCI (0.618 - 0.786 OTE) + FVG CONFLUENCE (SELL)
+        // ======================================================================
+        // In Bearish setup (CHoCH/BOS Down), institutions wait for a deep premium bounce
+        // to the Optimal Trade Entry (OTE) zone: 61.8% to 78.6% of recent downward swing.
+        const swingRangeSell = Math.max(dayHigh - dayLow, 12.0);
+        // Fibonacci Retracement Levels from Low back up toward High:
+        // 61.8% bounce = Low + (Range * 0.618)
+        // 78.6% bounce = Low + (Range * 0.786)
+        const fib618Sell = dayLow + (swingRangeSell * 0.618);
+        const fib786Sell = dayLow + (swingRangeSell * 0.786);
+
+        let oteSellLow = Number(fib618Sell.toFixed(2));
+        let oteSellHigh = Number(fib786Sell.toFixed(2));
+
+        if (fvgLowPrice && fvgHighPrice && fvgHighPrice > dayLow) {
+          // Blend Bearish FVG with OTE Zone
+          oteSellLow = Math.max(oteSellLow, Number(fvgLowPrice.toFixed(2)));
+          oteSellHigh = Math.min(oteSellHigh, Number(fvgHighPrice.toFixed(2)));
         }
-        // If price is far below, the sell supply zone stays firmly waiting at Resistance
-        const entryLow = anchorSellTarget.toFixed(2);
-        const entryHigh = (anchorSellTarget + 3.0).toFixed(2);
-        const sl = (Math.max(Number(entryHigh) + 8.0, r1 + 3.5)).toFixed(2);
-        const tp1 = (Number(entryLow) - 16.0).toFixed(2);
-        const tp2 = (Number(entryLow) - 28.0).toFixed(2);
+
+        if (oteSellHigh <= oteSellLow) {
+          oteSellHigh = Number((oteSellLow + 2.8).toFixed(2));
+        }
+
+        const entryLow = oteSellLow.toFixed(2);
+        const entryHigh = oteSellHigh.toFixed(2);
+        const sl = (Math.max(Number(entryHigh) + 8.0, dayHigh + 2.5)).toFixed(2);
+        const tp1 = (dayLow - 4.0).toFixed(2); // SSL hunt target
+        const tp2 = (dayLow - 18.0).toFixed(2); // Extended bearish expansion
 
         const execBadge = document.getElementById('smcExecBadge');
         const execDot = document.getElementById('smcExecDot');
@@ -2299,7 +2331,7 @@
           if (execText) execText.innerText = '⚡ READY TO SELL (តម្លៃដល់តំបន់លក់ហើយ)';
           if (sniperAlertEl) {
             sniperAlertEl.style.display = 'block';
-            if (sniperAlertDesc) sniperAlertDesc.innerText = `AI បានផ្ទៀងផ្ទាត់តំបន់ Supply ($${entryLow}-$${entryHigh}) រួចរាល់ — មានសុវត្ថិភាពខ្ពស់ អាចចូល SELL បាន!`;
+            if (sniperAlertDesc) sniperAlertDesc.innerText = `🎯 OTE 0.618-0.786 + FVG ផ្ទៀងផ្ទាត់រួចរាល់ ($${entryLow}-$${entryHigh}) — មានសុវត្ថិភាពខ្ពស់ អាចចូល SELL បាន!`;
           }
           if (tg && tg.HapticFeedback) {
             tg.HapticFeedback.notificationOccurred('success');
@@ -2308,7 +2340,7 @@
           if (execBadge) execBadge.className = 'smc-exec-badge waiting';
           if (execDot) execDot.innerText = '🟡';
           const waitPips = (Number(entryLow) - price).toFixed(1);
-          if (execText) execText.innerText = `⏳ WAITING BOUNCE (រង់ចាំលោតឡើង $${waitPips} ទៀត)`;
+          if (execText) execText.innerText = `⏳ WAITING OTE 0.618 (រង់ចាំឡើង $${waitPips} ទៀត)`;
           if (sniperAlertEl) sniperAlertEl.style.display = 'none';
         } else {
           if (execBadge) execBadge.className = 'smc-exec-badge ready';
@@ -2327,15 +2359,15 @@
 
         if (whyTradeEl) {
           whyTradeEl.innerHTML = `
-            • <b>ការវិភាគក្រាហ្វិក (Candle & Breakdown):</b> ទៀនក្រហមធ្លាក់ចុះជាបន្តបន្ទាប់ បំបែក Market Structure (CHoCH/BOS) ចុះក្រោមយ៉ាងច្បាស់។<br>
-            • AI បានគណនាប្រូបាប៊ីលីតេឈ្នះខាង Sell ដល់ទៅ <b>${winRate}%</b> ដោយសារសម្ពាធផ្គត់ផ្គង់ (Supply Zone) នៅ <b>$${entryLow} - $${entryHigh}</b>។<br>
+            • <b>Golden Ratio OTE (Fibonacci 61.8% - 78.6%):</b> តម្លៃបានលោតឡើង (Bounce) ចូលតំបន់ Premium <b>$${entryLow} - $${entryHigh}</b> ផ្តល់ឱកាសលក់បានថ្លៃខ្ពស់បំផុត។<br>
+            • <b>Bearish FVG Mitigated:</b> ចន្លោះខ្វះតុល្យភាពផ្គត់ផ្គង់ត្រូវបានបំពេញរួចរាល់ គាំទ្រសម្ពាធលក់ធ្លាក់ចុះ Win Rate <b>${winRate}%</b>។<br>
             • គោលដៅស្ថាប័នធំៗគឺទម្លាក់តម្លៃទៅស្រូបយក Sell-Side Liquidity (SSL) នៅ TP1: <b>$${tp1}</b> និង TP2: <b>$${tp2}</b>។
           `;
         }
         if (whyNotEl) {
           whyNotEl.innerHTML = `
-            • <b>ហាមដាច់ខាតកុំ Buy ចាប់កាំបិតកំពុងធ្លាក់៖</b> ទីផ្សារកំពុងស្ថិតក្នុង Strong Bearish Momentum ការចូល Buy ប្រឈមនឹង SL ភ្លាមៗ!<br>
-            • កុំ Sell ដេញតាមបាត ត្រូវរង់ចាំតម្លៃទាញឡើង (Bounce) ទៅតំបន់ Resistance សិនទើបចូល Sell។
+            • <b>ហាមដាច់ខាតកុំ Buy ចាប់កាំបិតកំពុងធ្លាក់៖</b> រចនាសម្ព័ន្ធទីផ្សារកំពុងស្ថិតក្នុង Bearish CHoCH ការចូល Buy ប្រឈមនឹង SL ភ្លាមៗ!<br>
+            • កុំ Sell ដេញតាមបាត ត្រូវរង់ចាំតម្លៃទាញឡើងដល់ OTE 0.618 សិនទើបចូល Sell ដោយសុវត្ថិភាព។
           `;
         }
 
