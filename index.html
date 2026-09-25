@@ -556,6 +556,178 @@
       transform: scale(0.98);
     }
 
+    /* Personalized Auto-Lot Card in SMC Tab */
+    .auto-lot-card {
+      background: linear-gradient(135deg, rgba(20, 26, 42, 0.95) 0%, rgba(12, 16, 26, 0.98) 100%);
+      border: 1px solid rgba(255, 215, 0, 0.25);
+      border-radius: 16px;
+      padding: 14px;
+      margin-top: 14px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 215, 0, 0.15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .auto-lot-card::before {
+      content: "";
+      position: absolute;
+      top: -30px;
+      right: -30px;
+      width: 100px;
+      height: 100px;
+      background: radial-gradient(circle, rgba(255, 215, 0, 0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .auto-lot-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .auto-lot-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #FFF;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .auto-lot-badge {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(255, 215, 0, 0.15);
+      color: var(--gold);
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      letter-spacing: 0.5px;
+    }
+
+    .auto-lot-inputs-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .auto-input-group {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+
+    .auto-input-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .auto-balance-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .auto-balance-input-wrap span {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--gold);
+    }
+
+    .auto-balance-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 800;
+      color: #FFF;
+    }
+
+    .auto-risk-selector {
+      display: flex;
+      gap: 4px;
+    }
+
+    .auto-risk-btn {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 2px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .auto-risk-btn.active {
+      background: var(--gold);
+      color: #000;
+      border-color: var(--gold);
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+    }
+
+    .auto-preset-chips {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .auto-chip {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 2px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+
+    .auto-chip:hover, .auto-chip.active {
+      background: rgba(255, 215, 0, 0.15);
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .auto-lot-result-box {
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.08) 0%, rgba(0, 230, 118, 0.06) 100%);
+      border: 1.5px solid rgba(255, 215, 0, 0.4);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .auto-lot-calc-val {
+      font-size: 24px;
+      font-weight: 900;
+      color: var(--gold);
+      letter-spacing: 0.5px;
+      text-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+    }
+
+    .auto-lot-calc-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
     /* TradingView Tab Styling */
     .tv-container {
       background: var(--card-bg);
@@ -826,6 +998,66 @@
       <div class="reason-box" style="border-left: 2px solid var(--bear);" id="smcWhyNot">
         • ការចូល Buy នៅចំណុចនេះមានហានិភ័យខ្ពស់ខ្លាំង ដោយសារគ្មានទម្រង់ Bottom Reversal ច្បាស់លាស់។<br>
         • សម្ពាធលក់កំពុងគ្របដណ្តប់ ការ Buy អាចប្រឈមនឹងការទម្លុះ Support និងជាប់អន្ទាក់ស្ថាប័នធំៗ!
+      </div>
+    </div>
+
+    <!-- Personalized Auto-Lot Size Recommendation based on Stop Loss Distance -->
+    <div class="auto-lot-card" id="autoLotCard">
+      <div class="auto-lot-header">
+        <div class="auto-lot-title">
+          <span>🧮</span> ម៉ាស៊ីនគណនា Lot ស្វ័យប្រវត្តិតាមដើមទុន
+        </div>
+        <div class="auto-lot-badge">PERSONALIZED AUTO-LOT</div>
+      </div>
+
+      <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.5;">
+        AI យកចម្ងាយ Stop Loss នៃ Setup SMC មកគណនាទំហំ Lot សមស្របភ្លាមៗតាមដើមទុនផ្ទាល់ខ្លួន៖
+      </div>
+
+      <!-- Quick Preset Capital Chips -->
+      <div class="auto-preset-chips">
+        <button class="auto-chip" onclick="setAutoBalance(500)">$500</button>
+        <button class="auto-chip active" id="chipBal1000" onclick="setAutoBalance(1000)">$1,000</button>
+        <button class="auto-chip" id="chipBal2000" onclick="setAutoBalance(2000)">$2,000</button>
+        <button class="auto-chip" onclick="setAutoBalance(10000)">$10,000</button>
+      </div>
+
+      <!-- Inputs: Capital & Risk % -->
+      <div class="auto-lot-inputs-row">
+        <div class="auto-input-group">
+          <div class="auto-input-label">💰 ដើមទុនគណនី ($)</div>
+          <div class="auto-balance-input-wrap">
+            <span>$</span>
+            <input type="number" id="autoBalInput" class="auto-balance-input" value="1000" min="50" step="50" oninput="onAutoBalChange(this.value)">
+          </div>
+        </div>
+
+        <div class="auto-input-group">
+          <div class="auto-input-label">🛡️ កម្រិត RISK %</div>
+          <div class="auto-risk-selector">
+            <button class="auto-risk-btn active" id="btnAutoRisk1" onclick="setAutoRisk(1.0)">1.0%</button>
+            <button class="auto-risk-btn" id="btnAutoRisk2" onclick="setAutoRisk(2.0)">2.0%</button>
+            <button class="auto-risk-btn" id="btnAutoRisk3" onclick="setAutoRisk(3.0)">3.0%</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Calculated Lot Size Output -->
+      <div class="auto-lot-result-box">
+        <div>
+          <div style="font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">
+            ទំហំ Lot ណែនាំ (Recommended Lot)
+          </div>
+          <div class="auto-lot-calc-val" id="autoRecommendedLot">0.06 LOT</div>
+          <div class="auto-lot-calc-sub" id="autoLotDetail">
+            ដើមទុន <span style="color:#FFF;">$1,000</span> | Risk 1% = <span style="color:var(--bear);">-$10.00</span> | SL: <span style="color:var(--gold);" id="autoLotSLText">$16.50 (165 Pips)</span>
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 10px; font-weight: 700; color: var(--bull);">🎯 TP1 REWARD</div>
+          <div style="font-size: 16px; font-weight: 800; color: var(--bull);" id="autoTpReward">+$15.00</div>
+          <div style="font-size: 9px; color: var(--text-muted); margin-top: 2px;">(R:R ~ 1:1.5+)</div>
+        </div>
       </div>
     </div>
 
@@ -1635,13 +1867,104 @@
           }
         }
       }
+
+      // Update current dynamic SL distance for Auto-Lot Calculator
+      const dynamicSLVal = Math.abs(price - Number(sl));
+      currentSMC_SLDistance = dynamicSLVal > 1.0 ? dynamicSLVal : 10.0;
+      updateAutoLotWidget();
     }
 
     // Initial fetch and auto-refresh every 3.5 seconds
     updateLivePrice();
     setInterval(updateLivePrice, 3500);
 
-    // LOT CALCULATOR LOGIC
+    // ==========================================
+    // PERSONALIZED AUTO-LOT CALCULATION LOGIC
+    // ==========================================
+    let currentSMC_SLDistance = 12.0; // Dynamic SL distance in $
+    let autoCapital = 1000;
+    let autoRiskPct = 1.0;
+
+    // Load saved preferences if available
+    try {
+      const savedBal = localStorage.getItem('xauusd_auto_capital');
+      if (savedBal && Number(savedBal) > 0) {
+        autoCapital = Number(savedBal);
+        const inputEl = document.getElementById('autoBalInput');
+        if (inputEl) inputEl.value = autoCapital;
+      }
+      const savedRisk = localStorage.getItem('xauusd_auto_risk');
+      if (savedRisk && Number(savedRisk) > 0) {
+        autoRiskPct = Number(savedRisk);
+      }
+    } catch(e) {}
+
+    function updateAutoLotWidget() {
+      const slDist = currentSMC_SLDistance > 0.5 ? currentSMC_SLDistance : 10.0;
+      const riskUsd = autoCapital * (autoRiskPct / 100.0);
+      
+      // XAU/USD Lot Formula: 1 Standard Lot ($100 / $1.00 move)
+      // Lot = Risk_USD / (SL_Distance_USD * 100)
+      const rawLot = riskUsd / (slDist * 100.0);
+      let calcLot = Math.round(rawLot * 100.0) / 100.0;
+      if (calcLot < 0.01) calcLot = 0.01;
+
+      const lotEl = document.getElementById('autoRecommendedLot');
+      if (lotEl) lotEl.innerText = `${calcLot.toFixed(2)} LOT`;
+
+      const slPips = Math.round(slDist * 10);
+      const detailEl = document.getElementById('autoLotDetail');
+      if (detailEl) {
+        detailEl.innerHTML = `ដើមទុន <span style="color:#FFF;">$${autoCapital.toLocaleString()}</span> | Risk ${autoRiskPct.toFixed(1)}% = <span style="color:var(--bear);">-$${riskUsd.toFixed(2)}</span> | SL: <span style="color:var(--gold);">$${slDist.toFixed(2)} (${slPips} Pips)</span>`;
+      }
+
+      const tpRewardEl = document.getElementById('autoTpReward');
+      if (tpRewardEl) {
+        const tpReward = riskUsd * 1.5;
+        tpRewardEl.innerText = `+$${tpReward.toFixed(2)}`;
+      }
+
+      // Sync active state of chips
+      const chip1000 = document.getElementById('chipBal1000');
+      const chip2000 = document.getElementById('chipBal2000');
+      if (chip1000) chip1000.classList.toggle('active', autoCapital === 1000);
+      if (chip2000) chip2000.classList.toggle('active', autoCapital === 2000);
+
+      // Sync active state of risk buttons
+      const btnR1 = document.getElementById('btnAutoRisk1');
+      const btnR2 = document.getElementById('btnAutoRisk2');
+      const btnR3 = document.getElementById('btnAutoRisk3');
+      if (btnR1) btnR1.classList.toggle('active', autoRiskPct === 1.0);
+      if (btnR2) btnR2.classList.toggle('active', autoRiskPct === 2.0);
+      if (btnR3) btnR3.classList.toggle('active', autoRiskPct === 3.0);
+    }
+
+    function setAutoBalance(val) {
+      autoCapital = Number(val);
+      const inputEl = document.getElementById('autoBalInput');
+      if (inputEl) inputEl.value = autoCapital;
+      try { localStorage.setItem('xauusd_auto_capital', autoCapital); } catch(e) {}
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+      updateAutoLotWidget();
+    }
+
+    function onAutoBalChange(val) {
+      const num = Number(val);
+      if (num && num > 0) {
+        autoCapital = num;
+        try { localStorage.setItem('xauusd_auto_capital', autoCapital); } catch(e) {}
+        updateAutoLotWidget();
+      }
+    }
+
+    function setAutoRisk(pct) {
+      autoRiskPct = Number(pct);
+      try { localStorage.setItem('xauusd_auto_risk', autoRiskPct); } catch(e) {}
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+      updateAutoLotWidget();
+    }
+
+    // LOT CALCULATOR LOGIC (Tab 3)
     let balance = 1000;
     let riskPct = 1.0;
     let slDistance = 10.0;
