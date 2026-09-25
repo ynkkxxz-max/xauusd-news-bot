@@ -123,6 +123,28 @@
       font-weight: 700;
       color: #FFF;
       font-variant-numeric: tabular-nums;
+      transition: color 0.25s, text-shadow 0.25s;
+    }
+
+    .live-price.flash-up {
+      color: #00E676 !important;
+      text-shadow: 0 0 12px rgba(0, 230, 118, 0.8);
+    }
+
+    .live-price.flash-down {
+      color: #FF3366 !important;
+      text-shadow: 0 0 12px rgba(255, 51, 102, 0.8);
+    }
+
+    .ws-badge {
+      font-size: 9px;
+      font-weight: 800;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: rgba(0, 230, 118, 0.15);
+      color: #00E676;
+      border: 1px solid rgba(0, 230, 118, 0.3);
+      letter-spacing: 0.3px;
     }
 
     .refresh-btn {
@@ -930,8 +952,8 @@
 
   <div class="live-pill">
     <div class="live-label">
-      <span class="pulse"></span>
-      Spot XAU/USD (Live Feed)
+      <span class="pulse" id="wsPulse"></span>
+      Spot XAU/USD <span class="ws-badge" id="wsStatusBadge">⚡ WS LIVE</span>
     </div>
     <div style="display: flex; align-items: center; gap: 8px;">
       <div class="live-price" id="livePrice">$4,284.00</div>
@@ -1333,9 +1355,100 @@
     // Switch to initial tab
     switchTab(initialTab);
 
-    // Dynamic Live Gold Price with Multi-Feed Interbank Fallbacks
+    // Dynamic Live Gold Price with Ultra-Fast WebSocket & Multi-Feed Fallbacks
     let currentLivePrice = 4284.0;
     let isFetchingPrice = false;
+    let wsConnection = null;
+    let wsReconnectTimer = null;
+    let lastRenderedPrice = 0;
+
+    // Millisecond-Precision Real-Time WebSocket Engine
+    function initWebSocketPriceFeed() {
+      const badge = document.getElementById('wsStatusBadge');
+      const pulse = document.getElementById('wsPulse');
+      
+      try {
+        if (wsConnection) {
+          try { wsConnection.close(); } catch(e) {}
+        }
+
+        // Binance Spot WebSocket stream for PAXG/USDT (1:1 Troy Ounce Gold)
+        // Provides real-time aggTrade and ticker events directly in milliseconds!
+        wsConnection = new WebSocket('wss://stream.binance.com:9443/ws/paxgusdt@ticker');
+
+        wsConnection.onopen = () => {
+          if (badge) {
+            badge.innerText = '⚡ WS LIVE';
+            badge.style.background = 'rgba(0, 230, 118, 0.15)';
+            badge.style.borderColor = 'rgba(0, 230, 118, 0.4)';
+            badge.style.color = '#00E676';
+          }
+          if (pulse) pulse.style.background = '#00E676';
+        };
+
+        wsConnection.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            // 'c' is the latest close/current trade price in Binance ticker
+            const liveTick = parseFloat(data.c || data.p);
+            if (liveTick && liveTick > 1000) {
+              onPriceTickReceived(liveTick);
+            }
+          } catch(err) {}
+        };
+
+        wsConnection.onerror = () => {
+          if (badge) {
+            badge.innerText = '🔄 POLLING';
+            badge.style.background = 'rgba(255, 215, 0, 0.15)';
+            badge.style.borderColor = 'rgba(255, 215, 0, 0.4)';
+            badge.style.color = 'var(--gold)';
+          }
+        };
+
+        wsConnection.onclose = () => {
+          // Auto-reconnect after 3 seconds
+          clearTimeout(wsReconnectTimer);
+          wsReconnectTimer = setTimeout(initWebSocketPriceFeed, 3000);
+        };
+
+      } catch (err) {
+        // Fallback to HTTP polling if WebSockets are blocked
+        updateLivePrice();
+      }
+    }
+
+    // Handles individual real-time ticks with flash visual feedback
+    let dynamicSMCThrottleTimer = null;
+    function onPriceTickReceived(newPrice) {
+      const priceEl = document.getElementById('livePrice');
+      if (priceEl && newPrice !== lastRenderedPrice) {
+        // Flash Green if price goes up, Red if price goes down
+        if (lastRenderedPrice > 0) {
+          priceEl.classList.remove('flash-up', 'flash-down');
+          if (newPrice > lastRenderedPrice) {
+            priceEl.classList.add('flash-up');
+          } else if (newPrice < lastRenderedPrice) {
+            priceEl.classList.add('flash-down');
+          }
+          setTimeout(() => {
+            if (priceEl) priceEl.classList.remove('flash-up', 'flash-down');
+          }, 350);
+        }
+
+        lastRenderedPrice = newPrice;
+        currentLivePrice = newPrice;
+        priceEl.innerText = '$' + newPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+      }
+
+      // Smooth throttle updateDynamicSMC so DOM doesn't stutter on high-frequency ticks
+      if (!dynamicSMCThrottleTimer) {
+        dynamicSMCThrottleTimer = setTimeout(() => {
+          updateDynamicSMC(newPrice);
+          dynamicSMCThrottleTimer = null;
+        }, 300);
+      }
+    }
 
     async function updateLivePrice() {
       if (isFetchingPrice) return;
@@ -1345,7 +1458,7 @@
       // Feed 1: Gold-API Spot
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
         const res = await fetch('https://api.gold-api.com/price/XAU', { signal: controller.signal });
         clearTimeout(timeoutId);
         const data = await res.json();
@@ -1360,43 +1473,34 @@
       if (!fetchedPrice) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          const timeoutId = setTimeout(() => controller.abort(), 3500);
           const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT', { signal: controller.signal });
           clearTimeout(timeoutId);
           const data = await res.json();
           if (data && data.price && Number(data.price) > 1000) {
             fetchedPrice = parseFloat(data.price);
           }
-        } catch (e) {
-          // Fallback to CoinGecko
-        }
+        } catch (e) {}
       }
 
       // Feed 3: CoinGecko Tether Gold (XAUT)
       if (!fetchedPrice) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          const timeoutId = setTimeout(() => controller.abort(), 3500);
           const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether-gold&vs_currencies=usd', { signal: controller.signal });
           clearTimeout(timeoutId);
           const data = await res.json();
           if (data && data['tether-gold'] && data['tether-gold'].usd) {
             fetchedPrice = parseFloat(data['tether-gold'].usd);
           }
-        } catch (e) {
-          // Keep current price
-        }
+        } catch (e) {}
       }
 
       isFetchingPrice = false;
 
       if (fetchedPrice && fetchedPrice > 0) {
-        currentLivePrice = fetchedPrice;
-        const priceEl = document.getElementById('livePrice');
-        if (priceEl) {
-          priceEl.innerText = '$' + fetchedPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        }
-        updateDynamicSMC(fetchedPrice);
+        onPriceTickReceived(fetchedPrice);
       }
     }
 
@@ -1408,6 +1512,8 @@
         tg.HapticFeedback.impactOccurred('medium');
       }
 
+      // Reconnect WebSocket or poll
+      initWebSocketPriceFeed();
       updateLivePrice().finally(() => {
         setTimeout(() => {
           if (icon) icon.classList.remove('spin');
@@ -1974,9 +2080,15 @@
       updateAutoLotWidget();
     }
 
-    // Initial fetch and auto-refresh every 3.5 seconds
+    // Initialize Millisecond WebSocket Feed immediately
+    initWebSocketPriceFeed();
     updateLivePrice();
-    setInterval(updateLivePrice, 3500);
+    // Safety fallback interval every 10 seconds (only if WS dropped)
+    setInterval(() => {
+      if (!wsConnection || wsConnection.readyState !== WebSocket.OPEN) {
+        updateLivePrice();
+      }
+    }, 10000);
 
     // ==========================================
     // PERSONALIZED AUTO-LOT CALCULATION LOGIC
