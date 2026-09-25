@@ -1630,9 +1630,13 @@
       }
     }
 
+    // Real-Time Heartbeat Tracker
+    let lastPriceTimestamp = Date.now();
+
     // Handles individual real-time ticks with flash visual feedback
     let dynamicSMCThrottleTimer = null;
     function onPriceTickReceived(newPrice) {
+      lastPriceTimestamp = Date.now(); // Reset heartbeat on every tick
       const priceEl = document.getElementById('livePrice');
       if (priceEl && newPrice !== lastRenderedPrice) {
         // Flash Green if price goes up, Red if price goes down
@@ -1662,49 +1666,74 @@
       }
     }
 
+    // ========================================================
+    // TRIPLE-STREAM MULTI-CDN DATA FEEDS (NEVER STUCK ENGINE)
+    // ========================================================
     async function updateLivePrice() {
       if (isFetchingPrice) return;
       isFetchingPrice = true;
       let fetchedPrice = null;
 
-      // Feed 1: Gold-API Spot
+      // Feed 1: Swissquote Institutional Bullion Bank (Interbank Spot Feed)
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3500);
-        const res = await fetch('https://api.gold-api.com/price/XAU', { signal: controller.signal });
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        const res = await fetch('https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/XAU/USD', { signal: controller.signal });
         clearTimeout(timeoutId);
-        const data = await res.json();
-        if (data && data.price && Number(data.price) > 1000) {
-          fetchedPrice = parseFloat(data.price);
+        if (res.ok) {
+          const quotes = await res.json();
+          if (quotes && quotes[0] && quotes[0].spreadProfilePrices && quotes[0].spreadProfilePrices[0]) {
+            const p = quotes[0].spreadProfilePrices[0];
+            const mid = (parseFloat(p.bid) + parseFloat(p.ask)) / 2.0;
+            if (mid > 1000) fetchedPrice = mid;
+          }
         }
-      } catch (e) {
-        // Fallback to secondary feeds
-      }
+      } catch (e) {}
 
-      // Feed 2: Binance PAXG/USDT (Gold-backed 1:1 spot token)
+      // Feed 2: Gold-API Aggregated Spot (Sub-second global CDN)
       if (!fetchedPrice) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 3500);
-          const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT', { signal: controller.signal });
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
+          const res = await fetch('https://api.gold-api.com/price/XAU', { signal: controller.signal });
           clearTimeout(timeoutId);
-          const data = await res.json();
-          if (data && data.price && Number(data.price) > 1000) {
-            fetchedPrice = parseFloat(data.price);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.price && Number(data.price) > 1000) {
+              fetchedPrice = parseFloat(data.price);
+            }
           }
         } catch (e) {}
       }
 
-      // Feed 3: CoinGecko Tether Gold (XAUT)
+      // Feed 3: Binance PAXG/USDT (1:1 Troy Ounce Gold)
       if (!fetchedPrice) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 3500);
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
+          const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT', { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.price && Number(data.price) > 1000) {
+              fetchedPrice = parseFloat(data.price);
+            }
+          }
+        } catch (e) {}
+      }
+
+      // Feed 4: CoinGecko Tether Gold (XAUT) Spot Reserve
+      if (!fetchedPrice) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
           const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether-gold&vs_currencies=usd', { signal: controller.signal });
           clearTimeout(timeoutId);
-          const data = await res.json();
-          if (data && data['tether-gold'] && data['tether-gold'].usd) {
-            fetchedPrice = parseFloat(data['tether-gold'].usd);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data['tether-gold'] && data['tether-gold'].usd) {
+              fetchedPrice = parseFloat(data['tether-gold'].usd);
+            }
           }
         } catch (e) {}
       }
@@ -2498,16 +2527,23 @@
     // Initialize Millisecond WebSocket Feed immediately
     initWebSocketPriceFeed();
     updateLivePrice();
-    // Safety fallback interval every 3 seconds (guarantees fresh data even if mobile carrier drops WS)
+
+    // ========================================================
+    // HEARTBEAT CONNECTION PULSE (Checks every 2s, Auto-Force Refresh > 4s)
+    // ========================================================
     setInterval(() => {
-      if (!wsConnection || wsConnection.readyState !== WebSocket.OPEN) {
+      const now = Date.now();
+      const timeSinceLastTick = now - lastPriceTimestamp;
+      
+      // If WebSocket dropped OR if no tick received for more than 4 seconds, FORCE REFRESH immediately!
+      if (!wsConnection || wsConnection.readyState !== WebSocket.OPEN || timeSinceLastTick >= 4000) {
         updateLivePrice();
       }
-    }, 3000);
+    }, 2000);
 
-    // Initial fetch and regular polling for Order Book Liquidity Radar (every 6s)
+    // Initial fetch and regular polling for Order Book Liquidity Radar (every 5s)
     fetchLiveOrderBookRadar();
-    setInterval(fetchLiveOrderBookRadar, 6000);
+    setInterval(fetchLiveOrderBookRadar, 5000);
 
     // ==========================================
     // PERSONALIZED AUTO-LOT CALCULATION LOGIC
