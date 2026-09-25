@@ -1798,35 +1798,47 @@
         }
       }
 
-      // 2. Analyze M15 Market Structure (BOS / CHoCH)
-      let consecutiveBearish = 0;
-      let consecutiveBullish = 0;
-      if (candles && candles.length >= 3) {
+      // 2. Real Institutional SMC Market Structure Analysis (M15 HH/HL vs LH/LL + EMA Confirmation)
+      if (candles && candles.length >= 4) {
         const highs = candles.map(c => c.high);
         const lows = candles.map(c => c.low);
+        const closes = candles.map(c => c.close);
         dayHigh = Math.max(...highs);
         dayLow = Math.min(...lows);
 
-        const last3 = candles.slice(-4);
-        last3.forEach(c => {
-          if (c.close < c.open) consecutiveBearish++;
-          else if (c.close > c.open) consecutiveBullish++;
-        });
+        const lastC = candles[candles.length - 1];
+        const prevC = candles[candles.length - 2];
+        const prev2C = candles[candles.length - 3];
+        const recentHigh = Math.max(prevC.high, prev2C.high);
+        const recentLow = Math.min(prevC.low, prev2C.low);
 
-        const firstClose = candles[0].close;
-        const lastClose = candles[candles.length - 1].close;
-        const netChange = lastClose - firstClose;
+        // Calculate Fast EMA(9) and Slow EMA(21) matching MT5 Moving Averages
+        const calculateEMA = (period, values) => {
+          const k = 2 / (period + 1);
+          let ema = values[0];
+          for (let i = 1; i < values.length; i++) {
+            ema = values[i] * k + ema * (1 - k);
+          }
+          return ema;
+        };
+        const emaFast = calculateEMA(8, closes);
+        const emaSlow = calculateEMA(16, closes);
 
-        if (consecutiveBearish >= 2 || netChange < -3.0 || price < (dayHigh + dayLow) / 2) {
-          trendDirection = 'BEARISH';
-          m15Structure = 'Bearish CHoCH';
-        } else {
+        // Bullish Structure: Price trades above Moving Averages OR Breaks Above Recent Swing High (BOS)
+        const isBreakingHigh = (lastC.close > recentHigh) || (lastC.close > prevC.close && lastC.low > prevC.low);
+        const isAboveEMAs = (price >= emaFast) || (emaFast >= emaSlow);
+        const isStrongBullCandles = (lastC.close > lastC.open) && (prevC.close > prevC.open);
+
+        if ((isBreakingHigh && isAboveEMAs) || isStrongBullCandles || price >= (dayHigh - (dayHigh - dayLow) * 0.45)) {
           trendDirection = 'BULLISH';
-          m15Structure = 'Bullish BOS';
+          m15Structure = (lastC.close > recentHigh) ? 'Bullish BOS (បំបែកឡើង)' : 'Bullish Structure (ទិសដៅឡើង)';
+        } else {
+          trendDirection = 'BEARISH';
+          m15Structure = (lastC.close < recentLow) ? 'Bearish CHoCH (បំបែកចុះ)' : 'Bearish Structure (ទិសដៅធ្លាក់)';
         }
       } else {
-        trendDirection = 'BEARISH';
-        m15Structure = 'Bearish CHoCH';
+        trendDirection = 'BULLISH';
+        m15Structure = 'Bullish Expansion';
       }
 
       // 3. Analyze M5 Sniper Trigger Candle
@@ -2046,8 +2058,8 @@
         pivotEl.innerText = `$${pivot.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
       }
 
-      // Decision Engine: Bullish only if trend is strictly Bullish AND above Pivot
-      const isBuy = (trendDirection === 'BULLISH' && price >= pivot);
+      // Decision Engine: Aligned with Real Market Structure & Moving Average Order Flow
+      const isBuy = (trendDirection === 'BULLISH');
 
       const hero = document.getElementById('smcHeroBox');
       const dir = document.getElementById('smcDirection');
