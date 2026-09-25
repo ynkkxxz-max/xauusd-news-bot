@@ -282,21 +282,49 @@ class MacroAnalyzer:
                     elif m5_cur_c > m5_cur_o and m5_cur_c > max(m5_prev_o, m5_prev_c):
                         bull_score += 2
                         mtf_summary.append("⚡ M5: Bullish Engulfing")
+
+            # 4. Liquidity Sweep Detection (Stop Hunt / Fakeout filter)
+            if r_m15.status_code == 200 and len(m15_data) >= 2:
+                prev_high = float(m15_data[-2][2])
+                prev_low = float(m15_data[-2][3])
+                cur_high = float(m15_data[-1][2])
+                cur_low = float(m15_data[-1][3])
+                cur_close = float(m15_data[-1][4])
+
+                if cur_high > prev_high and cur_close < prev_high:
+                    bear_score += 3
+                    mtf_summary.append("🛡️ BSL Sweep (Bearish Reversal)")
+                elif cur_low < prev_low and cur_close > prev_low:
+                    bull_score += 3
+                    mtf_summary.append("🛡️ SSL Sweep (Bullish Reversal)")
+
+            # 5. Session Killzone Edge (Cambodia Time UTC+7)
+            from datetime import datetime, timezone, timedelta
+            kh_now = datetime.now(timezone(timedelta(hours=7)))
+            kh_hour = kh_now.hour
+            if (14 <= kh_hour < 18) or (19 <= kh_hour <= 23):
+                session_label = "London Killzone 🔥" if kh_hour < 18 else "NY Killzone 🚀"
+                mtf_summary.append(f"⏰ {session_label} (High Volume Edge)")
+                bull_score += 1
+                bear_score += 1
+
         except Exception:
             pass
 
         if mtf_summary:
-            confluences.append("ផ្ទៀងផ្ទាត់ Multi-Timeframe: " + " | ".join(mtf_summary))
+            confluences.append("ផ្ទៀងផ្ទាត់ Institutional Multi-Confluence: " + " | ".join(mtf_summary))
 
         # Final Deterministic Decision
         is_buy = bull_score >= bear_score
         total_signals = max(bull_score, bear_score)
         
-        # Triple Confluence boost up to 95%
-        if len(mtf_summary) >= 3 and ((is_buy and bull_score > bear_score + 3) or (not is_buy and bear_score > bull_score + 3)):
-            confidence_pct = min(95, 92 + (total_signals % 3))
+        # Institutional High Confluence boost up to 96%
+        if len(mtf_summary) >= 4 and ((is_buy and bull_score > bear_score + 2) or (not is_buy and bear_score > bull_score + 2)):
+            confidence_pct = min(96, 94 + (total_signals % 3))
+        elif len(mtf_summary) >= 3:
+            confidence_pct = min(92, 88 + (total_signals % 4))
         else:
-            confidence_pct = min(91, 84 + (total_signals * 2))
+            confidence_pct = min(87, 82 + (total_signals * 2))
 
         if is_buy:
             # Smart Institutional Pullback / Retracement Entry:
