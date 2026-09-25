@@ -991,6 +991,116 @@
       color: #00E676;
     }
 
+    /* Institutional Session Volume Clock Styles */
+    .session-clock-card {
+      background: linear-gradient(135deg, rgba(16, 24, 40, 0.95) 0%, rgba(10, 14, 25, 0.98) 100%);
+      border: 1px solid rgba(255, 215, 0, 0.25);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 14px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .session-clock-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .session-clock-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #FFF;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .session-surge-badge {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(255, 51, 102, 0.15);
+      color: #FF3366;
+      border: 1px solid rgba(255, 51, 102, 0.35);
+      letter-spacing: 0.3px;
+    }
+
+    .session-surge-badge.high {
+      background: rgba(0, 230, 118, 0.15);
+      color: #00E676;
+      border-color: rgba(0, 230, 118, 0.4);
+      animation: readyPulse 1.5s infinite;
+    }
+
+    .session-timeline-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .session-node {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 8px 6px;
+      text-align: center;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .session-node.active {
+      background: rgba(255, 215, 0, 0.1);
+      border-color: var(--gold);
+      box-shadow: 0 0 12px rgba(255, 215, 0, 0.25);
+    }
+
+    .session-node.active.overlap {
+      background: rgba(0, 230, 118, 0.12);
+      border-color: #00E676;
+      box-shadow: 0 0 15px rgba(0, 230, 118, 0.35);
+    }
+
+    .session-node-name {
+      font-size: 11px;
+      font-weight: 800;
+      color: #FFF;
+      margin-bottom: 2px;
+    }
+
+    .session-node-time {
+      font-size: 9px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .session-node-vol {
+      font-size: 10px;
+      font-weight: 800;
+      display: inline-block;
+      padding: 2px 5px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .session-alert-box {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
     /* Personalized Auto-Lot Card in SMC Tab */
     .auto-lot-card {
       background: linear-gradient(135deg, rgba(20, 26, 42, 0.95) 0%, rgba(12, 16, 26, 0.98) 100%);
@@ -1508,6 +1618,52 @@
       <div class="zone-row">
         <div class="zone-tag"><span style="color: var(--gold);">🎯</span> Pivot Point</div>
         <div class="zone-val" id="smcPivot">$4,275.30</div>
+      </div>
+    </div>
+
+    <!-- ⚡ INSTITUTIONAL SESSION VOLUME CLOCK (BREAKOUT SURGE RADAR) -->
+    <div class="session-clock-card">
+      <div class="session-clock-header">
+        <div class="session-clock-title">
+          <span>⚡</span> Institutional Session Clock (ម៉ោង Volume មាស)
+        </div>
+        <span class="session-surge-badge high" id="sessionSurgeBadge">🔥 HIGH VOLATILITY SURGE</span>
+      </div>
+
+      <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
+        រ៉ាដាកំណត់ពេលវេលាស្ថាប័នធំៗបញ្ចេញទុនជួញដូរធំ (Breakout Sessions):
+      </div>
+
+      <!-- 3 Global Sessions Grid -->
+      <div class="session-timeline-grid">
+        <!-- 1. Asian Session -->
+        <div class="session-node" id="sessionNodeAsia">
+          <div class="session-node-name">🌏 Asian Session</div>
+          <div class="session-node-time">07:00 - 14:00 KH</div>
+          <span class="session-node-vol" id="sessionVolAsia" style="color: #FFB300;">💤 Low Vol</span>
+        </div>
+
+        <!-- 2. London Session -->
+        <div class="session-node" id="sessionNodeLondon">
+          <div class="session-node-name">🇬🇧 London Killzone</div>
+          <div class="session-node-time">14:00 - 22:00 KH</div>
+          <span class="session-node-vol" id="sessionVolLondon" style="color: #00E676;">⚡ High Vol</span>
+        </div>
+
+        <!-- 3. New York Session -->
+        <div class="session-node active overlap" id="sessionNodeNY">
+          <div class="session-node-name">🇺🇸 NY Overlap 🚀</div>
+          <div class="session-node-time">19:30 - 02:00 KH</div>
+          <span class="session-node-vol" id="sessionVolNY" style="color: #00E676;">🔥 Max Surge</span>
+        </div>
+      </div>
+
+      <!-- Actionable Trading Advice based on Current Session -->
+      <div class="session-alert-box">
+        <span style="font-size: 16px;" id="sessionAlertIcon">🚀</span>
+        <div id="sessionAdviceText">
+          <b>ម៉ោងមាសកម្រិតខ្ពស់ (London & NY Overlap):</b> សម្ពាធទិញ/លក់ស្ថាប័នធំៗខ្លាំងបំផុត — ទៀន M15 រត់លឿន ងាយស្រួលទម្លុះ Breakout ដល់ TP1/TP2 ឆាប់រហ័ស!
+        </div>
       </div>
     </div>
 
@@ -2590,6 +2746,59 @@
       const mtfStatusEl = document.getElementById('mtfStatus');
       const mtfScoreEl = document.getElementById('mtfConfluenceScore');
       const mtfExplEl = document.getElementById('mtfKhmerExpl');
+
+      // Update Institutional Session Volume Clock
+      const sessionNodeAsia = document.getElementById('sessionNodeAsia');
+      const sessionNodeLondon = document.getElementById('sessionNodeLondon');
+      const sessionNodeNY = document.getElementById('sessionNodeNY');
+      const sessionSurgeBadge = document.getElementById('sessionSurgeBadge');
+      const sessionAlertIcon = document.getElementById('sessionAlertIcon');
+      const sessionAdviceText = document.getElementById('sessionAdviceText');
+
+      if (sessionNodeAsia && sessionNodeLondon && sessionNodeNY) {
+        sessionNodeAsia.className = 'session-node';
+        sessionNodeLondon.className = 'session-node';
+        sessionNodeNY.className = 'session-node';
+
+        if (khHours >= 19 && khHours <= 23) {
+          // NY & London Overlap - Peak Volatility
+          sessionNodeLondon.className = 'session-node active';
+          sessionNodeNY.className = 'session-node active overlap';
+          if (sessionSurgeBadge) {
+            sessionSurgeBadge.className = 'session-surge-badge high';
+            sessionSurgeBadge.innerText = '🔥 HIGH VOLATILITY SURGE';
+          }
+          if (sessionAlertIcon) sessionAlertIcon.innerText = '🚀';
+          if (sessionAdviceText) sessionAdviceText.innerHTML = '<b>ម៉ោងមាសកម្រិតខ្ពស់ (London & NY Overlap):</b> សម្ពាធទិញ/លក់ស្ថាប័នធំៗខ្លាំងបំផុត — ទៀន M15 រត់លឿន ងាយស្រួលទម្លុះ Breakout ដល់ TP1/TP2 ឆាប់រហ័ស!';
+        } else if (khHours >= 14 && khHours < 19) {
+          // London Open
+          sessionNodeLondon.className = 'session-node active';
+          if (sessionSurgeBadge) {
+            sessionSurgeBadge.className = 'session-surge-badge high';
+            sessionSurgeBadge.innerText = '⚡ LONDON EXPANSION';
+          }
+          if (sessionAlertIcon) sessionAlertIcon.innerText = '⚡';
+          if (sessionAdviceText) sessionAdviceText.innerHTML = '<b>London Killzone៖</b> ស្ថាប័នអឺរ៉ុបចាប់ផ្តើមបង្កើតទម្រង់ Trend Breakout — ត្រៀមរង់ចាំ Retracement OTE ដើម្បីចូល!';
+        } else if (khHours >= 0 && khHours < 3) {
+          // NY Late / Close
+          sessionNodeNY.className = 'session-node active';
+          if (sessionSurgeBadge) {
+            sessionSurgeBadge.className = 'session-surge-badge';
+            sessionSurgeBadge.innerText = '🌙 NY CLOSING';
+          }
+          if (sessionAlertIcon) sessionAlertIcon.innerText = '🌙';
+          if (sessionAdviceText) sessionAdviceText.innerHTML = '<b>NY Close៖</b> ស្ថាប័នធំៗចាប់ផ្តើមបិទប្រាក់ចំណេញ (Profit Taking) — ទីផ្សារចាប់ផ្តើមថយចុះ Volume។';
+        } else {
+          // Asian Session
+          sessionNodeAsia.className = 'session-node active';
+          if (sessionSurgeBadge) {
+            sessionSurgeBadge.className = 'session-surge-badge';
+            sessionSurgeBadge.innerText = '💤 LOW VOLUME — WAIT';
+          }
+          if (sessionAlertIcon) sessionAlertIcon.innerText = '💤';
+          if (sessionAdviceText) sessionAdviceText.innerHTML = '<b>Asian Consolidation៖</b> ទីផ្សារស្ងប់ស្ងាត់ (Sideway) — ស្ថាប័នធំៗមិនទាន់បញ្ចេញ Order ធំឡើយ គួររង់ចាំម៉ោង London!';
+        }
+      }
 
       if (mtfScoreEl) {
         mtfScoreEl.innerText = `${confluenceCount}/6 កម្រិតផ្ទៀងផ្ទាត់`;
