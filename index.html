@@ -1819,6 +1819,9 @@
     </div>
     <div style="display: flex; align-items: center; gap: 8px;">
       <div class="live-price" id="livePrice">$4,284.00</div>
+      <button class="refresh-btn" id="btnAudioToggle" onclick="toggleCyberAudio()" title="Cyber HUD Sound Effects (On/Off)" style="background: rgba(0, 240, 255, 0.12); border-color: rgba(0, 240, 255, 0.35);">
+        <span id="audioIcon">🔊</span> <span id="audioStatusText">SFX</span>
+      </button>
       <button class="refresh-btn" id="btnRefresh" onclick="manualRefresh()" title="Refresh Live Data">
         <span id="refreshIcon">🔄</span> Update
       </button>
@@ -1831,11 +1834,25 @@
       <div style="display: flex; align-items: center; gap: 8px;">
         <span style="font-size: 20px;">🚨</span>
         <div>
-          <div style="font-size: 13px; font-weight: 800; color: #FF3366; letter-spacing: 0.5px;">⚠️ AI NEWS DANGER ZONE — NO TRADE!</div>
-          <div style="font-size: 11px; color: #FFF; margin-top: 2px;" id="newsDangerTitle">ព័ត៌មានធំជិតចេញ: CPI / NFP / FOMC</div>
+          <div style="font-size: 13px; font-weight: 800; color: #FF3366; letter-spacing: 0.5px;">⚠️ AI NEWS DANGER ZONE — RED ALERT (NO TRADE)!</div>
+          <div style="font-size: 11px; color: #FFF; margin-top: 2px;" id="newsDangerTitle">ព័ត៌មានយក្សជិតចេញ: CPI / NFP / FOMC (ហាមបើក Order ជៀសវាង Slippage)</div>
         </div>
       </div>
-      <span style="font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: #FF3366; color: #FFF;">PAUSED</span>
+      <span style="font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: #FF3366; color: #FFF;">LOCKED</span>
+    </div>
+  </div>
+
+  <!-- AI INSTITUTIONAL FAKEOUT / LIQUIDITY TRAP ALERT BANNER -->
+  <div id="trapAlertBanner" style="display: none; margin-bottom: 14px; padding: 12px 14px; border-radius: 12px; background: linear-gradient(135deg, rgba(255, 179, 0, 0.25) 0%, rgba(20, 15, 5, 0.95) 100%); border: 1.5px solid #FFB300; box-shadow: 0 0 20px rgba(255, 179, 0, 0.4); animation: pulseDanger 2.5s infinite;">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 20px;" id="trapIcon">🪤</span>
+        <div>
+          <div style="font-size: 13px; font-weight: 800; color: #FFB300; letter-spacing: 0.5px;" id="trapTitle">⚠️ AI FAKEOUT / TRAP DETECTED!</div>
+          <div style="font-size: 11px; color: #FFF; margin-top: 2px;" id="trapDesc">ស្ថាប័នធំៗដាក់នុយបញ្ឆោត (Liquidity Trap) កុំចាញ់បោកទីផ្សារ!</div>
+        </div>
+      </div>
+      <span style="font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: #FFB300; color: #000;" id="trapBadge">TRAP</span>
     </div>
   </div>
 
@@ -2615,13 +2632,113 @@
       tg.enableClosingConfirmation();
     }
 
+    // ========================================================
+    // 🎧 CYBER HUD SOUND EFFECTS SYNTHESIZER (WEB AUDIO API)
+    // ========================================================
+    let isCyberAudioEnabled = true;
+    let audioCtx = null;
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function toggleCyberAudio() {
+      isCyberAudioEnabled = !isCyberAudioEnabled;
+      const icon = document.getElementById('audioIcon');
+      const text = document.getElementById('audioStatusText');
+      const btn = document.getElementById('btnAudioToggle');
+      if (tg && tg.HapticFeedback) {
+        tg.HapticFeedback.impactOccurred('medium');
+      }
+      if (isCyberAudioEnabled) {
+        playCyberSound('beep');
+        if (icon) icon.innerText = '🔊';
+        if (text) text.innerText = 'SFX ON';
+        if (btn) btn.style.background = 'rgba(0, 240, 255, 0.2)';
+      } else {
+        if (icon) icon.innerText = '🔇';
+        if (text) text.innerText = 'SFX OFF';
+        if (btn) btn.style.background = 'rgba(255, 255, 255, 0.05)';
+      }
+    }
+
+    function playCyberSound(type) {
+      if (!isCyberAudioEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (type === 'tab') {
+          // Hollywood Sci-Fi Tab Switch Bleep (Laser Pulse: 880Hz -> 1320Hz)
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(880, now);
+          osc.frequency.exponentialRampToValueAtTime(1320, now + 0.08);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+          osc.start(now);
+          osc.stop(now + 0.09);
+        } else if (type === 'sniper') {
+          // Hollywood Tactical Sniper Lock-On Double High-Tech Chime
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(1046.5, now); // C6
+          osc.frequency.setValueAtTime(1567.98, now + 0.07); // G6
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+          osc.start(now);
+          osc.stop(now + 0.22);
+        } else if (type === 'danger') {
+          // Red Alert Pulsing Cyber Alarm (Low-Pitch Sawtooth)
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.linearRampToValueAtTime(180, now + 0.18);
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+          osc.start(now);
+          osc.stop(now + 0.2);
+        } else if (type === 'tick') {
+          // Millisecond Cyber HUD Click
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(1800, now);
+          gain.gain.setValueAtTime(0.04, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+          osc.start(now);
+          osc.stop(now + 0.03);
+        } else {
+          // General Confirmation Bleep
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(950, now);
+          gain.gain.setValueAtTime(0.07, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+          osc.start(now);
+          osc.stop(now + 0.06);
+        }
+      } catch (e) {}
+    }
+
     // Check URL query parameters to auto-select tab e.g. ?tab=smc or ?tab=lot
     const urlParams = new URLSearchParams(window.location.search);
     const initialTab = urlParams.get('tab') || 'smc';
 
     function switchTab(tab) {
+      playCyberSound('tab');
       if (tg && tg.HapticFeedback) {
-        tg.HapticFeedback.selectionChanged();
+        tg.HapticFeedback.impactOccurred('light');
       }
 
       const tabs = ['SMC', 'Chart', 'Flow', 'Lot'];
@@ -3053,6 +3170,50 @@
         }
       }
 
+      // ========================================================
+      // 🪤 AI FAKEOUT & INSTITUTIONAL TRAP DETECTOR
+      // ========================================================
+      const trapBannerEl = document.getElementById('trapAlertBanner');
+      const trapTitleEl = document.getElementById('trapTitle');
+      const trapDescEl = document.getElementById('trapDesc');
+      const trapBadgeEl = document.getElementById('trapBadge');
+      let isTrapActive = false;
+
+      if (candles && candles.length >= 2) {
+        const lastC = candles[candles.length - 1];
+        const prevC = candles[candles.length - 2];
+        const body = Math.abs(lastC.close - lastC.open);
+        const upperWick = lastC.high - Math.max(lastC.open, lastC.close);
+        const lowerWick = Math.min(lastC.open, lastC.close) - lastC.low;
+
+        // Bull Trap Detection: Spike above prev high + heavy upper wick rejection
+        if (lastC.high > prevC.high && lastC.close < prevC.high && upperWick >= Math.max(body, 1.2)) {
+          isTrapActive = true;
+          if (trapBannerEl) {
+            trapBannerEl.style.display = 'block';
+            if (trapTitleEl) trapTitleEl.innerText = '⚠️ AI FAKEOUT / BULL TRAP DETECTED!';
+            if (trapDescEl) trapDescEl.innerText = `ស្ថាប័នធំៗបានរុញតម្លៃឡើងបញ្ឆោត ($${lastC.high.toFixed(2)}) ដាក់នុយទាក់ទាញ Buy រួចបដិសេធតម្លៃ (Top Wick) ដើម្បីទម្លាក់លក់យ៉ាងគំហុក! ហាម BUY តាមដាច់ខាត!`;
+            if (trapBadgeEl) { trapBadgeEl.innerText = 'BULL TRAP'; trapBadgeEl.style.background = '#FF3366'; trapBadgeEl.style.color = '#FFF'; }
+          }
+          playCyberSound('danger');
+          if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+        }
+        // Bear Trap Detection: Spike below prev low + heavy lower wick rejection
+        else if (lastC.low < prevC.low && lastC.close > prevC.low && lowerWick >= Math.max(body, 1.2)) {
+          isTrapActive = true;
+          if (trapBannerEl) {
+            trapBannerEl.style.display = 'block';
+            if (trapTitleEl) trapTitleEl.innerText = '⚠️ AI FAKEOUT / BEAR TRAP DETECTED!';
+            if (trapDescEl) trapDescEl.innerText = `ស្ថាប័នធំៗបានទម្លាក់តម្លៃបោកបញ្ឆោត ($${lastC.low.toFixed(2)}) បង្ខំឱ្យកាត់ខាត រួចស្រូបប្រមូលទិញត្រឡប់ឡើង (Bottom Wick)! ហាម SELL តាមដាច់ខាត!`;
+            if (trapBadgeEl) { trapBadgeEl.innerText = 'BEAR TRAP'; trapBadgeEl.style.background = '#00E676'; trapBadgeEl.style.color = '#000'; }
+          }
+          playCyberSound('danger');
+          if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+        } else {
+          if (trapBannerEl) trapBannerEl.style.display = 'none';
+        }
+      }
+
       // B. Fair Value Gap (FVG / Imbalance) Detection
       let fvgStatus = 'Mitigated';
       let isFVGValid = false;
@@ -3463,8 +3624,12 @@
           if (execDot) execDot.innerText = '🟢';
           if (execText) execText.innerText = '⚡ READY TO BUY (តម្លៃដល់តំបន់ទិញហើយ)';
           if (sniperAlertEl) {
+            const wasHidden = (sniperAlertEl.style.display === 'none' || sniperAlertEl.style.display === '');
             sniperAlertEl.style.display = isSniperSafe ? 'block' : 'none';
             if (sniperAlertDesc) sniperAlertDesc.innerText = `🎯 ពិន្ទុស្ថាប័ន ${matrixScore}% (កម្រិតខ្ពស់) + OTE 0.618-0.786 ($${entryLow}-$${entryHigh}) — មានសុវត្ថិភាពខ្ពស់ អាចចូល BUY បាន!`;
+            if (isSniperSafe && wasHidden) {
+              playCyberSound('sniper');
+            }
           }
           if (isSniperSafe && tg && tg.HapticFeedback) {
             tg.HapticFeedback.notificationOccurred('success');
@@ -3672,8 +3837,12 @@
           if (execDot) execDot.innerText = '🟢';
           if (execText) execText.innerText = '⚡ READY TO SELL (តម្លៃដល់តំបន់លក់ហើយ)';
           if (sniperAlertEl) {
+            const wasHidden = (sniperAlertEl.style.display === 'none' || sniperAlertEl.style.display === '');
             sniperAlertEl.style.display = isSniperSafe ? 'block' : 'none';
             if (sniperAlertDesc) sniperAlertDesc.innerText = `🎯 ពិន្ទុស្ថាប័ន ${matrixScore}% (កម្រិតខ្ពស់) + OTE 0.618-0.786 ($${entryLow}-$${entryHigh}) — មានសុវត្ថិភាពខ្ពស់ អាចចូល SELL បាន!`;
+            if (isSniperSafe && wasHidden) {
+              playCyberSound('sniper');
+            }
           }
           if (isSniperSafe && tg && tg.HapticFeedback) {
             tg.HapticFeedback.notificationOccurred('success');
