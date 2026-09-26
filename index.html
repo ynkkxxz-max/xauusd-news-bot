@@ -1360,7 +1360,10 @@
     .entity-info-col {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 3px;
+      flex: 1;
+      min-width: 0;
+      padding-right: 8px;
     }
 
     .entity-name {
@@ -1368,29 +1371,37 @@
       font-weight: 800;
       color: #FFF;
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       gap: 6px;
+      line-height: 1.35;
+      word-break: normal;
     }
 
     .entity-role {
       font-size: 10px;
       color: var(--text-muted);
+      line-height: 1.3;
     }
 
     .entity-stat-col {
       text-align: right;
+      flex-shrink: 0;
+      min-width: 75px;
     }
 
     .entity-stat-val {
       font-size: 12px;
       font-weight: 800;
       font-variant-numeric: tabular-nums;
+      white-space: nowrap;
     }
 
     .entity-stat-sub {
       font-size: 9px;
       font-weight: 700;
       margin-top: 1px;
+      white-space: nowrap;
     }
 
     /* AI Confluence Matrix Meter Styles */
@@ -2638,6 +2649,8 @@
           <div class="entity-info-col">
             <div class="entity-name">
               <span>🇵🇱 National Bank of Poland (NBP)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin: 2px 0 1px 0;">
               <span class="entity-tag buy">🟢 កំពុងសម្រុកទិញ</span>
             </div>
             <div class="entity-role">#1 Sovereign Central Bank Buyer (102T in 2025 / 82T H1 2026)</div>
@@ -2653,6 +2666,8 @@
           <div class="entity-info-col">
             <div class="entity-name">
               <span>🇨🇳 PBoC (ធនាគារកណ្តាលចិន)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin: 2px 0 1px 0;">
               <span class="entity-tag buy">🟢 កំពុងសម្រុកទិញ</span>
             </div>
             <div class="entity-role">Sovereign Reserve Buyer (40T H1 2026)</div>
@@ -2668,6 +2683,8 @@
           <div class="entity-info-col">
             <div class="entity-name">
               <span>🇨🇳 ទីផ្សារមាសដុំចិន (Bars & Coins)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin: 2px 0 1px 0;">
               <span class="entity-tag buy">🟢 កំពុងសម្រុកទិញ</span>
             </div>
             <div class="entity-role">World's #1 Retail Investment (431.7T Bars & 360T Jewelry)</div>
@@ -2683,6 +2700,8 @@
           <div class="entity-info-col">
             <div class="entity-name">
               <span>🇺🇿 🇰🇿 Central Banks (Uzbekistan & KZ)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin: 2px 0 1px 0;">
               <span class="entity-tag buy">🟢 កំពុងសម្រុកទិញ</span>
             </div>
             <div class="entity-role">Major Eurasian Sovereign Reserve Accumulators</div>
@@ -2698,6 +2717,8 @@
           <div class="entity-info-col">
             <div class="entity-name">
               <span>🇮🇳 RBI & Indian Consumer Market</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin: 2px 0 1px 0;">
               <span class="entity-tag buy">🟢 កំពុងសម្រុកទិញ</span>
             </div>
             <div class="entity-role">World's #1 Jewelry & Physical Consumer (430.5T)</div>
@@ -2713,6 +2734,8 @@
           <div class="entity-info-col">
             <div class="entity-name">
               <span>🦅 BlackRock & Macro Hedge Funds</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin: 2px 0 1px 0;">
               <span class="entity-tag buy">🟢 កំពុងសម្រុកទិញ</span>
             </div>
             <div class="entity-role">CFTC Managed Money (Futures Speculators)</div>
@@ -2728,6 +2751,8 @@
           <div class="entity-info-col">
             <div class="entity-name">
               <span>📦 SPDR Gold Trust (GLD)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin: 2px 0 1px 0;">
               <span class="entity-tag buy">🟢 កំពុងសម្រុកទិញ</span>
             </div>
             <div class="entity-role">World's Largest Physical Gold ETF</div>
@@ -2743,6 +2768,8 @@
           <div class="entity-info-col">
             <div class="entity-name">
               <span>🇯🇵 Bank of Japan (BoJ) & GPIF</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin: 2px 0 1px 0;">
               <span class="entity-tag sell">🔴 មិនទិញ (Yen Unwind)</span>
             </div>
             <div class="entity-role">Yen Rate Hike / Potential Liquidity Drain on Gold</div>
@@ -2758,6 +2785,8 @@
           <div class="entity-info-col">
             <div class="entity-name">
               <span>🇺🇸 US Treasury & Real Yields Hub</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin: 2px 0 1px 0;">
               <span class="entity-tag sell">🔴 មិនទិញ (Bond Supply)</span>
             </div>
             <div class="entity-role">High 10Y Real Yield Resistance vs Gold Holdings</div>
