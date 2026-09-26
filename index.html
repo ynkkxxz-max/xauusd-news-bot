@@ -3433,6 +3433,91 @@
       }
     }
 
+    // ⚡ Futuristic Cyber HUD Action Handlers
+    function copyTradingSignal() {
+      playCyberSound('click');
+      if (tg && tg.HapticFeedback) {
+        tg.HapticFeedback.notificationOccurred('success');
+      }
+      const entry = document.getElementById('smcEntry') ? document.getElementById('smcEntry').innerText : '$4,268.00';
+      const sl = document.getElementById('smcSL') ? document.getElementById('smcSL').innerText : '$4,258.00';
+      const tp1 = document.getElementById('smcTP1') ? document.getElementById('smcTP1').innerText : '$4,295.00';
+      const tp2 = document.getElementById('smcTP2') ? document.getElementById('smcTP2').innerText : '$4,310.00';
+
+      const signalText = `⚡ XAU/USD INSTITUTIONAL SMC SETUP ⚡\n🎯 Entry: ${entry}\n🛑 SL: ${sl}\n🎯 TP1: ${tp1}\n🏆 TP2: ${tp2}`;
+      
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(signalText).then(() => {
+          showCyberToast('✓ ចម្លង Setup ចូល Clipboard រួចរាល់!');
+        }).catch(() => {
+          showCyberToast('Setup: ' + entry + ' | SL: ' + sl);
+        });
+      } else {
+        showCyberToast('Setup: ' + entry + ' | SL: ' + sl);
+      }
+    }
+
+    function openTradingViewChart() {
+      playCyberSound('tab');
+      if (tg && tg.HapticFeedback) {
+        tg.HapticFeedback.impactOccurred('medium');
+      }
+      switchTab('chart');
+      showCyberToast('📡 កំពុងបើកក្រាហ្វិក SMC TradingView Pro Live...');
+    }
+
+    function triggerAutoLotCalc() {
+      playCyberSound('tab');
+      if (tg && tg.HapticFeedback) {
+        tg.HapticFeedback.impactOccurred('medium');
+      }
+      const lotCard = document.getElementById('autoLotCard');
+      if (lotCard) {
+        lotCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        lotCard.style.boxShadow = '0 0 25px rgba(0, 230, 118, 0.4)';
+        setTimeout(() => {
+          lotCard.style.boxShadow = '';
+        }, 1500);
+      } else {
+        switchTab('lot');
+      }
+      showCyberToast('🎯 គណនាទំហំ Lot សុវត្ថិភាពតាមទុនគណនីរបស់អ្នក!');
+    }
+
+    function showCyberToast(msg) {
+      let toast = document.getElementById('cyberToastEl');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'cyberToastEl';
+        toast.style.position = 'fixed';
+        toast.style.bottom = '80px';
+        toast.style.left = '50%';
+        toast.style.transform = 'translateX(-50%)';
+        toast.style.background = 'linear-gradient(135deg, rgba(8, 14, 28, 0.96) 0%, rgba(3, 6, 12, 0.99) 100%)';
+        toast.style.border = '1px solid #00F0FF';
+        toast.style.boxShadow = '0 8px 30px rgba(0, 240, 255, 0.35)';
+        toast.style.color = '#FFF';
+        toast.style.padding = '10px 16px';
+        toast.style.borderRadius = '10px';
+        toast.style.fontSize = '12px';
+        toast.style.fontWeight = '700';
+        toast.style.zIndex = '99999';
+        toast.style.pointerEvents = 'none';
+        toast.style.transition = 'all 0.3s ease';
+        toast.style.maxWidth = '90vw';
+        toast.style.textAlign = 'center';
+        document.body.appendChild(toast);
+      }
+      toast.innerText = msg;
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateX(-50%) translateY(0)';
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(-50%) translateY(10px)';
+      }, 2500);
+    }
+
+
     // Switch to initial tab
     switchTab(initialTab);
 
