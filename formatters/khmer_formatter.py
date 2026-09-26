@@ -690,7 +690,28 @@ class KhmerFormatter:
             pass
 
         # Part 2: Decisive Single-Direction Institutional Plan
+        trap_banner = ""
+        trap_info = setup.get("trap_alert")
+        if trap_info:
+            trap_banner = (
+                f"\n⚠️ <b>{trap_info.get('title', 'AI TRAP DETECTOR')}</b>\n"
+                f"<i>{trap_info.get('desc', '')}</i>\n"
+                f"━━━━━━━━━━━━━━━━━━━\n"
+            )
+
+        news_lock_banner = ""
+        news_info = setup.get("news_danger") or {}
+        if news_info.get("is_danger"):
+            news_lock_banner = (
+                f"\n🚨 <b>AI NEWS DANGER ZONE — RED ALERT (AUTO-LOCK)!</b>\n"
+                f"⚠️ <b>ព្រមាន:</b> ព័ត៌មានយក្ស <b>{news_info.get('title')}</b> នឹងចេញក្នុងរយៈពេល <b>{news_info.get('mins_left', 15)} នាទីទៀត!</b>\n"
+                f"🚫 <b>ហាមបើក Order ថ្មីដាច់ខាត:</b> ជៀសវាងបញ្ហា Slippage និង Stop-Out ភ្លាមៗ!\n"
+                f"━━━━━━━━━━━━━━━━━━━\n"
+            )
+
         part2 = (
+            f"{news_lock_banner}"
+            f"{trap_banner}"
             f"🎯 {icon} <b>ផែនការជួញដូរឆ្លាតវៃ AI SMC — ទិសដៅតែមួយគត់ ({action_kh})</b>\n"
             f"⚡ <b>កម្រិតទំនុកចិត្ត AI (Confidence Score):</b> <code>{conf_score}</code>\n"
             f"{exec_status_line}\n"
