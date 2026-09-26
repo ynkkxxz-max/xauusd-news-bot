@@ -1651,6 +1651,109 @@
       line-height: 1.4;
     }
 
+    /* Cyber Futuristic Action Buttons & HUD Elements */
+    .cyber-action-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 12px 0 6px 0;
+    }
+
+    .cyber-hud-btn {
+      position: relative;
+      background: linear-gradient(135deg, rgba(13, 20, 36, 0.9) 0%, rgba(6, 11, 22, 0.95) 100%);
+      border: 1px solid rgba(0, 240, 255, 0.35);
+      border-radius: 10px;
+      padding: 9px 6px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      overflow: hidden;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .cyber-hud-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.2), transparent);
+      transition: 0.5s;
+    }
+
+    .cyber-hud-btn:hover::before, .cyber-hud-btn:active::before {
+      left: 100%;
+    }
+
+    .cyber-hud-btn:hover, .cyber-hud-btn:active {
+      transform: translateY(-2px);
+      border-color: #00F0FF;
+      box-shadow: 0 6px 20px rgba(0, 240, 255, 0.25), inset 0 0 12px rgba(0, 240, 255, 0.15);
+    }
+
+    .cyber-hud-btn.primary {
+      border-color: rgba(255, 215, 0, 0.4);
+      background: linear-gradient(135deg, rgba(32, 26, 10, 0.85) 0%, rgba(12, 10, 5, 0.95) 100%);
+    }
+
+    .cyber-hud-btn.primary:hover, .cyber-hud-btn.primary:active {
+      border-color: #FFD700;
+      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.25), inset 0 0 12px rgba(255, 215, 0, 0.15);
+    }
+
+    .cyber-hud-btn.success {
+      border-color: rgba(0, 230, 118, 0.4);
+      background: linear-gradient(135deg, rgba(8, 28, 18, 0.85) 0%, rgba(4, 14, 8, 0.95) 100%);
+    }
+
+    .cyber-hud-btn.success:hover, .cyber-hud-btn.success:active {
+      border-color: #00E676;
+      box-shadow: 0 6px 20px rgba(0, 230, 118, 0.25), inset 0 0 12px rgba(0, 230, 118, 0.15);
+    }
+
+    .cyber-btn-tag {
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 1px 4px;
+      border-radius: 3px;
+      line-height: 1;
+    }
+
+    .cyber-btn-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: #FFF;
+      letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .cyber-btn-sub {
+      font-size: 9.5px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .cyber-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 8px currentColor;
+    }
+
+
     /* Personalized Auto-Lot Card in SMC Tab */
     .auto-lot-card {
       background: linear-gradient(135deg, rgba(20, 26, 42, 0.95) 0%, rgba(12, 16, 26, 0.98) 100%);
@@ -2227,19 +2330,19 @@
       <!-- Core Institutional Levels (Entry, SL, TP1, TP2) -->
       <div class="smc-metrics-grid">
         <div class="smc-metric-pill" style="border-left: 3px solid #00F0FF; color: #00F0FF;">
-          <div class="smc-pill-label">🎯 ENTRY ZONE</div>
+          <div class="smc-pill-label"><span class="cyber-badge-dot" style="background: #00F0FF; color: #00F0FF; margin-right: 3px;"></span> ENTRY ZONE</div>
           <div class="smc-pill-value" style="color: #00F0FF;" id="smcEntry">$4,268.00 - $4,272.50</div>
         </div>
         <div class="smc-metric-pill" style="border-left: 3px solid #FF3366; color: #FF3366;">
-          <div class="smc-pill-label">🛑 STOP LOSS (SL)</div>
+          <div class="smc-pill-label"><span class="cyber-badge-dot" style="background: #FF3366; color: #FF3366; margin-right: 3px;"></span> STOP LOSS (SL)</div>
           <div class="smc-pill-value" style="color: #FF3366;" id="smcSL">$4,258.00</div>
         </div>
         <div class="smc-metric-pill" style="border-left: 3px solid #00E676; color: #00E676;">
-          <div class="smc-pill-label">🎯 TAKE PROFIT 1 (BE)</div>
+          <div class="smc-pill-label"><span class="cyber-badge-dot" style="background: #00E676; color: #00E676; margin-right: 3px;"></span> TAKE PROFIT 1 (BE)</div>
           <div class="smc-pill-value" style="color: #00E676;" id="smcTP1">$4,295.00</div>
         </div>
         <div class="smc-metric-pill" style="border-left: 3px solid #FFD700; color: #FFD700;">
-          <div class="smc-pill-label">🏆 TAKE PROFIT 2 (MAX)</div>
+          <div class="smc-pill-label"><span class="cyber-badge-dot" style="background: #FFD700; color: #FFD700; margin-right: 3px;"></span> TAKE PROFIT 2 (MAX)</div>
           <div class="smc-pill-value" style="color: #FFD700;" id="smcTP2">$4,310.00</div>
         </div>
       </div>
@@ -2247,21 +2350,21 @@
       <!-- Advanced Institutional Confluence Engine (Positioned Elegantly Below Levels) -->
       <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
         <div style="font-size: 11px; font-weight: 800; color: var(--gold); margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
-          <span>🧠 ការផ្ទៀងផ្ទាត់លក្ខខណ្ឌស្ថាប័នធំៗ (Institutional Confluence):</span>
-          <span id="mtfConfluenceScore" style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255, 215, 0, 0.15); color: var(--gold);">6/6 កម្រិត</span>
+          <span>ការផ្ទៀងផ្ទាត់លក្ខខណ្ឌស្ថាប័នធំៗ (Institutional Confluence):</span>
+          <span id="mtfConfluenceScore" style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255, 215, 0, 0.15); color: var(--gold); font-weight: 800;">6/6 កម្រិត</span>
         </div>
 
         <div class="mtf-confluence-bar" id="mtfConfluenceBar" style="max-width: 100%; margin: 6px 0;">
           <div class="mtf-pill bear" id="mtfH1">H1: Bearish (Trend មេធ្លាក់)</div>
-          <div class="mtf-pill bear" id="mtfM15">📉 M15: CHoCH (ប្តូររចនាសម្ព័ន្ធ)</div>
+          <div class="mtf-pill bear" id="mtfM15">M15: CHoCH (ប្តូររចនាសម្ព័ន្ធ)</div>
           <div class="mtf-pill bear" id="mtfM5">M5: Engulfing (ទៀនបញ្ជាក់)</div>
-          <div class="mtf-pill killzone" id="mtfSession">⏰ Session: NY Killzone (ម៉ោងមាស)</div>
-          <div class="mtf-pill full-width" id="mtfStatus" style="background: rgba(255, 215, 0, 0.15); border-color: rgba(255, 215, 0, 0.4); color: var(--gold);">🎯 Triple Confluence (94%)</div>
+          <div class="mtf-pill killzone" id="mtfSession">Session: NY Killzone (ម៉ោងមាស)</div>
+          <div class="mtf-pill full-width" id="mtfStatus" style="background: rgba(255, 215, 0, 0.15); border-color: rgba(255, 215, 0, 0.4); color: var(--gold);">Triple Confluence (94%)</div>
         </div>
 
         <!-- Easy Khmer Explanations of Confluences -->
         <div style="font-size: 11px; color: var(--text-muted); line-height: 1.6; text-align: left; background: rgba(0, 0, 0, 0.25); border-radius: 8px; padding: 8px 10px; margin-top: 8px; border: 1px solid rgba(255, 255, 255, 0.05);" id="mtfKhmerExpl">
-          💡 <b>ការពន្យល់បច្ចេកទេស AI:</b><br>
+          <b>ការពន្យល់បច្ចេកទេស AI:</b><br>
           • <b>Sweep:</b> តម្លៃបានលោតស៊ី Stop Loss Trader រួចហើយ ធានាគ្មាន Fakeout បោកប្រាស់។<br>
           • <b>FVG:</b> តម្លៃបានវិលត្រឡប់មកបំពេញចន្លោះ Price Imbalance មុននឹងបន្តដំណើរ។<br>
           • <b>Killzone:</b> ស្ថិតក្នុងម៉ោងស្ថាប័នធំៗជួញដូរ មាន Volume ខ្លាំង ងាយរត់ដល់ TP1/TP2 ឆាប់រហ័ស!
@@ -2271,19 +2374,23 @@
 
     <!-- Technical Setup Zones -->
     <div class="smc-card">
-      <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #FFF;">
-        🎯 កម្រិតបច្ចេកទេស & AI SMC Setup Zone
+      <div style="font-size: 13px; font-weight: 800; margin-bottom: 10px; color: #FFF; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span class="cyber-badge-dot" style="background: #00F0FF; color: #00F0FF;"></span>
+          <span>កម្រិតបច្ចេកទេស & AI SMC Setup Zone</span>
+        </div>
+        <span style="font-size: 9px; font-weight: 800; letter-spacing: 1px; color: #00F0FF; background: rgba(0, 240, 255, 0.12); border: 1px solid rgba(0, 240, 255, 0.3); padding: 2px 6px; border-radius: 4px;">QUANTUM HUD</span>
       </div>
       <div class="zone-row">
-        <div class="zone-tag"><span style="color: var(--bull);">🟢</span> Buy Zone</div>
+        <div class="zone-tag"><span class="cyber-badge-dot" style="background: var(--bull); color: var(--bull); margin-right: 4px;"></span> Buy Zone</div>
         <div class="zone-val" id="smcBuyZone">$4,201.50 - $4,208.50</div>
       </div>
       <div class="zone-row">
-        <div class="zone-tag"><span style="color: var(--bear);">🔴</span> Sell Zone</div>
+        <div class="zone-tag"><span class="cyber-badge-dot" style="background: var(--bear); color: var(--bear); margin-right: 4px;"></span> Sell Zone</div>
         <div class="zone-val" id="smcSellZone">$4,346.90 - $4,353.90</div>
       </div>
       <div class="zone-row">
-        <div class="zone-tag"><span style="color: var(--gold);">🎯</span> Pivot Point</div>
+        <div class="zone-tag"><span class="cyber-badge-dot" style="background: var(--gold); color: var(--gold); margin-right: 4px;"></span> Pivot Point</div>
         <div class="zone-val" id="smcPivot">$4,275.30</div>
       </div>
     </div>
@@ -2292,9 +2399,9 @@
     <div class="session-clock-card">
       <div class="session-clock-header">
         <div class="session-clock-title">
-          <span>⚡</span> Institutional Session Clock (ម៉ោង Volume មាស)
+          <span class="cyber-badge-dot" style="background: #FFD700; color: #FFD700; margin-right: 4px;"></span> Institutional Session Clock (ម៉ោង Volume មាស)
         </div>
-        <span class="session-surge-badge high" id="sessionSurgeBadge">🔥 HIGH VOLATILITY SURGE</span>
+        <span class="session-surge-badge high" id="sessionSurgeBadge">HIGH VOLATILITY SURGE</span>
       </div>
 
       <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
@@ -2305,21 +2412,21 @@
       <div class="session-timeline-grid">
         <!-- 1. Asian Session -->
         <div class="session-node" id="sessionNodeAsia">
-          <div class="session-node-name">🌏 Asian Session</div>
+          <div class="session-node-name">Asian Session</div>
           <div class="session-node-time">07:00 - 14:00 KH</div>
           <span class="session-node-vol" id="sessionVolAsia" style="color: #FFB300;">Low Vol</span>
         </div>
 
         <!-- 2. London Session -->
         <div class="session-node" id="sessionNodeLondon">
-          <div class="session-node-name">🇬🇧 London Killzone</div>
+          <div class="session-node-name">London Killzone</div>
           <div class="session-node-time">14:00 - 22:00 KH</div>
           <span class="session-node-vol" id="sessionVolLondon" style="color: #00E676;">High Vol</span>
         </div>
 
         <!-- 3. New York Session -->
         <div class="session-node active overlap" id="sessionNodeNY">
-          <div class="session-node-name">🇺🇸 NY Overlap</div>
+          <div class="session-node-name">NY Overlap</div>
           <div class="session-node-time">19:30 - 02:00 KH</div>
           <span class="session-node-vol" id="sessionVolNY" style="color: #00E676;">Max Surge</span>
         </div>
@@ -2327,10 +2434,35 @@
 
       <!-- Actionable Trading Advice based on Current Session -->
       <div class="session-alert-box">
-        <span style="font-size: 16px;" id="sessionAlertIcon">🚀</span>
+        <span class="cyber-badge-dot" style="background: #00F0FF; color: #00F0FF; width: 8px; height: 8px;"></span>
         <div id="sessionAdviceText">
           <b>ម៉ោងមាសកម្រិតខ្ពស់ (London & NY Overlap):</b> សម្ពាធទិញ/លក់ស្ថាប័នធំៗខ្លាំងបំផុត — ទៀន M15 រត់លឿន ងាយស្រួលទម្លុះ Breakout ដល់ TP1/TP2 ឆាប់រហ័ស!
         </div>
+      </div>
+
+      <!-- FUTURISTIC CYBER ACTION BUTTONS (HUD COMMAND CENTER) -->
+      <div class="cyber-action-grid">
+        <button type="button" class="cyber-hud-btn primary" onclick="copyTradingSignal()" title="Copy Instant Setup">
+          <span class="cyber-btn-tag" style="background: rgba(255, 215, 0, 0.2); color: #FFD700;">COMMAND</span>
+          <span class="cyber-btn-title">
+            <span class="cyber-badge-dot" style="background: #FFD700; color: #FFD700;"></span> COPY SIGNAL
+          </span>
+          <span class="cyber-btn-sub">ចម្លង Setup ចូល MT4/5</span>
+        </button>
+        <button type="button" class="cyber-hud-btn" onclick="openTradingViewChart()" title="Deep SMC Chart Analysis">
+          <span class="cyber-btn-tag" style="background: rgba(0, 240, 255, 0.2); color: #00F0FF;">RADAR</span>
+          <span class="cyber-btn-title">
+            <span class="cyber-badge-dot" style="background: #00F0FF; color: #00F0FF;"></span> SMC CHART
+          </span>
+          <span class="cyber-btn-sub">វិភាគក្រាហ្វិកផ្ទាល់</span>
+        </button>
+        <button type="button" class="cyber-hud-btn success" onclick="triggerAutoLotCalc()" title="Auto Risk Calculation">
+          <span class="cyber-btn-tag" style="background: rgba(0, 230, 118, 0.2); color: #00E676;">AI RISK</span>
+          <span class="cyber-btn-title">
+            <span class="cyber-badge-dot" style="background: #00E676; color: #00E676;"></span> AUTO LOT
+          </span>
+          <span class="cyber-btn-sub">គណនាទំហំ Lot សុវត្ថិភាព</span>
+        </button>
       </div>
     </div>
 
@@ -2338,9 +2470,9 @@
     <div class="radar-card" id="liquidityRadarCard">
       <div class="radar-header">
         <div class="radar-title">
-          <span>📡</span> Liquidity Heatmap Radar (ជញ្ជាំងស្ថាប័ន)
+          <span class="cyber-badge-dot" style="background: #00F0FF; color: #00F0FF; margin-right: 4px;"></span> Liquidity Heatmap Radar (ជញ្ជាំងស្ថាប័ន)
         </div>
-        <span class="radar-badge" id="radarStatusBadge">⚡ LIVE ORDER BOOK</span>
+        <span class="radar-badge" id="radarStatusBadge">LIVE ORDER BOOK</span>
       </div>
 
       <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
@@ -2350,8 +2482,8 @@
       <!-- Ratio Bar (Bids vs Asks) -->
       <div class="liquidity-ratio-bar-wrap">
         <div class="ratio-labels">
-          <span style="color: var(--bull);" id="radarBidPct">🟢 Bids: 54.2%</span>
-          <span style="color: var(--bear);" id="radarAskPct">🔴 Asks: 45.8%</span>
+          <span style="color: var(--bull);" id="radarBidPct"><span class="cyber-badge-dot" style="background: var(--bull); color: var(--bull); margin-right: 2px;"></span> Bids: 54.2%</span>
+          <span style="color: var(--bear);" id="radarAskPct"><span class="cyber-badge-dot" style="background: var(--bear); color: var(--bear); margin-right: 2px;"></span> Asks: 45.8%</span>
         </div>
         <div class="ratio-bar">
           <div class="ratio-fill-bid" id="radarBidFill" style="width: 54.2%;"></div>
@@ -2364,8 +2496,8 @@
         <!-- Whale Buy Walls -->
         <div class="wall-column">
           <div class="wall-col-title">
-            <span style="color: var(--bull);">🟢 ជញ្ជាំងទិញ (Buy Walls)</span>
-            <span style="color: var(--text-muted); font-size: 9px;">Bids</span>
+            <span style="color: var(--bull);"><span class="cyber-badge-dot" style="background: var(--bull); color: var(--bull); margin-right: 2px;"></span> ជញ្ជាំងទិញ (Buy Walls)</span>
+            <span style="color: var(--text-muted); font-size: 9px; font-weight: 700;">Bids</span>
           </div>
           <div id="whaleBidWallsList">
             <div class="wall-item bid">
@@ -2386,8 +2518,8 @@
         <!-- Whale Sell Walls -->
         <div class="wall-column">
           <div class="wall-col-title">
-            <span style="color: var(--bear);">🔴 ជញ្ជាំងលក់ (Sell Walls)</span>
-            <span style="color: var(--text-muted); font-size: 9px;">Asks</span>
+            <span style="color: var(--bear);"><span class="cyber-badge-dot" style="background: var(--bear); color: var(--bear); margin-right: 2px;"></span> ជញ្ជាំងលក់ (Sell Walls)</span>
+            <span style="color: var(--text-muted); font-size: 9px; font-weight: 700;">Asks</span>
           </div>
           <div id="whaleAskWallsList">
             <div class="wall-item ask">
@@ -2409,22 +2541,23 @@
 
     <!-- Dual Reasoning -->
     <div class="smc-card">
-      <div class="reason-title">🧠 ហេតុផលច្បាស់លាស់ដែលគួរជួញដូរ៖</div>
+      <div class="reason-title">ហេតុផលច្បាស់លាស់ដែលគួរជួញដូរ៖</div>
       <div class="reason-box" id="smcWhyTrade">
         • តម្លៃស្ថិតនៅក្រោម Pivot Point បញ្ជាក់ពីសម្ពាធលក់វាយសម្រុក (Bearish Structure)។<br>
         • Order Book បង្ហាញជញ្ជាំង Asks រារាំងក្រាស់ក្រែលនៅតំបន់ Premium Zone មិនឱ្យតម្លៃឡើងងាយៗឡើយ។<br>
         • ទីផ្សារកំពុងស្វែងរក Sell-Side Liquidity (SSL) នៅតំបន់ខាងក្រោម។
       </div>
 
-      <div class="reason-title" style="margin-top: 12px; color: var(--bear);">🚫 ហេតុផលដាច់ខាតដែលមិនគួរផ្ទុយ៖</div>
+      <div class="reason-title" style="margin-top: 12px; color: var(--bear);">ហេតុផលដាច់ខាតដែលមិនគួរផ្ទុយ៖</div>
       <div class="reason-box" style="border-left: 2px solid var(--bear);" id="smcWhyNot">
         • ការចូល Buy នៅចំណុចនេះមានហានិភ័យខ្ពស់ខ្លាំង ដោយសារគ្មានទម្រង់ Bottom Reversal ច្បាស់លាស់។<br>
         • សម្ពាធលក់កំពុងគ្របដណ្តប់ ការ Buy អាចប្រឈមនឹងការទម្លុះ Support និងជាប់អន្ទាក់ស្ថាប័នធំៗ!
       </div>
     </div>
 
-    <button class="apply-btn" onclick="sendSMCPlanToBot()">
-      <span>📋 ផ្ញើសេចក្តីសង្ខេប SMC នេះទៅ Telegram Bot</span>
+    <button class="apply-btn" onclick="sendSMCPlanToBot()" style="letter-spacing: 0.5px; font-weight: 800;">
+      <span class="cyber-badge-dot" style="background: #00F0FF; color: #00F0FF; margin-right: 6px;"></span>
+      <span>ផ្ញើសេចក្តីសង្ខេប SMC នេះទៅ TELEGRAM BOT</span>
     </button>
   </div>
 
