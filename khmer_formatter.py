@@ -604,11 +604,18 @@ class KhmerFormatter:
 
     @staticmethod
     def format_single_smc_setup(setup: dict, key_levels: dict = None, current_price: float = 0.0) -> str:
+        """
+        Formats a comprehensive, institutional-grade SMC Trading Brief:
+        🎯 ផែនការជួញដូរឆ្លាតវៃ AI SMC — ទិសដៅតែមួយគត់ (BUY ONLY ឬ SELL ONLY)
+        ជាមួយ Entry, SL, TP1, TP2, R:R និងហេតុផលលម្អិត «ហេតុអ្វីគួរធ្វើ & ហេតុអ្វីមិនគួរធ្វើផ្ទុយ»។
+        """
         levels = key_levels or {}
         oz = current_price or setup.get("entry", 0.0)
         pivot = levels.get("pivot", oz)
         r1 = levels.get("r1", oz + 20)
         s1 = levels.get("s1", oz - 20)
+        r2 = levels.get("r2", oz + 40)
+        s2 = levels.get("s2", oz - 40)
 
         direction = setup.get("direction", "BUY").upper()
         is_buy = "BUY" in direction
@@ -656,10 +663,58 @@ class KhmerFormatter:
         )
 
         conf_score = setup.get("confidence", "88%")
+        
+        # Calculate Real-Time Execution Status for Telegram
+        exec_status_line = ""
+        try:
+            entry_parts = [float(x.replace("$", "").replace(",", "").strip()) for x in entry_zone.split("-") if x.strip()]
+            if len(entry_parts) == 2:
+                e_low, e_high = min(entry_parts), max(entry_parts)
+                if is_buy:
+                    if e_low <= oz <= e_high:
+                        exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ READY TO BUY (តម្លៃដល់តំបន់ទិញហើយ)</b>\n"
+                    elif oz > e_high:
+                        wait_diff = oz - e_high
+                        exec_status_line = f"🟡 <b>ស្ថានភាព (Status): ⏳ WAITING PULLBACK (រង់ចាំចុះ ${wait_diff:.1f} ទៀត)</b>\n"
+                    else:
+                        exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ DEEP DISCOUNT BUY (តំបន់បញ្ចុះតម្លៃពិសេស)</b>\n"
+                else:
+                    if e_low <= oz <= e_high:
+                        exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ READY TO SELL (តម្លៃដល់តំបន់លក់ហើយ)</b>\n"
+                    elif oz < e_low:
+                        wait_diff = e_low - oz
+                        exec_status_line = f"🟡 <b>ស្ថានភាព (Status): ⏳ WAITING BOUNCE (រង់ចាំឡើង ${wait_diff:.1f} ទៀត)</b>\n"
+                    else:
+                        exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ HIGH PREMIUM SELL (តំបន់លក់បានថ្លៃខ្ពស់)</b>\n"
+        except Exception:
+            pass
+
         # Part 2: Decisive Single-Direction Institutional Plan
+        trap_banner = ""
+        trap_info = setup.get("trap_alert")
+        if trap_info:
+            trap_banner = (
+                f"\n⚠️ <b>{trap_info.get('title', 'AI TRAP DETECTOR')}</b>\n"
+                f"<i>{trap_info.get('desc', '')}</i>\n"
+                f"━━━━━━━━━━━━━━━━━━━\n"
+            )
+
+        news_lock_banner = ""
+        news_info = setup.get("news_danger") or {}
+        if news_info.get("is_danger"):
+            news_lock_banner = (
+                f"\n🚨 <b>AI NEWS DANGER ZONE — RED ALERT (AUTO-LOCK)!</b>\n"
+                f"⚠️ <b>ព្រមាន:</b> ព័ត៌មានយក្ស <b>{news_info.get('title')}</b> នឹងចេញក្នុងរយៈពេល <b>{news_info.get('mins_left', 15)} នាទីទៀត!</b>\n"
+                f"🚫 <b>ហាមបើក Order ថ្មីដាច់ខាត:</b> ជៀសវាងបញ្ហា Slippage និង Stop-Out ភ្លាមៗ!\n"
+                f"━━━━━━━━━━━━━━━━━━━\n"
+            )
+
         part2 = (
+            f"{news_lock_banner}"
+            f"{trap_banner}"
             f"🎯 {icon} <b>ផែនការជួញដូរឆ្លាតវៃ AI SMC — ទិសដៅតែមួយគត់ ({action_kh})</b>\n"
-            f"⚡ <b>កម្រិតទំនុកចិត្ត AI (Confidence Score):</b> <code>{conf_score}</code>\n\n"
+            f"⚡ <b>កម្រិតទំនុកចិត្ត AI (Confidence Score):</b> <code>{conf_score}</code>\n"
+            f"{exec_status_line}\n"
             f"📍 <b>កម្រិតតម្លៃចូល និងគ្រប់គ្រងដើមទុន:</b>\n"
             f"• 🎯 <b>តំបន់ Entry:</b> <code>{entry_zone}</code>\n"
             f"• 🛑 <b>Stop Loss (SL):</b> <code>${sl:,.2f}</code>\n"
@@ -677,6 +732,9 @@ class KhmerFormatter:
 
     @staticmethod
     def format_chart_vision_scan(current_price: float, vision_res: dict, timeframe: str = "M15") -> str:
+        """
+        Formats Multimodal AI Live Computer Vision Candlestick & Pattern Scan results.
+        """
         bias = vision_res.get("bias", "🟢 Bullish")
         pattern = vision_res.get("pattern_kh", "ទម្រង់ទៀនបញ្ជាក់ច្បាស់")
         structure = vision_res.get("market_structure", "BOS").replace("_", " ")
@@ -697,55 +755,6 @@ class KhmerFormatter:
             f"📊 <i>ពិនិត្យ Chart ផ្ទាល់: <a href='https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD'>TradingView XAUUSD Live</a></i>"
         )
         return msg
-
-    @staticmethod
-    def format_sniper_instant_alert(sig: dict) -> str:
-        """Formats Real-Time AI Sniper Instant Signal Notification (BUY NOW / SELL NOW)."""
-        is_buy = sig.get("action") == "BUY"
-        icon = "🟢" if is_buy else "🔴"
-        action_title = sig.get("action_title", "INSTANT SETUP")
-        entry = sig.get("entry", 0.0)
-        sl = sig.get("sl", 0.0)
-        tp1 = sig.get("tp1", 0.0)
-        tp2 = sig.get("tp2", 0.0)
-        pips = sig.get("risk_pips", 50)
-        reason = sig.get("reason", "")
-        rr = sig.get("rr_ratio", "1:2.0")
-
-        return (
-            f"⚡ {icon} <b>AI SNIPER INSTANT ALERT — សញ្ញាចូលជួញដូរភ្លាមៗ!</b>\n\n"
-            f"🎯 <b>សកម្មភាព (Action):</b> <b>{action_title}</b>\n"
-            f"• 🥇 <b>Entry Price:</b> <code>${entry:,.2f}</code>\n"
-            f"• 🛑 <b>Stop Loss (SL):</b> <code>${sl:,.2f}</code> (Risk ~ {pips:,.0f} Pips)\n"
-            f"• 🎯 <b>Take Profit 1 (TP1):</b> <code>${tp1:,.2f}</code> (Lock BE)\n"
-            f"• 🏆 <b>Take Profit 2 (TP2):</b> <code>${tp2:,.2f}</code> (Max Target)\n"
-            f"• ⚖️ <b>សមាមាត្រ R:R:</b> <code>{rr}</code>\n\n"
-            f"🧠 <b>មូលហេតុបច្ចេកទេស (Sniper Confirmation):</b>\n"
-            f"• {reason}\n\n"
-            f"🛡️ <b>ការគ្រប់គ្រងហានិភ័យ:</b>\n"
-            f"• ប្រើទំហំ Risk ត្រឹម ១% - ២% នៃទុនប៉ុណ្ណោះ!\n"
-            f"• ពេលតម្លៃដល់ TP1 សូមរំកិល Stop Loss មកស្មើដើម (Break-Even) ភ្លាម!\n\n"
-            f"📊 <i>ពិនិត្យ Chart: <a href='https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD'>TradingView Live</a></i>"
-        )
-
-    @staticmethod
-    def format_danger_zone_alert(danger: dict) -> str:
-        """Formats High-Impact News Danger Zone Warning (NO TRADE ALERT)."""
-        mins_text = f"នៅសល់ប្រហែល <b>{danger['mins_left']} នាទីទៀត</b>" if danger['mins_left'] > 0 else "<b>កំពុងចេញផ្សាយឥឡូវនេះ!</b>"
-        return (
-            f"🚨 <b>⚠️ AI NEWS DANGER ZONE — ផ្អាកការចូលជួញដូរជាបន្ទាន់ (NO TRADE)!</b>\n\n"
-            f"⚡ <b>ព្រឹត្តិការណ៍សេដ្ឋកិច្ចធំ (High-Impact Event):</b>\n"
-            f"• 🔴 <b>{danger['title']}</b> (USD)\n"
-            f"• ⏰ <b>ម៉ោងចេញផ្សាយ:</b> <code>{danger['release_time']}</code> ({mins_text})\n\n"
-            f"🧠 <b>មូលហេតុដែល AI ណែនាំឱ្យឈប់ជួញដូរ (Danger Protocol):</b>\n"
-            f"• ទីផ្សារមាស (XAU/USD) នឹងមានរលក Spikes បោកខ្លាំងទាំងសងខាង ក្នុងរយៈពេលខ្លី។\n"
-            f"• Spread តាម Broker នានានឹងរីកធំខុសប្រក្រតី ហើយអាចរអិល SL (Slippage) ធ្ងន់ធ្ងរ។\n\n"
-            f"🛡️ <b>ការការពារដើមទុន (Capital Preservation):</b>\n"
-            f"👉 <b>ហាមដាច់ខាតកុំបើក Order ថ្មី</b>\n"
-            f"👉 ប្រសិនបើមាន Order ចាស់ស្រាប់ សូម Lock Break-Even ឬកាត់ប្រាក់ចំណេញមួយចំនួនទុកជាមុន!\n\n"
-            f"⏳ <i>AI នឹងបន្តផ្ញើសញ្ញាជួញដូរឡើងវិញ បន្ទាប់ពីព័ត៌មានចេញរួច ហើយទីផ្សារត្រជាក់ចុះ!</i>"
-        )
-
 
 
 
