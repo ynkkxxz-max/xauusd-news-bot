@@ -1242,6 +1242,79 @@
       margin-bottom: 10px;
     }
 
+    .entity-filter-bar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 4px;
+      border-radius: 9px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .entity-filter-btn {
+      flex: 1;
+      padding: 6px 4px;
+      font-size: 10.5px;
+      font-weight: 800;
+      border-radius: 7px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .entity-filter-btn.active.all {
+      background: rgba(0, 240, 255, 0.2);
+      color: #00F0FF;
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+    }
+
+    .entity-filter-btn.active.buyers {
+      background: rgba(0, 230, 118, 0.2);
+      color: #00E676;
+      box-shadow: 0 0 10px rgba(0, 230, 118, 0.3);
+    }
+
+    .entity-filter-btn.active.sellers {
+      background: rgba(255, 51, 102, 0.2);
+      color: #FF3366;
+      box-shadow: 0 0 10px rgba(255, 51, 102, 0.3);
+    }
+
+    .entity-tag {
+      font-size: 8.5px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .entity-tag.buy {
+      background: rgba(0, 230, 118, 0.15);
+      color: #00E676;
+      border: 1px solid rgba(0, 230, 118, 0.4);
+    }
+    .entity-tag.hold {
+      background: rgba(255, 179, 0, 0.15);
+      color: #FFB300;
+      border: 1px solid rgba(255, 179, 0, 0.4);
+    }
+    .entity-tag.sell {
+      background: rgba(255, 51, 102, 0.15);
+      color: #FF3366;
+      border: 1px solid rgba(255, 51, 102, 0.4);
+    }
+
     .entity-title {
       font-size: 13px;
       font-weight: 800;
@@ -2537,21 +2610,35 @@
     <div class="entity-card">
       <div class="entity-header">
         <div class="entity-title">
-          <span>🏛️</span> Top Institutional Players (អ្នកទិញ/លក់ធំៗលើលោក)
+          <span>🏛️</span> Top Institutional Players (រចនាសម្ព័ន្ធទិញ & មិនទិញ)
         </div>
-        <span class="entity-badge">CFTC & WGC FILED</span>
+        <span class="entity-badge" id="entityActiveCount">9 ស្ថាប័នផ្លូវការ</span>
       </div>
 
       <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
-        របាយការណ៍ស្ថាប័នផ្លូវការបញ្ជាក់ឈ្មោះធនាគារកណ្តាល និង Hedge Funds ធំៗ៖
+        ទិន្នន័យផ្លូវការ CFTC, WGC & IMF បញ្ជាក់ជាក់ស្តែងថាស្ថាប័នណាខ្លះកំពុង «សម្រុកទិញ (Buy)» ឬ «មិនទិញ/លក់ (Neutral/Sell)»៖
       </div>
 
-      <div class="entity-grid">
+      <!-- Interactive Filter Tabs: All, Active Buyers, Sellers/Neutral -->
+      <div class="entity-filter-bar">
+        <button class="entity-filter-btn active all" id="btnFilterAll" onclick="filterEntities('all')">
+          🌐 ទាំងអស់ (9)
+        </button>
+        <button class="entity-filter-btn buyers" id="btnFilterBuyers" onclick="filterEntities('buyers')">
+          🟢 ស្ថាប័នទិញ (7)
+        </button>
+        <button class="entity-filter-btn sellers" id="btnFilterSellers" onclick="filterEntities('sellers')">
+          🔴 មិនទិញ/លក់ (2)
+        </button>
+      </div>
+
+      <div class="entity-grid" id="institutionalEntityGrid">
         <!-- 1. Poland (National Bank of Poland - Top Official Central Bank Buyer) -->
-        <div class="entity-row" style="border-left: 3px solid #00E676;">
+        <div class="entity-row" data-type="buyer" style="border-left: 3px solid #00E676;">
           <div class="entity-info-col">
             <div class="entity-name">
               <span>🇵🇱 National Bank of Poland (NBP)</span>
+              <span class="entity-tag buy">🟢 កំពុងសម្រុកទិញ</span>
             </div>
             <div class="entity-role">#1 Sovereign Central Bank Buyer (102T in 2025 / 82T H1 2026)</div>
           </div>
@@ -2562,10 +2649,11 @@
         </div>
 
         <!-- 2. People's Bank of China (PBoC) -->
-        <div class="entity-row" style="border-left: 3px solid #00E676;">
+        <div class="entity-row" data-type="buyer" style="border-left: 3px solid #00E676;">
           <div class="entity-info-col">
             <div class="entity-name">
               <span>🇨🇳 PBoC (ធនាគារកណ្តាលចិន)</span>
+              <span class="entity-tag buy">🟢 កំពុងសម្រុកទិញ</span>
             </div>
             <div class="entity-role">Sovereign Reserve Buyer (40T H1 2026)</div>
           </div>
@@ -2576,10 +2664,11 @@
         </div>
 
         <!-- 3. China Retail & Investor Market -->
-        <div class="entity-row" style="border-left: 3px solid #00E676;">
+        <div class="entity-row" data-type="buyer" style="border-left: 3px solid #00E676;">
           <div class="entity-info-col">
             <div class="entity-name">
               <span>🇨🇳 ទីផ្សារមាសដុំចិន (Bars & Coins)</span>
+              <span class="entity-tag buy">🟢 កំពុងសម្រុកទិញ</span>
             </div>
             <div class="entity-role">World's #1 Retail Investment (431.7T Bars & 360T Jewelry)</div>
           </div>
@@ -2589,11 +2678,12 @@
           </div>
         </div>
 
-        <!-- 3. Uzbekistan & Kazakhstan -->
-        <div class="entity-row" style="border-left: 3px solid #00E676;">
+        <!-- 4. Uzbekistan & Kazakhstan -->
+        <div class="entity-row" data-type="buyer" style="border-left: 3px solid #00E676;">
           <div class="entity-info-col">
             <div class="entity-name">
               <span>🇺🇿 🇰🇿 Central Banks (Uzbekistan & KZ)</span>
+              <span class="entity-tag buy">🟢 កំពុងសម្រុកទិញ</span>
             </div>
             <div class="entity-role">Major Eurasian Sovereign Reserve Accumulators</div>
           </div>
@@ -2603,11 +2693,12 @@
           </div>
         </div>
 
-        <!-- 4. Reserve Bank of India (RBI) -->
-        <div class="entity-row" style="border-left: 3px solid #00E676;">
+        <!-- 5. Reserve Bank of India (RBI) -->
+        <div class="entity-row" data-type="buyer" style="border-left: 3px solid #00E676;">
           <div class="entity-info-col">
             <div class="entity-name">
               <span>🇮🇳 RBI & Indian Consumer Market</span>
+              <span class="entity-tag buy">🟢 កំពុងសម្រុកទិញ</span>
             </div>
             <div class="entity-role">World's #1 Jewelry & Physical Consumer (430.5T)</div>
           </div>
@@ -2617,53 +2708,12 @@
           </div>
         </div>
 
-        <!-- 5. Japan (Bank of Japan - BoJ & GPIF Pension) -->
-        <div class="entity-row" style="border-left: 3px solid #00E5FF;">
-          <div class="entity-info-col">
-            <div class="entity-name">
-              <span>🇯🇵 Bank of Japan (BoJ) & GPIF</span>
-            </div>
-            <div class="entity-role">Yen Carry Trade & Mega Pension Bullion Flow</div>
-          </div>
-          <div class="entity-stat-col">
-            <div class="entity-stat-val" style="color: #00E5FF;">Carry Liquidity</div>
-            <div class="entity-stat-sub" style="color: var(--gold);">⚡ Yen Volatility Trigger</div>
-          </div>
-        </div>
-
-        <!-- 6. Canada (Bank of Canada & TSX Gold Hub) -->
-        <div class="entity-row" style="border-left: 3px solid var(--gold);">
-          <div class="entity-info-col">
-            <div class="entity-name">
-              <span>🇨🇦 Bank of Canada (BoC) & TSX Hub</span>
-            </div>
-            <div class="entity-role">Barrick Gold, Agnico Eagle & Commodity Rate Precursor</div>
-          </div>
-          <div class="entity-stat-col">
-            <div class="entity-stat-val" style="color: var(--gold);">Mining Global Hub</div>
-            <div class="entity-stat-sub" style="color: #00E676;">🟢 Rate Easing Leader</div>
-          </div>
-        </div>
-
-        <!-- 7. Federal Reserve (Fed) & US Treasury -->
-        <div class="entity-row" style="border-left: 3px solid #00E5FF;">
-          <div class="entity-info-col">
-            <div class="entity-name">
-              <span>🇺🇸 Federal Reserve & US Treasury</span>
-            </div>
-            <div class="entity-role">Global Interest Rates & DXY Dollar Driver</div>
-          </div>
-          <div class="entity-stat-col">
-            <div class="entity-stat-val" style="color: #00E5FF;">DXY: Bearish</div>
-            <div class="entity-stat-sub" style="color: #00E676;">🟢 Rate Cut Cycle (Gold Bullish)</div>
-          </div>
-        </div>
-
-        <!-- 8. BlackRock & Bridgewater (Managed Money) -->
-        <div class="entity-row" style="border-left: 3px solid #00E676;">
+        <!-- 6. BlackRock & Macro Hedge Funds (Managed Money) -->
+        <div class="entity-row" data-type="buyer" style="border-left: 3px solid #00E676;">
           <div class="entity-info-col">
             <div class="entity-name">
               <span>🦅 BlackRock & Macro Hedge Funds</span>
+              <span class="entity-tag buy">🟢 កំពុងសម្រុកទិញ</span>
             </div>
             <div class="entity-role">CFTC Managed Money (Futures Speculators)</div>
           </div>
@@ -2673,17 +2723,48 @@
           </div>
         </div>
 
-        <!-- 9. SPDR Gold Shares (GLD ETF Vault) -->
-        <div class="entity-row" style="border-left: 3px solid #00E676;">
+        <!-- 7. SPDR Gold Shares (GLD ETF Vault) -->
+        <div class="entity-row" data-type="buyer" style="border-left: 3px solid #00E676;">
           <div class="entity-info-col">
             <div class="entity-name">
               <span>📦 SPDR Gold Trust (GLD)</span>
+              <span class="entity-tag buy">🟢 កំពុងសម្រុកទិញ</span>
             </div>
             <div class="entity-role">World's Largest Physical Gold ETF</div>
           </div>
           <div class="entity-stat-col">
             <div class="entity-stat-val" style="color: #00E676;">879.4 Tonnes</div>
             <div class="entity-stat-sub" style="color: #00E676;">🟢 +4.2T Vault Inflow</div>
+          </div>
+        </div>
+
+        <!-- 8. Japan (Bank of Japan - BoJ & GPIF Pension) [NOT BUYING / CARRY TRIGGER] -->
+        <div class="entity-row" data-type="seller" style="border-left: 3px solid #FF3366; background: rgba(255, 51, 102, 0.03);">
+          <div class="entity-info-col">
+            <div class="entity-name">
+              <span>🇯🇵 Bank of Japan (BoJ) & GPIF</span>
+              <span class="entity-tag sell">🔴 មិនទិញ (Yen Unwind)</span>
+            </div>
+            <div class="entity-role">Yen Rate Hike / Potential Liquidity Drain on Gold</div>
+          </div>
+          <div class="entity-stat-col">
+            <div class="entity-stat-val" style="color: #FF3366;">Rate Hike Risk</div>
+            <div class="entity-stat-sub" style="color: #FF3366;">🔴 Hawkish Pressure</div>
+          </div>
+        </div>
+
+        <!-- 9. US Treasury & Dollar Reserves [NON-BUYER / DXY RESISTANCE] -->
+        <div class="entity-row" data-type="seller" style="border-left: 3px solid #FF3366; background: rgba(255, 51, 102, 0.03);">
+          <div class="entity-info-col">
+            <div class="entity-name">
+              <span>🇺🇸 US Treasury & Real Yields Hub</span>
+              <span class="entity-tag sell">🔴 មិនទិញ (Bond Supply)</span>
+            </div>
+            <div class="entity-role">High 10Y Real Yield Resistance vs Gold Holdings</div>
+          </div>
+          <div class="entity-stat-col">
+            <div class="entity-stat-val" style="color: #FF3366;">4.25% Yield</div>
+            <div class="entity-stat-sub" style="color: #FF3366;">🔴 Yield Competition</div>
           </div>
         </div>
       </div>
@@ -4665,6 +4746,53 @@
     // ========================================================
     // 🕯️ SEQUENTIAL HIGH-VOLATILITY CPI CANDLESTICK ENGINE
     // ========================================================
+    // ========================================================
+    // 🏛️ INSTITUTIONAL PLAYERS BUY/SELL INTERACTIVE FILTER
+    // ========================================================
+    function filterEntities(type) {
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+      playCyberSound('beep');
+
+      const rows = document.querySelectorAll('#institutionalEntityGrid .entity-row');
+      const btnAll = document.getElementById('btnFilterAll');
+      const btnBuyers = document.getElementById('btnFilterBuyers');
+      const btnSellers = document.getElementById('btnFilterSellers');
+      const countBadge = document.getElementById('entityActiveCount');
+
+      if (btnAll) btnAll.className = 'entity-filter-btn all';
+      if (btnBuyers) btnBuyers.className = 'entity-filter-btn buyers';
+      if (btnSellers) btnSellers.className = 'entity-filter-btn sellers';
+
+      let visibleCount = 0;
+
+      rows.forEach(row => {
+        const rowType = row.getAttribute('data-type');
+        if (type === 'all') {
+          row.style.display = 'flex';
+          visibleCount++;
+        } else if (type === 'buyers' && rowType === 'buyer') {
+          row.style.display = 'flex';
+          visibleCount++;
+        } else if (type === 'sellers' && rowType === 'seller') {
+          row.style.display = 'flex';
+          visibleCount++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      if (type === 'all') {
+        if (btnAll) btnAll.classList.add('active');
+        if (countBadge) countBadge.innerText = '9 ស្ថាប័នទាំងអស់';
+      } else if (type === 'buyers') {
+        if (btnBuyers) btnBuyers.classList.add('active');
+        if (countBadge) countBadge.innerText = '🟢 7 ស្ថាប័នកំពុងទិញ';
+      } else if (type === 'sellers') {
+        if (btnSellers) btnSellers.classList.add('active');
+        if (countBadge) countBadge.innerText = '🔴 2 ស្ថាប័នមិនទិញ';
+      }
+    }
+
     function initCandlestickMotionBackground() {
       const canvas = document.getElementById('candlestickBgCanvas');
       if (!canvas) return;
