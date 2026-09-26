@@ -1766,21 +1766,14 @@
 </head>
 <body>
 
-  <!-- Top Cyber Status & Live Price Bar -->
-  <div class="live-pill">
-    <div class="live-label">
-      <span class="pulse" id="wsPulse"></span>
-      Spot XAU/USD <span class="ws-badge" id="wsStatusBadge">⚡ WS LIVE</span>
-    </div>
-    <div style="display: flex; align-items: center; gap: 8px;">
-      <div class="live-price" id="livePrice">$4,284.00</div>
-      <button class="refresh-btn" id="btnAudioToggle" onclick="toggleCyberAudio()" title="Cyber HUD Sound Effects (On/Off)" style="background: rgba(0, 240, 255, 0.12); border-color: rgba(0, 240, 255, 0.35);">
-        <span id="audioIcon">🔊</span> <span id="audioStatusText">SFX</span>
-      </button>
-      <button class="refresh-btn" id="btnRefresh" onclick="manualRefresh()" title="Refresh Live Data">
-        <span id="refreshIcon">🔄</span> Update
-      </button>
-    </div>
+  <!-- Top Control Header: [SFX] and [Update] -->
+  <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 10px; padding: 0 2px;">
+    <button class="refresh-btn" id="btnAudioToggle" onclick="toggleCyberAudio()" title="Cyber HUD Sound Effects (On/Off)" style="background: rgba(0, 240, 255, 0.12); border-color: rgba(0, 240, 255, 0.35);">
+      <span id="audioIcon">🔊</span> <span id="audioStatusText">SFX</span>
+    </button>
+    <button class="refresh-btn" id="btnRefresh" onclick="manualRefresh()" title="Refresh Live Data">
+      <span id="refreshIcon">🔄</span> Update
+    </button>
   </div>
 
   <!-- Futuristic Sci-Fi HUD Navigation Tabs -->
@@ -1827,6 +1820,15 @@
       </span>
       <span>RISK</span>
     </button>
+  </div>
+
+  <!-- Spot XAU/USD Live Price Pill (Positioned back below tabs like original) -->
+  <div class="live-pill">
+    <div class="live-label">
+      <span class="pulse" id="wsPulse"></span>
+      Spot XAU/USD <span class="ws-badge" id="wsStatusBadge">⚡ WS LIVE</span>
+    </div>
+    <div class="live-price" id="livePrice">$4,284.00</div>
   </div>
 
   <!-- AI HIGH-IMPACT NEWS DANGER ZONE PROTOCOL BANNER -->
