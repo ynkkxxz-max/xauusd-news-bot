@@ -4688,19 +4688,27 @@
       // Arrow 6: VIOLENT CRASH DOWN deep into bottom (Sweeping all longs!)
       // Arrow 7: EXPLOSIVE V-SHAPED RECOVERY UP to high levels
       // Arrow 8: FINAL MOON SPIKE UP breaking highest ceiling!
+      // Tightly-spaced CPI sequence extending beyond screen boundaries (14 candles)
       const cpiSpikes = [
-        { isBull: true,  topY: 0.68, botY: 0.92, wickTop: 0.62, wickBot: 0.96 }, // 1. Initial surge up
-        { isBull: false, topY: 0.72, botY: 0.90, wickTop: 0.68, wickBot: 0.95 }, // 2. Pullback down
-        { isBull: true,  topY: 0.54, botY: 0.82, wickTop: 0.48, wickBot: 0.88 }, // 3. Push up
-        { isBull: false, topY: 0.58, botY: 0.78, wickTop: 0.52, wickBot: 0.84 }, // 4. Retrace
-        { isBull: true,  topY: 0.08, botY: 0.72, wickTop: 0.03, wickBot: 0.78 }, // 5. MEGA SPIKE UP TO TOP HEADER!
-        { isBull: false, topY: 0.10, botY: 0.88, wickTop: 0.05, wickBot: 0.94 }, // 6. VIOLENT PLUNGE DOWN TO BOTTOM!
-        { isBull: true,  topY: 0.24, botY: 0.80, wickTop: 0.18, wickBot: 0.86 }, // 7. V-Shaped Rocket Up
-        { isBull: true,  topY: 0.06, botY: 0.38, wickTop: 0.02, wickBot: 0.44 }  // 8. Moon Breakout Ceiling!
+        { isBull: true,  topY: 0.74, botY: 0.94, wickTop: 0.68, wickBot: 0.98 }, // 1. Surge up from bottom
+        { isBull: false, topY: 0.76, botY: 0.92, wickTop: 0.72, wickBot: 0.96 }, // 2. Pullback down
+        { isBull: true,  topY: 0.60, botY: 0.84, wickTop: 0.54, wickBot: 0.88 }, // 3. Push up
+        { isBull: false, topY: 0.64, botY: 0.80, wickTop: 0.58, wickBot: 0.85 }, // 4. Dip down
+        { isBull: true,  topY: 0.44, botY: 0.70, wickTop: 0.38, wickBot: 0.75 }, // 5. Pre-CPI rally
+        { isBull: false, topY: 0.48, botY: 0.66, wickTop: 0.42, wickBot: 0.72 }, // 6. Trap retrace
+        { isBull: true,  topY: 0.06, botY: 0.68, wickTop: 0.02, wickBot: 0.74 }, // 7. 💥 MEGA SPIKE UP (High ceiling)
+        { isBull: false, topY: 0.08, botY: 0.90, wickTop: 0.04, wickBot: 0.96 }, // 8. 🚨 VIOLENT CRASH DOWN (Deep sweep)
+        { isBull: true,  topY: 0.32, botY: 0.84, wickTop: 0.25, wickBot: 0.90 }, // 9. V-Shape Rocket Up
+        { isBull: false, topY: 0.36, botY: 0.55, wickTop: 0.30, wickBot: 0.60 }, // 10. Pause consolidation
+        { isBull: true,  topY: 0.16, botY: 0.46, wickTop: 0.10, wickBot: 0.52 }, // 11. Expansion surge
+        { isBull: false, topY: 0.20, botY: 0.38, wickTop: 0.15, wickBot: 0.44 }, // 12. Retrace
+        { isBull: true,  topY: 0.04, botY: 0.30, wickTop: 0.01, wickBot: 0.35 }, // 13. Moon Breakout to border
+        { isBull: true,  topY: -0.05, botY: 0.18, wickTop: -0.10, wickBot: 0.24 } // 14. 🚀 SHOOT OFF-SCREEN!
       ];
 
-      const candleSpacing = Math.max(30, width / (cpiSpikes.length + 1));
-      const candleWidth = Math.max(10, candleSpacing * 0.36); // Sleeker, more refined candle size
+      // Tighter spacing (approx 18-20px) to pack candles densely together and run past screen
+      const candleSpacing = Math.max(18, Math.min(24, width / 11));
+      const candleWidth = Math.max(8, candleSpacing * 0.48); // Perfectly proportioned compact candles
 
       // State for sequential candle formation
       let activeIndex = 0;       // Which candle is currently printing
@@ -4765,8 +4773,7 @@
           }
         }
 
-        const maFast = [];
-        const maSlow = [];
+
 
         // Draw only revealed/currently forming candles
         for (let i = 0; i <= Math.min(activeIndex, candles.length - 1); i++) {
@@ -4798,48 +4805,8 @@
           ctx.roundRect ? ctx.roundRect(c.x - candleWidth / 2, top, candleWidth, bodyH, 3) : ctx.fillRect(c.x - candleWidth / 2, top, candleWidth, bodyH);
           ctx.fill();
 
-          const mid = (c.open + c.currentClose) / 2;
-          maFast.push({ x: c.x, y: mid });
-          maSlow.push({ x: c.x, y: mid + 12 });
-        }
-
-        // Reset Shadow Blur for MA lines
+          }
         ctx.shadowBlur = 0;
-
-        // Draw Vibrant Neon Blue Fast MA Curve
-        if (maFast.length > 1) {
-          ctx.shadowBlur = 10;
-          ctx.shadowColor = '#00D2FF';
-          ctx.strokeStyle = '#00D2FF'; // Vivid Cyan/Blue
-          ctx.lineWidth = 2.8;
-          ctx.beginPath();
-          ctx.moveTo(maFast[0].x, maFast[0].y);
-          for (let i = 1; i < maFast.length; i++) {
-            const xc = (maFast[i - 1].x + maFast[i].x) / 2;
-            const yc = (maFast[i - 1].y + maFast[i].y) / 2;
-            ctx.quadraticCurveTo(maFast[i - 1].x, maFast[i - 1].y, xc, yc);
-          }
-          ctx.lineTo(maFast[maFast.length - 1].x, maFast[maFast.length - 1].y);
-          ctx.stroke();
-        }
-
-        // Draw Vibrant Neon Red Slow MA Curve
-        if (maSlow.length > 1) {
-          ctx.shadowBlur = 10;
-          ctx.shadowColor = '#FF3366';
-          ctx.strokeStyle = '#FF3366'; // Vivid Neon Red
-          ctx.lineWidth = 2.5;
-          ctx.beginPath();
-          ctx.moveTo(maSlow[0].x, maSlow[0].y);
-          for (let i = 1; i < maSlow.length; i++) {
-            const xc = (maSlow[i - 1].x + maSlow[i].x) / 2;
-            const yc = (maSlow[i - 1].y + maSlow[i].y) / 2;
-            ctx.quadraticCurveTo(maSlow[i - 1].x, maSlow[i - 1].y, xc, yc);
-          }
-          ctx.lineTo(maSlow[maSlow.length - 1].x, maSlow[maSlow.length - 1].y);
-          ctx.stroke();
-          ctx.shadowBlur = 0;
-        }
 
         requestAnimationFrame(render);
       }
