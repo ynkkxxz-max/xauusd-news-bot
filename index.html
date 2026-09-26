@@ -4679,59 +4679,54 @@
         height = canvas.height = window.innerHeight;
       });
 
-      // CPI News Scenario: Giant impulsive swings, sweeps & violent expansions
-      // Each candle represents a sequential spike matching the user's drawing
-      const cpiWaveforms = [
-        { isBull: true,  bodyLen: 0.18, wickUp: 0.08, wickDn: 0.05 }, // Initial pre-news push
-        { isBull: false, bodyLen: 0.14, wickUp: 0.06, wickDn: 0.08 }, // Quick retracement / trap
-        { isBull: true,  bodyLen: 0.28, wickUp: 0.12, wickDn: 0.04 }, // CPI News Release Candle 1 (Big Surge)
-        { isBull: false, bodyLen: 0.22, wickUp: 0.10, wickDn: 0.12 }, // Violent Liquidity Sweep Down
-        { isBull: true,  bodyLen: 0.38, wickUp: 0.14, wickDn: 0.06 }, // MEGA Bullish Expansion (CPI Spike)
-        { isBull: false, bodyLen: 0.18, wickUp: 0.08, wickDn: 0.07 }, // High-level Pullback
-        { isBull: true,  bodyLen: 0.32, wickUp: 0.16, wickDn: 0.05 }, // Continuation High Spike
-        { isBull: false, bodyLen: 0.20, wickUp: 0.09, wickDn: 0.14 }, // Profit taking drop
-        { isBull: true,  bodyLen: 0.42, wickUp: 0.18, wickDn: 0.08 }, // Institutional Target Moon Spike
-        { isBull: false, bodyLen: 0.25, wickUp: 0.12, wickDn: 0.10 }  // Final Peak Resistance Reject
+      // CPI Volatility Sequence matching user drawing precisely (8 explosive swings):
+      // Arrow 1: Push UP from bottom-left
+      // Arrow 2: Drop DOWN (Liquidity sweep)
+      // Arrow 3: Surge UP strongly
+      // Arrow 4: Retrace DOWN
+      // Arrow 5: MASSIVE SPIKE UP directly to top header (covering almost full height!)
+      // Arrow 6: VIOLENT CRASH DOWN deep into bottom (Sweeping all longs!)
+      // Arrow 7: EXPLOSIVE V-SHAPED RECOVERY UP to high levels
+      // Arrow 8: FINAL MOON SPIKE UP breaking highest ceiling!
+      const cpiSpikes = [
+        { isBull: true,  topY: 0.68, botY: 0.92, wickTop: 0.62, wickBot: 0.96 }, // 1. Initial surge up
+        { isBull: false, topY: 0.72, botY: 0.90, wickTop: 0.68, wickBot: 0.95 }, // 2. Pullback down
+        { isBull: true,  topY: 0.54, botY: 0.82, wickTop: 0.48, wickBot: 0.88 }, // 3. Push up
+        { isBull: false, topY: 0.58, botY: 0.78, wickTop: 0.52, wickBot: 0.84 }, // 4. Retrace
+        { isBull: true,  topY: 0.08, botY: 0.72, wickTop: 0.03, wickBot: 0.78 }, // 5. MEGA SPIKE UP TO TOP HEADER!
+        { isBull: false, topY: 0.10, botY: 0.88, wickTop: 0.05, wickBot: 0.94 }, // 6. VIOLENT PLUNGE DOWN TO BOTTOM!
+        { isBull: true,  topY: 0.24, botY: 0.80, wickTop: 0.18, wickBot: 0.86 }, // 7. V-Shaped Rocket Up
+        { isBull: true,  topY: 0.06, botY: 0.38, wickTop: 0.02, wickBot: 0.44 }  // 8. Moon Breakout Ceiling!
       ];
 
-      const candleSpacing = Math.max(30, width / (cpiWaveforms.length + 1));
-      const candleWidth = Math.max(16, candleSpacing * 0.52); // Extra large, bold candles
+      const candleSpacing = Math.max(34, width / (cpiSpikes.length + 1));
+      const candleWidth = Math.max(18, candleSpacing * 0.52); // Extra large, bold candles
 
       // State for sequential candle formation
       let activeIndex = 0;       // Which candle is currently printing
       let formationProgress = 0; // 0.0 to 1.0 (growth of active candle)
-      let growthSpeed = 0.016;   // Speed of building each individual candle
+      let growthSpeed = 0.022;   // Energetic CPI news building speed
 
-      // Build baseline trajectory starting lower-left (82% height) and climbing up to (14% height)
       const candles = [];
-      let lastClose = height * 0.82;
-
-      for (let i = 0; i < cpiWaveforms.length; i++) {
-        const wf = cpiWaveforms[i];
-        const open = lastClose;
-        const bodyPx = height * wf.bodyLen;
-        // In canvas Y is inverted: Bull goes UP (minus Y), Bear goes DOWN (plus Y)
-        const close = wf.isBull ? open - bodyPx : open + bodyPx;
-        const wickUpPx = height * wf.wickUp;
-        const wickDnPx = height * wf.wickDn;
-
-        const high = Math.min(open, close) - wickUpPx;
-        const low = Math.max(open, close) + wickDnPx;
+      for (let i = 0; i < cpiSpikes.length; i++) {
+        const sp = cpiSpikes[i];
+        const open = height * (sp.isBull ? sp.botY : sp.topY);
+        const finalClose = height * (sp.isBull ? sp.topY : sp.botY);
+        const finalHigh = height * sp.wickTop;
+        const finalLow = height * sp.wickBot;
 
         candles.push({
           x: (i + 1) * candleSpacing,
           open,
-          finalClose: close,
-          finalHigh: high,
-          finalLow: low,
-          isBull: wf.isBull,
+          finalClose,
+          finalHigh,
+          finalLow,
+          isBull: sp.isBull,
           currentClose: open,
           currentHigh: open,
           currentLow: open,
           completed: false
         });
-
-        lastClose = close;
       }
 
       function render() {
