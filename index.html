@@ -2252,9 +2252,9 @@
         </div>
 
         <div class="mtf-confluence-bar" id="mtfConfluenceBar" style="max-width: 100%; margin: 6px 0;">
-          <div class="mtf-pill bear" id="mtfH1">🏛️ H1: Bearish (Trend មេធ្លាក់)</div>
+          <div class="mtf-pill bear" id="mtfH1">H1: Bearish (Trend មេធ្លាក់)</div>
           <div class="mtf-pill bear" id="mtfM15">📉 M15: CHoCH (ប្តូររចនាសម្ព័ន្ធ)</div>
-          <div class="mtf-pill bear" id="mtfM5">⚡ M5: Engulfing (ទៀនបញ្ជាក់)</div>
+          <div class="mtf-pill bear" id="mtfM5">M5: Engulfing (ទៀនបញ្ជាក់)</div>
           <div class="mtf-pill killzone" id="mtfSession">⏰ Session: NY Killzone (ម៉ោងមាស)</div>
           <div class="mtf-pill full-width" id="mtfStatus" style="background: rgba(255, 215, 0, 0.15); border-color: rgba(255, 215, 0, 0.4); color: var(--gold);">🎯 Triple Confluence (94%)</div>
         </div>
@@ -3733,13 +3733,13 @@
       let sessionName = 'Asian Session';
       let isKillzone = false;
       if (khHours >= 14 && khHours < 18) {
-        sessionName = 'London Killzone 🔥';
+        sessionName = 'London Killzone';
         isKillzone = true;
       } else if (khHours >= 19 && khHours <= 23) {
-        sessionName = 'NY Killzone 🚀';
+        sessionName = 'NY Killzone';
         isKillzone = true;
       } else if (khHours >= 0 && khHours < 3) {
-        sessionName = 'NY Close 🌙';
+        sessionName = 'NY Close';
       } else {
         sessionName = 'Asian Consolidation';
       }
@@ -3834,7 +3834,7 @@
 
       if (mtfH1El) {
         mtfH1El.className = h1Bias === 'BULLISH' ? 'mtf-pill bull' : 'mtf-pill bear';
-        mtfH1El.innerText = `🏛️ H1: ${h1Bias === 'BULLISH' ? 'Bullish (ឡើង)' : 'Bearish (ធ្លាក់)'}`;
+        mtfH1El.innerText = `H1: ${h1Bias === 'BULLISH' ? 'Bullish (ឡើង)' : 'Bearish (ធ្លាក់)'}`;
       }
       if (mtfM15El) {
         mtfM15El.className = trendDirection === 'BULLISH' ? 'mtf-pill bull' : 'mtf-pill bear';
@@ -3842,7 +3842,7 @@
       }
       if (mtfM5El) {
         mtfM5El.className = m5Trigger.includes('Bullish') ? 'mtf-pill bull' : 'mtf-pill bear';
-        mtfM5El.innerText = `⚡ M5: ${m5Trigger}`;
+        mtfM5El.innerText = `M5: ${m5Trigger}`;
       }
       // Calculate exact Sweep and FVG price levels for trader clarity
       let sweepTargetPrice = 0;
