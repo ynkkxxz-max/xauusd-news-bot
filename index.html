@@ -152,78 +152,96 @@
       border-radius: 2px;
     }
 
-    /* Live Header Pill */
+    /* Hollywood Sci-Fi Cyberpunk Live Header Pill */
     .live-pill {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: linear-gradient(135deg, rgba(10, 20, 36, 0.95) 0%, rgba(4, 9, 18, 0.98) 100%);
+      border: 1px solid rgba(0, 240, 255, 0.3);
       border-radius: 12px;
-      padding: 8px 14px;
+      padding: 9px 14px;
       margin-bottom: 14px;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(0, 240, 255, 0.05);
+      position: relative;
+    }
+
+    .live-pill::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 20%;
+      bottom: 20%;
+      width: 3px;
+      background: #00F0FF;
+      box-shadow: 0 0 10px #00F0FF;
+      border-radius: 0 3px 3px 0;
     }
 
     .live-label {
       font-size: 11px;
-      color: var(--text-muted);
+      color: #7E92A9;
       display: flex;
       align-items: center;
       gap: 6px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
     }
 
     .pulse {
       width: 8px;
       height: 8px;
-      background: var(--bull);
+      background: #00F0FF;
       border-radius: 50%;
-      box-shadow: 0 0 10px var(--bull);
+      box-shadow: 0 0 10px #00F0FF;
       animation: pulse 1.5s infinite;
     }
 
     @keyframes pulse {
-      0% { opacity: 0.4; transform: scale(0.9); }
-      50% { opacity: 1; transform: scale(1.2); }
-      100% { opacity: 0.4; transform: scale(0.9); }
+      0% { opacity: 0.4; transform: scale(0.9); box-shadow: 0 0 4px #00F0FF; }
+      50% { opacity: 1; transform: scale(1.3); box-shadow: 0 0 14px #00F0FF; }
+      100% { opacity: 0.4; transform: scale(0.9); box-shadow: 0 0 4px #00F0FF; }
     }
 
     .live-price {
-      font-size: 14px;
-      font-weight: 700;
+      font-size: 15px;
+      font-weight: 800;
       color: #FFF;
       font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
       transition: color 0.25s, text-shadow 0.25s;
     }
 
     .live-price.flash-up {
       color: #00E676 !important;
-      text-shadow: 0 0 12px rgba(0, 230, 118, 0.8);
+      text-shadow: 0 0 16px rgba(0, 230, 118, 0.9);
     }
 
     .live-price.flash-down {
       color: #FF3366 !important;
-      text-shadow: 0 0 12px rgba(255, 51, 102, 0.8);
+      text-shadow: 0 0 16px rgba(255, 51, 102, 0.9);
     }
 
     .ws-badge {
       font-size: 9px;
       font-weight: 800;
-      padding: 1px 5px;
-      border-radius: 4px;
-      background: rgba(0, 230, 118, 0.15);
-      color: #00E676;
-      border: 1px solid rgba(0, 230, 118, 0.3);
-      letter-spacing: 0.3px;
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: rgba(0, 240, 255, 0.15);
+      color: #00F0FF;
+      border: 1px solid rgba(0, 240, 255, 0.4);
+      box-shadow: 0 0 8px rgba(0, 240, 255, 0.2);
+      letter-spacing: 0.5px;
     }
 
     .refresh-btn {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(0, 240, 255, 0.08);
+      border: 1px solid rgba(0, 240, 255, 0.25);
       border-radius: 8px;
-      padding: 4px 8px;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
+      padding: 4px 10px;
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #00F0FF;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -232,8 +250,8 @@
     }
     .refresh-btn:active {
       transform: scale(0.95);
-      background: rgba(255, 215, 0, 0.15);
-      color: var(--gold);
+      background: rgba(0, 240, 255, 0.25);
+      box-shadow: 0 0 10px #00F0FF;
     }
     .spin {
       animation: spin 0.8s linear infinite;
@@ -264,93 +282,88 @@
     }
 
 
-    /* ========================================= */
-    /* TAB 1: SMC INSTITUTIONAL SETUP STYLES     */
-    /* ========================================= */
+    /* ========================================================= */
+    /* TAB 1: HOLLYWOOD SCI-FI SMC INSTITUTIONAL SETUP STYLES     */
+    /* ========================================================= */
     .smc-card {
-      background: var(--card-bg);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: linear-gradient(180deg, rgba(10, 16, 30, 0.95) 0%, rgba(6, 10, 20, 0.98) 100%);
+      border: 1px solid rgba(0, 240, 255, 0.2);
       border-radius: 16px;
       padding: 16px;
       margin-bottom: 14px;
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 6px 25px rgba(0, 0, 0, 0.7);
+      position: relative;
     }
 
     .smc-hero-box {
-      background: linear-gradient(135deg, rgba(255, 51, 102, 0.12), rgba(26, 33, 49, 0.9));
-      border: 1px solid rgba(255, 51, 102, 0.35);
+      background: linear-gradient(135deg, rgba(255, 51, 102, 0.15) 0%, rgba(12, 18, 32, 0.98) 60%, rgba(6, 10, 20, 1) 100%);
+      border: 1px solid rgba(255, 51, 102, 0.5);
       border-radius: 16px;
-      padding: 16px;
+      padding: 18px 14px;
       margin-bottom: 14px;
       text-align: center;
       position: relative;
       overflow: hidden;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8), inset 0 0 25px rgba(255, 51, 102, 0.12);
+    }
+
+    .smc-hero-box::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(rgba(255, 255, 255, 0) 0%, rgba(0, 240, 255, 0.03) 50%, rgba(255, 255, 255, 0) 100%);
+      transform: rotate(30deg);
+      pointer-events: none;
+      animation: hologramScan 6s linear infinite;
+    }
+
+    @keyframes hologramScan {
+      0% { transform: translateY(-50%) rotate(25deg); }
+      100% { transform: translateY(50%) rotate(25deg); }
     }
 
     .smc-hero-box.bullish {
-      background: linear-gradient(135deg, rgba(0, 230, 118, 0.12), rgba(26, 33, 49, 0.9));
-      border-color: rgba(0, 230, 118, 0.35);
+      background: linear-gradient(135deg, rgba(0, 230, 118, 0.16) 0%, rgba(10, 22, 34, 0.98) 60%, rgba(5, 12, 22, 1) 100%);
+      border: 1px solid rgba(0, 230, 118, 0.55);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8), inset 0 0 25px rgba(0, 230, 118, 0.12);
     }
 
     .smc-badge {
       display: inline-block;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 14px;
+      font-size: 10.5px;
+      font-weight: 800;
+      padding: 3px 12px;
+      border-radius: 20px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 6px;
-      background: rgba(255, 51, 102, 0.2);
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      background: rgba(255, 51, 102, 0.15);
+      border: 1px solid rgba(255, 51, 102, 0.4);
       color: var(--bear);
+      box-shadow: 0 0 10px rgba(255, 51, 102, 0.3);
     }
 
     .smc-hero-box.bullish .smc-badge {
-      background: rgba(0, 230, 118, 0.2);
+      background: rgba(0, 230, 118, 0.15);
+      border-color: rgba(0, 230, 118, 0.5);
       color: var(--bull);
-    }
-
-    .smc-exec-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      font-weight: 800;
-      padding: 6px 14px;
-      border-radius: 20px;
-      margin-top: 6px;
-      margin-bottom: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      letter-spacing: 0.3px;
-    }
-
-    .smc-exec-badge.ready {
-      background: linear-gradient(135deg, rgba(0, 230, 118, 0.35), rgba(0, 200, 83, 0.15));
-      color: #00E676;
-      border: 1.5px solid #00E676;
-      box-shadow: 0 0 20px rgba(0, 230, 118, 0.6);
-      animation: readyPulse 1.2s infinite;
-      font-size: 13px;
-      padding: 8px 16px;
-    }
-
-    .smc-exec-badge.waiting {
-      background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 215, 0, 0.05));
-      color: #FFD700;
-      border: 1px solid rgba(255, 215, 0, 0.4);
-      box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
-    }
-
-    @keyframes readyPulse {
-      0% { box-shadow: 0 0 6px rgba(0, 230, 118, 0.4); transform: scale(1); }
-      50% { box-shadow: 0 0 25px rgba(0, 230, 118, 0.9); transform: scale(1.02); }
-      100% { box-shadow: 0 0 6px rgba(0, 230, 118, 0.4); transform: scale(1); }
+      box-shadow: 0 0 10px rgba(0, 230, 118, 0.35);
     }
 
     .smc-direction {
-      font-size: 20px;
-      font-weight: 800;
-      margin-bottom: 4px;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      margin-bottom: 6px;
+      text-shadow: 0 0 16px rgba(255, 51, 102, 0.7);
+    }
+
+    .smc-hero-box.bullish .smc-direction {
+      text-shadow: 0 0 18px rgba(0, 230, 118, 0.8);
     }
 
     .smc-winrate-tag {
@@ -358,17 +371,140 @@
       align-items: center;
       justify-content: center;
       gap: 6px;
-      font-size: 11.5px;
-      font-weight: 700;
-      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 6px 14px;
       border-radius: 20px;
-      background: rgba(255, 215, 0, 0.12);
-      border: 1px solid rgba(255, 215, 0, 0.35);
-      color: var(--gold);
+      background: rgba(0, 240, 255, 0.08);
+      border: 1px solid rgba(0, 240, 255, 0.4);
+      color: #00F0FF;
+      text-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
       margin: 6px auto;
       max-width: 95%;
-      line-height: 1.4;
-      text-align: center;
+      box-shadow: 0 0 14px rgba(0, 240, 255, 0.15);
+    }
+
+    .smc-exec-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      font-weight: 800;
+      padding: 7px 16px;
+      border-radius: 20px;
+      margin-top: 6px;
+      margin-bottom: 10px;
+      letter-spacing: 0.5px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .smc-exec-badge.ready {
+      background: linear-gradient(135deg, rgba(0, 230, 118, 0.3) 0%, rgba(0, 200, 83, 0.15) 100%);
+      color: #00E676;
+      border: 1.5px solid #00E676;
+      box-shadow: 0 0 25px rgba(0, 230, 118, 0.7), inset 0 0 10px rgba(0, 230, 118, 0.3);
+      text-shadow: 0 0 10px #00E676;
+      animation: readyPulse 1.2s infinite;
+      font-size: 12.5px;
+      padding: 8px 18px;
+    }
+
+    .smc-exec-badge.waiting {
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.18) 0%, rgba(20, 26, 38, 0.8) 100%);
+      color: #FFD700;
+      border: 1px solid rgba(255, 215, 0, 0.55);
+      box-shadow: 0 0 16px rgba(255, 215, 0, 0.3);
+      text-shadow: 0 0 8px rgba(255, 215, 0, 0.7);
+    }
+
+    @keyframes readyPulse {
+      0% { box-shadow: 0 0 8px rgba(0, 230, 118, 0.4); transform: scale(1); }
+      50% { box-shadow: 0 0 28px rgba(0, 230, 118, 0.95); transform: scale(1.02); }
+      100% { box-shadow: 0 0 8px rgba(0, 230, 118, 0.4); transform: scale(1); }
+    }
+
+    /* Futuristic Confluence Matrix Meter */
+    .matrix-card {
+      background: linear-gradient(180deg, rgba(8, 14, 28, 0.96) 0%, rgba(4, 8, 16, 0.99) 100%);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      border-radius: 14px;
+      padding: 14px;
+      margin-top: 10px;
+      margin-bottom: 12px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7), inset 0 0 15px rgba(0, 240, 255, 0.05);
+      position: relative;
+      z-index: 2;
+    }
+
+    .matrix-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .matrix-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #FFF;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .matrix-score-badge {
+      font-size: 15px;
+      font-weight: 900;
+      color: #00F0FF;
+      text-shadow: 0 0 12px rgba(0, 240, 255, 0.85);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .matrix-meter-track {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      position: relative;
+    }
+
+    .matrix-meter-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #FFD700 0%, #00F0FF 60%, #00E676 100%);
+      box-shadow: 0 0 15px #00F0FF;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .matrix-checklist-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .matrix-check-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #7E92A9;
+      letter-spacing: 0.3px;
+      transition: all 0.3s ease;
+    }
+
+    .matrix-check-item.passed {
+      background: linear-gradient(135deg, rgba(0, 230, 118, 0.12) 0%, rgba(10, 24, 20, 0.6) 100%);
+      border: 1px solid rgba(0, 230, 118, 0.5);
+      color: #FFF;
+      box-shadow: 0 0 12px rgba(0, 230, 118, 0.2), inset 0 0 8px rgba(0, 230, 118, 0.1);
     }
 
     .mtf-confluence-bar {
@@ -433,26 +569,48 @@
       grid-template-columns: repeat(2, 1fr);
       gap: 10px;
       margin-top: 12px;
+      position: relative;
+      z-index: 2;
     }
 
     .smc-metric-pill {
-      background: rgba(255, 255, 255, 0.04);
-      border-radius: 10px;
-      padding: 10px;
+      background: linear-gradient(135deg, rgba(12, 18, 32, 0.95) 0%, rgba(6, 10, 20, 0.98) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 11px 12px;
       text-align: left;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.25s ease;
+    }
+
+    .smc-metric-pill::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 3px;
+      height: 100%;
+      background: currentColor;
+      box-shadow: 0 0 10px currentColor;
     }
 
     .smc-pill-label {
-      font-size: 10px;
-      color: var(--text-muted);
+      font-size: 9.5px;
+      font-weight: 800;
+      color: #7E92A9;
       text-transform: uppercase;
+      letter-spacing: 0.6px;
     }
 
     .smc-pill-value {
-      font-size: 15px;
-      font-weight: 700;
+      font-size: 14.5px;
+      font-weight: 800;
       color: #FFF;
-      margin-top: 2px;
+      margin-top: 4px;
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
     }
 
     .zone-row {
@@ -1614,7 +1772,7 @@
       <div class="matrix-card">
         <div class="matrix-header">
           <div class="matrix-title">
-            <span>🧠</span> AI Confluence Matrix (ពិន្ទុសុវត្ថិភាព)
+            <span style="color:#00F0FF; font-size:14px;">⚡</span> AI CONFLUENCE MATRIX (SAFETY INDEX)
           </div>
           <div class="matrix-score-badge" id="matrixScoreBadge">90%</div>
         </div>
@@ -1653,25 +1811,25 @@
         </div>
       </div>
 
-      <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">ផែនការជួញដូរឆ្លាតវៃ AI SMC — ផ្ទៀងផ្ទាត់រចនាសម្ព័ន្ធទីផ្សារ & Volume</div>
+      <div style="font-size: 11px; color: #7E92A9; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px; font-weight: 700;">AI SMC QUANTUM EXECUTION PROTOCOL</div>
 
       <!-- Core Institutional Levels (Entry, SL, TP1, TP2) -->
       <div class="smc-metrics-grid">
-        <div class="smc-metric-pill" style="border-left: 3px solid var(--gold);">
-          <div class="smc-pill-label">🎯 Entry Zone (តំបន់ទិញ)</div>
-          <div class="smc-pill-value" style="color: var(--gold);" id="smcEntry">$4,268.00 - $4,272.50</div>
+        <div class="smc-metric-pill" style="border-left: 3px solid #00F0FF; color: #00F0FF;">
+          <div class="smc-pill-label">🎯 ENTRY ZONE</div>
+          <div class="smc-pill-value" style="color: #00F0FF;" id="smcEntry">$4,268.00 - $4,272.50</div>
         </div>
-        <div class="smc-metric-pill" style="border-left: 3px solid var(--bear);">
-          <div class="smc-pill-label">🛑 Stop Loss (SL)</div>
-          <div class="smc-pill-value" style="color: var(--bear);" id="smcSL">$4,258.00</div>
+        <div class="smc-metric-pill" style="border-left: 3px solid #FF3366; color: #FF3366;">
+          <div class="smc-pill-label">🛑 STOP LOSS (SL)</div>
+          <div class="smc-pill-value" style="color: #FF3366;" id="smcSL">$4,258.00</div>
         </div>
-        <div class="smc-metric-pill" style="border-left: 3px solid var(--bull);">
-          <div class="smc-pill-label">🎯 Take Profit 1 (BE)</div>
-          <div class="smc-pill-value" style="color: var(--bull);" id="smcTP1">$4,295.00</div>
+        <div class="smc-metric-pill" style="border-left: 3px solid #00E676; color: #00E676;">
+          <div class="smc-pill-label">🎯 TAKE PROFIT 1 (BE)</div>
+          <div class="smc-pill-value" style="color: #00E676;" id="smcTP1">$4,295.00</div>
         </div>
-        <div class="smc-metric-pill" style="border-left: 3px solid #00E5FF;">
-          <div class="smc-pill-label">🏆 Take Profit 2 (Max)</div>
-          <div class="smc-pill-value" style="color: #00E5FF;" id="smcTP2">$4,310.00</div>
+        <div class="smc-metric-pill" style="border-left: 3px solid #FFD700; color: #FFD700;">
+          <div class="smc-pill-label">🏆 TAKE PROFIT 2 (MAX)</div>
+          <div class="smc-pill-value" style="color: #FFD700;" id="smcTP2">$4,310.00</div>
         </div>
       </div>
 
