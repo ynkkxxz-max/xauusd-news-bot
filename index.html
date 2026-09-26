@@ -65,7 +65,7 @@
       height: 100vh;
       pointer-events: none;
       z-index: 0;
-      opacity: 0.65;
+      opacity: 0.28; /* Soft, subtle, non-distracting ambient background */
     }
 
     /* Ambient scanline texture for true Hollywood terminal aesthetic */
@@ -4780,16 +4780,16 @@
           const c = candles[i];
           const isBull = c.isBull;
 
-          const bodyColor = isBull ? 'rgba(0, 230, 118, 0.65)' : 'rgba(255, 75, 75, 0.62)';
-          const wickColor = isBull ? 'rgba(0, 230, 118, 0.88)' : 'rgba(255, 75, 75, 0.85)';
+          const bodyColor = isBull ? 'rgba(0, 230, 118, 0.38)' : 'rgba(255, 75, 75, 0.35)';
+          const wickColor = isBull ? 'rgba(0, 230, 118, 0.50)' : 'rgba(255, 75, 75, 0.48)';
 
-          // Vivid Sci-Fi Neon Glow on active CPI candles
-          ctx.shadowBlur = 16;
-          ctx.shadowColor = isBull ? 'rgba(0, 230, 118, 0.65)' : 'rgba(255, 75, 75, 0.6)';
+          // Subtle ambient glow
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = isBull ? 'rgba(0, 230, 118, 0.35)' : 'rgba(255, 75, 75, 0.3)';
 
           // Draw Wick
           ctx.strokeStyle = wickColor;
-          ctx.lineWidth = 2.4;
+          ctx.lineWidth = 1.6;
           ctx.beginPath();
           ctx.moveTo(c.x, c.currentHigh);
           ctx.lineTo(c.x, c.currentLow);
