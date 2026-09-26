@@ -4699,8 +4699,8 @@
         { isBull: true,  topY: 0.06, botY: 0.38, wickTop: 0.02, wickBot: 0.44 }  // 8. Moon Breakout Ceiling!
       ];
 
-      const candleSpacing = Math.max(34, width / (cpiSpikes.length + 1));
-      const candleWidth = Math.max(18, candleSpacing * 0.52); // Extra large, bold candles
+      const candleSpacing = Math.max(30, width / (cpiSpikes.length + 1));
+      const candleWidth = Math.max(10, candleSpacing * 0.36); // Sleeker, more refined candle size
 
       // State for sequential candle formation
       let activeIndex = 0;       // Which candle is currently printing
@@ -4806,10 +4806,12 @@
         // Reset Shadow Blur for MA lines
         ctx.shadowBlur = 0;
 
-        // Draw Cyan Fast MA Stream trailing the candles
+        // Draw Vibrant Neon Blue Fast MA Curve
         if (maFast.length > 1) {
-          ctx.strokeStyle = 'rgba(0, 240, 255, 0.55)';
-          ctx.lineWidth = 2.4;
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = '#00D2FF';
+          ctx.strokeStyle = '#00D2FF'; // Vivid Cyan/Blue
+          ctx.lineWidth = 2.8;
           ctx.beginPath();
           ctx.moveTo(maFast[0].x, maFast[0].y);
           for (let i = 1; i < maFast.length; i++) {
@@ -4821,10 +4823,12 @@
           ctx.stroke();
         }
 
-        // Draw Coral Slow MA Stream
+        // Draw Vibrant Neon Red Slow MA Curve
         if (maSlow.length > 1) {
-          ctx.strokeStyle = 'rgba(255, 110, 80, 0.45)';
-          ctx.lineWidth = 2.0;
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = '#FF3366';
+          ctx.strokeStyle = '#FF3366'; // Vivid Neon Red
+          ctx.lineWidth = 2.5;
           ctx.beginPath();
           ctx.moveTo(maSlow[0].x, maSlow[0].y);
           for (let i = 1; i < maSlow.length; i++) {
@@ -4834,6 +4838,7 @@
           }
           ctx.lineTo(maSlow[maSlow.length - 1].x, maSlow[maSlow.length - 1].y);
           ctx.stroke();
+          ctx.shadowBlur = 0;
         }
 
         requestAnimationFrame(render);
