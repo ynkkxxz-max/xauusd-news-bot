@@ -4660,7 +4660,7 @@
     }
 
     // ========================================================
-    // 🕯️ AMBIENT CYBER CANDLESTICK CHART MOTION ENGINE
+    // 🕯️ AMBIENT LIVE STREAMING CANDLESTICK CHART ENGINE
     // ========================================================
     function initCandlestickMotionBackground() {
       const canvas = document.getElementById('candlestickBgCanvas');
@@ -4676,28 +4676,46 @@
         height = canvas.height = window.innerHeight;
       });
 
-      // Generate prominent candlestick dataset spanning across the entire screen
-      const candleCount = Math.max(22, Math.floor(width / 24));
+      const candleSpacing = 28; // Spacing between candles
+      const candleWidth = 14;   // Width of candle body
+      const speed = 0.65;       // Chart scroll speed (pixels per frame)
+
+      // Initialize moving candles queue
       const candles = [];
+      let currentPrice = height * 0.58;
+      let trendBias = -0.4; // Slightly bullish upward slant
 
-      for (let i = 0; i < candleCount; i++) {
-        // Ascending diagonal trajectory from bottom-left (85% height) to top-right (18% height)
-        const progress = i / (candleCount - 1);
-        const baseline = height * (0.86 - progress * 0.68);
-        
-        // Add dynamic swing oscillations (waves)
-        const swing = Math.sin(progress * Math.PI * 3.5) * (height * 0.12);
-        const center = baseline + swing;
+      function createNewCandle(startX) {
+        // Organic price action volatility
+        const volatility = 16 + Math.random() * 22;
+        const change = (Math.random() - 0.48 + trendBias * 0.15) * volatility;
+        const open = currentPrice;
+        const close = open + change;
 
-        const bodySize = 14 + Math.random() * 26; // Much larger body
-        const isBull = Math.random() > 0.42;
+        // Long institutional wicks
+        const high = Math.min(open, close) - (6 + Math.random() * 26);
+        const low = Math.max(open, close) + (6 + Math.random() * 24);
 
-        const open = isBull ? center + bodySize * 0.5 : center - bodySize * 0.5;
-        const close = isBull ? center - bodySize * 0.5 : center + bodySize * 0.5;
-        const wickTop = Math.min(open, close) - (8 + Math.random() * 28); // Long wicks
-        const wickBottom = Math.max(open, close) + (8 + Math.random() * 24);
+        // Keep price bouncing comfortably within 20% to 80% screen height
+        if (close < height * 0.22) trendBias = 0.6;
+        else if (close > height * 0.78) trendBias = -0.6;
 
-        candles.push({ open, close, high: wickTop, low: wickBottom });
+        currentPrice = close;
+
+        return {
+          x: startX,
+          open,
+          close,
+          high,
+          low,
+          isBull: close < open // Canvas Y is inverted
+        };
+      }
+
+      // Pre-fill screen with candles
+      const totalCandles = Math.ceil(width / candleSpacing) + 5;
+      for (let i = 0; i < totalCandles; i++) {
+        candles.push(createNewCandle(i * candleSpacing));
       }
 
       let frame = 0;
@@ -4705,58 +4723,62 @@
       function render() {
         ctx.clearRect(0, 0, width, height);
 
-        const candleSpacing = width / (candles.length + 1);
-        const candleWidth = Math.max(7, candleSpacing * 0.55); // Noticeably wider & bolder
+        // Move all candles to the left (Live Chart Flow)
+        for (let i = 0; i < candles.length; i++) {
+          candles[i].x -= speed;
+        }
 
-        // Calculate Moving Average points
+        // Remove off-screen left candle and spawn fresh candle on the right
+        if (candles.length > 0 && candles[0].x < -candleSpacing) {
+          candles.shift();
+          const lastCandle = candles[candles.length - 1];
+          candles.push(createNewCandle(lastCandle.x + candleSpacing));
+        }
+
+        // Live tick pulse on the rightmost (forming) candle
+        const liveCandle = candles[candles.length - 1];
+        if (liveCandle) {
+          liveCandle.close += Math.sin(frame * 0.12) * 0.8;
+          liveCandle.isBull = liveCandle.close < liveCandle.open;
+        }
+
         const maFast = [];
         const maSlow = [];
 
-        candles.forEach((c, idx) => {
-          // Dynamic wave oscillation (breathing market pulse)
-          const wave = Math.sin(frame * 0.022 + idx * 0.28) * 8;
-          const open = c.open + wave;
-          const close = c.close + wave;
-          const high = c.high + wave;
-          const low = c.low + wave;
-          const x = (idx + 1) * candleSpacing;
+        // Draw Candlesticks with Ambient Hollywood Glow
+        candles.forEach((c) => {
+          const bodyColor = c.isBull ? 'rgba(0, 230, 118, 0.58)' : 'rgba(255, 75, 75, 0.55)';
+          const wickColor = c.isBull ? 'rgba(0, 230, 118, 0.78)' : 'rgba(255, 75, 75, 0.75)';
 
-          const isBull = close < open; // in canvas Y is inverted, smaller Y is higher price
+          // Soft ambient glow
+          ctx.shadowBlur = 12;
+          ctx.shadowColor = c.isBull ? 'rgba(0, 230, 118, 0.5)' : 'rgba(255, 75, 75, 0.45)';
 
-          const bodyColor = isBull ? 'rgba(0, 230, 118, 0.55)' : 'rgba(255, 75, 75, 0.52)';
-          const wickColor = isBull ? 'rgba(0, 230, 118, 0.75)' : 'rgba(255, 75, 75, 0.72)';
-
-          // Pronounced Hollywood Ambient Candlestick Glow
-          ctx.shadowBlur = 14;
-          ctx.shadowColor = isBull ? 'rgba(0, 230, 118, 0.55)' : 'rgba(255, 75, 75, 0.5)';
-
-          // Draw Wick (bolder line)
+          // Draw Wick
           ctx.strokeStyle = wickColor;
           ctx.lineWidth = 2.0;
           ctx.beginPath();
-          ctx.moveTo(x, high);
-          ctx.lineTo(x, low);
+          ctx.moveTo(c.x, c.high);
+          ctx.lineTo(c.x, c.low);
           ctx.stroke();
 
-          // Draw Candle Body (wider, rounded corners)
+          // Draw Candle Body
           ctx.fillStyle = bodyColor;
-          const bodyTop = Math.min(open, close);
-          const bodyHeight = Math.max(5, Math.abs(close - open));
-          
-          ctx.fillRect(x - candleWidth / 2, bodyTop, candleWidth, bodyHeight);
+          const top = Math.min(c.open, c.close);
+          const bodyH = Math.max(4, Math.abs(c.close - c.open));
+          ctx.fillRect(c.x - candleWidth / 2, top, candleWidth, bodyH);
 
-          // Collect for Moving Averages
-          const midPrice = (open + close) / 2;
-          maFast.push({ x, y: midPrice + Math.sin(frame * 0.028 + idx * 0.2) * 6 });
-          maSlow.push({ x, y: midPrice + Math.cos(frame * 0.02 + idx * 0.14) * 10 + 6 });
+          const mid = (c.open + c.close) / 2;
+          maFast.push({ x: c.x, y: mid });
+          maSlow.push({ x: c.x, y: mid + 8 });
         });
 
         // Reset Shadow Blur for MA lines
         ctx.shadowBlur = 0;
 
-        // Draw Ambient Cyan Fast MA Curve
-        if (maFast.length > 1) {
-          ctx.strokeStyle = 'rgba(0, 240, 255, 0.48)';
+        // Draw Ambient Cyan Moving Average Line
+        if (maFast.length > 2) {
+          ctx.strokeStyle = 'rgba(0, 240, 255, 0.45)';
           ctx.lineWidth = 2.2;
           ctx.beginPath();
           ctx.moveTo(maFast[0].x, maFast[0].y);
@@ -4768,10 +4790,10 @@
           ctx.stroke();
         }
 
-        // Draw Ambient Coral Slow MA Curve
-        if (maSlow.length > 1) {
-          ctx.strokeStyle = 'rgba(255, 110, 80, 0.42)';
-          ctx.lineWidth = 2.0;
+        // Draw Ambient Coral Moving Average Line
+        if (maSlow.length > 2) {
+          ctx.strokeStyle = 'rgba(255, 110, 80, 0.38)';
+          ctx.lineWidth = 1.8;
           ctx.beginPath();
           ctx.moveTo(maSlow[0].x, maSlow[0].y);
           for (let i = 1; i < maSlow.length - 1; i++) {
