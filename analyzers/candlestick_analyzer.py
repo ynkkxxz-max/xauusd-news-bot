@@ -208,3 +208,85 @@ class CandlestickPatternAnalyzer:
 
         return None
 
+    def detect_sniper_instant_signal(self, current_price: float, key_levels: dict) -> dict:
+        """
+        Real-Time Sniper Signal Engine matching the Pine Script Sniper AI:
+        - Detects Bottom Dip Reversal (BUY NOW)
+        - Detects Top Rejection (SELL NOW)
+        - Calculates Precise Entry, SL, TP1 (1:1.5), TP2 (1:2.5)
+        """
+        candles = self.fetch_m15_candles(count=8)
+        if len(candles) < 3:
+            return None
+
+        curr = candles[-1]
+        prev = candles[-2]
+        prev2 = candles[-3]
+
+        c_open = curr["open"]
+        c_high = curr["high"]
+        c_low = curr["low"]
+        c_close = curr["close"]
+        c_body = abs(c_close - c_open)
+        c_range = c_high - c_low or 0.01
+        lower_wick = min(c_open, c_close) - c_low
+        upper_wick = c_high - max(c_open, c_close)
+
+        # Average True Range (estimate)
+        ranges = [c["high"] - c["low"] for c in candles[-5:]]
+        atr = sum(ranges) / len(ranges) if ranges else 10.0
+        atr = max(4.0, min(atr, 25.0))
+
+        # Fractal Reversal Checks
+        is_bottom_bounce = (prev["low"] <= prev2["low"]) and (c_close > prev["close"]) and (lower_wick >= c_body * 0.7 or c_close > c_open)
+        is_top_rejection = (prev["high"] >= prev2["high"]) and (c_close < prev["close"]) and (upper_wick >= c_body * 0.7 or c_close < c_open)
+
+        # 1. Immediate BUY Signal (Bottom Dip Bounce)
+        if is_bottom_bounce and (c_close >= c_open):
+            entry_p = round(current_price, 2)
+            sl_p = round(min(c_low, prev["low"]) - (atr * 0.5), 2)
+            risk = round(entry_p - sl_p, 2)
+            if risk < 3.0:
+                risk = round(atr * 1.0, 2)
+                sl_p = round(entry_p - risk, 2)
+            tp1_p = round(entry_p + (risk * 1.5), 2)
+            tp2_p = round(entry_p + (risk * 2.5), 2)
+
+            return {
+                "action": "BUY",
+                "action_title": "🟢 ACTION: BUY NOW (DIP BOUNCE)",
+                "reason": "ទៀនបានបង្កើត Bottom Wick Rejection នៅបាត និងមានកម្លាំងស្រូបឡើងវិញ (Bullish Momentum Confirm)!",
+                "entry": entry_p,
+                "sl": sl_p,
+                "tp1": tp1_p,
+                "tp2": tp2_p,
+                "risk_pips": round(risk * 10, 0),
+                "rr_ratio": "1:2.0 (1:1.5 - 1:2.5)"
+            }
+
+        # 2. Immediate SELL Signal (Top Rejection)
+        if is_top_rejection and (c_close <= c_open):
+            entry_p = round(current_price, 2)
+            sl_p = round(max(c_high, prev["high"]) + (atr * 0.5), 2)
+            risk = round(sl_p - entry_p, 2)
+            if risk < 3.0:
+                risk = round(atr * 1.0, 2)
+                sl_p = round(entry_p + risk, 2)
+            tp1_p = round(entry_p - (risk * 1.5), 2)
+            tp2_p = round(entry_p - (risk * 2.5), 2)
+
+            return {
+                "action": "SELL",
+                "action_title": "🔴 ACTION: SELL NOW (TOP REJECTION)",
+                "reason": "ទៀនបានបង្កើត Upper Wick Rejection នៅកំពូល និងមានកម្លាំងរុញទម្លាក់ចុះវិញ (Bearish Momentum Confirm)!",
+                "entry": entry_p,
+                "sl": sl_p,
+                "tp1": tp1_p,
+                "tp2": tp2_p,
+                "risk_pips": round(risk * 10, 0),
+                "rr_ratio": "1:2.0 (1:1.5 - 1:2.5)"
+            }
+
+        return None
+
+
