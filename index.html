@@ -3432,6 +3432,24 @@
       }
     }
 
+    function sendSMCPlanToBot() {
+      playCyberSound('click');
+      if (tg && tg.HapticFeedback) {
+        tg.HapticFeedback.notificationOccurred('success');
+      }
+      const entry = document.getElementById('smcEntry') ? document.getElementById('smcEntry').innerText : '$4,268.00';
+      const sl = document.getElementById('smcSL') ? document.getElementById('smcSL').innerText : '$4,258.00';
+      const tp1 = document.getElementById('smcTP1') ? document.getElementById('smcTP1').innerText : '$4,295.00';
+      const tp2 = document.getElementById('smcTP2') ? document.getElementById('smcTP2').innerText : '$4,310.00';
+      const summaryMsg = `🎯 ផែនការជួញដូរ XAU/USD SMC:\n• Entry: ${entry}\n• Stop Loss: ${sl}\n• Take Profit 1: ${tp1}\n• Take Profit 2: ${tp2}`;
+      
+      if (tg && tg.sendData) {
+        tg.sendData(summaryMsg);
+      } else {
+        showCyberToast('✓ ផែនការ SMC ត្រូវបានបញ្ជាក់រួចរាល់!');
+      }
+    }
+
     function openTradingViewChart() {
       playCyberSound('tab');
       if (tg && tg.HapticFeedback) {
