@@ -234,6 +234,99 @@
       letter-spacing: 0.5px;
     }
 
+    /* Futuristic Sci-Fi Hollywood Cyber Control Bar */
+    .cyber-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding: 0 1px;
+    }
+
+    .cyber-top-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: linear-gradient(135deg, rgba(255, 179, 0, 0.12) 0%, rgba(12, 18, 30, 0.95) 100%);
+      border: 1px solid rgba(255, 179, 0, 0.45);
+      border-radius: 9px;
+      padding: 5px 11px;
+      box-shadow: 0 2px 14px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(255, 179, 0, 0.08);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .cyber-top-pill::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(90deg, transparent, rgba(255, 179, 0, 0.06), transparent);
+      transform: rotate(35deg);
+      pointer-events: none;
+      animation: cyberSweep 5s infinite;
+    }
+
+    .cyber-top-pill:hover, .cyber-top-pill:active {
+      transform: translateY(-1px);
+      box-shadow: 0 0 16px rgba(255, 179, 0, 0.45), inset 0 0 14px rgba(255, 179, 0, 0.15);
+      border-color: #FFB300;
+    }
+
+    @keyframes cyberSweep {
+      0% { transform: translateX(-100%) rotate(35deg); }
+      100% { transform: translateX(100%) rotate(35deg); }
+    }
+
+    .cyber-top-btn {
+      background: linear-gradient(180deg, rgba(0, 240, 255, 0.12) 0%, rgba(8, 16, 28, 0.95) 100%);
+      border: 1px solid rgba(0, 240, 255, 0.35);
+      border-radius: 9px;
+      padding: 5px 11px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #00F0FF;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.6), inset 0 0 10px rgba(0, 240, 255, 0.08);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      letter-spacing: 0.4px;
+    }
+
+    .cyber-top-btn::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 15%;
+      right: 15%;
+      height: 1.5px;
+      background: #00F0FF;
+      box-shadow: 0 0 8px #00F0FF;
+      border-radius: 2px;
+      opacity: 0.7;
+    }
+
+    .cyber-top-btn:hover {
+      background: linear-gradient(180deg, rgba(0, 240, 255, 0.22) 0%, rgba(10, 22, 38, 0.98) 100%);
+      border-color: #00F0FF;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.5), inset 0 0 14px rgba(0, 240, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .cyber-top-btn:active {
+      transform: scale(0.96);
+      box-shadow: 0 0 20px #00F0FF;
+    }
+
     .refresh-btn {
       background: rgba(0, 240, 255, 0.08);
       border: 1px solid rgba(0, 240, 255, 0.25);
@@ -1766,22 +1859,24 @@
 </head>
 <body>
 
-  <!-- Top Control Header: [News Countdown] & [SFX / Update] -->
-  <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; padding: 0 2px;">
-    <!-- ⏳ Next High-Impact News Countdown Badge -->
-    <div id="topNewsCountdownPill" style="display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, rgba(255, 179, 0, 0.12) 0%, rgba(10, 16, 28, 0.95) 100%); border: 1px solid rgba(255, 179, 0, 0.35); border-radius: 8px; padding: 4px 10px; box-shadow: 0 0 10px rgba(255, 179, 0, 0.12); cursor: pointer;" onclick="scrollToNewsDanger()" title="High-Impact USD News Countdown">
-      <span class="pulse" id="newsPulseDot" style="width: 7px; height: 7px; background: #FFB300; box-shadow: 0 0 8px #FFB300;"></span>
-      <span style="font-size: 10.5px; font-weight: 800; color: #FFB300; letter-spacing: 0.4px;" id="newsCountdownTitle">⏱️ CPI</span>
-      <span style="font-size: 10px; font-weight: 700; color: #FFF; background: rgba(255, 255, 255, 0.08); padding: 1px 6px; border-radius: 4px; font-variant-numeric: tabular-nums;" id="newsCountdownTimer">--:--:--</span>
+  <!-- Hollywood Sci-Fi Cyber Control Bar: [News Pill] & [SFX / Update] -->
+  <div class="cyber-top-bar">
+    <!-- ⏳ Next High-Impact News / Market Open Countdown Badge -->
+    <div class="cyber-top-pill" id="topNewsCountdownPill" onclick="scrollToNewsDanger()" title="High-Impact USD News Countdown">
+      <span class="pulse" id="newsPulseDot" style="width: 7px; height: 7px; background: #FFB300; box-shadow: 0 0 10px #FFB300;"></span>
+      <span style="font-size: 11px; font-weight: 800; color: #FFB300; letter-spacing: 0.5px; text-shadow: 0 0 8px rgba(255, 179, 0, 0.4);" id="newsCountdownTitle">🔒 MARKET OPEN</span>
+      <span style="font-size: 10px; font-weight: 700; color: #FFF; background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(255, 179, 0, 0.3); padding: 2px 7px; border-radius: 6px; font-variant-numeric: tabular-nums; box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.5);" id="newsCountdownTimer">--:--:--</span>
     </div>
 
-    <!-- Controls: [SFX] and [Update] -->
-    <div style="display: flex; align-items: center; gap: 6px;">
-      <button class="refresh-btn" id="btnAudioToggle" onclick="toggleCyberAudio()" title="Cyber HUD Sound Effects (On/Off)" style="background: rgba(0, 240, 255, 0.12); border-color: rgba(0, 240, 255, 0.35);">
-        <span id="audioIcon">🔊</span> <span id="audioStatusText">SFX</span>
+    <!-- Right Controls: [SFX] and [Update] -->
+    <div style="display: flex; align-items: center; gap: 7px;">
+      <button class="cyber-top-btn" id="btnAudioToggle" onclick="toggleCyberAudio()" title="Cyber HUD Sound Effects (On/Off)">
+        <span id="audioIcon" style="font-size: 13px;">🔊</span>
+        <span id="audioStatusText" style="text-shadow: 0 0 8px rgba(0, 240, 255, 0.8);">SFX ON</span>
       </button>
-      <button class="refresh-btn" id="btnRefresh" onclick="manualRefresh()" title="Refresh Live Data">
-        <span id="refreshIcon">🔄</span> Update
+      <button class="cyber-top-btn" id="btnRefresh" onclick="manualRefresh()" title="Refresh Live Data" style="color: #00E676; border-color: rgba(0, 230, 118, 0.4); background: linear-gradient(180deg, rgba(0, 230, 118, 0.12) 0%, rgba(8, 20, 22, 0.95) 100%);">
+        <span id="refreshIcon" style="font-size: 12px; display: inline-block;">⚡</span>
+        <span style="text-shadow: 0 0 8px rgba(0, 230, 118, 0.8);">Sync</span>
       </button>
     </div>
   </div>
