@@ -1766,14 +1766,24 @@
 </head>
 <body>
 
-  <!-- Top Control Header: [SFX] and [Update] -->
-  <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 10px; padding: 0 2px;">
-    <button class="refresh-btn" id="btnAudioToggle" onclick="toggleCyberAudio()" title="Cyber HUD Sound Effects (On/Off)" style="background: rgba(0, 240, 255, 0.12); border-color: rgba(0, 240, 255, 0.35);">
-      <span id="audioIcon">🔊</span> <span id="audioStatusText">SFX</span>
-    </button>
-    <button class="refresh-btn" id="btnRefresh" onclick="manualRefresh()" title="Refresh Live Data">
-      <span id="refreshIcon">🔄</span> Update
-    </button>
+  <!-- Top Control Header: [News Countdown] & [SFX / Update] -->
+  <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; padding: 0 2px;">
+    <!-- ⏳ Next High-Impact News Countdown Badge -->
+    <div id="topNewsCountdownPill" style="display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, rgba(255, 179, 0, 0.12) 0%, rgba(10, 16, 28, 0.95) 100%); border: 1px solid rgba(255, 179, 0, 0.35); border-radius: 8px; padding: 4px 10px; box-shadow: 0 0 10px rgba(255, 179, 0, 0.12); cursor: pointer;" onclick="scrollToNewsDanger()" title="High-Impact USD News Countdown">
+      <span class="pulse" id="newsPulseDot" style="width: 7px; height: 7px; background: #FFB300; box-shadow: 0 0 8px #FFB300;"></span>
+      <span style="font-size: 10.5px; font-weight: 800; color: #FFB300; letter-spacing: 0.4px;" id="newsCountdownTitle">⏱️ CPI</span>
+      <span style="font-size: 10px; font-weight: 700; color: #FFF; background: rgba(255, 255, 255, 0.08); padding: 1px 6px; border-radius: 4px; font-variant-numeric: tabular-nums;" id="newsCountdownTimer">--:--:--</span>
+    </div>
+
+    <!-- Controls: [SFX] and [Update] -->
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <button class="refresh-btn" id="btnAudioToggle" onclick="toggleCyberAudio()" title="Cyber HUD Sound Effects (On/Off)" style="background: rgba(0, 240, 255, 0.12); border-color: rgba(0, 240, 255, 0.35);">
+        <span id="audioIcon">🔊</span> <span id="audioStatusText">SFX</span>
+      </button>
+      <button class="refresh-btn" id="btnRefresh" onclick="manualRefresh()" title="Refresh Live Data">
+        <span id="refreshIcon">🔄</span> Update
+      </button>
+    </div>
   </div>
 
   <!-- Futuristic Sci-Fi HUD Navigation Tabs -->
@@ -2732,6 +2742,138 @@
           osc.stop(now + 0.06);
         }
       } catch (e) {}
+    }
+
+    // ========================================================
+    // ⏳ NEXT HIGH-IMPACT NEWS REAL-TIME COUNTDOWN ENGINE
+    // ========================================================
+    let nextHighImpactNews = null;
+    let newsCountdownInterval = null;
+
+    function initHighImpactNewsCountdown() {
+      // Fetch live calendar data from economic calendar feeds or fallback calendar
+      fetchLiveEconomicSchedule();
+      if (newsCountdownInterval) clearInterval(newsCountdownInterval);
+      newsCountdownInterval = setInterval(updateNewsCountdownTick, 1000);
+    }
+
+    async function fetchLiveEconomicSchedule() {
+      try {
+        const res = await fetch('https://nfs.faireconomy.media/ff_calendar_thisweek.json');
+        if (res.ok) {
+          const events = await res.json();
+          const now = new Date();
+          // Filter USD high-impact events in the future
+          const upcoming = events.filter(e => {
+            if ((e.country === 'USD' || e.country === 'CNY') && e.impact === 'High') {
+              const dt = new Date(e.date);
+              return dt > now;
+            }
+            return false;
+          }).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+          if (upcoming.length > 0) {
+            nextHighImpactNews = {
+              title: upcoming[0].title,
+              date: new Date(upcoming[0].date)
+            };
+            updateNewsCountdownTick();
+            return;
+          }
+        }
+      } catch (err) {}
+
+      // Fallback: Smart Macro Schedule (Next Major Session / High Impact Window)
+      if (!nextHighImpactNews) {
+        const now = new Date();
+        // Target upcoming 19:30 or 21:00 UTC+7 (typical US High Impact times)
+        const target = new Date();
+        target.setHours(19, 30, 0, 0);
+        if (target <= now) {
+          target.setHours(21, 0, 0, 0);
+        }
+        if (target <= now) {
+          target.setDate(target.getDate() + 1);
+          target.setHours(19, 30, 0, 0);
+        }
+        nextHighImpactNews = {
+          title: 'USD HIGH-IMPACT',
+          date: target
+        };
+        updateNewsCountdownTick();
+      }
+    }
+
+    function updateNewsCountdownTick() {
+      if (!nextHighImpactNews) return;
+      const now = new Date();
+      const diffMs = nextHighImpactNews.date - now;
+      const titleEl = document.getElementById('newsCountdownTitle');
+      const timerEl = document.getElementById('newsCountdownTimer');
+      const dotEl = document.getElementById('newsPulseDot');
+      const pillEl = document.getElementById('topNewsCountdownPill');
+
+      if (diffMs <= 0) {
+        // News releasing now!
+        if (titleEl) titleEl.innerText = '🚨 ' + (nextHighImpactNews.title.length > 10 ? nextHighImpactNews.title.substring(0, 10) + '..' : nextHighImpactNews.title);
+        if (timerEl) {
+          timerEl.innerText = 'LIVE NOW';
+          timerEl.style.color = '#FF3366';
+        }
+        if (dotEl) {
+          dotEl.style.background = '#FF3366';
+          dotEl.style.boxShadow = '0 0 10px #FF3366';
+        }
+        if (pillEl) {
+          pillEl.style.borderColor = 'rgba(255, 51, 102, 0.6)';
+          pillEl.style.background = 'linear-gradient(135deg, rgba(255, 51, 102, 0.2) 0%, rgba(10, 16, 28, 0.95) 100%)';
+        }
+        return;
+      }
+
+      const totalSec = Math.floor(diffMs / 1000);
+      const hours = Math.floor(totalSec / 3600);
+      const minutes = Math.floor((totalSec % 3600) / 60);
+      const seconds = totalSec % 60;
+
+      const shortTitle = nextHighImpactNews.title.replace('Consumer Price Index', 'CPI')
+                                                .replace('Non-Farm Employment Change', 'NFP')
+                                                .replace('FOMC Statement', 'FOMC')
+                                                .replace('Fed Interest Rate Decision', 'FED RATE');
+      
+      const displayTitle = shortTitle.length > 8 ? shortTitle.substring(0, 8) + '..' : shortTitle;
+
+      if (titleEl) titleEl.innerText = '⏱️ ' + displayTitle;
+      if (timerEl) {
+        if (hours > 0) {
+          timerEl.innerText = `${hours}h ${minutes}m ${seconds}s`;
+        } else {
+          timerEl.innerText = `${minutes}m ${seconds}s`;
+        }
+      }
+
+      // If under 15 minutes, turn RED ALERT mode
+      if (diffMs <= 15 * 60 * 1000) {
+        if (dotEl) {
+          dotEl.style.background = '#FF3366';
+          dotEl.style.boxShadow = '0 0 10px #FF3366';
+        }
+        if (pillEl) {
+          pillEl.style.borderColor = '#FF3366';
+          pillEl.style.boxShadow = '0 0 12px rgba(255, 51, 102, 0.4)';
+        }
+        if (titleEl) titleEl.style.color = '#FF3366';
+      }
+    }
+
+    function scrollToNewsDanger() {
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+      playCyberSound('beep');
+      const banner = document.getElementById('newsDangerBanner');
+      if (banner) {
+        banner.style.display = 'block';
+        banner.scrollIntoView({ behavior: 'smooth' });
+      }
     }
 
     // Check URL query parameters to auto-select tab e.g. ?tab=smc or ?tab=lot
@@ -4344,6 +4486,7 @@
     }
 
     calculate();
+    initHighImpactNewsCountdown();
   </script>
 </body>
 </html>
