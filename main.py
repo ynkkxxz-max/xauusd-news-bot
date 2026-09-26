@@ -866,18 +866,10 @@ class XAUUSDNewsAssistantBot:
                     self.notifier.send_message(resp, chat_id=chat_id, reply_markup=bottom_keyboard)
                 else:
                     help_text = (
-                        f"👋 <b>សូមស្វាគមន៍មកកាន់ XAUUSD AI Assistant Bot!</b>\n\n"
-                        f"ចុចប៊ូតុង <b>[ Price ]</b> ឬ <b>[ SMC ]</b> នៅខាងក្រោម ឬវាយពាក្យបញ្ជា Bot៖\n"
-                        f"• <b>Price</b> ➡️ មើលហាងឆេងមាស Spot និងផ្សារធំថ្មីបច្ចុប្បន្ន\n"
-                        f"• <b>SMC</b> ➡️ មើលកម្រិតបច្ចេកទេស AI Pivot & SMC Setup Zone\n"
-                        f"• <code>/chart</code> ➡️ ស្កេនរូប Chart ទៀន Live + AI Vision Pattern Scanner (M15)\n"
-                        f"• <code>/lot</code> ➡️ ម៉ាស៊ីនគណនាទំហំ Lot Size & Risk ឆ្លាតវៃតាមដើមទុន\n"
-                        f"• <code>/heatmap</code> ➡️ ផែនទីកម្តៅ Smart Money Liquidity Heatmap HD (Canvas)\n"
-                        f"• <code>/fomc</code> ➡️ AI បកប្រែផ្ទាល់ការថ្លែងសុន្ទរកថា Fed / Powell Speech + សំឡេង\n"
-                        f"• <code>/depth</code> ➡️ មើលជម្រៅ Order Book Depth 100 Levels & Iceberg Walls\n"
-                        f"• <code>/cot</code> ➡️ មើលរបាយការណ៍កុងត្រាស្ថាប័នធំៗ CFTC CoT Report\n"
-                        f"• <code>/dxy</code> ➡️ មើលសន្ទស្សន៍ដុល្លារ និងសញ្ញា Macro Divergence\n"
-                        f"• <code>/voice</code> ➡️ ស្តាប់សំឡេងនិយាយសង្ខេបហាងឆេងមាសភាសាខ្មែរ"
+                        f"👋 <b>សូមស្វាគមន៍មកកាន់ XAUUSD AI Assistant!</b>\n\n"
+                        f"សូមជ្រើសរើសចុចប៊ូតុងខាងក្រោម៖\n"
+                        f"• <b>[ Price ]</b> ➡️ មើលហាងឆេងមាស Spot និងផ្សារធំថ្មីបច្ចុប្បន្ន\n"
+                        f"• <b>[ SMC ]</b> ➡️ មើលកម្រិតបច្ចេកទេស AI Pivot & SMC Setup Zone"
                     )
                     self.notifier.send_message(help_text, chat_id=chat_id, reply_markup=bottom_keyboard)
 
