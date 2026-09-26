@@ -172,7 +172,9 @@ class MacroAnalyzer:
         3. Real-Time Order Flow: Bid/Ask depth dominance & Institutional Iceberg walls
         4. Macro Confluence: DXY Dollar Index correlation & US10Y Bond Yields
         5. Candlestick Confirmation: M15 wick rejections & liquidity absorption
-        Outputs: Decisive Direction (BUY or SELL ONLY), Confidence Score (85-95%),
+        6. AI Trap Detector: Institutional Bull Trap / Bear Trap / Stop-Loss Hunt recognition
+        7. News Danger Auto-Lock: CPI/NFP/FOMC proximity check
+        Outputs: Decisive Direction (BUY or SELL ONLY), Confidence Score (85-96%),
         Exact Entry Range, Tight Protective Stop Loss, TP1 (BE), and TP2 (High R:R).
         """
         pivot = key_levels.get("pivot", current_price)
@@ -227,6 +229,7 @@ class MacroAnalyzer:
 
         # Multi-Timeframe Confirmation (M5 + M15 + H1 Confluence)
         mtf_summary = []
+        trap_alert = None
         try:
             import requests
             headers = {"User-Agent": "Mozilla/5.0"}
@@ -283,15 +286,37 @@ class MacroAnalyzer:
                         bull_score += 2
                         mtf_summary.append("⚡ M5: Bullish Engulfing")
 
-            # 4. Liquidity Sweep Detection (Stop Hunt / Fakeout filter)
-            if r_m15.status_code == 200 and len(m15_data) >= 2:
+            # 4. AI Fakeout & Institutional Trap Detector (Liquidity Trap / Stop Hunt)
+            if r_m15.status_code == 200 and len(m15_data) >= 3:
                 prev_high = float(m15_data[-2][2])
                 prev_low = float(m15_data[-2][3])
                 cur_high = float(m15_data[-1][2])
                 cur_low = float(m15_data[-1][3])
                 cur_close = float(m15_data[-1][4])
+                cur_open = float(m15_data[-1][1])
+                body_size = abs(cur_close - cur_open)
+                upper_wick = cur_high - max(cur_open, cur_close)
+                lower_wick = min(cur_open, cur_close) - cur_low
 
-                if cur_high > prev_high and cur_close < prev_high:
+                # Bull Trap: Price swept above prev high then rejected with upper wick
+                if cur_high > prev_high and cur_close < prev_high and upper_wick >= max(body_size, 1.2):
+                    bear_score += 4
+                    mtf_summary.append("⚠️ BULL TRAP DETECTED: ស្ថាប័នដាក់នុយបញ្ឆោតទិញកំពូល (BSL Hunt Fakeout)")
+                    trap_alert = {
+                        "type": "BULL_TRAP",
+                        "title": "⚠️ AI FAKEOUT / BULL TRAP DETECTED",
+                        "desc": f"ស្ថាប័នធំៗបានរុញតម្លៃឡើងបញ្ឆោត (${cur_high:,.2f}) ដាក់នុយទាក់ទាញ Buy រួចបដិសេធតម្លៃ (Top Wick Rejection) ដើម្បីទម្លាក់លក់យ៉ាងគំហុក! ហាម BUY តាមដាច់ខាត!"
+                    }
+                # Bear Trap: Price swept below prev low then rejected with lower wick
+                elif cur_low < prev_low and cur_close > prev_low and lower_wick >= max(body_size, 1.2):
+                    bull_score += 4
+                    mtf_summary.append("⚠️ BEAR TRAP DETECTED: ស្ថាប័នដាក់នុយបញ្ឆោតលក់បាត (SSL Hunt Fakeout)")
+                    trap_alert = {
+                        "type": "BEAR_TRAP",
+                        "title": "⚠️ AI FAKEOUT / BEAR TRAP DETECTED",
+                        "desc": f"ស្ថាប័នធំៗបានទម្លាក់តម្លៃបោកបញ្ឆោត (${cur_low:,.2f}) បង្ខំឱ្យ Trader លក់កាត់ខាត រួចស្រូបប្រមូលទិញត្រឡប់ឡើង (Bottom Wick Rejection)! ហាម SELL តាមដាច់ខាត!"
+                    }
+                elif cur_high > prev_high and cur_close < prev_high:
                     bear_score += 3
                     mtf_summary.append("🛡️ BSL Sweep (Bearish Reversal)")
                 elif cur_low < prev_low and cur_close > prev_low:
@@ -311,6 +336,14 @@ class MacroAnalyzer:
         except Exception:
             pass
 
+        # Check News Danger Zone Auto-Lock
+        news_danger = {"is_danger": False}
+        try:
+            from collectors.economic_calendar import EconomicCalendarCollector
+            news_danger = EconomicCalendarCollector().is_news_danger_zone(buffer_minutes=15)
+        except Exception:
+            pass
+
         if mtf_summary:
             confluences.append("ផ្ទៀងផ្ទាត់ Institutional Multi-Confluence: " + " | ".join(mtf_summary))
 
@@ -327,9 +360,6 @@ class MacroAnalyzer:
             confidence_pct = min(87, 82 + (total_signals * 2))
 
         if is_buy:
-            # Smart Institutional Pullback / Retracement Entry:
-            # If current price is stretched above pivot/discount, institutions never chase the top.
-            # They wait for a pullback to discount demand ($4,295 instead of chasing $4,300)
             pullback_target = round(max(current_price - 4.5, s1 + 2.0, pivot + 0.5), 2)
             if pullback_target >= current_price:
                 pullback_target = round(current_price - 3.0, 2)
@@ -337,7 +367,6 @@ class MacroAnalyzer:
             entry_low = round(pullback_target - 1.5, 2)
             entry_high = round(pullback_target + 1.2, 2)
             
-            # Optimal Institutional SL placed safely below key discount liquidity
             sl_price = round(min(entry_low - 7.0, s1 - 3.0), 2)
             tp1_price = round(max(current_price + 10.0, pivot + 14.0), 2)
             tp2_price = round(max(current_price + 22.0, r1 + 5.0), 2)
@@ -369,12 +398,11 @@ class MacroAnalyzer:
                 "confidence": f"{confidence_pct}%",
                 "why_this_trade": why_trade,
                 "why_not_opposite": why_not_opp,
-                "confirmation_note": confirm
+                "confirmation_note": confirm,
+                "trap_alert": trap_alert,
+                "news_danger": news_danger
             }
         else:
-            # Smart Institutional Rally / Retracement Entry:
-            # If current price is falling, institutions never sell at the bottom.
-            # They wait for price to bounce/retrace into Premium supply before dropping heavy orders!
             bounce_target = round(min(current_price + 4.5, r1 - 2.0, pivot - 0.5), 2)
             if bounce_target <= current_price:
                 bounce_target = round(current_price + 3.0, 2)
@@ -382,7 +410,6 @@ class MacroAnalyzer:
             entry_low = round(bounce_target - 1.2, 2)
             entry_high = round(bounce_target + 1.5, 2)
             
-            # Optimal Institutional SL placed safely above key premium liquidity
             sl_price = round(max(entry_high + 7.0, r1 + 3.0), 2)
             tp1_price = round(min(current_price - 10.0, pivot - 14.0), 2)
             tp2_price = round(min(current_price - 22.0, s1 - 5.0), 2)
@@ -414,6 +441,7 @@ class MacroAnalyzer:
                 "confidence": f"{confidence_pct}%",
                 "why_this_trade": why_trade,
                 "why_not_opposite": why_not_opp,
-                "confirmation_note": confirm
+                "confirmation_note": confirm,
+                "trap_alert": trap_alert,
+                "news_danger": news_danger
             }
-
