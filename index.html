@@ -2775,7 +2775,8 @@
           if (upcoming.length > 0) {
             nextHighImpactNews = {
               title: upcoming[0].title,
-              date: new Date(upcoming[0].date)
+              date: new Date(upcoming[0].date),
+              isWeekend: false
             };
             updateNewsCountdownTick();
             return;
@@ -2783,25 +2784,43 @@
         }
       } catch (err) {}
 
-      // Fallback: Smart Macro Schedule (Next Major Session / High Impact Window)
-      if (!nextHighImpactNews) {
-        const now = new Date();
-        // Target upcoming 19:30 or 21:00 UTC+7 (typical US High Impact times)
-        const target = new Date();
-        target.setHours(19, 30, 0, 0);
-        if (target <= now) {
-          target.setHours(21, 0, 0, 0);
-        }
-        if (target <= now) {
-          target.setDate(target.getDate() + 1);
-          target.setHours(19, 30, 0, 0);
-        }
+      // Weekend & Market Session Intelligence:
+      // If it is Saturday or Sunday, market is closed until Monday 05:00 AM UTC+7 (Sydney/Tokyo Open)
+      const now = new Date();
+      const currentDay = now.getDay(); // 0 is Sunday, 6 is Saturday
+
+      if (currentDay === 6 || currentDay === 0) {
+        // Target upcoming Monday 05:00 AM UTC+7 (Market Open)
+        const daysUntilMonday = currentDay === 6 ? 2 : 1;
+        const targetMonday = new Date(now);
+        targetMonday.setDate(now.getDate() + daysUntilMonday);
+        targetMonday.setHours(5, 0, 0, 0);
+
         nextHighImpactNews = {
-          title: 'USD HIGH-IMPACT',
-          date: target
+          title: 'MARKET OPEN',
+          date: targetMonday,
+          isWeekend: true
         };
         updateNewsCountdownTick();
+        return;
       }
+
+      // Fallback for regular trading days: Next High-Impact Macro Window (19:30 or 21:00 UTC+7)
+      const target = new Date(now);
+      target.setHours(19, 30, 0, 0);
+      if (target <= now) {
+        target.setHours(21, 0, 0, 0);
+      }
+      if (target <= now) {
+        target.setDate(target.getDate() + 1);
+        target.setHours(19, 30, 0, 0);
+      }
+      nextHighImpactNews = {
+        title: 'USD HIGH-IMPACT',
+        date: target,
+        isWeekend: false
+      };
+      updateNewsCountdownTick();
     }
 
     function updateNewsCountdownTick() {
@@ -2843,9 +2862,19 @@
       
       const displayTitle = shortTitle.length > 8 ? shortTitle.substring(0, 8) + '..' : shortTitle;
 
-      if (titleEl) titleEl.innerText = '⏱️ ' + displayTitle;
+      if (titleEl) {
+        if (nextHighImpactNews.isWeekend) {
+          titleEl.innerText = '🔒 ' + displayTitle;
+        } else {
+          titleEl.innerText = '⏱️ ' + displayTitle;
+        }
+      }
       if (timerEl) {
-        if (hours > 0) {
+        if (hours >= 24) {
+          const days = Math.floor(hours / 24);
+          const remHours = hours % 24;
+          timerEl.innerText = `${days}d ${remHours}h ${minutes}m`;
+        } else if (hours > 0) {
           timerEl.innerText = `${hours}h ${minutes}m ${seconds}s`;
         } else {
           timerEl.innerText = `${minutes}m ${seconds}s`;
