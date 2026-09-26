@@ -1343,6 +1343,7 @@
     }
 
     .entity-row {
+      position: relative;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -1350,20 +1351,74 @@
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 10px;
-      transition: transform 0.15s ease;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: all 0.25s ease;
     }
 
     .entity-row:active {
-      transform: scale(0.98);
+      transform: scale(0.985);
+    }
+
+    /* Live Volume Heat Indicator Bar Behind Text (Translucent Glass) */
+    .entity-vol-bar {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.16;
+      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .entity-row[data-type="buyer"] .entity-vol-bar {
+      background: linear-gradient(90deg, rgba(0, 230, 118, 0.75) 0%, rgba(0, 240, 255, 0.35) 100%);
+    }
+
+    .entity-row[data-type="seller"] .entity-vol-bar {
+      background: linear-gradient(90deg, rgba(255, 51, 102, 0.75) 0%, rgba(255, 107, 107, 0.3) 100%);
+    }
+
+    /* Subtle Volume Tier Glow */
+    .entity-row.tier-mega {
+      background: linear-gradient(90deg, rgba(0, 230, 118, 0.09) 0%, rgba(0, 240, 255, 0.04) 50%, rgba(255, 255, 255, 0.02) 100%);
+      border-color: rgba(0, 230, 118, 0.22);
+      box-shadow: inset 0 0 16px rgba(0, 230, 118, 0.05);
+    }
+
+    .entity-row.tier-high {
+      background: linear-gradient(90deg, rgba(0, 230, 118, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+      border-color: rgba(0, 230, 118, 0.16);
+    }
+
+    .entity-row.tier-medium {
+      background: linear-gradient(90deg, rgba(0, 230, 118, 0.04) 0%, rgba(255, 255, 255, 0.02) 100%);
+    }
+
+    .entity-row.tier-sell {
+      background: linear-gradient(90deg, rgba(255, 51, 102, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+      border-color: rgba(255, 51, 102, 0.18);
     }
 
     .entity-info-col {
+      position: relative;
+      z-index: 2;
       display: flex;
       flex-direction: column;
       gap: 3px;
       flex: 1;
       min-width: 0;
       padding-right: 8px;
+    }
+
+    .entity-stat-col {
+      position: relative;
+      z-index: 2;
+      text-align: right;
+      flex-shrink: 0;
+      min-width: 75px;
     }
 
     .entity-name {
@@ -2645,7 +2700,8 @@
 
       <div class="entity-grid" id="institutionalEntityGrid">
         <!-- 1. Poland (National Bank of Poland - Top Official Central Bank Buyer) -->
-        <div class="entity-row" data-type="buyer" style="border-left: 3px solid #00E676;">
+        <div class="entity-row tier-high" data-type="buyer" style="border-left: 3px solid #00E676;">
+          <div class="entity-vol-bar" style="width: 78%;"></div>
           <div class="entity-info-col">
             <div class="entity-name">
               <span>🇵🇱 National Bank of Poland (NBP)</span>
@@ -2662,7 +2718,8 @@
         </div>
 
         <!-- 2. People's Bank of China (PBoC) -->
-        <div class="entity-row" data-type="buyer" style="border-left: 3px solid #00E676;">
+        <div class="entity-row tier-medium" data-type="buyer" style="border-left: 3px solid #00E676;">
+          <div class="entity-vol-bar" style="width: 62%;"></div>
           <div class="entity-info-col">
             <div class="entity-name">
               <span>🇨🇳 PBoC (ធនាគារកណ្តាលចិន)</span>
@@ -2679,7 +2736,8 @@
         </div>
 
         <!-- 3. China Retail & Investor Market -->
-        <div class="entity-row" data-type="buyer" style="border-left: 3px solid #00E676;">
+        <div class="entity-row tier-mega" data-type="buyer" style="border-left: 3px solid #00E676;">
+          <div class="entity-vol-bar" style="width: 95%;"></div>
           <div class="entity-info-col">
             <div class="entity-name">
               <span>🇨🇳 ទីផ្សារមាសដុំចិន (Bars & Coins)</span>
@@ -2696,7 +2754,8 @@
         </div>
 
         <!-- 4. Uzbekistan & Kazakhstan -->
-        <div class="entity-row" data-type="buyer" style="border-left: 3px solid #00E676;">
+        <div class="entity-row tier-medium" data-type="buyer" style="border-left: 3px solid #00E676;">
+          <div class="entity-vol-bar" style="width: 70%;"></div>
           <div class="entity-info-col">
             <div class="entity-name">
               <span>🇺🇿 🇰🇿 Central Banks (Uzbekistan & KZ)</span>
@@ -2713,7 +2772,8 @@
         </div>
 
         <!-- 5. Reserve Bank of India (RBI) -->
-        <div class="entity-row" data-type="buyer" style="border-left: 3px solid #00E676;">
+        <div class="entity-row tier-high" data-type="buyer" style="border-left: 3px solid #00E676;">
+          <div class="entity-vol-bar" style="width: 86%;"></div>
           <div class="entity-info-col">
             <div class="entity-name">
               <span>🇮🇳 RBI & Indian Consumer Market</span>
@@ -2730,7 +2790,8 @@
         </div>
 
         <!-- 6. BlackRock & Macro Hedge Funds (Managed Money) -->
-        <div class="entity-row" data-type="buyer" style="border-left: 3px solid #00E676;">
+        <div class="entity-row tier-high" data-type="buyer" style="border-left: 3px solid #00E676;">
+          <div class="entity-vol-bar" style="width: 82%;"></div>
           <div class="entity-info-col">
             <div class="entity-name">
               <span>🦅 BlackRock & Macro Hedge Funds</span>
@@ -2747,7 +2808,8 @@
         </div>
 
         <!-- 7. SPDR Gold Shares (GLD ETF Vault) -->
-        <div class="entity-row" data-type="buyer" style="border-left: 3px solid #00E676;">
+        <div class="entity-row tier-mega" data-type="buyer" style="border-left: 3px solid #00E676;">
+          <div class="entity-vol-bar" style="width: 92%;"></div>
           <div class="entity-info-col">
             <div class="entity-name">
               <span>📦 SPDR Gold Trust (GLD)</span>
@@ -2764,7 +2826,8 @@
         </div>
 
         <!-- 8. Japan (Bank of Japan - BoJ & GPIF Pension) [NOT BUYING / CARRY TRIGGER] -->
-        <div class="entity-row" data-type="seller" style="border-left: 3px solid #FF3366; background: rgba(255, 51, 102, 0.03);">
+        <div class="entity-row tier-sell" data-type="seller" style="border-left: 3px solid #FF3366;">
+          <div class="entity-vol-bar" style="width: 55%;"></div>
           <div class="entity-info-col">
             <div class="entity-name">
               <span>🇯🇵 Bank of Japan (BoJ) & GPIF</span>
@@ -2781,7 +2844,8 @@
         </div>
 
         <!-- 9. US Treasury & Dollar Reserves [NON-BUYER / DXY RESISTANCE] -->
-        <div class="entity-row" data-type="seller" style="border-left: 3px solid #FF3366; background: rgba(255, 51, 102, 0.03);">
+        <div class="entity-row tier-sell" data-type="seller" style="border-left: 3px solid #FF3366;">
+          <div class="entity-vol-bar" style="width: 65%;"></div>
           <div class="entity-info-col">
             <div class="entity-name">
               <span>🇺🇸 US Treasury & Real Yields Hub</span>
@@ -4541,6 +4605,81 @@
         flowBadge.innerText = isLiveOrderBook ? '⚡ LIVE ORDER BOOK' : '⚡ DYNAMIC RADAR';
         flowBadge.style.color = '#00E676';
         flowBadge.style.borderColor = 'rgba(0, 230, 118, 0.4)';
+      }
+
+      // Update institutional heatbars dynamically based on live buy flow ratio
+      updateLiveEntityHeatBars(bidPct, askPct);
+    }
+
+    // ========================================================
+    // INSTITUTIONAL LIVE AUTO VOLUME HEAT BARS & FILTERING
+    // ========================================================
+    function updateLiveEntityHeatBars(bidPct, askPct) {
+      const rows = document.querySelectorAll('.entity-row');
+      if (!rows || rows.length === 0) return;
+
+      const buyMultiplier = (bidPct || 54.0) / 50.0; // Dynamic scale around 1.0
+      const sellMultiplier = (askPct || 46.0) / 50.0;
+
+      rows.forEach(row => {
+        const type = row.getAttribute('data-type');
+        const volBar = row.querySelector('.entity-vol-bar');
+        if (!volBar) return;
+
+        let basePct = 70;
+        if (row.classList.contains('tier-mega')) basePct = 92;
+        else if (row.classList.contains('tier-high')) basePct = 80;
+        else if (row.classList.contains('tier-medium')) basePct = 65;
+        else if (row.classList.contains('tier-sell')) basePct = 60;
+
+        let dynamicWidth = type === 'buyer' 
+          ? Math.min(98, Math.max(25, basePct * buyMultiplier))
+          : Math.min(95, Math.max(20, basePct * sellMultiplier));
+
+        volBar.style.width = `${dynamicWidth.toFixed(1)}%`;
+      });
+    }
+
+    function filterEntities(filterType) {
+      if (typeof playSoundEffect === 'function') playSoundEffect('tick');
+      if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.selectionChanged();
+      }
+
+      const buttons = document.querySelectorAll('.entity-filter-btn');
+      buttons.forEach(btn => btn.classList.remove('active'));
+
+      if (filterType === 'all') {
+        const btn = document.getElementById('btnFilterAll');
+        if (btn) btn.classList.add('active');
+      } else if (filterType === 'buyers') {
+        const btn = document.getElementById('btnFilterBuyers');
+        if (btn) btn.classList.add('active');
+      } else if (filterType === 'sellers') {
+        const btn = document.getElementById('btnFilterSellers');
+        if (btn) btn.classList.add('active');
+      }
+
+      const rows = document.querySelectorAll('.entity-row');
+      let visibleCount = 0;
+
+      rows.forEach(row => {
+        const type = row.getAttribute('data-type');
+        if (filterType === 'all' || 
+           (filterType === 'buyers' && type === 'buyer') || 
+           (filterType === 'sellers' && type === 'seller')) {
+          row.style.display = 'flex';
+          visibleCount++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      const countBadge = document.getElementById('entityActiveCount');
+      if (countBadge) {
+        if (filterType === 'all') countBadge.innerText = '9 ស្ថាប័នផ្លូវការ';
+        else if (filterType === 'buyers') countBadge.innerText = `${visibleCount} ស្ថាប័នទិញ`;
+        else countBadge.innerText = `${visibleCount} ស្ថាប័នមិនទិញ`;
       }
     }
 
