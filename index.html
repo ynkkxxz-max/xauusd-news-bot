@@ -1561,14 +1561,64 @@
       margin-top: 2px;
     }
 
-    /* TradingView Tab Styling */
+    /* Hollywood Sci-Fi Holographic Chart Container Styling */
     .tv-container {
-      background: var(--card-bg);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: linear-gradient(180deg, rgba(8, 14, 28, 0.98) 0%, rgba(3, 7, 16, 1) 100%);
+      border: 1px solid rgba(0, 240, 255, 0.35);
       border-radius: 16px;
       overflow: hidden;
       margin-bottom: 14px;
       position: relative;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.85), inset 0 0 20px rgba(0, 240, 255, 0.08);
+    }
+
+    .tv-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 10%;
+      right: 10%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #00F0FF, #00E676, transparent);
+      box-shadow: 0 0 10px #00F0FF;
+      z-index: 5;
+    }
+
+    .tv-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: linear-gradient(135deg, rgba(12, 22, 42, 0.95) 0%, rgba(6, 12, 24, 0.98) 100%);
+      border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+    }
+
+    .tv-tf-btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #7E92A9;
+      font-family: 'Outfit', sans-serif;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .tv-tf-btn:hover {
+      color: #00F0FF;
+      border-color: rgba(0, 240, 255, 0.4);
+      background: rgba(0, 240, 255, 0.08);
+    }
+
+    .tv-tf-btn.active {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.25) 0%, rgba(8, 28, 54, 0.95) 100%);
+      border: 1px solid #00F0FF;
+      color: #00F0FF;
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+      text-shadow: 0 0 8px rgba(0, 240, 255, 0.8);
     }
 
     .tv-chart-wrapper {
@@ -1582,16 +1632,16 @@
       top: 10px;
       left: 10px;
       right: 10px;
-      background: rgba(15, 20, 31, 0.88);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(8, 14, 26, 0.92);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 240, 255, 0.3);
       border-radius: 12px;
       padding: 8px 12px;
       z-index: 10;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7);
     }
 
     .tv-hud-col {
@@ -1600,10 +1650,11 @@
     }
 
     .tv-hud-label {
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--text-muted);
+      font-size: 9.5px;
+      font-weight: 800;
+      color: #7E92A9;
       text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .tv-hud-val {
@@ -2104,14 +2155,14 @@
 
     <!-- TradingView Chart Container with Timeframe Switcher -->
     <div class="tv-container">
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(255, 255, 255, 0.03); border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
-        <div style="font-size: 13px; font-weight: 700; color: #FFF; display: flex; align-items: center; gap: 6px;">
-          <span>📈</span> XAU/USD Live Candlestick
+      <div class="tv-header-bar">
+        <div style="font-size: 12px; font-weight: 900; color: #FFF; display: flex; align-items: center; gap: 7px; letter-spacing: 0.6px;">
+          <span style="color: #00F0FF; font-size: 14px;">⚡</span> XAU/USD QUANTUM CANDLESTICK
         </div>
         <div style="display: flex; gap: 4px; align-items: center;">
-          <button class="tv-tf-btn" id="btnToggleOverlay" onclick="toggleSmcOverlay()" style="border-color: rgba(255, 215, 0, 0.4); color: var(--gold); padding: 4px 8px; font-size: 10px;">👁️ Lines</button>
-          <button class="tv-tf-btn" id="btnTf5" onclick="changeTvInterval('5')">5m</button>
-          <button class="tv-tf-btn active" id="btnTf15" onclick="changeTvInterval('15')">15m</button>
+          <button class="tv-tf-btn" id="btnToggleOverlay" onclick="toggleSmcOverlay()" style="border-color: rgba(0, 240, 255, 0.4); color: #00F0FF; padding: 4px 8px; font-size: 9.5px; box-shadow: 0 0 8px rgba(0, 240, 255, 0.2);">👁️ HUD</button>
+          <button class="tv-tf-btn" id="btnTf5" onclick="changeTvInterval('5')">5M</button>
+          <button class="tv-tf-btn active" id="btnTf15" onclick="changeTvInterval('15')">15M</button>
           <button class="tv-tf-btn" id="btnTf60" onclick="changeTvInterval('60')">1H</button>
           <button class="tv-tf-btn" id="btnTf240" onclick="changeTvInterval('240')">4H</button>
         </div>
