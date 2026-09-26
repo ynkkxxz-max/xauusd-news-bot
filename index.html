@@ -1766,6 +1766,23 @@
 </head>
 <body>
 
+  <!-- Top Cyber Status & Live Price Bar -->
+  <div class="live-pill">
+    <div class="live-label">
+      <span class="pulse" id="wsPulse"></span>
+      Spot XAU/USD <span class="ws-badge" id="wsStatusBadge">⚡ WS LIVE</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <div class="live-price" id="livePrice">$4,284.00</div>
+      <button class="refresh-btn" id="btnAudioToggle" onclick="toggleCyberAudio()" title="Cyber HUD Sound Effects (On/Off)" style="background: rgba(0, 240, 255, 0.12); border-color: rgba(0, 240, 255, 0.35);">
+        <span id="audioIcon">🔊</span> <span id="audioStatusText">SFX</span>
+      </button>
+      <button class="refresh-btn" id="btnRefresh" onclick="manualRefresh()" title="Refresh Live Data">
+        <span id="refreshIcon">🔄</span> Update
+      </button>
+    </div>
+  </div>
+
   <!-- Futuristic Sci-Fi HUD Navigation Tabs -->
   <div class="tab-bar">
     <button class="tab-btn active" id="tabBtnSMC" onclick="switchTab('smc')">
@@ -1810,22 +1827,6 @@
       </span>
       <span>RISK</span>
     </button>
-  </div>
-
-  <div class="live-pill">
-    <div class="live-label">
-      <span class="pulse" id="wsPulse"></span>
-      Spot XAU/USD <span class="ws-badge" id="wsStatusBadge">⚡ WS LIVE</span>
-    </div>
-    <div style="display: flex; align-items: center; gap: 8px;">
-      <div class="live-price" id="livePrice">$4,284.00</div>
-      <button class="refresh-btn" id="btnAudioToggle" onclick="toggleCyberAudio()" title="Cyber HUD Sound Effects (On/Off)" style="background: rgba(0, 240, 255, 0.12); border-color: rgba(0, 240, 255, 0.35);">
-        <span id="audioIcon">🔊</span> <span id="audioStatusText">SFX</span>
-      </button>
-      <button class="refresh-btn" id="btnRefresh" onclick="manualRefresh()" title="Refresh Live Data">
-        <span id="refreshIcon">🔄</span> Update
-      </button>
-    </div>
   </div>
 
   <!-- AI HIGH-IMPACT NEWS DANGER ZONE PROTOCOL BANNER -->
