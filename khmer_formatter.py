@@ -617,18 +617,30 @@ class KhmerFormatter:
         r2 = levels.get("r2", oz + 40)
         s2 = levels.get("s2", oz - 40)
 
-        direction = setup.get("direction", "BUY").upper()
-        is_buy = "BUY" in direction
-        icon = "🟢" if is_buy else "🔴"
-        action_kh = "ទិញឡើង (BUY)" if is_buy else "លក់ចុះ (SELL)"
-        opposite_action = "លក់ (SELL)" if is_buy else "ទិញ (BUY)"
+        direction = setup.get("direction", "WAIT").upper()
+        is_wait = "WAIT" in direction
+        is_buy = "BUY" in direction and not is_wait
+        if is_wait:
+            icon = "🟡"
+            action_kh = "រង់ចាំសិន (WAIT / NO TRADE)"
+            opposite_action = "បើក Order ប្រថុយប្រថាន"
+        elif is_buy:
+            icon = "🟢"
+            action_kh = "ទិញឡើង (BUY)"
+            opposite_action = "លក់ (SELL)"
+        else:
+            icon = "🔴"
+            action_kh = "លក់ចុះ (SELL)"
+            opposite_action = "ទិញ (BUY)"
 
-        entry_val = setup.get("entry", oz)
-        entry_zone = setup.get("entry_zone", f"${entry_val:,.2f}")
-        sl = setup.get("sl", 0.0)
-        tp1 = setup.get("tp1", 0.0)
-        tp2 = setup.get("tp2", 0.0)
-        rr = setup.get("rr_ratio", "1:2.0")
+        entry_val = setup.get("entry")
+        if entry_val is None:
+            entry_val = oz or 0.0
+        entry_zone = setup.get("entry_zone") or f"${float(entry_val):,.2f}"
+        sl = setup.get("sl") or 0.0
+        tp1 = setup.get("tp1") or 0.0
+        tp2 = setup.get("tp2") or 0.0
+        rr = setup.get("rr_ratio") or "1:2.0"
 
         why_trade = setup.get("why_this_trade", "").strip()
         why_not = setup.get("why_not_opposite", "").strip()
@@ -667,25 +679,28 @@ class KhmerFormatter:
         # Calculate Real-Time Execution Status for Telegram
         exec_status_line = ""
         try:
-            entry_parts = [float(x.replace("$", "").replace(",", "").strip()) for x in entry_zone.split("-") if x.strip()]
-            if len(entry_parts) == 2:
-                e_low, e_high = min(entry_parts), max(entry_parts)
-                if is_buy:
-                    if e_low <= oz <= e_high:
-                        exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ READY TO BUY (តម្លៃដល់តំបន់ទិញហើយ)</b>\n"
-                    elif oz > e_high:
-                        wait_diff = oz - e_high
-                        exec_status_line = f"🟡 <b>ស្ថានភាព (Status): ⏳ WAITING PULLBACK (រង់ចាំចុះ ${wait_diff:.1f} ទៀត)</b>\n"
+            if is_wait:
+                exec_status_line = "🟡 <b>ស្ថានភាព (Status): ⏸️ NO TRADE / WAIT (រង់ចាំឱកាសល្អមាន Confluence)</b>\n"
+            else:
+                entry_parts = [float(x.replace("$", "").replace(",", "").strip()) for x in entry_zone.split("-") if x.strip()]
+                if len(entry_parts) == 2:
+                    e_low, e_high = min(entry_parts), max(entry_parts)
+                    if is_buy:
+                        if e_low <= oz <= e_high:
+                            exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ READY TO BUY (តម្លៃដល់តំបន់ទិញហើយ)</b>\n"
+                        elif oz > e_high:
+                            wait_diff = oz - e_high
+                            exec_status_line = f"🟡 <b>ស្ថានភាព (Status): ⏳ WAITING PULLBACK (រង់ចាំចុះ ${wait_diff:.1f} ទៀត)</b>\n"
+                        else:
+                            exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ DEEP DISCOUNT BUY (តំបន់បញ្ចុះតម្លៃពិសេស)</b>\n"
                     else:
-                        exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ DEEP DISCOUNT BUY (តំបន់បញ្ចុះតម្លៃពិសេស)</b>\n"
-                else:
-                    if e_low <= oz <= e_high:
-                        exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ READY TO SELL (តម្លៃដល់តំបន់លក់ហើយ)</b>\n"
-                    elif oz < e_low:
-                        wait_diff = e_low - oz
-                        exec_status_line = f"🟡 <b>ស្ថានភាព (Status): ⏳ WAITING BOUNCE (រង់ចាំឡើង ${wait_diff:.1f} ទៀត)</b>\n"
-                    else:
-                        exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ HIGH PREMIUM SELL (តំបន់លក់បានថ្លៃខ្ពស់)</b>\n"
+                        if e_low <= oz <= e_high:
+                            exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ READY TO SELL (តម្លៃដល់តំបន់លក់ហើយ)</b>\n"
+                        elif oz < e_low:
+                            wait_diff = e_low - oz
+                            exec_status_line = f"🟡 <b>ស្ថានភាព (Status): ⏳ WAITING BOUNCE (រង់ចាំឡើង ${wait_diff:.1f} ទៀត)</b>\n"
+                        else:
+                            exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ HIGH PREMIUM SELL (តំបន់លក់បានថ្លៃខ្ពស់)</b>\n"
         except Exception:
             pass
 
@@ -709,18 +724,57 @@ class KhmerFormatter:
                 f"━━━━━━━━━━━━━━━━━━━\n"
             )
 
-        part2 = (
-            f"{news_lock_banner}"
-            f"{trap_banner}"
-            f"🎯 {icon} <b>ផែនការជួញដូរឆ្លាតវៃ AI SMC — ទិសដៅតែមួយគត់ ({action_kh})</b>\n"
-            f"⚡ <b>កម្រិតទំនុកចិត្ត AI (Confidence Score):</b> <code>{conf_score}</code>\n"
-            f"{exec_status_line}\n"
+        council_banner = ""
+        council_info = setup.get("ai_council")
+        if council_info and isinstance(council_info, dict):
+            votes = council_info.get("votes", [])
+            ratio = council_info.get("ratio", "")
+            verdict = council_info.get("verdict", "")
+            reached = council_info.get("consensus_reached", False)
+            
+            icon_verdict = "🟢 BUY" if verdict == "BUY" else ("🔴 SELL" if verdict == "SELL" else "🟡 WAIT")
+            status_text = "✅ CONSENSUS REACHED" if reached else "⚠️ CAUTION / DIVERGENCE"
+            
+            vote_lines = []
+            for v in votes:
+                ai_name = v.get("name", "AI").capitalize()
+                v_vote = v.get("vote", "WAIT")
+                v_ico = "🟢 BUY" if v_vote == "BUY" else ("🔴 SELL" if v_vote == "SELL" else "🟡 WAIT")
+                vote_lines.append(f"  • {ai_name}: <b>{v_ico}</b> ({v.get('confidence', '85%')})")
+            votes_str = "\n".join(vote_lines)
+
+            council_banner = (
+                f"🏛️ <b>MULTI-AI CONSENSUS COUNCIL (ការបោះឆ្នោតរួម):</b>\n"
+                f"{votes_str}\n"
+                f"🗳️ <b>សេចក្តីសម្រេច: {icon_verdict} ({ratio} Votes) — {status_text}</b>\n"
+                f"━━━━━━━━━━━━━━━━━━━\n\n"
+            )
+
+        levels_section = (
             f"📍 <b>កម្រិតតម្លៃចូល និងគ្រប់គ្រងដើមទុន:</b>\n"
             f"• 🎯 <b>តំបន់ Entry:</b> <code>{entry_zone}</code>\n"
             f"• 🛑 <b>Stop Loss (SL):</b> <code>${sl:,.2f}</code>\n"
             f"• 🎯 <b>Take Profit 1 (TP1):</b> <code>${tp1:,.2f}</code> (Lock BE)\n"
             f"• 🏆 <b>Take Profit 2 (TP2):</b> <code>${tp2:,.2f}</code>\n"
             f"• ⚖️ <b>សមាមាត្រចំណេញ/ខាត (R:R):</b> <code>{rr}</code>\n\n"
+        )
+        if is_wait:
+            levels_section = (
+                f"📍 <b>ស្ថានភាពកម្រិតតម្លៃ (Price Context):</b>\n"
+                f"• 🎯 <b>តម្លៃបច្ចុប្បន្ន (Spot Price):</b> <code>${oz:,.2f}</code>\n"
+                f"• 🛑 <b>កម្រិតគន្លឹះ Pivot:</b> <code>${pivot:,.2f}</code>\n"
+                f"• 🛡️ <b>Key Zones:</b> Support <code>${s1:,.2f}</code> | Resistance <code>${r1:,.2f}</code>\n"
+                f"• ⚖️ <b>ការគ្រប់គ្រងហានិភ័យ:</b> <b>រក្សាសាច់ប្រាក់ មិនទាន់មាន R:R សមស្រប</b>\n\n"
+            )
+
+        part2 = (
+            f"{news_lock_banner}"
+            f"{trap_banner}"
+            f"🎯 {icon} <b>ផែនការជួញដូរឆ្លាតវៃ AI SMC — ទិសដៅតែមួយគត់ ({action_kh})</b>\n"
+            f"⚡ <b>កម្រិតទំនុកចិត្ត AI (Confidence Score):</b> <code>{conf_score}</code>\n"
+            f"{council_banner}"
+            f"{exec_status_line}\n"
+            f"{levels_section}"
             f"🧠 <b>ហេតុផលច្បាស់លាស់ដែលគួរ {action_kh}:</b>\n"
             f"{formatted_why_trade}\n\n"
             f"🚫 <b>ហេតុផលដាច់ខាតដែលមិនគួរ {opposite_action}:</b>\n"
