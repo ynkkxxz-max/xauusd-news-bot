@@ -228,7 +228,7 @@ class GeminiAnalyzer:
                     self.endpoint,
                     params={"key": self.api_key},
                     json=payload,
-                    timeout=4,
+                    timeout=15,
                 )
                 GeminiAnalyzer._last_request_ts = time.time()
                 if resp.status_code == 429:
