@@ -172,3 +172,30 @@ class TelegramNotifier:
         except Exception as e:
             logger.debug(f"[TelegramNotifier] answerCallbackQuery error: {e}")
 
+    def send_poll(self, question: str, options: list, is_anonymous: bool = False, chat_id: str = None) -> dict:
+        """Sends an interactive native Telegram Poll directly to the Channel or Chat."""
+        if not self.is_configured():
+            logger.warning(f"[TelegramNotifier] Credentials not set. Simulated Poll: {question}")
+            return {"ok": True, "result": {"message_id": 999990, "simulated": True}}
+
+        target_chat = str(chat_id or self.chat_id)
+        url = f"{self.base_url}/sendPoll"
+        payload = {
+            "chat_id": target_chat,
+            "question": question[:300],
+            "options": options,
+            "is_anonymous": is_anonymous
+        }
+        try:
+            resp = requests.post(url, json=payload, timeout=12)
+            data = resp.json()
+            if not data.get("ok"):
+                logger.error(f"[TelegramNotifier] sendPoll error: {data}")
+            else:
+                logger.info(f"[TelegramNotifier] Poll sent successfully (ID: {data.get('result', {}).get('message_id')})")
+            return data
+        except Exception as e:
+            logger.error(f"[TelegramNotifier] Exception sending poll: {e}")
+            return {"ok": False, "error": str(e)}
+
+
