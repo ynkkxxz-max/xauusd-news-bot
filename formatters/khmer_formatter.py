@@ -726,7 +726,8 @@ class KhmerFormatter:
             f"🚫 <b>ហេតុផលដាច់ខាតដែលមិនគួរ {opposite_action}:</b>\n"
             f"{formatted_why_not}\n\n"
             f"💡 <i>អនុសាសន៍: {confirm}</i>\n"
-            f"🛡️ <i>គ្រប់គ្រងហានិភ័យដោយបើក <b>📱 Mini App</b> ឬវាយ <code>/lot</code> មុនចូល Order!</i>"
+            f"🛡️ <i>គ្រប់គ្រងហានិភ័យដោយបើក <b>📱 Mini App</b> ឬវាយ <code>/lot</code> មុនចូល Order!</i>\n"
+            f"👇 <i>សូមចុចប៊ូតុងខាងក្រោមដើម្បីបញ្ជាក់លទ្ធផល Trade (Hit TP / Hit SL) របស់អ្នក:</i>"
         )
         return part1 + part2
 
@@ -755,6 +756,48 @@ class KhmerFormatter:
             f"📊 <i>ពិនិត្យ Chart ផ្ទាល់: <a href='https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD'>TradingView XAUUSD Live</a></i>"
         )
         return msg
+
+    @staticmethod
+    def format_sniper_instant_alert(sig: dict) -> str:
+        """Formats real-time AI Sniper Buy Dip / Sell Top Instant Execution Alert."""
+        action = sig.get("action", "BUY")
+        is_buy = "BUY" in action
+        icon = "🟢" if is_buy else "🔴"
+
+        return (
+            f"⚡ {icon} <b>AI SNIPER INSTANT SIGNAL (M15)</b>\n\n"
+            f"🎯 <b>សញ្ញាប្រតិបត្តិការ:</b> <b>{sig.get('action_title', action)}</b>\n"
+            f"• 🥇 <b>Entry តម្លៃចូល:</b> <code>${sig.get('entry', 0.0):,.2f}</code>\n"
+            f"• 🛑 <b>Stop Loss (SL):</b> <code>${sig.get('sl', 0.0):,.2f}</code>\n"
+            f"• 🎯 <b>Take Profit 1 (TP1):</b> <code>${sig.get('tp1', 0.0):,.2f}</code>\n"
+            f"• 🏆 <b>Take Profit 2 (TP2):</b> <code>${sig.get('tp2', 0.0):,.2f}</code>\n"
+            f"• ⚖️ <b>Risk:Reward:</b> <code>{sig.get('rr_ratio', '1:2.0')}</code>\n\n"
+            f"🧠 <b>ការបញ្ជាក់បច្ចេកទេស:</b>\n"
+            f"• {sig.get('reason', '')}\n\n"
+            f"🛡️ <i>គ្រប់គ្រងដើមទុន គោរព SL ជានិច្ច និងកុំភ្លេច Lock BE ពេលដល់ TP1!</i>\n"
+            f"👇 <i>សូមចុចប៊ូតុងខាងក្រោមដើម្បីបញ្ជាក់លទ្ធផល Trade របស់អ្នក:</i>"
+        )
+
+    @staticmethod
+    def format_signal_stats(stats: dict) -> str:
+        """Formats community trade feedback summary."""
+        tp = stats.get("tp_votes", 0)
+        sl = stats.get("sl_votes", 0)
+        total = stats.get("total_votes", 0)
+        wr = stats.get("win_rate", 0.0)
+        traders = stats.get("total_traders", 0)
+
+        wr_emoji = "🔥" if wr >= 70 else ("👍" if wr >= 50 else "⚠️")
+
+        return (
+            f"📊 <b>ស្ថិតិលទ្ធផល SIGNAL ពីសមាជិក (COMMUNITY FEEDBACK)</b>\n\n"
+            f"👥 <b>ចំនួនសមាជិកចូលរួមបោះឆ្នោត:</b> <code>{traders:,} នាក់</code>\n"
+            f"🗳️ <b>សន្លឹកឆ្នោតសរុប:</b> <code>{total:,} ដង</code>\n\n"
+            f"🎯 <b>ឈ្នះ (Hit TP):</b> <code>{tp:,} ដង</code>\n"
+            f"🛑 <b>ចាញ់ (Hit SL):</b> <code>{sl:,} ដង</code>\n\n"
+            f"{wr_emoji} <b>អត្រាជោគជ័យ (Win Rate):</b> <code><b>{wr}%</b></code>\n\n"
+            f"💡 <i>ទិន្នន័យនេះបានមកពីការចុចប៊ូតុងជាក់ស្តែងរបស់សមាជិកលើគ្រប់ Signal ដែល Bot AI បានបាញ់កន្លងមក!</i>"
+        )
 
 
 
