@@ -820,5 +820,30 @@ class KhmerFormatter:
             f"💡 <i>ទិន្នន័យនេះបានមកពីការចុចប៊ូតុងជាក់ស្តែងរបស់សមាជិកលើគ្រប់ Signal ដែល Bot AI បានបាញ់កន្លងមក!</i>"
         )
 
+    @staticmethod
+    def format_breakeven_profit_alert(info: dict) -> str:
+        """Formats Dynamic Break-Even & Profit Lock Alert."""
+        action = info.get("action", "BUY")
+        is_buy = "BUY" in action
+        icon = "🟢" if is_buy else "🔴"
+        pips = info.get("pips_gained", 30)
+        curr_p = info.get("current_price", 0.0)
+        entry_p = info.get("entry_price", 0.0)
+        tp1_p = info.get("tp1_price", 0.0)
+
+        return (
+            f"🛡️ <b>DYNAMIC BREAK-EVEN & PROFIT LOCK ALERT!</b> ⚡\n\n"
+            f"{icon} <b>Signal XAUUSD:</b> <b>{action} @ ${entry_p:,.2f}</b>\n"
+            f"🚀 <b>ស្ថានភាពបច្ចុប្បន្ន:</b> តម្លៃបានរត់ទៅមុខ <b>+{pips:.0f} Pips</b> (Spot: <code>${curr_p:,.2f}</code>)!\n"
+            f"🎯 <b>ទិសដៅ TP1:</b> <code>${tp1_p:,.2f}</code> (ជិតសម្រេចគោលដៅ)\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"💡 <b>សកម្មភាពត្រូវធ្វើជាបន្ទាន់ (Action Required):</b>\n"
+            f"1. 🔒 <b>រំកិល Stop Loss មកស្មើ Entry (Lock Break-Even):</b>\n"
+            f"   👉 កំណត់ SL = <code>${entry_p:,.2f}</code> ដើម្បីធានាការជួញដូរនេះ <b>គ្មានហានិភ័យ (Zero Risk)</b> ១០០%!\n"
+            f"2. 💰 <b>កាត់ប្រាក់ចំណេញមួយផ្នែក (Partial TP - Close 50%):</b>\n"
+            f"   👉 អាចបិទ Order ពាក់កណ្តាលយកចំណេញទុកក្នុងហោប៉ៅ ហើយទុកចំណែកដែលនៅសល់រត់ទៅ TP2!\n\n"
+            f"🛡️ <i>វិន័យត្រឹមត្រូវ: មិនត្រូវបណ្តោយឱ្យ Order ដែលកំពុងចំណេញ ប្រែត្រឡប់មកខាតវិញជាដាច់ខាត!</i>"
+        )
+
 
 
