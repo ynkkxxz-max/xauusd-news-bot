@@ -4286,12 +4286,11 @@
 
         const entryLow = oteLow.toFixed(2);
         const entryHigh = oteHigh.toFixed(2);
-        // BUY SL must ALWAYS be BELOW entry zone (min 8 USD below entryLow)
-        let sl = Math.min(Number(entryLow) - 8.0, dayLow - 2.5);
-        if (sl >= Number(entryLow)) sl = Number(entryLow) - 8.0;  // Safety: enforce SL < entry
-        sl = sl.toFixed(2);
-        const tp1 = (dayHigh + 4.0).toFixed(2); // Liquidity Pool target 1 (BSL)
-        const tp2 = (dayHigh + 18.0).toFixed(2); // Institutional Expansion target 2
+        // BUY SL: ALWAYS below entryLow (min 8 USD gap, capped at dayLow)
+        const slRawBuy = Math.min(Number(entryLow) - 8.0, dayLow - 2.5);
+        const sl = (slRawBuy < Number(entryLow) ? slRawBuy : Number(entryLow) - 8.0).toFixed(2);
+        const tp1 = (dayHigh + 4.0).toFixed(2);
+        const tp2 = (dayHigh + 18.0).toFixed(2);
 
         const inZone = (price >= Number(entryLow) && price <= Number(entryHigh));
         const execBadge = document.getElementById('smcExecBadge');
@@ -4502,12 +4501,11 @@
 
         const entryLow = oteSellLow.toFixed(2);
         const entryHigh = oteSellHigh.toFixed(2);
-        // SELL SL must ALWAYS be ABOVE entry zone (min 8 USD above entryHigh)
-        let sl = Math.max(Number(entryHigh) + 8.0, dayHigh + 2.5);
-        if (sl <= Number(entryHigh)) sl = Number(entryHigh) + 8.0;  // Safety: enforce SL > entry
-        sl = sl.toFixed(2);
-        const tp1 = (dayLow - 4.0).toFixed(2); // SSL hunt target
-        const tp2 = (dayLow - 18.0).toFixed(2); // Extended bearish expansion
+        // SELL SL: ALWAYS above entryHigh (min 8 USD gap, capped at dayHigh)
+        const slRawSell = Math.max(Number(entryHigh) + 8.0, dayHigh + 2.5);
+        const sl = (slRawSell > Number(entryHigh) ? slRawSell : Number(entryHigh) + 8.0).toFixed(2);
+        const tp1 = (dayLow - 4.0).toFixed(2);
+        const tp2 = (dayLow - 18.0).toFixed(2);
 
         const execBadge = document.getElementById('smcExecBadge');
         const execDot = document.getElementById('smcExecDot');
