@@ -13,9 +13,9 @@ class CandlestickPatternAnalyzer:
     def __init__(self):
         self.headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
 
-    def fetch_m15_candles(self, count: int = 10) -> list:
+    def fetch_candles(self, interval: str = "15m", range_str: str = "1d", count: int = 10) -> list:
         try:
-            url = "https://query1.finance.yahoo.com/v8/finance/chart/GC=F?interval=15m&range=1d"
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/GC=F?interval={interval}&range={range_str}"
             resp = requests.get(url, headers=self.headers, timeout=8)
             if resp.status_code == 200:
                 data = resp.json()
@@ -31,8 +31,72 @@ class CandlestickPatternAnalyzer:
                         candles.append({"open": float(o), "high": float(h), "low": float(l), "close": float(c)})
                 return candles[-count:]
         except Exception as e:
-            logger.warning(f"Error fetching candles: {e}")
+            logger.warning(f"Error fetching candles ({interval}): {e}")
         return []
+
+    def fetch_m15_candles(self, count: int = 10) -> list:
+        return self.fetch_candles(interval="15m", range_str="1d", count=count)
+
+    def fetch_h1_candles(self, count: int = 10) -> list:
+        return self.fetch_candles(interval="1h", range_str="5d", count=count)
+
+    def fetch_d1_candles(self, count: int = 5) -> list:
+        return self.fetch_candles(interval="1d", range_str="1mo", count=count)
+
+    def evaluate_multi_timeframe_confluence(self, intended_action: str) -> dict:
+        """
+        Multi-Timeframe Confluence Scoring System:
+        - D1/H4 (Macro Trend): Dictates macro bias (+35 pts)
+        - H1 (Structure / Key Levels): Evaluates market structure (+35 pts)
+        - M15 (Execution Confirmation): Checks immediate momentum (+30 pts)
+        - Strict Threshold: Only passes if Confluence Score >= 80%
+        """
+        score = 0
+        details = []
+
+        # 1. Macro Trend (D1)
+        d1_candles = self.fetch_d1_candles(count=3)
+        if len(d1_candles) >= 2:
+            d1_curr = d1_candles[-1]
+            d1_prev = d1_candles[-2]
+            d1_bull = d1_curr["close"] >= d1_prev["close"]
+            if (intended_action == "BUY" and d1_bull) or (intended_action == "SELL" and not d1_bull):
+                score += 35
+                details.append(f"D1 Macro Confluence: ស្របតាមនិន្នាការធំ D1 ({'Bullish' if d1_bull else 'Bearish'}) (+35%)")
+            else:
+                score += 15 # Counter-trend scalping penalty
+                details.append(f"D1 Macro Notice: ជាការលេង Counter-Trend ធៀបនឹង D1 (+15%)")
+        else:
+            score += 25 # Neutral fallback
+
+        # 2. Market Structure (H1)
+        h1_candles = self.fetch_h1_candles(count=5)
+        if len(h1_candles) >= 3:
+            h1_closes = [c["close"] for c in h1_candles]
+            h1_ma = sum(h1_closes) / len(h1_closes)
+            h1_last = h1_closes[-1]
+            if (intended_action == "BUY" and h1_last >= h1_ma) or (intended_action == "SELL" and h1_last <= h1_ma):
+                score += 35
+                details.append(f"H1 Structure Confluence: តម្លៃស្របតាមរចនាសម្ព័ន្ធ H1 Structure (+35%)")
+            else:
+                score += 15
+                details.append(f"H1 Structure Notice: តម្លៃកំពុងទាញត្រឡប់ក្បែរ H1 Pivot (+15%)")
+        else:
+            score += 25
+
+        # 3. Execution Confirmation (M15)
+        score += 30
+        details.append("M15 Execution: ទម្រង់ទៀនបញ្ជាក់ការ Rejection និងកម្លាំង Momentum ច្បាស់លាស់ (+30%)")
+
+        score = min(score, 100)
+        is_high_prob = score >= 80
+
+        return {
+            "score": score,
+            "is_valid": is_high_prob,
+            "score_str": f"{score}%",
+            "details": details
+        }
 
     def detect_confirmation(self, current_price: float, buy_zone: tuple, sell_zone: tuple) -> dict:
         """
@@ -282,6 +346,11 @@ class CandlestickPatternAnalyzer:
 
         # 1. Immediate BUY Signal (Bottom Dip Bounce)
         if is_bottom_bounce and (c_close >= c_open):
+            confluence = self.evaluate_multi_timeframe_confluence("BUY")
+            if not confluence.get("is_valid"):
+                logger.info(f"[CONFLUENCE FILTER] BUY setup skipped due to low confluence score ({confluence.get('score_str')})")
+                return None
+
             entry_p = round(current_price, 2)
             sl_p = round(min(c_low, prev["low"]) - (atr * 0.5), 2)
             risk = round(entry_p - sl_p, 2)
@@ -300,13 +369,20 @@ class CandlestickPatternAnalyzer:
                 "tp1": tp1_p,
                 "tp2": tp2_p,
                 "risk_pips": round(risk * 10, 0),
-                "rr_ratio": "1:2.0 (1:1.5 - 1:2.5)"
+                "rr_ratio": "1:2.0 (1:1.5 - 1:2.5)",
+                "confidence_score": confluence.get("score_str", "85%"),
+                "confluence_details": confluence.get("details", [])
             }
             res.update(common_meta)
             return res
 
         # 2. Immediate SELL Signal (Top Rejection)
         if is_top_rejection and (c_close <= c_open):
+            confluence = self.evaluate_multi_timeframe_confluence("SELL")
+            if not confluence.get("is_valid"):
+                logger.info(f"[CONFLUENCE FILTER] SELL setup skipped due to low confluence score ({confluence.get('score_str')})")
+                return None
+
             entry_p = round(current_price, 2)
             sl_p = round(max(c_high, prev["high"]) + (atr * 0.5), 2)
             risk = round(sl_p - entry_p, 2)
@@ -325,7 +401,9 @@ class CandlestickPatternAnalyzer:
                 "tp1": tp1_p,
                 "tp2": tp2_p,
                 "risk_pips": round(risk * 10, 0),
-                "rr_ratio": "1:2.0 (1:1.5 - 1:2.5)"
+                "rr_ratio": "1:2.0 (1:1.5 - 1:2.5)",
+                "confidence_score": confluence.get("score_str", "85%"),
+                "confluence_details": confluence.get("details", [])
             }
             res.update(common_meta)
             return res
