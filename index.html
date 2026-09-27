@@ -3820,16 +3820,44 @@
         const emaFast = calculateEMA(8, closes);
         const emaSlow = calculateEMA(16, closes);
 
-        // Bullish Structure: Price trades above Moving Averages OR Breaks Above Recent Swing High (BOS)
-        const isBreakingHigh = (lastC.close > recentHigh) || (lastC.close > prevC.close && lastC.low > prevC.low);
-        const isAboveEMAs = (price >= emaFast) || (emaFast >= emaSlow);
-        const isStrongBullCandles = (lastC.close > lastC.open) && (prevC.close > prevC.open);
+        // H1 and Closed M15 Higher-Timeframe Structural Anchor (Anti-Flicker)
+        const isClosedCandleBull = lastC.close >= emaFast && emaFast >= emaSlow;
+        const isClosedCandleBear = lastC.close <= emaFast && emaFast <= emaSlow;
 
-        if ((isBreakingHigh && isAboveEMAs) || isStrongBullCandles || price >= (dayHigh - (dayHigh - dayLow) * 0.45)) {
-          trendDirection = 'BULLISH';
+        // Signal Stabilization & Hysteresis Lock (Minimum 3-5 minutes stability between flips)
+        if (!window._lastStableSignalTime) {
+          window._lastStableSignalTime = 0;
+          window._stableTrendDirection = 'BULLISH';
+        }
+
+        const nowTs = Date.now();
+        const timeSinceLastFlip = nowTs - window._lastStableSignalTime;
+        const FLIP_COOLDOWN_MS = 180000; // 3-Minute Minimum Stabilization Lock
+
+        let rawDirection = window._stableTrendDirection;
+        if (isClosedCandleBull && h1Bias === 'BULLISH') {
+          rawDirection = 'BULLISH';
+        } else if (isClosedCandleBear && h1Bias === 'BEARISH') {
+          rawDirection = 'BEARISH';
+        } else if (lastC.close > recentHigh) {
+          rawDirection = 'BULLISH';
+        } else if (lastC.close < recentLow) {
+          rawDirection = 'BEARISH';
+        }
+
+        // Only allow direction to switch if cooldown elapsed or strong BOS breakout occurred
+        if (rawDirection !== window._stableTrendDirection) {
+          const isDecisiveBreakout = (lastC.close > recentHigh + 1.5) || (lastC.close < recentLow - 1.5);
+          if (timeSinceLastFlip > FLIP_COOLDOWN_MS || isDecisiveBreakout) {
+            window._stableTrendDirection = rawDirection;
+            window._lastStableSignalTime = nowTs;
+          }
+        }
+
+        trendDirection = window._stableTrendDirection;
+        if (trendDirection === 'BULLISH') {
           m15Structure = (lastC.close > recentHigh) ? 'Bullish BOS (បំបែកឡើង)' : 'Bullish Structure (ទិសដៅឡើង)';
         } else {
-          trendDirection = 'BEARISH';
           m15Structure = (lastC.close < recentLow) ? 'Bearish CHoCH (បំបែកចុះ)' : 'Bearish Structure (ទិសដៅធ្លាក់)';
         }
       } else {
