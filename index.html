@@ -2335,7 +2335,7 @@
         </div>
         <div class="smc-metric-pill" style="border-left: 3px solid #FF3366; color: #FF3366;">
           <div class="smc-pill-label"><span class="cyber-badge-dot" style="background: #FF3366; color: #FF3366; margin-right: 3px;"></span> STOP LOSS (SL)</div>
-          <div class="smc-pill-value" style="color: #FF3366;" id="smcSL">$4,258.00</div>
+          <div class="smc-pill-value" style="color: #FF3366;" id="smcSL">--</div>
         </div>
         <div class="smc-metric-pill" style="border-left: 3px solid #00E676; color: #00E676;">
           <div class="smc-pill-label"><span class="cyber-badge-dot" style="background: #00E676; color: #00E676; margin-right: 3px;"></span> TAKE PROFIT 1 (BE)</div>
@@ -2562,7 +2562,7 @@
         </div>
         <div class="smc-metric-pill" style="border-left: 3px solid var(--bear);">
           <div class="smc-pill-label">🛑 Stop Loss (SL)</div>
-          <div class="smc-pill-value" style="color: var(--bear);" id="tvChartSL">$4,258.00</div>
+          <div class="smc-pill-value" style="color: var(--bear);" id="tvChartSL">--</div>
         </div>
         <div class="smc-metric-pill" style="border-left: 3px solid var(--bull);">
           <div class="smc-pill-label">🎯 Take Profit 1 (BE)</div>
@@ -3415,7 +3415,7 @@
         tg.HapticFeedback.notificationOccurred('success');
       }
       const entry = document.getElementById('smcEntry') ? document.getElementById('smcEntry').innerText : '$4,268.00';
-      const sl = document.getElementById('smcSL') ? document.getElementById('smcSL').innerText : '$4,258.00';
+      const sl = document.getElementById('smcSL') ? document.getElementById('smcSL').innerText : '--';
       const tp1 = document.getElementById('smcTP1') ? document.getElementById('smcTP1').innerText : '$4,295.00';
       const tp2 = document.getElementById('smcTP2') ? document.getElementById('smcTP2').innerText : '$4,310.00';
 
@@ -3438,7 +3438,7 @@
         tg.HapticFeedback.notificationOccurred('success');
       }
       const entry = document.getElementById('smcEntry') ? document.getElementById('smcEntry').innerText : '$4,268.00';
-      const sl = document.getElementById('smcSL') ? document.getElementById('smcSL').innerText : '$4,258.00';
+      const sl = document.getElementById('smcSL') ? document.getElementById('smcSL').innerText : '--';
       const tp1 = document.getElementById('smcTP1') ? document.getElementById('smcTP1').innerText : '$4,295.00';
       const tp2 = document.getElementById('smcTP2') ? document.getElementById('smcTP2').innerText : '$4,310.00';
       const summaryMsg = `🎯 ផែនការជួញដូរ XAU/USD SMC:\n• Entry: ${entry}\n• Stop Loss: ${sl}\n• Take Profit 1: ${tp1}\n• Take Profit 2: ${tp2}`;
@@ -4286,7 +4286,10 @@
 
         const entryLow = oteLow.toFixed(2);
         const entryHigh = oteHigh.toFixed(2);
-        const sl = (Math.min(Number(entryLow) - 8.0, dayLow - 2.5)).toFixed(2);
+        // BUY SL must ALWAYS be BELOW entry zone (min 8 USD below entryLow)
+        let sl = Math.min(Number(entryLow) - 8.0, dayLow - 2.5);
+        if (sl >= Number(entryLow)) sl = Number(entryLow) - 8.0;  // Safety: enforce SL < entry
+        sl = sl.toFixed(2);
         const tp1 = (dayHigh + 4.0).toFixed(2); // Liquidity Pool target 1 (BSL)
         const tp2 = (dayHigh + 18.0).toFixed(2); // Institutional Expansion target 2
 
@@ -4499,7 +4502,10 @@
 
         const entryLow = oteSellLow.toFixed(2);
         const entryHigh = oteSellHigh.toFixed(2);
-        const sl = (Math.max(Number(entryHigh) + 8.0, dayHigh + 2.5)).toFixed(2);
+        // SELL SL must ALWAYS be ABOVE entry zone (min 8 USD above entryHigh)
+        let sl = Math.max(Number(entryHigh) + 8.0, dayHigh + 2.5);
+        if (sl <= Number(entryHigh)) sl = Number(entryHigh) + 8.0;  // Safety: enforce SL > entry
+        sl = sl.toFixed(2);
         const tp1 = (dayLow - 4.0).toFixed(2); // SSL hunt target
         const tp2 = (dayLow - 18.0).toFixed(2); // Extended bearish expansion
 
