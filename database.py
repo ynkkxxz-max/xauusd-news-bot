@@ -49,6 +49,19 @@ def init_db():
     )
     """)
     
+    # Table for tracking user votes on AI signals (Hit TP / Hit SL)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS signal_votes (
+        vote_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        signal_id TEXT,
+        user_id INTEGER,
+        user_name TEXT,
+        vote_type TEXT, -- 'TP' or 'SL'
+        voted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(signal_id, user_id)
+    )
+    """)
+    
     conn.commit()
     conn.close()
 
@@ -155,6 +168,61 @@ def set_state(key: str, value: str):
     VALUES (?, ?, datetime('now'))
     """, (key, value))
     conn.commit()
+    conn.close()
+
+def record_signal_vote(signal_id: str, user_id: int, user_name: str, vote_type: str) -> dict:
+    """
+    Records or updates user feedback on a signal ('TP' or 'SL').
+    Returns dict: {'success': bool, 'is_new': bool, 'tp_count': int, 'sl_count': int}
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    # Check if user already voted
+    cursor.execute("SELECT vote_type FROM signal_votes WHERE signal_id = ? AND user_id = ?", (signal_id, user_id))
+    existing = cursor.fetchone()
+    is_new = existing is None
+
+    cursor.execute("""
+    INSERT OR REPLACE INTO signal_votes (signal_id, user_id, user_name, vote_type, voted_at)
+    VALUES (?, ?, ?, ?, datetime('now'))
+    """, (signal_id, user_id, user_name, vote_type))
+    conn.commit()
+
+    # Query updated totals
+    cursor.execute("SELECT vote_type, COUNT(*) FROM signal_votes WHERE signal_id = ? GROUP BY vote_type", (signal_id,))
+    counts = dict(cursor.fetchall())
+    conn.close()
+
+    return {
+        "success": True,
+        "is_new": is_new,
+        "tp_count": counts.get("TP", 0),
+        "sl_count": counts.get("SL", 0)
+    }
+
+def get_overall_signal_vote_stats() -> dict:
+    """Returns all-time win/loss stats voted by users."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT vote_type, COUNT(*) FROM signal_votes GROUP BY vote_type")
+    counts = dict(cursor.fetchall())
+    cursor.execute("SELECT COUNT(DISTINCT user_id) FROM signal_votes")
+    total_traders = cursor.fetchone()[0] or 0
+    conn.close()
+
+    tp = counts.get("TP", 0)
+    sl = counts.get("SL", 0)
+    total = tp + sl
+    win_rate = round((tp / total * 100), 1) if total > 0 else 0.0
+
+    return {
+        "total_votes": total,
+        "tp_votes": tp,
+        "sl_votes": sl,
+        "win_rate": win_rate,
+        "total_traders": total_traders
+    }
 def cleanup_old_records(days: int = 30) -> int:
     """
     Cleans up logs and history older than `days` to keep data.db lightweight and fast.
