@@ -241,6 +241,45 @@ class CandlestickPatternAnalyzer:
         is_bottom_bounce = (prev["low"] <= prev2["low"]) and (c_close > prev["close"]) and (lower_wick >= c_body * 0.7 or c_close > c_open)
         is_top_rejection = (prev["high"] >= prev2["high"]) and (c_close < prev["close"]) and (upper_wick >= c_body * 0.7 or c_close < c_open)
 
+        # Calculate Moving Averages (Fast EMA ~8, Slow EMA ~21 if enough candles, or Simple MAs)
+        closes = [c["close"] for c in candles]
+        fast_ma = sum(closes[-3:]) / 3.0 if len(closes) >= 3 else current_price
+        slow_ma = sum(closes) / len(closes) if closes else current_price
+        
+        # Consolidation / Sideways range
+        recent_low = min(c["low"] for c in candles[-5:])
+        recent_high = max(c["high"] for c in candles[-5:])
+        
+        # Support and Resistance from key_levels or candle extremes
+        sr_sup_low = round(min(key_levels.get("support", recent_low - 5.0), recent_low - 4.0), 1)
+        sr_sup_high = round(sr_sup_low + 10.0, 1)
+        sr_res_low = round(max(key_levels.get("resistance", recent_high + 5.0), recent_high + 4.0), 1)
+        sr_res_high = round(sr_res_low + 10.0, 1)
+
+        # MA alignment description
+        ma_diff = abs(fast_ma - slow_ma)
+        if ma_diff < 1.5:
+            ma_desc = "ខ្សែបម្លាស់ទីលឿន (ខ្សែពណ៌ក្រហម) និងខ្សែបម្លាស់ទីយឺត (ខ្សែពណ៌បៃតង) កំពុងប្រទាក់ក្រឡាគ្នានៅជិតតម្លៃបច្ចុប្បន្ន។ នេះបង្ហាញថាទីផ្សារមិនទាន់មានទិសដៅច្បាស់លាស់ (No clear trend / Sideways) នៅឡើយទេ។"
+            trend_desc = f"តម្លៃកំពុងស្ថិតក្នុងចលនាចំហៀង (Consolidation / Sideways) នៅជុំវិញតំបន់តម្លៃ ${recent_low:,.1f} - ${recent_high:,.1f}។"
+        elif fast_ma > slow_ma:
+            ma_desc = f"ខ្សែបម្លាស់ទីលឿន (ពណ៌ក្រហម ${fast_ma:,.1f}) ស្ថិតនៅពីលើខ្សែយឺត (ពណ៌បៃតង ${slow_ma:,.1f}) បង្ហាញពីសន្ទុះ Bullish រយៈពេលខ្លី។"
+            trend_desc = f"តម្លៃកំពុងបង្កើតរលកកើនឡើង (Bullish Trend) ឆ្ពោះទៅកាន់កម្រិតរាំងស្ទះខាងលើ។"
+        else:
+            ma_desc = f"ខ្សែបម្លាស់ទីលឿន (ពណ៌ក្រហម ${fast_ma:,.1f}) ស្ថិតនៅក្រោមខ្សែយឺត (ពណ៌បៃតង ${slow_ma:,.1f}) បង្ហាញពីសម្ពាធ Bearish រយៈពេលខ្លី។"
+            trend_desc = f"តម្លៃកំពុងរងសម្ពាធធ្លាក់ចុះ (Bearish Trend) ឆ្ពោះទៅកាន់កម្រិតទ្រទ្រង់ខាងក្រោម។"
+
+        common_meta = {
+            "current_price": round(current_price, 2),
+            "trend_desc": trend_desc,
+            "ma_desc": ma_desc,
+            "fast_ma": round(fast_ma, 2),
+            "slow_ma": round(slow_ma, 2),
+            "resistance_range": f"${sr_res_low:,.0f} - ${sr_res_high:,.0f}",
+            "support_range": f"${sr_sup_low:,.0f} - ${sr_sup_high:,.0f}",
+            "range_low": round(recent_low, 1),
+            "range_high": round(recent_high, 1)
+        }
+
         # 1. Immediate BUY Signal (Bottom Dip Bounce)
         if is_bottom_bounce and (c_close >= c_open):
             entry_p = round(current_price, 2)
@@ -252,7 +291,7 @@ class CandlestickPatternAnalyzer:
             tp1_p = round(entry_p + (risk * 1.5), 2)
             tp2_p = round(entry_p + (risk * 2.5), 2)
 
-            return {
+            res = {
                 "action": "BUY",
                 "action_title": "🟢 ACTION: BUY NOW (DIP BOUNCE)",
                 "reason": "ទៀនបានបង្កើត Bottom Wick Rejection នៅបាត និងមានកម្លាំងស្រូបឡើងវិញ (Bullish Momentum Confirm)!",
@@ -263,6 +302,8 @@ class CandlestickPatternAnalyzer:
                 "risk_pips": round(risk * 10, 0),
                 "rr_ratio": "1:2.0 (1:1.5 - 1:2.5)"
             }
+            res.update(common_meta)
+            return res
 
         # 2. Immediate SELL Signal (Top Rejection)
         if is_top_rejection and (c_close <= c_open):
@@ -275,7 +316,7 @@ class CandlestickPatternAnalyzer:
             tp1_p = round(entry_p - (risk * 1.5), 2)
             tp2_p = round(entry_p - (risk * 2.5), 2)
 
-            return {
+            res = {
                 "action": "SELL",
                 "action_title": "🔴 ACTION: SELL NOW (TOP REJECTION)",
                 "reason": "ទៀនបានបង្កើត Upper Wick Rejection នៅកំពូល និងមានកម្លាំងរុញទម្លាក់ចុះវិញ (Bearish Momentum Confirm)!",
@@ -286,6 +327,8 @@ class CandlestickPatternAnalyzer:
                 "risk_pips": round(risk * 10, 0),
                 "rr_ratio": "1:2.0 (1:1.5 - 1:2.5)"
             }
+            res.update(common_meta)
+            return res
 
         return None
 
