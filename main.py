@@ -332,10 +332,19 @@ class XAUUSDNewsAssistantBot:
                 timeframe="M15",
                 title_extra=conf.get("pattern", "")
             )
+            sig_id = f"conf_{int(now)}"
+            vote_markup = {
+                "inline_keyboard": [
+                    [
+                        {"text": "🎯 ឈ្នះ (Hit TP)", "url": f"https://t.me/FFNewsAlertBot?start=vote_tp_{sig_id}"},
+                        {"text": "🛑 ចាញ់ (Hit SL)", "url": f"https://t.me/FFNewsAlertBot?start=vote_sl_{sig_id}"}
+                    ]
+                ]
+            }
             if chart_png:
-                self.notifier.send_photo(chart_png, caption=self._truncate_html_caption(msg, 950))
+                self.notifier.send_photo(chart_png, caption=self._truncate_html_caption(msg, 950), reply_markup=vote_markup)
             else:
-                self.notifier.send_message(msg)
+                self.notifier.send_message(msg, reply_markup=vote_markup)
             database.set_state("last_candle_conf_ts", str(now))
 
     def check_news_danger_zone(self):
@@ -392,12 +401,17 @@ class XAUUSDNewsAssistantBot:
             if sig.get("action") == last_action and (now - last_sniper < 3600):
                 return
 
-            logger.info(f"[AI SNIPER INSTANT SIGNAL] {sig['action_title']} at ${sig['entry']}")
+            sig_id = f"sig_{int(now)}"
+            logger.info(f"[AI SNIPER INSTANT SIGNAL] {sig['action_title']} at ${sig['entry']} (ID: {sig_id})")
             msg = KhmerFormatter.format_sniper_instant_alert(sig)
             
-            # Interactive action buttons
+            # Interactive action buttons with 🎯 ឈ្នះ (Hit TP) and 🛑 ចាញ់ (Hit SL)
             buttons = {
                 "inline_keyboard": [
+                    [
+                        {"text": "🎯 ឈ្នះ (Hit TP)", "url": f"https://t.me/FFNewsAlertBot?start=vote_tp_{sig_id}"},
+                        {"text": "🛑 ចាញ់ (Hit SL)", "url": f"https://t.me/FFNewsAlertBot?start=vote_sl_{sig_id}"}
+                    ],
                     [
                         {"text": "📊 មើល TradingView Chart", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=chart"},
                         {"text": "🧮 គិត Lot Size ភ្លាម", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=lot"}
@@ -556,6 +570,27 @@ class XAUUSDNewsAssistantBot:
                 cb_id = cb_query.get("id")
                 cb_data = cb_query.get("data", "")
                 cb_chat_id = cb_query.get("message", {}).get("chat", {}).get("id")
+                user_obj = cb_query.get("from", {})
+                user_id = user_obj.get("id", 0)
+                user_name = user_obj.get("first_name", "Trader")
+
+                # Handle Signal Win/Loss Vote (Hit TP / Hit SL)
+                if cb_data.startswith("vote_tp:") or cb_data.startswith("vote_sl:"):
+                    vote_type = "TP" if cb_data.startswith("vote_tp:") else "SL"
+                    signal_id = cb_data.split(":", 1)[1] if ":" in cb_data else "general"
+
+                    res = database.record_signal_vote(signal_id=signal_id, user_id=user_id, user_name=user_name, vote_type=vote_type)
+                    tp_c = res.get("tp_count", 0)
+                    sl_c = res.get("sl_count", 0)
+
+                    if vote_type == "TP":
+                        alert_msg = f"🎉 អបអរសាទរ {user_name}! បានកត់ត្រា Hit TP ជោគជ័យ។ (សរុប TP: {tp_c} | SL: {sl_c})"
+                    else:
+                        alert_msg = f"💪 មិនអីទេ {user_name}! លើកទឹកចិត្តឱ្យរក្សា Risk Management។ (សរុប TP: {tp_c} | SL: {sl_c})"
+
+                    self.notifier.answer_callback_query(cb_id, text=alert_msg, show_alert=True)
+                    continue
+
                 if cb_data.startswith("lot_calc:") and cb_chat_id:
                     self.notifier.answer_callback_query(cb_id, text="🧮 កំពុងគណនា Lot Size...")
                     parts = cb_data.split(":")
@@ -591,7 +626,12 @@ class XAUUSDNewsAssistantBot:
             # Command routing
             clean_cmd = text.split()[0].lower()
 
-            if clean_cmd in ("/lot", "/risk", "lot", "risk") or "lot" in text.lower() or "risk" in text.lower() or "គិត" in text:
+            if clean_cmd in ("/stats", "/winrate", "stats", "winrate") or "ស្ថិតិ" in text:
+                stats = database.get_overall_signal_vote_stats()
+                resp = KhmerFormatter.format_signal_stats(stats)
+                self.notifier.send_message(resp, chat_id=chat_id, reply_markup=bottom_keyboard)
+
+            elif clean_cmd in ("/lot", "/risk", "lot", "risk") or "lot" in text.lower() or "risk" in text.lower() or "គិត" in text:
                 parsed = RiskLotCalculator.parse_user_input(text)
                 if parsed:
                     calc = RiskLotCalculator.calculate_lot_size(
@@ -628,8 +668,14 @@ class XAUUSDNewsAssistantBot:
 
             elif clean_cmd in ("/levels", "/setup", "smc") or "កម្រិត smc" in text.lower():
                 from collectors.market_cache import market_cache
+                import time
+                smc_sig_id = f"smc_{datetime.now().strftime('%Y%m%d_%H')}"
                 smc_inline_buttons = {
                     "inline_keyboard": [
+                        [
+                            {"text": "🎯 ឈ្នះ (Hit TP)", "url": f"https://t.me/FFNewsAlertBot?start=vote_tp_{smc_sig_id}"},
+                            {"text": "🛑 ចាញ់ (Hit SL)", "url": f"https://t.me/FFNewsAlertBot?start=vote_sl_{smc_sig_id}"}
+                        ],
                         [
                             {"text": "📱 បើក Mini App (Live SMC Terminal)", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=120&tab=smc"}
                         ],
@@ -822,7 +868,34 @@ class XAUUSDNewsAssistantBot:
 
             elif clean_cmd in ("/help", "/start") or "ជំនួយ" in text:
                 parts = text.split()
-                if len(parts) > 1 and parts[1].lower() == "price":
+                if len(parts) > 1 and (parts[1].lower().startswith("vote_tp_") or parts[1].lower().startswith("vote_sl_")):
+                    param = parts[1].lower()
+                    vote_type = "TP" if "vote_tp_" in param else "SL"
+                    signal_id = param.replace("vote_tp_", "").replace("vote_sl_", "")
+                    from_user = msg_obj.get("from", {})
+                    u_id = from_user.get("id", chat_id)
+                    u_name = from_user.get("first_name", "Trader")
+
+                    res = database.record_signal_vote(signal_id=signal_id, user_id=u_id, user_name=u_name, vote_type=vote_type)
+                    tp_c = res.get("tp_count", 0)
+                    sl_c = res.get("sl_count", 0)
+
+                    if vote_type == "TP":
+                        reply_vote = (
+                            f"🎉 <b>អបអរសាទរ {u_name}!</b>\n\n"
+                            f"✅ បានកត់ត្រាលទ្ធផល <b>🎯 ឈ្នះ (Hit TP)</b> ជោគជ័យ!\n"
+                            f"📊 ស្ថិតិ Signal នេះ: 🎯 TP: <code>{tp_c}</code> | 🛑 SL: <code>{sl_c}</code>\n\n"
+                            f"💡 <i>សូមបន្តគោរព Money Management និងរក្សាប្រាក់ចំណេញ!</i>"
+                        )
+                    else:
+                        reply_vote = (
+                            f"💪 <b>មិនអីទេ {u_name}!</b>\n\n"
+                            f"✅ បានកត់ត្រាលទ្ធផល <b>🛑 ចាញ់ (Hit SL)</b> ជោគជ័យ!\n"
+                            f"📊 ស្ថិតិ Signal នេះ: 🎯 TP: <code>{tp_c}</code> | 🛑 SL: <code>{sl_c}</code>\n\n"
+                            f"💡 <i>ការកាត់ខាតតាម SL គឺជាវិន័យដ៏ត្រឹមត្រូវបំផុតរបស់អ្នកអាជីព។ ត្រៀមឱកាស Setup ល្អបន្ទាប់!</i>"
+                        )
+                    self.notifier.send_message(reply_vote, chat_id=chat_id, reply_markup=bottom_keyboard)
+                elif len(parts) > 1 and parts[1].lower() == "price":
                     price_data = self.gold_collector.fetch_price()
                     resp = KhmerFormatter.format_daily_gold_price(price_data, summary="", include_smc=False)
                     self.notifier.send_message(resp, chat_id=chat_id, reply_markup=bottom_keyboard)
@@ -847,8 +920,13 @@ class XAUUSDNewsAssistantBot:
                             macro_data=macro_data,
                             order_book=order_book
                         )
+                    smc_sig_id = f"smc_{datetime.now().strftime('%Y%m%d_%H')}"
                     smc_inline_buttons = {
                         "inline_keyboard": [
+                            [
+                                {"text": "🎯 ឈ្នះ (Hit TP)", "callback_data": f"vote_tp:{smc_sig_id}"},
+                                {"text": "🛑 ចាញ់ (Hit SL)", "callback_data": f"vote_sl:{smc_sig_id}"}
+                            ],
                             [
                                 {"text": "📱 បើក Mini App (Live SMC Terminal)", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=smc"}
                             ],
