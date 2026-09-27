@@ -332,19 +332,30 @@ class XAUUSDNewsAssistantBot:
                 timeframe="M15",
                 title_extra=conf.get("pattern", "")
             )
-            sig_id = f"conf_{int(now)}"
-            vote_markup = {
+            if chart_png:
+                self.notifier.send_photo(chart_png, caption=self._truncate_html_caption(msg, 950))
+            else:
+                self.notifier.send_message(msg)
+
+            # Send native interactive Telegram Poll
+            poll_title = f"📊 លទ្ធផល Setup: {conf.get('pattern', 'SMC Confirmation')} — សូមបោះឆ្នោត:"
+            self.notifier.send_poll(
+                question=poll_title,
+                options=["🎯 ឈ្នះ (Hit TP)", "🛑 ចាញ់ (Hit SL)"],
+                is_anonymous=True
+            )
+
+            # Clean prominent Mini App button directly below the Poll
+            app_cta_markup = {
                 "inline_keyboard": [
                     [
-                        {"text": "🎯 ឈ្នះ (Hit TP)", "url": f"https://t.me/FFNewsAlertBot?start=vote_tp_{sig_id}"},
-                        {"text": "🛑 ចាញ់ (Hit SL)", "url": f"https://t.me/FFNewsAlertBot?start=vote_sl_{sig_id}"}
+                        {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=120&tab=smc"}
                     ]
                 ]
             }
-            if chart_png:
-                self.notifier.send_photo(chart_png, caption=self._truncate_html_caption(msg, 950), reply_markup=vote_markup)
-            else:
-                self.notifier.send_message(msg, reply_markup=vote_markup)
+            app_cta_text = "👇 <b>ចុចប៊ូតុងខាងក្រោមដើម្បីចូលមើល Signal បន្តផ្ទាល់លើ Mini App:</b>"
+            self.notifier.send_message(app_cta_text, reply_markup=app_cta_markup)
+
             database.set_state("last_candle_conf_ts", str(now))
 
     def check_news_danger_zone(self):
@@ -405,20 +416,28 @@ class XAUUSDNewsAssistantBot:
             logger.info(f"[AI SNIPER INSTANT SIGNAL] {sig['action_title']} at ${sig['entry']} (ID: {sig_id})")
             msg = KhmerFormatter.format_sniper_instant_alert(sig)
             
-            # Interactive action buttons with 🎯 ឈ្នះ (Hit TP) and 🛑 ចាញ់ (Hit SL)
-            buttons = {
+            # Send clean signal message
+            self.notifier.send_message(msg)
+
+            # Send native interactive Telegram Poll immediately below the signal
+            poll_title = f"📊 លទ្ធផល Signal: {sig.get('action', 'TRADE')} @ ${sig.get('entry')} — សូមបោះឆ្នោត:"
+            self.notifier.send_poll(
+                question=poll_title,
+                options=["🎯 ឈ្នះ (Hit TP)", "🛑 ចាញ់ (Hit SL)"],
+                is_anonymous=True
+            )
+
+            # Clean prominent Mini App button directly below the Poll
+            app_cta_markup = {
                 "inline_keyboard": [
                     [
-                        {"text": "🎯 ឈ្នះ (Hit TP)", "url": f"https://t.me/FFNewsAlertBot?start=vote_tp_{sig_id}"},
-                        {"text": "🛑 ចាញ់ (Hit SL)", "url": f"https://t.me/FFNewsAlertBot?start=vote_sl_{sig_id}"}
-                    ],
-                    [
-                        {"text": "📊 មើល TradingView Chart", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=chart"},
-                        {"text": "🧮 គិត Lot Size ភ្លាម", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=lot"}
+                        {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=120&tab=smc"}
                     ]
                 ]
             }
-            self.notifier.send_message(msg, reply_markup=buttons)
+            app_cta_text = "👇 <b>ចុចប៊ូតុងខាងក្រោមដើម្បីចូលមើល Signal បន្តផ្ទាល់លើ Mini App:</b>"
+            self.notifier.send_message(app_cta_text, reply_markup=app_cta_markup)
+
             database.set_state("last_sniper_signal_ts", str(now))
             database.set_state("last_sniper_action", sig.get("action", ""))
 
@@ -673,11 +692,7 @@ class XAUUSDNewsAssistantBot:
                 smc_inline_buttons = {
                     "inline_keyboard": [
                         [
-                            {"text": "🎯 ឈ្នះ (Hit TP)", "url": f"https://t.me/FFNewsAlertBot?start=vote_tp_{smc_sig_id}"},
-                            {"text": "🛑 ចាញ់ (Hit SL)", "url": f"https://t.me/FFNewsAlertBot?start=vote_sl_{smc_sig_id}"}
-                        ],
-                        [
-                            {"text": "📱 បើក Mini App (Live SMC Terminal)", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=120&tab=smc"}
+                            {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=120&tab=smc"}
                         ],
                         [
                             {"text": "📊 មើល TradingView Live Chart", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=120&tab=chart"},
@@ -920,15 +935,10 @@ class XAUUSDNewsAssistantBot:
                             macro_data=macro_data,
                             order_book=order_book
                         )
-                    smc_sig_id = f"smc_{datetime.now().strftime('%Y%m%d_%H')}"
                     smc_inline_buttons = {
                         "inline_keyboard": [
                             [
-                                {"text": "🎯 ឈ្នះ (Hit TP)", "callback_data": f"vote_tp:{smc_sig_id}"},
-                                {"text": "🛑 ចាញ់ (Hit SL)", "callback_data": f"vote_sl:{smc_sig_id}"}
-                            ],
-                            [
-                                {"text": "📱 បើក Mini App (Live SMC Terminal)", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=smc"}
+                                {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=smc"}
                             ],
                             [
                                 {"text": "🧮 គិត Lot Size តាមដើមទុន", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=lot"}
