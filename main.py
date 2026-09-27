@@ -388,10 +388,19 @@ class XAUUSDNewsAssistantBot:
         Sends immediate high-priority alert directly to Telegram when a high-probability setup triggers!
         Blocked automatically if AI News Danger Zone is active.
         """
-        # Safety Gate: Do NOT send buy/sell signals within 30 minutes of High-Impact News!
+        # Safety Gate 1: Do NOT send buy/sell signals within 30 minutes of High-Impact News!
         danger_info = self.calendar_collector.is_news_danger_zone(buffer_minutes=30)
         if danger_info.get("is_danger"):
             logger.info(f"[SNIPER SIGNAL BLOCKED] Danger zone active for {danger_info.get('title')}. Capital protection active.")
+            return
+
+        # Safety Gate 2: Trading Sessions Filter (London 14:00 - 18:00 & NY 19:00 - 02:00 Cambodia Time)
+        now_kh = datetime.now(CAMBODIA_TZ)
+        hour_kh = now_kh.hour
+        # London (14-17:59), NY & Overlap (19-02:59). Low-volume Asian & Late NY hours (03:00 - 13:59) are filtered.
+        is_london_or_ny = (14 <= hour_kh < 18) or (19 <= hour_kh <= 23) or (0 <= hour_kh < 3)
+        if not is_london_or_ny:
+            # During Asian session or pre-market, avoid issuing real-money execution signals
             return
 
         now = time.time()
