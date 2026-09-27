@@ -726,8 +726,7 @@ class KhmerFormatter:
             f"🚫 <b>ហេតុផលដាច់ខាតដែលមិនគួរ {opposite_action}:</b>\n"
             f"{formatted_why_not}\n\n"
             f"💡 <i>អនុសាសន៍: {confirm}</i>\n"
-            f"🛡️ <i>គ្រប់គ្រងហានិភ័យដោយបើក <b>📱 Mini App</b> ឬវាយ <code>/lot</code> មុនចូល Order!</i>\n"
-            f"👇 <i>សូមចុចប៊ូតុងខាងក្រោមដើម្បីបញ្ជាក់លទ្ធផល Trade (Hit TP / Hit SL) របស់អ្នក:</i>"
+            f"🛡️ <i>គ្រប់គ្រងហានិភ័យដោយបើក <b>📱 Mini App</b> ឬវាយ <code>/lot</code> មុនចូល Order!</i>"
         )
         return part1 + part2
 
@@ -759,23 +758,44 @@ class KhmerFormatter:
 
     @staticmethod
     def format_sniper_instant_alert(sig: dict) -> str:
-        """Formats real-time AI Sniper Buy Dip / Sell Top Instant Execution Alert."""
+        """Formats real-time AI Pre-Signal Market Analysis and Sniper Signal Alert."""
         action = sig.get("action", "BUY")
         is_buy = "BUY" in action
         icon = "🟢" if is_buy else "🔴"
+        trend_desc = sig.get("trend_desc", "តម្លៃកំពុងស្ថិតក្នុងចលនាចំហៀង (Consolidation / Sideways)។")
+        ma_desc = sig.get("ma_desc", "ខ្សែបម្លាស់ទីលឿន និងខ្សែបម្លាស់ទីយឺត កំពុងប្រទាក់ក្រឡាគ្នានៅជិតតម្លៃបច្ចុប្បន្ន។")
+        res_range = sig.get("resistance_range", "$2700 - $2710")
+        sup_range = sig.get("support_range", "$2660 - $2670")
 
         return (
-            f"⚡ {icon} <b>AI SNIPER INSTANT SIGNAL (M15)</b>\n\n"
-            f"🎯 <b>សញ្ញាប្រតិបត្តិការ:</b> <b>{sig.get('action_title', action)}</b>\n"
+            f"📊 <b>១. ការវិភាគស្ថានភាពទីផ្សារបច្ចុប្បន្ន</b>\n\n"
+            f"• <b>និន្នាការរួម (Trend):</b> {trend_desc}\n\n"
+            f"• <b>ខ្សែបម្លាស់ទី (Moving Averages):</b> {ma_desc}\n\n"
+            f"• <b>កម្រិតទ្រទ្រង់ និងរាំងស្ទះ (Support & Resistance):</b>\n"
+            f"  - <b>កម្រិតរាំងស្ទះ (Resistance):</b> នៅចន្លោះតម្លៃ <code>{res_range}</code> (ប្រសិនបើតម្លៃអាចបំបែកឡើងលើបាន)\n"
+            f"  - <b>កម្រិតទ្រទ្រង់ (Support):</b> នៅចន្លោះតម្លៃ <code>{sup_range}</code> (ប្រសិនបើតម្លៃធ្លាក់ចុះក្រោម)\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"📈 <b>២. ជម្រើសសម្រាប់ការជួញដូរ (Trading Scenarios)</b>\n\n"
+            f"🟢 <b>ករណីសម្លឹងមើលការទិញ (Buy Signal):</b>\n"
+            f"  - រង់ចាំឱ្យតម្លៃបំបែក (Breakout) ផុតខ្សែបម្លាស់ទី និងកម្រិត Resistance ផ្នែកខាងលើដោយមានទៀនតម្លៃ (Candlestick) បិទយ៉ាងរឹងមាំ។\n"
+            f"  - ឬរង់ចាំតម្លៃធ្លាក់ចុះមកប៉ះតំបន់ Support ខាងក្រោម ហើយមានសញ្ញាត្រឡប់ឡើងវិញ (Rejection / Bullish Pattern)។\n\n"
+            f"🔴 <b>ករណីសម្លឹងមើលការលក់ (Sell Signal):</b>\n"
+            f"  - រង់ចាំឱ្យតម្លៃបំបែកធ្លាក់ចុះក្រោមតំបន់ Support ខាងក្រោមទើបចូលលក់។\n"
+            f"  - ឬនៅពេលតម្លៃឡើងទៅប៉ះតំបន់ Resistance ខាងលើ ហើយមិនអាចបំបែករួច (Bearish Rejection)។\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"⚡ {icon} <b>សញ្ញា AI SNIPER បញ្ជាក់ការចូល (M15 Live):</b>\n"
+            f"🎯 <b>ប្រតិបត្តិការ:</b> <b>{sig.get('action_title', action)}</b>\n"
             f"• 🥇 <b>Entry តម្លៃចូល:</b> <code>${sig.get('entry', 0.0):,.2f}</code>\n"
             f"• 🛑 <b>Stop Loss (SL):</b> <code>${sig.get('sl', 0.0):,.2f}</code>\n"
             f"• 🎯 <b>Take Profit 1 (TP1):</b> <code>${sig.get('tp1', 0.0):,.2f}</code>\n"
             f"• 🏆 <b>Take Profit 2 (TP2):</b> <code>${sig.get('tp2', 0.0):,.2f}</code>\n"
-            f"• ⚖️ <b>Risk:Reward:</b> <code>{sig.get('rr_ratio', '1:2.0')}</code>\n\n"
-            f"🧠 <b>ការបញ្ជាក់បច្ចេកទេស:</b>\n"
-            f"• {sig.get('reason', '')}\n\n"
-            f"🛡️ <i>គ្រប់គ្រងដើមទុន គោរព SL ជានិច្ច និងកុំភ្លេច Lock BE ពេលដល់ TP1!</i>\n"
-            f"👇 <i>សូមចុចប៊ូតុងខាងក្រោមដើម្បីបញ្ជាក់លទ្ធផល Trade របស់អ្នក:</i>"
+            f"• ⚖️ <b>Risk:Reward:</b> <code>{sig.get('rr_ratio', '1:2.0')}</code>\n"
+            f"• 💡 <b>ការបញ្ជាក់បច្ចេកទេស:</b> {sig.get('reason', '')}\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"💡 <b>អនុសាសន៍គ្រប់គ្រងហានិភ័យ (Risk Management)</b>\n\n"
+            f"1. <b>រង់ចាំសញ្ញាច្បាស់លាស់ (Wait for Confirmation):</b> ដោយសារទីផ្សារអាចមាន Sideways ការចូល Order ត្រូវមានការផ្ទៀងផ្ទាត់ Candle Confirmation ជានិច្ច។\n"
+            f"2. <b>កំណត់ Stop Loss (SL) និង Take Profit (TP):</b> ត្រូវដាក់ SL ជានិច្ចដើម្បីការពារដើមទុន ប្រសិនបើទីផ្សារដើរបញ្ច្រាសទិស។\n"
+            f"3. <b>ពិនិត្យមើលព័ត៌មានសេដ្ឋកិច្ច (Fundamental News):</b> តម្លៃមាសអាចប្រែប្រួលខ្លាំងនៅពេលមានការចេញផ្សាយព័ត៌មានសេដ្ឋកិច្ចសំខាន់ៗ!"
         )
 
     @staticmethod
