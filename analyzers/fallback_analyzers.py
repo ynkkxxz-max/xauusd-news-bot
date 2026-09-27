@@ -51,7 +51,7 @@ class OpenAICompatAnalyzer:
             f"{self.base_url}/chat/completions",
             headers={"Authorization": f"Bearer {self.api_key}"},
             json=payload,
-            timeout=5,
+            timeout=15,
         )
         resp.raise_for_status()
         return resp.json()["choices"][0]["message"]["content"] or ""
@@ -167,6 +167,23 @@ class AnalyzerChain:
         return self._first_result("summarize_daily_price", price_data) or ""
 
     def generate_smart_smc_setup(self, current_price: float, key_levels: dict, macro_data: dict = None, order_book: dict = None) -> dict:
+        # 1. Hedge Fund-Grade Multi-AI Council Consensus Engine (Gemini + Claude + GPT/DeepSeek)
+        try:
+            from analyzers.consensus_engine import MultiAIConsensusEngine
+            consensus_engine = MultiAIConsensusEngine(self.analyzers)
+            consensus_res = consensus_engine.generate_consensus_setup(
+                current_price=current_price,
+                key_levels=key_levels,
+                macro_data=macro_data,
+                order_book=order_book,
+                timeout=25.0
+            )
+            if consensus_res:
+                return consensus_res
+        except Exception as e:
+            logger.warning(f"[AnalyzerChain] MultiAIConsensusEngine failed: {e}")
+
+        # 2. Sequential AI Fallback if consensus engine encounters issue
         return self._first_result("generate_smart_smc_setup", current_price, key_levels, macro_data, order_book) \
             or MacroAnalyzer.generate_smart_smc_setup(current_price, key_levels, macro_data, order_book)
 
