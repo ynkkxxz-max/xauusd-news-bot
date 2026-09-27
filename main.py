@@ -449,6 +449,66 @@ class XAUUSDNewsAssistantBot:
 
             database.set_state("last_sniper_signal_ts", str(now))
             database.set_state("last_sniper_action", sig.get("action", ""))
+            # Save active signal details for Dynamic Break-Even & Profit Lock tracking
+            database.set_state("active_trade_action", sig.get("action", ""))
+            database.set_state("active_trade_entry", str(sig.get("entry", 0.0)))
+            database.set_state("active_trade_tp1", str(sig.get("tp1", 0.0)))
+            database.set_state("active_trade_tp2", str(sig.get("tp2", 0.0)))
+            database.set_state("active_trade_sl", str(sig.get("sl", 0.0)))
+            database.set_state("active_trade_be_sent", "false")
+
+    def check_dynamic_breakeven_trailing(self):
+        """
+        Monitors active trades in real time.
+        When price moves +30 pips in profit towards TP1, automatically fires
+        Dynamic Break-Even & Profit Lock Alert to Telegram so members lock risk-free profits.
+        """
+        active_action = database.get_state("active_trade_action")
+        if not active_action:
+            return
+
+        be_sent = database.get_state("active_trade_be_sent")
+        if be_sent == "true":
+            return
+
+        try:
+            entry_p = float(database.get_state("active_trade_entry") or 0.0)
+            tp1_p = float(database.get_state("active_trade_tp1") or 0.0)
+            if entry_p <= 0:
+                return
+
+            price_data = self.gold_collector.fetch_price()
+            curr_p = price_data.get("price_oz", 0.0)
+            if curr_p <= 0:
+                return
+
+            pips_gained = 0.0
+            trigger_be = False
+
+            if "BUY" in active_action:
+                pips_gained = (curr_p - entry_p) * 10.0
+                # Trigger when gained >= 30 pips ($3.00)
+                if pips_gained >= 30.0:
+                    trigger_be = True
+            elif "SELL" in active_action:
+                pips_gained = (entry_p - curr_p) * 10.0
+                if pips_gained >= 30.0:
+                    trigger_be = True
+
+            if trigger_be:
+                logger.info(f"[DYNAMIC BREAK-EVEN TRIGGERED] {active_action} gained +{pips_gained:.1f} pips. Sending lock alert.")
+                be_info = {
+                    "action": active_action,
+                    "entry_price": entry_p,
+                    "current_price": curr_p,
+                    "tp1_price": tp1_p,
+                    "pips_gained": pips_gained
+                }
+                msg = KhmerFormatter.format_breakeven_profit_alert(be_info)
+                self.notifier.send_message(msg)
+                database.set_state("active_trade_be_sent", "true")
+        except Exception as e:
+            logger.warning(f"Error checking dynamic breakeven: {e}")
 
     def check_liquidity_sweep(self):
         """
@@ -1446,6 +1506,7 @@ class XAUUSDNewsAssistantBot:
                         self.check_price_volatility_spike()
                         self.check_news_danger_zone()
                         self.check_sniper_instant_signals()
+                        self.check_dynamic_breakeven_trailing()
                         self.check_candlestick_confirmation()
                         self.check_liquidity_sweep()
                         self.check_macro_divergence()
