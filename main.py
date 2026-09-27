@@ -361,11 +361,11 @@ class XAUUSDNewsAssistantBot:
     def check_news_danger_zone(self):
         """
         AI Market Regime & High-Impact News Filter:
-        Monitors if market is within 15 minutes of a High-Impact USD release (CPI, NFP, FOMC).
+        Monitors if market is within 30 minutes of a High-Impact USD release (CPI, NFP, FOMC).
         Broadcasts high-priority Danger Warning and sets temporary No-Trade lock.
         """
         now = time.time()
-        danger_info = self.calendar_collector.is_news_danger_zone(buffer_minutes=15)
+        danger_info = self.calendar_collector.is_news_danger_zone(buffer_minutes=30)
         
         if danger_info.get("is_danger"):
             # Mark danger state in database
@@ -388,8 +388,8 @@ class XAUUSDNewsAssistantBot:
         Sends immediate high-priority alert directly to Telegram when a high-probability setup triggers!
         Blocked automatically if AI News Danger Zone is active.
         """
-        # Safety Gate: Do NOT send buy/sell signals during High-Impact News Danger Zone!
-        danger_info = self.calendar_collector.is_news_danger_zone(buffer_minutes=15)
+        # Safety Gate: Do NOT send buy/sell signals within 30 minutes of High-Impact News!
+        danger_info = self.calendar_collector.is_news_danger_zone(buffer_minutes=30)
         if danger_info.get("is_danger"):
             logger.info(f"[SNIPER SIGNAL BLOCKED] Danger zone active for {danger_info.get('title')}. Capital protection active.")
             return
