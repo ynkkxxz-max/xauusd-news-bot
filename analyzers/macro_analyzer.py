@@ -367,9 +367,15 @@ class MacroAnalyzer:
             entry_low = round(pullback_target - 1.5, 2)
             entry_high = round(pullback_target + 1.2, 2)
             
+            # ── BUY SL Safety: MUST be BELOW entry_low ────────────────────────
             sl_price = round(min(entry_low - 7.0, s1 - 3.0), 2)
+            if sl_price >= entry_low:  # Safety guard — SL must be below entry
+                sl_price = round(entry_low - 8.0, 2)
             tp1_price = round(max(current_price + 10.0, pivot + 14.0), 2)
             tp2_price = round(max(current_price + 22.0, r1 + 5.0), 2)
+            # TP1 must be above entry_high for a valid BUY trade
+            if tp1_price <= entry_high:
+                tp1_price = round(entry_high + 10.0, 2)
             sl_dist = max(entry_high - sl_price, 3.0)
             tp1_dist = tp1_price - entry_high
             rr_val = round(tp1_dist / sl_dist, 1)
@@ -410,9 +416,15 @@ class MacroAnalyzer:
             entry_low = round(bounce_target - 1.2, 2)
             entry_high = round(bounce_target + 1.5, 2)
             
+            # ── SELL SL Safety: MUST be ABOVE entry_high ──────────────────────
             sl_price = round(max(entry_high + 7.0, r1 + 3.0), 2)
+            if sl_price <= entry_high:  # Safety guard — SL must be above entry
+                sl_price = round(entry_high + 8.0, 2)
             tp1_price = round(min(current_price - 10.0, pivot - 14.0), 2)
             tp2_price = round(min(current_price - 22.0, s1 - 5.0), 2)
+            # TP1 must be below entry_low for a valid SELL trade
+            if tp1_price >= entry_low:
+                tp1_price = round(entry_low - 10.0, 2)
             sl_dist = max(sl_price - entry_low, 3.0)
             tp1_dist = entry_low - tp1_price
             rr_val = round(tp1_dist / sl_dist, 1)
