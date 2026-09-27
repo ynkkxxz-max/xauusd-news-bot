@@ -18,13 +18,21 @@ _ANALYSIS_KEYS = [
 ]
 
 _SYSTEM_RULES = (
-    "អ្នកគឺជាប្រធានអ្នកយុទ្ធសាស្ត្រវិភាគម៉ាក្រូសេដ្ឋកិច្ច និងទីផ្សារមាស (Chief Macro & Gold Strategist) ថ្នាក់ស្ថាប័នកំពូលពិភពលោក។ "
-    "ចូរវិភាគព័ត៌មានឱ្យបានឆ្លាតវៃ មុតស្រួច និងស៊ីជម្រៅបំផុត ដោយពន្យល់ពីទំនាក់ទំនងស្មុគស្មាញរវាង ភូមិសាស្ត្រនយោបាយ តម្លៃថាមពល/ប្រេង "
-    "អតិផរណា កម្លាំងសន្ទស្សន៍ប្រាក់ដុល្លារ (DXY) អត្រាការប្រាក់ Fed និងទំហំតម្រូវការទ្រព្យសុវត្ថិភាព (Safe-haven) ចំពោះមាស។ "
-    "សរសេរជាភាសាខ្មែរផ្លូវការ ពិរោះ រលូន មានអត្ថន័យជ្រាលជ្រៅ និងច្បាស់លាស់បំផុត។ "
-    "ហាមកាត់ខ្លី ឬឆ្លើយជាគំរូទូទៅដដែលៗ (generic)។ ត្រូវចាប់យកចំណុចពិសេស និងខ្លឹមសារពិត ១០០%។ "
-    "លក្ខខណ្ឌពិសេស៖ ប្រសិនបើព័ត៌មាននោះមិនច្បាស់លាស់ ព័ត៌មានតូចតាច ឬគ្មានផលប៉ះពាល់ជាក់ស្តែងលើទីផ្សារមាស ត្រូវកំណត់ is_clear = false "
-    "ដើម្បីកុំឱ្យផ្ញើសាររំខានចូល Channel Telegram ឱ្យសោះ! កំណត់ is_clear = true លុះត្រាតែព័ត៌មាននោះច្បាស់លាស់ មានទម្ងន់ និងប៉ះពាល់ផ្ទាល់ដល់មាស។"
+    "You are an expert Financial Market Analyst and Institutional Trading Specialist specializing in Technical Analysis, "
+    "Fundamental Analysis, Price Action, Smart Money Concepts (SMC), and Risk Management for Gold (XAUUSD), Commodities, Forex, and Crypto. "
+    "Your objective is to analyze market data (charts, price levels, macroeconomic news, order flows, or indicators) and provide "
+    "high-probability trading signals with clear, disciplined risk management.\n\n"
+    "When delivering market analyses or trading setups, you must strictly adhere to the following 5 core pillars:\n"
+    "1. MARKET OVERVIEW & TREND ANALYSIS (Timeframe, Primary Trend, Exact Key Support & Resistance Levels, Moving Averages & Indicator Alignment)\n"
+    "2. TRADING SIGNAL / EXECUTION PLAN (Unambiguous Action: BUY, SELL, or WAIT; Exact Entry Price / Trigger, Stop Loss with structural rationale, TP1 (R:R >= 1:1.5), TP2 (R:R >= 1:2.0), R:R ratio)\n"
+    "3. CONFIRMATION REASONS (2 to 4 concrete, confluence-backed technical reasons: e.g. Key Level Rejection, Candlestick Pattern, MA crossover, Liquidity Grab)\n"
+    "4. RISK MANAGEMENT & INVALIDATION SCENARIO (Clear invalidation level before entry, strictly advise risking maximum 1-2% account equity)\n"
+    "5. FINAL VERDICT / SUMMARY (1-2 sentence concise executive summary)\n\n"
+    "STRICT RULES TO FOLLOW:\n"
+    "- If market conditions are unclear, choppy, or low confidence, explicitly state 'WAIT / NO TRADE' and explain why.\n"
+    "- Never guess or generate random numbers; rely strictly on structural price action and technical confluence.\n"
+    "- Write in fluent, professional, authoritative Khmer (retaining standard English financial terminology where clearer).\n"
+    "- Always filter out noise: if data or news is insignificant or has no direct market impact, set is_clear = false."
 )
 
 
@@ -85,30 +93,45 @@ def summary_prompt(price_data: dict) -> str:
 
 def smc_setup_prompt(current_price: float, key_levels: dict, macro_data: dict = None, order_book: dict = None) -> str:
     return (
-        f"អ្នកគឺជា Senior SMC Institutional Trader ជំនាញ XAU/USD (Gold)។\n"
-        f"ទិន្នន័យទីផ្សារបច្ចុប្បន្ន៖\n"
-        f"- តម្លៃបច្ចុប្បន្ន (Spot): ${current_price:,.2f}\n"
-        f"- Key Levels: Pivot=${key_levels.get('pivot', current_price):,.2f}, "
+        f"You are an Elite Institutional Financial Market Analyst & Senior Trader specializing in Technical Analysis, "
+        f"Price Action, Smart Money Concepts (SMC), and Risk Management for Gold (XAUUSD).\n\n"
+        f"CURRENT MARKET SNAPSHOT:\n"
+        f"- Spot Price: ${current_price:,.2f}\n"
+        f"- Structural Levels: Pivot=${key_levels.get('pivot', current_price):,.2f}, "
         f"R1=${key_levels.get('r1', current_price+20):,.2f}, R2=${key_levels.get('r2', current_price+40):,.2f}, "
         f"S1=${key_levels.get('s1', current_price-20):,.2f}, S2=${key_levels.get('s2', current_price-40):,.2f}\n"
-        f"- Macro: DXY={macro_data.get('dxy_price') if macro_data else 'N/A'} ({macro_data.get('dxy_pct') if macro_data else 'N/A'}%), "
-        f"US10Y={macro_data.get('us10y_yield') if macro_data else 'N/A'}%\n"
-        f"- Order Book: Bid={order_book.get('bid_dominance_pct') if order_book else '50'}%, Ask={order_book.get('ask_dominance_pct') if order_book else '50'}%\n\n"
-        f"តម្រូវការពិសេស៖ ចូរជ្រើសរើសទិសដៅតែមួយគត់ (ទិសដៅតែមួយដាច់ណាត់ គឺ BUY តែមួយ ឬ SELL តែមួយ) "
-        f"ដែលមានប្រូបាប៊ីលីតេឈ្នះខ្ពស់បំផុត (High Probability Win Rate)។ "
-        f"ហាមប្រាប់ទាំងពីរទិស (ហាមដាក់ទាំង Buy ទាំង Sell)។\n\n"
-        f"ត្រឡប់ JSON ដែលមានទម្រង់ដូចខាងក្រោមជាភាសាខ្មែរផ្លូវការ មុតស្រួច ជំនាញ Technical Analysis:\n"
-        f"- direction: 'BUY' ឬ 'SELL'\n"
-        f"- setup_title: e.g. '🟢 ផែនការទិញឡើង (BUY SETUP ONLY)' ឬ '🔴 ផែនការលក់ចុះ (SELL SETUP ONLY)'\n"
-        f"- entry: តម្លៃ Entry (number float ឬ range e.g. 4330.00)\n"
-        f"- entry_zone: string បញ្ជាក់តំបន់ចូលច្បាស់លាស់ (e.g. '$4,328.00 - $4,332.00')\n"
-        f"- sl: តម្លៃ Stop Loss (number float e.g. 4322.00) (ចម្ងាយសមរម្យ $6 - $12)\n"
-        f"- tp1: Take Profit 1 (number float, R:R ~ 1:1.5)\n"
-        f"- tp2: Take Profit 2 (number float, R:R ~ 1:2.5 or key level)\n"
-        f"- rr_ratio: string (e.g. '1:2.2')\n"
-        f"- why_this_trade: ពន្យល់ហេតុផល ២-៣ ចំណុចថាហេតុអ្វីគួរ [BUY ឬ SELL] (Confluence: SMC Order Block, Support/Resistance, DXY, Liquidity)\n"
-        f"- why_not_opposite: ពន្យល់ហេតុផលច្បាស់ៗ ២ ចំណុចថាហេតុអ្វីដាច់ខាតមិនគួរ [SELL ឬ BUY ផ្ទុយ] នៅត្រង់ចំណុចនេះ (បញ្ចៀស Trap/Fakeout)\n"
-        f"- confirmation_note: អនុសាសន៍ខ្លីបញ្ជាក់ទៀន M15 ឬ Session\n"
+        f"- Macro Sentiment: DXY={macro_data.get('dxy_price') if macro_data else 'N/A'}, "
+        f"US10Y Yield={macro_data.get('us10y_yield') if macro_data else 'N/A'}%\n"
+        f"- Order Flow Ratio: Buyers {order_book.get('bid_dominance_pct') if order_book else '50'}% vs Sellers {order_book.get('ask_dominance_pct') if order_book else '50'}%\n\n"
+        f"OBJECTIVE & STRICT INSTRUCTIONS:\n"
+        f"Provide a definitive institutional trading setup structured according to the 5 Core Pillars:\n"
+        f"1. MARKET OVERVIEW & TREND ANALYSIS (Timeframe e.g. M15/H1, Primary Trend, Key Support and Resistance, Moving Averages / Indicator Confluence)\n"
+        f"2. TRADING SIGNAL & EXECUTION PLAN (Action: BUY or SELL or WAIT; Entry zone, SL with technical logic, TP1 R:R>=1:1.5, TP2 R:R>=1:2.0, R:R ratio)\n"
+        f"3. CONFIRMATION REASONS (2 to 4 concrete, bulleted technical and confluence reasons)\n"
+        f"4. RISK MANAGEMENT & INVALIDATION SCENARIO (Exact invalidation trigger before entry, and strictly mandate 1-2% account equity risk)\n"
+        f"5. FINAL VERDICT / SUMMARY (1-2 sentence executive summary)\n\n"
+        f"RULES:\n"
+        f"- If market is choppy, low confidence, or lack of confluence, Action MUST be 'WAIT' with detailed justification.\n"
+        f"- No random numbers: calculate all prices strictly based on key structural levels.\n"
+        f"- Write explanations in clear, high-authority Khmer combined with standard English trading terms.\n\n"
+        f"Return JSON strictly adhering to schema:\n"
+        f"- direction: 'BUY' or 'SELL' or 'WAIT'\n"
+        f"- setup_title: e.g. '🟢 ផែនការទិញឡើង (INSTITUTIONAL BUY SETUP)'\n"
+        f"- timeframe: 'M15 / H1'\n"
+        f"- primary_trend: 'Bullish' / 'Bearish' / 'Sideways Consolidation'\n"
+        f"- key_support: e.g. '${key_levels.get('s1', current_price-20):,.1f} - ${key_levels.get('s2', current_price-40):,.1f}'\n"
+        f"- key_resistance: e.g. '${key_levels.get('r1', current_price+20):,.1f} - ${key_levels.get('r2', current_price+40):,.1f}'\n"
+        f"- indicator_alignment: Technical / MA confluence summary\n"
+        f"- entry: Exact entry price number float\n"
+        f"- entry_zone: string range e.g. '$2,685.00 - $2,688.00'\n"
+        f"- sl: Exact Stop Loss number float\n"
+        f"- tp1: Take Profit 1 number float (R:R >= 1:1.5)\n"
+        f"- tp2: Take Profit 2 number float (R:R >= 1:2.0)\n"
+        f"- rr_ratio: string e.g. '1:2.2'\n"
+        f"- confirmation_reasons: Array of 2 to 4 concrete reasons in Khmer\n"
+        f"- invalidation_scenario: Exact market action that cancels setup\n"
+        f"- risk_management_note: Rule on 1-2% risk discipline\n"
+        f"- executive_summary: 1-2 sentence final verdict\n"
     )
 
 
@@ -273,17 +296,26 @@ class GeminiAnalyzer:
             "properties": {
                 "direction": {"type": "string"},
                 "setup_title": {"type": "string"},
+                "timeframe": {"type": "string"},
+                "primary_trend": {"type": "string"},
+                "key_support": {"type": "string"},
+                "key_resistance": {"type": "string"},
+                "indicator_alignment": {"type": "string"},
                 "entry": {"type": "number"},
                 "entry_zone": {"type": "string"},
                 "sl": {"type": "number"},
                 "tp1": {"type": "number"},
                 "tp2": {"type": "number"},
                 "rr_ratio": {"type": "string"},
+                "confirmation_reasons": {"type": "ARRAY", "items": {"type": "string"}},
+                "invalidation_scenario": {"type": "string"},
+                "risk_management_note": {"type": "string"},
+                "executive_summary": {"type": "string"},
                 "why_this_trade": {"type": "string"},
                 "why_not_opposite": {"type": "string"},
-                "confirmation_note": {"type": "string"},
+                "confirmation_note": {"type": "string"}
             },
-            "required": ["direction", "setup_title", "sl", "tp1", "tp2", "why_this_trade", "why_not_opposite"]
+            "required": ["direction", "setup_title", "sl", "tp1", "tp2"]
         }
 
         payload = {
