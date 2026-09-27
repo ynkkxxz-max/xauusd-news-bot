@@ -790,12 +790,13 @@ class KhmerFormatter:
             f"• 🎯 <b>Take Profit 1 (TP1):</b> <code>${sig.get('tp1', 0.0):,.2f}</code>\n"
             f"• 🏆 <b>Take Profit 2 (TP2):</b> <code>${sig.get('tp2', 0.0):,.2f}</code>\n"
             f"• ⚖️ <b>Risk:Reward:</b> <code>{sig.get('rr_ratio', '1:2.0')}</code>\n"
-            f"• 💡 <b>ការបញ្ជាក់បច្ចេកទេស:</b> {sig.get('reason', '')}\n\n"
+            f"• 🎯 <b>ពិន្ទុទំនុកចិត្ត (Confidence Score):</b> <code>{sig.get('confidence_score', '85%')}</code>\n"
+            f"• 💡 <b>ការបញ្ជាក់បច្ចេកទេស & Confluence:</b> {sig.get('reason', '')}\n\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"💡 <b>អនុសាសន៍គ្រប់គ្រងហានិភ័យ (Risk Management)</b>\n\n"
             f"1. <b>រង់ចាំសញ្ញាច្បាស់លាស់ (Wait for Confirmation):</b> ដោយសារទីផ្សារអាចមាន Sideways ការចូល Order ត្រូវមានការផ្ទៀងផ្ទាត់ Candle Confirmation ជានិច្ច។\n"
-            f"2. <b>កំណត់ Stop Loss (SL) និង Take Profit (TP):</b> ត្រូវដាក់ SL ជានិច្ចដើម្បីការពារដើមទុន ប្រសិនបើទីផ្សារដើរបញ្ច្រាសទិស។\n"
-            f"3. <b>ពិនិត្យមើលព័ត៌មានសេដ្ឋកិច្ច (Fundamental News):</b> តម្លៃមាសអាចប្រែប្រួលខ្លាំងនៅពេលមានការចេញផ្សាយព័ត៌មានសេដ្ឋកិច្ចសំខាន់ៗ!"
+            f"2. <b>កំណត់ Stop Loss (SL) និង Take Profit (TP):</b> ត្រូវដាក់ SL ជានិច្ច និងកំណត់ទំហំហានិភ័យត្រឹម 1-2% នៃទុនគណនី។\n"
+            f"3. <b>ពិនិត្យមើលព័ត៌មានសេដ្ឋកិច្ច (Economic News Filter):</b> បិទ Signal មុន/ក្រោយ 30 នាទីនៃ High-Impact News (CPI, NFP, FOMC) ដើម្បីការពារដើមទុន!"
         )
 
     @staticmethod
