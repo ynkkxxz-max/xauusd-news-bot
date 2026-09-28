@@ -2507,79 +2507,6 @@
       </div>
     </div>
 
-    <!-- Institutional Liquidity Heatmap Radar (ជញ្ជាំងទិញលក់របស់ស្ថាប័នធំៗ) -->
-    <div class="radar-card" id="liquidityRadarCard">
-      <div class="radar-header">
-        <div class="radar-title">
-          <span class="cyber-badge-dot" style="background: #00F0FF; color: #00F0FF; margin-right: 4px;"></span> Liquidity Heatmap Radar (ជញ្ជាំងស្ថាប័ន)
-        </div>
-        <span class="radar-badge" id="radarStatusBadge">LIVE ORDER BOOK</span>
-      </div>
-
-      <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
-        រ៉ាដាចាប់ជញ្ជាំងបញ្ជាទិញ/លក់ធំៗ (Whale Iceberg Orders) ជាក់ស្តែងក្នុងទីផ្សារ៖
-      </div>
-
-      <!-- Ratio Bar (Bids vs Asks) -->
-      <div class="liquidity-ratio-bar-wrap">
-        <div class="ratio-labels">
-          <span style="color: var(--bull);" id="radarBidPct"><span class="cyber-badge-dot" style="background: var(--bull); color: var(--bull); margin-right: 2px;"></span> Bids: 54.2%</span>
-          <span style="color: var(--bear);" id="radarAskPct"><span class="cyber-badge-dot" style="background: var(--bear); color: var(--bear); margin-right: 2px;"></span> Asks: 45.8%</span>
-        </div>
-        <div class="ratio-bar">
-          <div class="ratio-fill-bid" id="radarBidFill" style="width: 54.2%;"></div>
-          <div class="ratio-fill-ask" id="radarAskFill" style="width: 45.8%;"></div>
-        </div>
-      </div>
-
-      <!-- Top Institutional Whale Walls -->
-      <div class="whale-walls-grid">
-        <!-- Whale Buy Walls -->
-        <div class="wall-column">
-          <div class="wall-col-title">
-            <span style="color: var(--bull);"><span class="cyber-badge-dot" style="background: var(--bull); color: var(--bull); margin-right: 2px;"></span> ជញ្ជាំងទិញ (Buy Walls)</span>
-            <span style="color: var(--text-muted); font-size: 9px; font-weight: 700;">Bids</span>
-          </div>
-          <div id="whaleBidWallsList">
-            <div class="wall-item bid">
-              <span class="wall-price">$4,272.50</span>
-              <span class="wall-vol" style="color: var(--bull);">128.5 oz</span>
-            </div>
-            <div class="wall-item bid">
-              <span class="wall-price">$4,268.00</span>
-              <span class="wall-vol" style="color: var(--bull);">245.0 oz</span>
-            </div>
-            <div class="wall-item bid">
-              <span class="wall-price">$4,260.00</span>
-              <span class="wall-vol" style="color: var(--bull);">412.0 oz</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Whale Sell Walls -->
-        <div class="wall-column">
-          <div class="wall-col-title">
-            <span style="color: var(--bear);"><span class="cyber-badge-dot" style="background: var(--bear); color: var(--bear); margin-right: 2px;"></span> ជញ្ជាំងលក់ (Sell Walls)</span>
-            <span style="color: var(--text-muted); font-size: 9px; font-weight: 700;">Asks</span>
-          </div>
-          <div id="whaleAskWallsList">
-            <div class="wall-item ask">
-              <span class="wall-price">$4,282.00</span>
-              <span class="wall-vol" style="color: var(--bear);">164.2 oz</span>
-            </div>
-            <div class="wall-item ask">
-              <span class="wall-price">$4,288.50</span>
-              <span class="wall-vol" style="color: var(--bear);">289.0 oz</span>
-            </div>
-            <div class="wall-item ask">
-              <span class="wall-price">$4,295.00</span>
-              <span class="wall-vol" style="color: var(--bear);">520.4 oz</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Dual Reasoning -->
     <div class="smc-card">
       <div class="reason-title">ហេតុផលច្បាស់លាស់ដែលគួរជួញដូរ៖</div>
@@ -4921,17 +4848,6 @@
         askPct = (totalAskVol / sumVol) * 100.0;
       }
 
-      // Update Ratio Bar in SMC tab
-      const radarBidPct = document.getElementById('radarBidPct');
-      const radarAskPct = document.getElementById('radarAskPct');
-      const radarBidFill = document.getElementById('radarBidFill');
-      const radarAskFill = document.getElementById('radarAskFill');
-
-      if (radarBidPct) radarBidPct.innerText = `🟢 Bids: ${bidPct.toFixed(1)}%`;
-      if (radarAskPct) radarAskPct.innerText = `🔴 Asks: ${askPct.toFixed(1)}%`;
-      if (radarBidFill) radarBidFill.style.width = `${bidPct.toFixed(1)}%`;
-      if (radarAskFill) radarAskFill.style.width = `${askPct.toFixed(1)}%`;
-
       // Update Ratio Bar in Flow tab
       const flowRadarBidPct = document.getElementById('flowRadarBidPct');
       const flowRadarAskPct = document.getElementById('flowRadarAskPct');
@@ -4985,22 +4901,12 @@
         </div>
       `).join('');
 
-      const bidWallsList = document.getElementById('whaleBidWallsList');
-      if (bidWallsList && sortedBids.length > 0) bidWallsList.innerHTML = htmlBids;
       const flowBidWallsList = document.getElementById('flowWhaleBidWalls');
       if (flowBidWallsList && sortedBids.length > 0) flowBidWallsList.innerHTML = htmlBids;
 
-      const askWallsList = document.getElementById('whaleAskWallsList');
-      if (askWallsList && sortedAsks.length > 0) askWallsList.innerHTML = htmlAsks;
       const flowAskWallsList = document.getElementById('flowWhaleAskWalls');
       if (flowAskWallsList && sortedAsks.length > 0) flowAskWallsList.innerHTML = htmlAsks;
 
-      const badge = document.getElementById('radarStatusBadge');
-      if (badge) {
-        badge.innerText = isLiveOrderBook ? '⚡ LIVE ORDER BOOK' : '⚡ DYNAMIC RADAR';
-        badge.style.color = '#00E676';
-        badge.style.borderColor = 'rgba(0, 230, 118, 0.4)';
-      }
       const flowBadge = document.getElementById('flowRadarStatusBadge');
       if (flowBadge) {
         flowBadge.innerText = isLiveOrderBook ? '⚡ LIVE ORDER BOOK' : '⚡ DYNAMIC RADAR';
