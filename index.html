@@ -2625,15 +2625,15 @@
         </div>
         <div class="smc-metric-pill" style="border-left: 3px solid #FF3366; color: #FF3366;">
           <div class="smc-pill-label"><span class="cyber-badge-dot" style="background: #FF3366; color: #FF3366; margin-right: 3px;"></span> STOP LOSS SL</div>
-          <div class="smc-pill-value" style="color: #FF3366;" id="smcSL">$4,160.32</div>
+          <div class="smc-pill-value" style="color: #FF3366;" id="smcSL">$4,145.94</div>
         </div>
         <div class="smc-metric-pill" style="border-left: 3px solid #00E676; color: #00E676;">
           <div class="smc-pill-label"><span class="cyber-badge-dot" style="background: #00E676; color: #00E676; margin-right: 3px;"></span> TAKE PROFIT 1 BE</div>
-          <div class="smc-pill-value" style="color: #00E676;" id="smcTP1">$4,091.87 BE</div>
+          <div class="smc-pill-value" style="color: #00E676;" id="smcTP1">$4,117.94 BE</div>
         </div>
         <div class="smc-metric-pill" style="border-left: 3px solid #FFD700; color: #FFD700;">
           <div class="smc-pill-label"><span class="cyber-badge-dot" style="background: #FFD700; color: #FFD700; margin-right: 3px;"></span> TAKE PROFIT 2 MAX</div>
-          <div class="smc-pill-value" style="color: #FFD700;" id="smcTP2">$4,064.49</div>
+          <div class="smc-pill-value" style="color: #FFD700;" id="smcTP2">$4,107.94</div>
         </div>
       </div>
 
@@ -4145,17 +4145,34 @@
         display = JSON.parse(localStorage.getItem('ai_confirmed_display_signal') || 'null');
       } catch(e) {}
     }
-    // Baseline reference (matches initial established levels, zero drifting on live ticks)
+    // Baseline reference (matches initial established levels, strictly 8-10-12 SL)
     if (!display) {
       display = {
         action: 'SELL',
         entryLow: 4132.94,
         entryHigh: 4135.94,
-        sl: 4160.32,
-        tp1: 4091.87,
-        tp2: 4064.49
+        sl: 4145.94,
+        tp1: 4117.94,
+        tp2: 4107.94
       };
       try { localStorage.setItem('ai_confirmed_display_signal', JSON.stringify(display)); } catch(e){}
+    }
+
+    // Auto-sanitize SL distance strictly within 8 - 10 - 12 dollars rule
+    if (display) {
+      const eH = Number(display.entryHigh || display.entryLow);
+      const eL = Number(display.entryLow || display.entryHigh);
+      if (display.action === 'SELL' && (display.sl > eH + 12.0 || display.sl < eH + 7.0)) {
+        display.sl = Number((eH + 10.0).toFixed(2));
+        display.tp1 = Number((eL - 15.0).toFixed(2));
+        display.tp2 = Number((eL - 25.0).toFixed(2));
+        try { localStorage.setItem('ai_confirmed_display_signal', JSON.stringify(display)); } catch(e){}
+      } else if (display.action === 'BUY' && (display.sl < eL - 12.0 || display.sl > eL - 7.0)) {
+        display.sl = Number((eL - 10.0).toFixed(2));
+        display.tp1 = Number((eH + 15.0).toFixed(2));
+        display.tp2 = Number((eH + 25.0).toFixed(2));
+        try { localStorage.setItem('ai_confirmed_display_signal', JSON.stringify(display)); } catch(e){}
+      }
     }
 
     const elEntry = document.getElementById('smcEntry');
@@ -4710,9 +4727,14 @@
           if (top - bot < 2.5) bot = top - 3.0;
           const eHigh = Number(top.toFixed(2));
           const eLow = Number(bot.toFixed(2));
-          const slVal = Number((Math.min(eLow - 4.0, waveLow - 2.0)).toFixed(2));
-          const risk = Math.max(eHigh - slVal, 4.0);
-          const tp1Val = Number((Math.max(waveHigh, eHigh + (risk * 1.5))).toFixed(2));
+
+          // STRICT CONSTITUTIONAL RULE: SL strictly 8 - 10 - 12 (max 12, never exceed 12)
+          let slDist = Math.max(8.0, Math.min(10.0, eLow - waveLow + 2.0));
+          if (slDist > 12.0) slDist = 12.0;
+          if (slDist < 8.0) slDist = 8.0;
+          const slVal = Number((eLow - slDist).toFixed(2));
+          const risk = slDist;
+          const tp1Val = Number((eHigh + (risk * 1.5)).toFixed(2));
           const tp2Val = Number((eHigh + (risk * 2.5)).toFixed(2));
 
           staticSignalSetup = {
@@ -4954,9 +4976,14 @@
           if (top - bot < 2.5) top = bot + 3.0;
           const eLow = Number(bot.toFixed(2));
           const eHigh = Number(top.toFixed(2));
-          const slVal = Number((Math.max(eHigh + 4.0, waveHigh + 2.0)).toFixed(2));
-          const risk = Math.max(slVal - eLow, 4.0);
-          const tp1Val = Number((Math.min(waveLow, eLow - (risk * 1.5))).toFixed(2));
+
+          // STRICT CONSTITUTIONAL RULE: SL strictly 8 - 10 - 12 (max 12, never exceed 12)
+          let slDist = Math.max(8.0, Math.min(10.0, waveHigh - eHigh + 2.0));
+          if (slDist > 12.0) slDist = 12.0;
+          if (slDist < 8.0) slDist = 8.0;
+          const slVal = Number((eHigh + slDist).toFixed(2));
+          const risk = slDist;
+          const tp1Val = Number((eLow - (risk * 1.5)).toFixed(2));
           const tp2Val = Number((eLow - (risk * 2.5)).toFixed(2));
 
           staticSignalSetup = {
