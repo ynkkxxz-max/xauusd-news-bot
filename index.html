@@ -3185,24 +3185,26 @@
     }
 
     async function fetchLiveEconomicSchedule() {
+      const now = new Date();
       try {
         const res = await fetch('https://nfs.faireconomy.media/ff_calendar_thisweek.json');
         if (res.ok) {
           const events = await res.json();
-          const now = new Date();
-          // Filter USD high-impact events in the future
-          const upcoming = events.filter(e => {
+          // Filter USD high-impact events occurring in the next 18 hours (Today's upcoming Red News)
+          const upcomingToday = events.filter(e => {
             if ((e.country === 'USD' || e.country === 'CNY') && e.impact === 'High') {
               const dt = new Date(e.date);
-              return dt > now;
+              const diffMs = dt - now;
+              return diffMs > 0 && diffMs <= 18 * 3600 * 1000;
             }
             return false;
           }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
-          if (upcoming.length > 0) {
+          if (upcomingToday.length > 0) {
             nextHighImpactNews = {
-              title: upcoming[0].title,
-              date: new Date(upcoming[0].date),
+              title: upcomingToday[0].title,
+              date: new Date(upcomingToday[0].date),
+              isNews: true,
               isWeekend: false
             };
             updateNewsCountdownTick();
@@ -3211,13 +3213,9 @@
         }
       } catch (err) {}
 
-      // Weekend & Market Session Intelligence:
-      // If it is Saturday or Sunday, market is closed until Monday 05:00 AM UTC+7 (Sydney/Tokyo Open)
-      const now = new Date();
+      // Weekend Intelligence: Saturday or Sunday -> Countdown to Monday 05:00 AM UTC+7 (Sydney/Tokyo Open)
       const currentDay = now.getDay(); // 0 is Sunday, 6 is Saturday
-
       if (currentDay === 6 || currentDay === 0) {
-        // Target upcoming Monday 05:00 AM UTC+7 (Market Open)
         const daysUntilMonday = currentDay === 6 ? 2 : 1;
         const targetMonday = new Date(now);
         targetMonday.setDate(now.getDate() + daysUntilMonday);
@@ -3226,27 +3224,53 @@
         nextHighImpactNews = {
           title: 'MARKET OPEN',
           date: targetMonday,
+          isNews: false,
           isWeekend: true
         };
         updateNewsCountdownTick();
         return;
       }
 
-      // Fallback for regular trading days: Next High-Impact Macro Window (19:30 or 21:00 UTC+7)
-      const target = new Date(now);
-      target.setHours(19, 30, 0, 0);
-      if (target <= now) {
-        target.setHours(21, 0, 0, 0);
+      // Regular Trading Day without Red News (Today: Safe trading day):
+      // Countdown to New York Session Opening (19:30 UTC+7) or active session
+      const currentHour = now.getHours();
+      const currentMin = now.getMinutes();
+      const timeInMins = currentHour * 60 + currentMin;
+
+      // New York Session Window: 19:30 (1170 mins) to 03:30 next morning
+      if (timeInMins < 19 * 60 + 30) {
+        // Pre-NY Session: Countdown to 19:30 tonight
+        const targetNY = new Date(now);
+        targetNY.setHours(19, 30, 0, 0);
+        nextHighImpactNews = {
+          title: 'NY OPEN',
+          date: targetNY,
+          isNews: false,
+          isWeekend: false
+        };
+      } else if (timeInMins >= 19 * 60 + 30 || currentHour < 4) {
+        // NY Session is LIVE and active!
+        const targetClose = new Date(now);
+        if (currentHour >= 19) targetClose.setDate(targetClose.getDate() + 1);
+        targetClose.setHours(3, 30, 0, 0);
+        nextHighImpactNews = {
+          title: 'NY ACTIVE',
+          date: targetClose,
+          isNews: false,
+          isWeekend: false,
+          isActive: true
+        };
+      } else {
+        // Asian morning -> countdown to London Open (13:00 UTC+7)
+        const targetLondon = new Date(now);
+        targetLondon.setHours(13, 0, 0, 0);
+        nextHighImpactNews = {
+          title: 'LDN OPEN',
+          date: targetLondon,
+          isNews: false,
+          isWeekend: false
+        };
       }
-      if (target <= now) {
-        target.setDate(target.getDate() + 1);
-        target.setHours(19, 30, 0, 0);
-      }
-      nextHighImpactNews = {
-        title: 'USD HIGH-IMPACT',
-        date: target,
-        isWeekend: false
-      };
       updateNewsCountdownTick();
     }
 
@@ -3259,9 +3283,9 @@
       const dotEl = document.getElementById('newsPulseDot');
       const pillEl = document.getElementById('topNewsCountdownPill');
 
-      if (diffMs <= 0) {
+      if (diffMs <= 0 && nextHighImpactNews.isNews) {
         // News releasing now!
-        if (titleEl) titleEl.innerText = '🚨 ' + (nextHighImpactNews.title.length > 10 ? nextHighImpactNews.title.substring(0, 10) + '..' : nextHighImpactNews.title);
+        if (titleEl) titleEl.innerText = '🚨 ' + nextHighImpactNews.title;
         if (timerEl) {
           timerEl.innerText = 'LIVE NOW';
           timerEl.style.color = '#FF3366';
@@ -3277,27 +3301,41 @@
         return;
       }
 
-      const totalSec = Math.floor(diffMs / 1000);
+      const totalSec = Math.max(0, Math.floor(diffMs / 1000));
       const hours = Math.floor(totalSec / 3600);
       const minutes = Math.floor((totalSec % 3600) / 60);
       const seconds = totalSec % 60;
 
-      const shortTitle = nextHighImpactNews.title.replace('Consumer Price Index', 'CPI')
-                                                .replace('Non-Farm Employment Change', 'NFP')
-                                                .replace('FOMC Statement', 'FOMC')
-                                                .replace('Fed Interest Rate Decision', 'FED RATE');
-      
-      const displayTitle = shortTitle.length > 8 ? shortTitle.substring(0, 8) + '..' : shortTitle;
+      let shortTitle = nextHighImpactNews.title;
+      if (shortTitle.includes('Consumer Price') || shortTitle.includes('CPI')) shortTitle = 'CPI';
+      else if (shortTitle.includes('Non-Farm') || shortTitle.includes('NFP') || shortTitle.includes('Employment')) shortTitle = 'NFP';
+      else if (shortTitle.includes('FOMC') || shortTitle.includes('Fed')) shortTitle = 'FED';
+      else if (shortTitle.includes('PCE')) shortTitle = 'PCE';
+      else if (shortTitle.includes('GDP')) shortTitle = 'GDP';
+      else if (shortTitle.includes('Retail Sales')) shortTitle = 'RETAIL';
 
       if (titleEl) {
         if (nextHighImpactNews.isWeekend) {
           titleEl.innerText = '🔒 OPEN';
+          titleEl.style.color = 'var(--gold)';
+        } else if (nextHighImpactNews.isNews) {
+          titleEl.innerText = '🔴 ' + shortTitle;
+          titleEl.style.color = '#FF3366';
+        } else if (nextHighImpactNews.isActive) {
+          titleEl.innerText = '⚡ NY LIVE';
+          titleEl.style.color = '#00E676';
         } else {
-          titleEl.innerText = '⏱️ ' + displayTitle;
+          titleEl.innerText = '🗽 ' + shortTitle;
+          titleEl.style.color = '#00E676';
         }
       }
+
       if (timerEl) {
-        if (hours >= 24) {
+        if (nextHighImpactNews.isActive) {
+          timerEl.innerText = 'ACTIVE ⚡';
+          timerEl.style.color = '#00E676';
+          timerEl.style.borderColor = 'rgba(0, 230, 118, 0.4)';
+        } else if (hours >= 24) {
           const days = Math.floor(hours / 24);
           const remHours = hours % 24;
           timerEl.innerText = `${days}d ${remHours}h ${minutes}m`;
@@ -3308,27 +3346,41 @@
         }
       }
 
-      // If under 15 minutes, turn RED ALERT mode
-      if (diffMs <= 15 * 60 * 1000) {
+      // Dot & Pill styling based on Red News vs Safe Session Open
+      if (nextHighImpactNews.isNews) {
         if (dotEl) {
           dotEl.style.background = '#FF3366';
           dotEl.style.boxShadow = '0 0 10px #FF3366';
         }
         if (pillEl) {
-          pillEl.style.borderColor = '#FF3366';
-          pillEl.style.boxShadow = '0 0 12px rgba(255, 51, 102, 0.4)';
+          pillEl.style.borderColor = (diffMs <= 15 * 60 * 1000) ? '#FF3366' : 'rgba(255, 51, 102, 0.4)';
+          pillEl.style.background = 'linear-gradient(135deg, rgba(255, 51, 102, 0.15) 0%, rgba(10, 16, 28, 0.95) 100%)';
         }
-        if (titleEl) titleEl.style.color = '#FF3366';
+      } else {
+        if (dotEl) {
+          dotEl.style.background = '#00E676';
+          dotEl.style.boxShadow = '0 0 10px #00E676';
+        }
+        if (pillEl) {
+          pillEl.style.borderColor = 'rgba(0, 230, 118, 0.35)';
+          pillEl.style.background = 'linear-gradient(135deg, rgba(0, 230, 118, 0.12) 0%, rgba(10, 20, 25, 0.95) 100%)';
+        }
       }
     }
 
     function scrollToNewsDanger() {
       if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
       playCyberSound('beep');
-      const banner = document.getElementById('newsDangerBanner');
-      if (banner) {
-        banner.style.display = 'block';
-        banner.scrollIntoView({ behavior: 'smooth' });
+      if (nextHighImpactNews && nextHighImpactNews.isNews) {
+        const timeStr = nextHighImpactNews.date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        showCyberToast(`🚨 ព័ត៌មានក្រហម: ${nextHighImpactNews.title} ចេញម៉ោង ${timeStr}!`);
+        const banner = document.getElementById('newsDangerBanner');
+        if (banner) {
+          banner.style.display = 'block';
+          banner.scrollIntoView({ behavior: 'smooth' });
+        }
+      } else {
+        showCyberToast('🟢 ថ្ងៃនេះគ្មានព័ត៌មានក្រហម USD ទេ (No Red News) — ផ្សារ NY បើកម៉ោង 7:30 យប់ (សុវត្ថិភាព)!');
       }
     }
 
