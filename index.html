@@ -5249,6 +5249,9 @@
           if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
           // Update the 4 boxes to the verified execution numbers at this exact moment!
           renderInstitutionalSignalBoxes(activeSig);
+
+          // 🚀 Broadcast confirmed Signal + Poll + Mini App CTA to Telegram Channel GOLD FX
+          broadcastSignalAndPollToTelegram(activeSig, matrixScore);
         }
       }
 
@@ -5447,6 +5450,11 @@
 
       // Note: Channel broadcast strictly disabled per user instruction: "កុំទាន់ Signal ទៅChannel អី"
       // broadcastSignalAndPollToTelegram(activeSig, 85);
+      let activeSig = null;
+      try { activeSig = JSON.parse(localStorage.getItem('ai_locked_active_signal') || 'null'); } catch(e){}
+      if (activeSig) {
+        broadcastSignalAndPollToTelegram(activeSig, 90);
+      }
     } else if (status === 'hit_tp2') {
       playCyberSound('sniper');
       showCyberToast('🏆 Signal នេះបានឈ្នះដល់ TP2 រួចរាល់! សូមរង់ចាំ Signal បន្ទាប់។');
