@@ -2512,7 +2512,7 @@
       </div>
       <div class="hud-asset-box">
         <span class="hud-asset-title">Spot XAU/USD</span>
-        <span class="ws-badge" id="wsStatusBadge">⚡ MT5 LIVE 24/7</span>
+        <span class="ws-badge" id="wsStatusBadge">MT5 LIVE 24/7</span>
       </div>
     </div>
     <div class="live-price" id="livePrice">$4,139.41</div>
@@ -3882,7 +3882,7 @@
 
         wsConnection.onopen = () => {
           if (badge) {
-            badge.innerText = '⚡ MT5 LIVE 24/7';
+            badge.innerText = 'MT5 LIVE 24/7';
             badge.style.background = 'rgba(0, 230, 118, 0.15)';
             badge.style.borderColor = 'rgba(0, 230, 118, 0.4)';
             badge.style.color = '#00E676';
@@ -3906,7 +3906,7 @@
         wsConnection.onerror = () => {
           // If mobile carrier/firewall blocks WebSocket, smoothly fallback to HTTP Auto-Sync
           if (badge) {
-            badge.innerText = '🟢 AUTO-SYNC';
+            badge.innerText = 'AUTO-SYNC';
             badge.style.background = 'rgba(0, 230, 118, 0.12)';
             badge.style.borderColor = 'rgba(0, 230, 118, 0.35)';
             badge.style.color = '#00E676';
@@ -3922,7 +3922,7 @@
 
       } catch (err) {
         if (badge) {
-          badge.innerText = '🟢 AUTO-SYNC';
+          badge.innerText = 'AUTO-SYNC';
           badge.style.background = 'rgba(0, 230, 118, 0.12)';
           badge.style.borderColor = 'rgba(0, 230, 118, 0.35)';
           badge.style.color = '#00E676';
