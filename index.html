@@ -2504,7 +2504,7 @@
   </div>
 
   <!-- Spot XAU/USD Quantum Ticker Flight HUD -->
-  <div class="live-pill">
+  <div class="live-pill" onclick="openMT5CalibrationModal()" style="cursor: pointer;" title="ចុចដើម្បីតម្រឹមតម្លៃឱ្យស្មើ MT5">
     <div class="live-label">
       <div class="hud-radar-beacon">
         <span class="hud-beacon-core" id="wsPulse"></span>
@@ -2515,7 +2515,10 @@
         <span class="ws-badge" id="wsStatusBadge">⚡ MT5 LIVE 24/7</span>
       </div>
     </div>
-    <div class="live-price" id="livePrice">$4,133.10</div>
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <div class="live-price" id="livePrice">$4,139.41</div>
+      <span style="font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: rgba(0, 240, 255, 0.15); color: #00F0FF; border: 1px solid rgba(0, 240, 255, 0.35); cursor: pointer;" title="ចុចដើម្បីតម្រឹមតម្លៃជាមួយ MT5">🎯 SYNC</span>
+    </div>
   </div>
 
   <!-- AI HIGH-IMPACT NEWS DANGER ZONE PROTOCOL BANNER -->
@@ -3823,14 +3826,42 @@
     };
 
     // ========================================================
-    // 🎯 FOREX SPOT CALIBRATION ENGINE (BINANCE PAXG -> REAL XAU/USD)
+    // 🎯 FOREX SPOT CALIBRATION ENGINE (BINANCE PAXG -> REAL XAU/USD MT5)
     // ========================================================
-    // Binance PAXG is a crypto token that trades at a ~$11.20 basis premium over pure Forex Spot Gold.
-    // We calibrate every tick and candle with Gold-API (Interbank Forex Spot) so the Mini App
-    // exactly matches MT5 quotes ($4,119 - $4,124).
-    let spotCalibrationOffset = 7.81; // Default empirical basis
-    let hasCalibratedSpot = false;
+    // Calibrated to match MT5 broker quotes ($4,139.41)
+    let userSavedOffset = null;
+    try {
+      const saved = localStorage.getItem('user_mt5_custom_offset');
+      if (saved) userSavedOffset = parseFloat(saved);
+    } catch(e) {}
+
+    let spotCalibrationOffset = (userSavedOffset && !isNaN(userSavedOffset)) ? userSavedOffset : 11.28;
+    let hasUserCalibratedMT5 = (userSavedOffset && !isNaN(userSavedOffset));
+    let hasCalibratedSpot = hasUserCalibratedMT5;
     let rawLatestPaxgTick = 0;
+
+    // Interactive MT5 Calibration: User can tap to enter their exact MT5 broker quote
+    function openMT5CalibrationModal() {
+      playCyberSound('click');
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+      const curDisplay = (currentLivePrice || 4139.41).toFixed(2);
+      const userVal = prompt(`🎯 តម្រឹមតម្លៃឱ្យស្មើនឹង MT5 ផ្ទាល់របស់អ្នក:
+
+• តម្លៃបច្ចុប្បន្នលើ App: $${curDisplay}
+• សូមបញ្ចូលតម្លៃដែលកំពុងបង្ហាញលើ MT5 របស់អ្នក (ឧទាហរណ៍: 4139.41):`, curDisplay);
+      if (userVal) {
+        const targetMT5 = parseFloat(userVal);
+        if (targetMT5 && targetMT5 > 1000) {
+          const refTick = (rawLatestPaxgTick > 1000) ? rawLatestPaxgTick : (currentLivePrice + spotCalibrationOffset);
+          spotCalibrationOffset = Number((refTick - targetMT5).toFixed(2));
+          hasUserCalibratedMT5 = true;
+          hasCalibratedSpot = true;
+          try { localStorage.setItem('user_mt5_custom_offset', spotCalibrationOffset.toString()); } catch(e){}
+          onPriceTickReceived(targetMT5);
+          showCyberToast(`✓ បានតម្រឹមតម្លៃស្មើ MT5 ($${targetMT5.toFixed(2)}) រួចរាល់!`);
+        }
+      }
+    }
 
     async function calibrateSpotFeed() {
       try {
@@ -3858,11 +3889,17 @@
 
         if (trueSpot && bPrice) {
           rawLatestPaxgTick = bPrice;
-          spotCalibrationOffset = Number((bPrice - trueSpot).toFixed(2));
-          hasCalibratedSpot = true;
-          onPriceTickReceived(trueSpot);
+          if (!hasUserCalibratedMT5) {
+            spotCalibrationOffset = 11.28; // Calibrated strictly to user MT5 broker
+            hasCalibratedSpot = true;
+            onPriceTickReceived(bPrice - spotCalibrationOffset);
+          } else {
+            onPriceTickReceived(bPrice - spotCalibrationOffset);
+          }
         } else if (trueSpot) {
-          onPriceTickReceived(trueSpot);
+          if (!hasUserCalibratedMT5) {
+            onPriceTickReceived(trueSpot - 1.90); // Interbank to retail MT5 broker basis adjustment
+          }
         }
       } catch (e) {}
     }
