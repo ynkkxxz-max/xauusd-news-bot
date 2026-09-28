@@ -5299,7 +5299,10 @@
         } else {
           // Trade is actively running! KEEP BUTTON SOLIDLY READY! (DO NOT FLICKER)
           btn.className = 'signal-action-btn ready';
-          if (icon) icon.innerText = '🟢';
+          if (icon) {
+            icon.innerText = '🟢';
+            icon.style.display = 'inline-block';
+          }
           if (text) text.innerText = 'អាចប្រើប្រាស់ Signal នេះបាន';
           btn.dataset.status = 'ready';
           btn.dataset.action = activeSig.action;
@@ -5330,24 +5333,13 @@
         }
       }
 
-      // 3. No active trade or trade has closed -> Show Waiting state with precise distance to entry
+      // 3. No active trade or trade has closed -> Simply "រង់ចាំ Signal ថ្មី" without long descriptions!
       btn.className = 'signal-action-btn waiting';
-      if (icon) icon.innerText = '⏳';
-      if (isBuy) {
-        if (price > Number(entryHigh)) {
-          const waitP = (price - Number(entryHigh)).toFixed(1);
-          if (text) text.innerText = `រង់ចាំតម្លៃចុះ -$${waitP} ដល់ Entry Buy ($${entryLow} - $${entryHigh})`;
-        } else {
-          if (text) text.innerText = `រង់ចាំ Signal BUY ថ្មី`;
-        }
-      } else {
-        if (price < Number(entryLow)) {
-          const waitP = (Number(entryLow) - price).toFixed(1);
-          if (text) text.innerText = `រង់ចាំតម្លៃឡើង +$${waitP} ដល់ Entry Sell ($${entryLow} - $${entryHigh})`;
-        } else {
-          if (text) text.innerText = `រង់ចាំ Signal SELL ថ្មី`;
-        }
+      if (icon) {
+        icon.innerText = '';
+        icon.style.display = 'none';
       }
+      if (text) text.innerText = 'រង់ចាំ Signal ថ្មី';
       btn.dataset.status = 'waiting';
 
     } catch(err) {
