@@ -4080,8 +4080,22 @@
         mtfM15El.innerText = `📉 M15: ${m15Structure}`;
       }
       if (mtfM5El) {
-        mtfM5El.className = m5Trigger.includes('Bullish') ? 'mtf-pill bull' : 'mtf-pill bear';
-        mtfM5El.innerText = `M5: ${m5Trigger}`;
+        if (trendDirection === 'BEARISH' && m5Trigger.includes('Bullish')) {
+          mtfM5El.className = 'mtf-pill neutral';
+          mtfM5El.style.background = 'rgba(255, 215, 0, 0.15)';
+          mtfM5El.style.borderColor = 'rgba(255, 215, 0, 0.4)';
+          mtfM5El.style.color = 'var(--gold)';
+          mtfM5El.innerText = `M5: Pullback Retracement`;
+        } else if (trendDirection === 'BULLISH' && m5Trigger.includes('Bearish')) {
+          mtfM5El.className = 'mtf-pill neutral';
+          mtfM5El.style.background = 'rgba(255, 215, 0, 0.15)';
+          mtfM5El.style.borderColor = 'rgba(255, 215, 0, 0.4)';
+          mtfM5El.style.color = 'var(--gold)';
+          mtfM5El.innerText = `M5: Dip Retracement`;
+        } else {
+          mtfM5El.className = m5Trigger.includes('Bullish') ? 'mtf-pill bull' : 'mtf-pill bear';
+          mtfM5El.innerText = `M5: ${m5Trigger}`;
+        }
       }
       // Calculate exact Sweep and FVG price levels for trader clarity
       let sweepTargetPrice = 0;
@@ -4264,40 +4278,43 @@
         }
 
         // ======================================================================
-        // INSTITUTIONAL GOLDEN RATIO FIBONACCI (0.618 - 0.786 OTE) + FVG CONFLUENCE
+        // INSTITUTIONAL GOLDEN RATIO FIBONACCI (0.618 - 0.786 OTE) + FVG CONFLUENCE (BUY)
         // ======================================================================
-        // In Bullish setup (BOS Up), institutions never buy high. They await deep retracement
-        // to the Optimal Trade Entry (OTE) zone: 61.8% to 78.6% of recent expansion swing.
-        const swingRange = Math.max(dayHigh - dayLow, 12.0);
-        // Fibonacci Retracement Levels from High down to Low:
-        // 61.8% retracement = High - (Range * 0.618)
-        // 78.6% retracement = High - (Range * 0.786)
-        const fib618 = dayHigh - (swingRange * 0.618);
-        const fib786 = dayHigh - (swingRange * 0.786);
+        // Active M15 Dealing Wave (last 6-8 candles) to capture real intraday swing
+        const recentCandles = (candles && candles.length >= 6) ? candles.slice(-8) : candles;
+        const waveHigh = (recentCandles && recentCandles.length > 0) ? Math.max(...recentCandles.map(c => c.high)) : dayHigh;
+        const waveLow = (recentCandles && recentCandles.length > 0) ? Math.min(...recentCandles.map(c => c.low)) : dayLow;
+        const waveRangeBuy = Math.max(waveHigh - waveLow, 8.0);
 
-        // Confluence with FVG (Fair Value Gap)
-        let oteHigh = Number(fib618.toFixed(2));
-        let oteLow = Number(fib786.toFixed(2));
+        const fib618Buy = waveHigh - (waveRangeBuy * 0.618);
+        const fib786Buy = waveHigh - (waveRangeBuy * 0.786);
 
-        if (fvgLowPrice && fvgHighPrice && fvgLowPrice < dayHigh) {
-          // Blend FVG into Fibonacci OTE zone for ultimate confluence
+        let oteHigh = Number(fib618Buy.toFixed(2));
+        let oteLow = Number(fib786Buy.toFixed(2));
+
+        if (fvgLowPrice && fvgHighPrice && fvgLowPrice < waveHigh && fvgHighPrice > waveLow) {
           oteHigh = Math.min(oteHigh, Number(fvgHighPrice.toFixed(2)));
           oteLow = Math.max(oteLow, Number(fvgLowPrice.toFixed(2)));
         }
 
-        // Guarantee logical entry spread
         if (oteHigh <= oteLow) {
-          oteHigh = Number((oteLow + 2.8).toFixed(2));
+          oteHigh = Number((oteLow + 2.5).toFixed(2));
         }
 
         const entryLow = oteLow.toFixed(2);
         const entryHigh = oteHigh.toFixed(2);
-        // BUY SL: ALWAYS strictly below entryLow (min 8 USD gap, and strictly below dayLow - 2.5)
-        const slRawBuy = Math.min(Number(entryLow) - 8.0, dayLow - 2.5);
-        const sl = (slRawBuy < Number(entryLow) ? slRawBuy : Number(entryLow) - 8.0).toFixed(2);
-        // BUY TP: ALWAYS strictly above entryHigh and dayHigh
-        const tp1Val = Math.max(dayHigh + 4.0, Number(entryHigh) + 10.0);
-        const tp2Val = Math.max(dayHigh + 18.0, tp1Val + 14.0);
+
+        // Standard Professional SMC Invalidation SL: 35 to 45 pips (3.5 - 4.5 USD) below entryLow / waveLow
+        let slVal = Math.max(waveLow - 2.0, Number(entryLow) - 4.5);
+        if (slVal >= Number(entryLow) - 3.0) {
+          slVal = Number(entryLow) - 3.8;
+        }
+        const sl = slVal.toFixed(2);
+
+        // TP1: Liquidity sweep above recent waveHigh
+        const tp1Val = Math.max(waveHigh + 2.5, Number(entryHigh) + 6.0);
+        // TP2: Institutional expansion (Fib -0.27 extension)
+        const tp2Val = tp1Val + 10.0;
         const tp1 = tp1Val.toFixed(2);
         const tp2 = tp2Val.toFixed(2);
 
@@ -4341,23 +4358,24 @@
           matrixMeterFill.style.width = `${matrixScore}%`;
         }
 
-        const updateCheckPill = (el, passed, pts) => {
+        const updateCheckPill = (el, passed, pts, label) => {
           if (!el) return;
+          const labelText = label || (el.children && el.children[0] ? el.children[0].innerText : '');
           if (passed) {
             el.className = 'matrix-check-item passed';
-            el.innerHTML = `${el.children[0].outerHTML} <span style="color:#00E676;">+${pts}% ✓</span>`;
+            el.innerHTML = `<span>${labelText}</span> <span style="color:#00E676;">+${pts}% ✓</span>`;
           } else {
             el.className = 'matrix-check-item';
-            el.innerHTML = `${el.children[0].outerHTML} <span style="color:var(--text-muted);">0%</span>`;
+            el.innerHTML = `<span>${labelText}</span> <span style="color:var(--text-muted);">0%</span>`;
           }
         };
 
-        updateCheckPill(elCheckSMC, checkSMC, 20);
-        updateCheckPill(elCheckOTE, checkOTE, 20);
-        updateCheckPill(elCheckCVD, checkCVD, 20);
-        updateCheckPill(elCheckDepth, checkDepth, 15);
-        updateCheckPill(elCheckDXY, checkDXY, 15);
-        updateCheckPill(elCheckKillzone, checkKillzone, 10);
+        updateCheckPill(elCheckSMC, checkSMC, 20, 'SMC M15 Bullish BOS');
+        updateCheckPill(elCheckOTE, checkOTE, 20, 'OTE Fib 0.618-0.786');
+        updateCheckPill(elCheckCVD, checkCVD, 20, 'CVD Whale Inflow');
+        updateCheckPill(elCheckDepth, checkDepth, 15, 'Iceberg Bids Support');
+        updateCheckPill(elCheckDXY, checkDXY, 15, 'DXY Inverse Align');
+        updateCheckPill(elCheckKillzone, checkKillzone, 10, 'London/NY Killzone');
 
         // Safe Sniper Entry ONLY triggers when inZone AND matrixScore >= 85%
         const isSniperSafe = inZone && matrixScore >= 85;
@@ -4489,36 +4507,41 @@
         // ======================================================================
         // INSTITUTIONAL GOLDEN RATIO FIBONACCI (0.618 - 0.786 OTE) + FVG CONFLUENCE (SELL)
         // ======================================================================
-        // In Bearish setup (CHoCH/BOS Down), institutions wait for a deep premium bounce
-        // to the Optimal Trade Entry (OTE) zone: 61.8% to 78.6% of recent downward swing.
-        const swingRangeSell = Math.max(dayHigh - dayLow, 12.0);
-        // Fibonacci Retracement Levels from Low back up toward High:
-        // 61.8% bounce = Low + (Range * 0.618)
-        // 78.6% bounce = Low + (Range * 0.786)
-        const fib618Sell = dayLow + (swingRangeSell * 0.618);
-        const fib786Sell = dayLow + (swingRangeSell * 0.786);
+        // Active M15 Dealing Wave (last 6-8 candles) to capture real intraday swing
+        const recentCandles = (candles && candles.length >= 6) ? candles.slice(-8) : candles;
+        const waveHigh = (recentCandles && recentCandles.length > 0) ? Math.max(...recentCandles.map(c => c.high)) : dayHigh;
+        const waveLow = (recentCandles && recentCandles.length > 0) ? Math.min(...recentCandles.map(c => c.low)) : dayLow;
+        const waveRangeSell = Math.max(waveHigh - waveLow, 8.0);
+
+        const fib618Sell = waveLow + (waveRangeSell * 0.618);
+        const fib786Sell = waveLow + (waveRangeSell * 0.786);
 
         let oteSellLow = Number(fib618Sell.toFixed(2));
         let oteSellHigh = Number(fib786Sell.toFixed(2));
 
-        if (fvgLowPrice && fvgHighPrice && fvgHighPrice > dayLow) {
-          // Blend Bearish FVG with OTE Zone
+        if (fvgLowPrice && fvgHighPrice && fvgHighPrice > waveLow && fvgLowPrice < waveHigh) {
           oteSellLow = Math.max(oteSellLow, Number(fvgLowPrice.toFixed(2)));
           oteSellHigh = Math.min(oteSellHigh, Number(fvgHighPrice.toFixed(2)));
         }
 
         if (oteSellHigh <= oteSellLow) {
-          oteSellHigh = Number((oteSellLow + 2.8).toFixed(2));
+          oteSellHigh = Number((oteSellLow + 2.5).toFixed(2));
         }
 
         const entryLow = oteSellLow.toFixed(2);
         const entryHigh = oteSellHigh.toFixed(2);
-        // SELL SL: ALWAYS strictly above entryHigh (min 8 USD gap, and strictly above dayHigh + 2.5)
-        const slRawSell = Math.max(Number(entryHigh) + 8.0, dayHigh + 2.5);
-        const sl = (slRawSell > Number(entryHigh) ? slRawSell : Number(entryHigh) + 8.0).toFixed(2);
-        // SELL TP: ALWAYS strictly below entryLow and dayLow
-        const tp1Val = Math.min(dayLow - 4.0, Number(entryLow) - 10.0);
-        const tp2Val = Math.min(dayLow - 18.0, tp1Val - 14.0);
+
+        // Standard Professional SMC Invalidation SL: 35 to 45 pips (3.5 - 4.5 USD) above entryHigh / waveHigh
+        let slVal = Math.min(waveHigh + 2.0, Number(entryHigh) + 4.5);
+        if (slVal <= Number(entryHigh) + 3.0) {
+          slVal = Number(entryHigh) + 3.8;
+        }
+        const sl = slVal.toFixed(2);
+
+        // TP1: Liquidity sweep below recent waveLow
+        const tp1Val = Math.min(waveLow - 2.5, Number(entryLow) - 6.0);
+        // TP2: Institutional expansion (Fib -0.27 extension)
+        const tp2Val = tp1Val - 10.0;
         const tp1 = tp1Val.toFixed(2);
         const tp2 = tp2Val.toFixed(2);
 
@@ -4562,23 +4585,24 @@
           matrixMeterFill.style.width = `${matrixScore}%`;
         }
 
-        const updateCheckPill = (el, passed, pts) => {
+        const updateCheckPill = (el, passed, pts, label) => {
           if (!el) return;
+          const labelText = label || (el.children && el.children[0] ? el.children[0].innerText : '');
           if (passed) {
             el.className = 'matrix-check-item passed';
-            el.innerHTML = `${el.children[0].outerHTML} <span style="color:#00E676;">+${pts}% ✓</span>`;
+            el.innerHTML = `<span>${labelText}</span> <span style="color:#00E676;">+${pts}% ✓</span>`;
           } else {
             el.className = 'matrix-check-item';
-            el.innerHTML = `${el.children[0].outerHTML} <span style="color:var(--text-muted);">0%</span>`;
+            el.innerHTML = `<span>${labelText}</span> <span style="color:var(--text-muted);">0%</span>`;
           }
         };
 
-        updateCheckPill(elCheckSMC, checkSMC, 20);
-        updateCheckPill(elCheckOTE, checkOTE, 20);
-        updateCheckPill(elCheckCVD, checkCVD, 20);
-        updateCheckPill(elCheckDepth, checkDepth, 15);
-        updateCheckPill(elCheckDXY, checkDXY, 15);
-        updateCheckPill(elCheckKillzone, checkKillzone, 10);
+        updateCheckPill(elCheckSMC, checkSMC, 20, 'SMC M15 Bearish BOS');
+        updateCheckPill(elCheckOTE, checkOTE, 20, 'OTE Fib 0.618-0.786');
+        updateCheckPill(elCheckCVD, checkCVD, 20, 'CVD Whale Outflow');
+        updateCheckPill(elCheckDepth, checkDepth, 15, 'Iceberg Asks Resistance');
+        updateCheckPill(elCheckDXY, checkDXY, 15, 'DXY Inverse Align');
+        updateCheckPill(elCheckKillzone, checkKillzone, 10, 'London/NY Killzone');
 
         // Safe Sniper Entry ONLY triggers when inZone AND matrixScore >= 85%
         const isSniperSafe = inZone && matrixScore >= 85;
