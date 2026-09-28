@@ -219,31 +219,40 @@ class GeminiAnalyzer:
         return bool(USE_GEMINI and self.api_key and self.api_key != "YOUR_GEMINI_API_KEY_HERE")
 
     def _post(self, payload: dict, max_retries: int = 1) -> dict:
-        """POSTs to Gemini with fast-fail retry on transient errors (500/503)."""
+        """POSTs to Gemini with multi-model fallback on quota/transient errors."""
         self._throttle_wait()
+        candidate_models = [self.model, "gemini-flash-latest", "gemini-3.8-flash", "gemini-pro-latest"]
+        seen = set()
+        models_to_try = [m for m in candidate_models if m and not (m in seen or seen.add(m))]
+
         last_exc = None
-        for attempt in range(max_retries):
-            try:
-                resp = requests.post(
-                    self.endpoint,
-                    params={"key": self.api_key},
-                    json=payload,
-                    timeout=15,
-                )
-                GeminiAnalyzer._last_request_ts = time.time()
-                if resp.status_code == 429:
-                    self._trip_cooldown()
-                    raise RuntimeError(f"HTTP 429: {resp.text[:120]}")
-                if resp.status_code in (500, 503):
-                    self._trip_cooldown(120)
-                    raise RuntimeError(f"HTTP {resp.status_code}: {resp.text[:120]}")
-                resp.raise_for_status()
-                return resp.json()
-            except requests.RequestException as e:
-                last_exc = e
-                self._trip_cooldown(60)
-                break
-        raise last_exc if last_exc else RuntimeError("Gemini call failed")
+        for current_model in models_to_try:
+            endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{current_model}:generateContent"
+            for attempt in range(max_retries):
+                try:
+                    resp = requests.post(
+                        endpoint,
+                        params={"key": self.api_key},
+                        json=payload,
+                        timeout=25,
+                    )
+                    GeminiAnalyzer._last_request_ts = time.time()
+                    if resp.status_code == 429:
+                        logger.warning(f"[GeminiAnalyzer] Model {current_model} hit 429 quota, trying fallback model...")
+                        break
+                    if resp.status_code in (404, 500, 503):
+                        logger.warning(f"[GeminiAnalyzer] Model {current_model} returned {resp.status_code}, trying fallback model...")
+                        break
+                    resp.raise_for_status()
+                    return resp.json()
+                except requests.RequestException as e:
+                    last_exc = e
+                    logger.debug(f"[GeminiAnalyzer] Request error on {current_model}: {e}")
+                    break
+        if last_exc:
+            self._trip_cooldown(60)
+            raise last_exc
+        raise RuntimeError("All Gemini candidate models failed or exhausted quota.")
 
     def _call(self, prompt: str) -> dict:
         """Sends one prompt to Gemini and returns the parsed JSON object."""
@@ -426,3 +435,144 @@ class GeminiAnalyzer:
         except Exception as e:
             logger.warning(f"[GeminiAnalyzer] analyze_chart_image failed: {e}")
             return None
+
+    def answer_user_query(self, query: str, market_context: dict = None) -> str:
+        """
+        Interactive AI Gold & Macro Analyst.
+        Answers user questions in authoritative, polite, and fluent Khmer with live market telemetry.
+        Returns clean HTML formatted string for Telegram.
+        """
+        if not self.is_available():
+            return "⚠️ ប្រព័ន្ធ AI មិនទាន់ត្រូវបានបើកដំណើរការ ឬកំពុងថែទាំ។ សូមសាកល្បងម្តងទៀតនៅពេលក្រោយ។"
+
+        ctx_str = ""
+        if market_context:
+            oz = market_context.get("price_oz", 0.0)
+            chg = market_context.get("change_pct", 0.0)
+            piv = market_context.get("pivot", 0.0)
+            r1 = market_context.get("r1", 0.0)
+            s1 = market_context.get("s1", 0.0)
+            dxy = market_context.get("dxy", "N/A")
+            us10y = market_context.get("us10y", "N/A")
+            news = market_context.get("next_news", "គ្មានព័ត៌មានក្រហមបន្ទាន់")
+            ctx_str = (
+                f"\n\n📊 [LIVE MARKET CONTEXT]:\n"
+                f"• Spot XAU/USD: ${oz:,.2f} ({chg:+.2f}%)\n"
+                f"• Key Pivot: ${piv:,.2f} | R1: ${r1:,.2f} | S1: ${s1:,.2f}\n"
+                f"• US Dollar Index (DXY): {dxy}\n"
+                f"• US 10Y Yield: {us10y}%\n"
+                f"• Upcoming News: {news}\n"
+            )
+
+        prompt = (
+            f"អ្នកគឺជា Master Institutional Gold (XAUUSD) & Macroeconomic AI Analyst សម្រាប់ Cambodian Traders។\n"
+            f"Trader បានសួរសំណួរ៖\n"
+            f"❓ \"{query}\"\n"
+            f"{ctx_str}\n"
+            f"ចូរឆ្លើយតបសំណួរនេះជាភាសាខ្មែរផ្លូវការ ពិរោះ មុតស្រួច និងប្រកបដោយវិជ្ជាជីវៈកម្រិតស្ថាប័នធំៗ (Institutional Level)៖\n"
+            f"1. ឆ្លើយចំៗទៅកាន់សំណួរ (Direct Actionable Verdict) ថាតើទីផ្សារស្ថិតក្នុងស្ថានភាពណា គួរទិញ លក់ ឬរង់ចាំ។\n"
+            f"2. ការវិភាគបច្ចេកទេស និងម៉ាក្រូសេដ្ឋកិច្ច (Technical & Macro Confluence) ដោយភ្ជាប់ជាមួយទិន្នន័យជាក់ស្តែងនៃ XAUUSD, DXY និងតំបន់គន្លឹះ។\n"
+            f"3. យុទ្ធសាស្ត្រប្រតិបត្តិការ និងការគ្រប់គ្រងហានិភ័យ (Trading Strategy & Risk Note)៖ កម្រិត Entry / SL / TP បើពាក់ព័ន្ធ និងក្រើនរំលឹកកុំ Overtrade។\n\n"
+            f"ទម្រង់ឆ្លើយតប៖ ប្រើប្រាស់ HTML tags សមស្របសម្រាប់ Telegram (<b>, <code>, •, emojis) កុំប្រើ Markdown asterisks (**)។ រៀបចំឱ្យមានរបៀប ងាយស្រួលអានលើទូរស័ព្ទដៃ (Mobile Friendly)។"
+        )
+
+        payload = {
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "systemInstruction": {"role": "system", "parts": [{"text": _SYSTEM_RULES}]},
+            "generationConfig": {
+                "temperature": 0.4,
+                "maxOutputTokens": 2048
+            }
+        }
+
+        try:
+            data = self._post(payload)
+            ans = _extract_text(data).strip()
+            return ans if ans else "⚠️ មិនអាចទទួលបានចម្លើយពី AI នៅពេលនេះទេ។"
+        except Exception as e:
+            logger.warning(f"[GeminiAnalyzer] answer_user_query failed: {e}")
+            return "⚠️ AI កំពុងមមាញឹក ឬជាប់កូតា (Quota Limit)។ សូមរង់ចាំប្រហែល ១-២ នាទី រួចសាកល្បងម្តងទៀត។"
+
+    def analyze_user_chart_image(self, image_bytes: bytes, caption: str = "", current_price: float = 0.0, key_levels: dict = None, mime_type: str = "image/jpeg") -> dict:
+        """
+        Multimodal Computer Vision Analysis of user-uploaded TradingView/MT4/MT5 charts.
+        Extracts patterns, structure, entry, SL, TP, and comprehensive Khmer guidance.
+        """
+        if not self.is_available() or not image_bytes:
+            return None
+
+        prompt = (
+            f"អ្នកគឺជា Master Institutional Technical Analyst និង Chart Pattern Specialist ជំនាញ XAU/USD (Gold)។\n"
+            f"Trader បានផ្ញើរូបភាព Chart Candlestick (TradingView / MT4 / MT5) មកឱ្យអ្នកពិនិត្យ។\n"
+            f"ចំណងជើង/សំណួរភ្ជាប់មកជាមួយ៖ \"{caption if caption else 'សូមវិភាគ Chart នេះ'}\"\n"
+            f"តម្លៃបច្ចុប្បន្នលើទីផ្សារ Spot (បើមាន): ${current_price:,.2f}\n\n"
+            f"ចូរពិនិត្យរចនាសម្ព័ន្ធ Chart រូបភាពនេះយ៉ាងល្អិតល្អន់ និងបង្កើតផែនការជួញដូរច្បាស់លាស់។\n"
+            f"ត្រឡប់ JSON ដែលមាន Schema ដូចខាងក្រោម៖\n"
+            f"- direction: 'BUY' ឬ 'SELL' ឬ 'WAIT'\n"
+            f"- setup_title: ចំណងជើងភាសាខ្មែរ (e.g. '🟢 ផែនការទិញឡើងតាម SMC FVG' ឬ '🔴 ផែនការលក់ចុះតាម Liquidity Sweep')\n"
+            f"- timeframe: Timeframe ដែលបានឃើញក្នុង Chart (e.g. 'M15', 'H1', 'H4', 'D1')\n"
+            f"- pattern_detected: ឈ្មោះ Pattern ជាភាសាអង់គ្លេស\n"
+            f"- pattern_kh: ឈ្មោះ Pattern ជាភាសាខ្មែរផ្លូវការ ពិរោះ\n"
+            f"- entry_zone: តំបន់តម្លៃចូលផ្សារ (e.g. '$2,682 - $2,685')\n"
+            f"- stop_loss: តម្លៃ Stop Loss (e.g. '$2,677')\n"
+            f"- take_profit_1: តម្លៃ TP1 (R:R >= 1:1.5)\n"
+            f"- take_profit_2: តម្លៃ TP2 (R:R >= 1:2.0)\n"
+            f"- rr_ratio: អនុបាត R:R (e.g. '1:2.2')\n"
+            f"- confidence_score: ភាគរយទំនុកចិត្ត (e.g. '88%')\n"
+            f"- confluence_reasons: Array នៃហេតុផលបញ្ជាក់ 3-4 ចំណុចជាភាសាខ្មែរ\n"
+            f"- invalidation_rule: លក្ខខណ្ឌតម្លៃដែលលុបចោល Setup នេះ\n"
+            f"- risk_warning: ការក្រើនរំលឹកហានិភ័យជាភាសាខ្មែរ\n"
+            f"- detailed_summary_kh: ការសង្ខេបវិភាគ ១-២ កថាខណ្ឌជាភាសាខ្មែរ"
+        )
+
+        b64_image = base64.b64encode(image_bytes).decode("utf-8")
+        schema = {
+            "type": "OBJECT",
+            "properties": {
+                "direction": {"type": "string"},
+                "setup_title": {"type": "string"},
+                "timeframe": {"type": "string"},
+                "pattern_detected": {"type": "string"},
+                "pattern_kh": {"type": "string"},
+                "entry_zone": {"type": "string"},
+                "stop_loss": {"type": "string"},
+                "take_profit_1": {"type": "string"},
+                "take_profit_2": {"type": "string"},
+                "rr_ratio": {"type": "string"},
+                "confidence_score": {"type": "string"},
+                "confluence_reasons": {"type": "ARRAY", "items": {"type": "string"}},
+                "invalidation_rule": {"type": "string"},
+                "risk_warning": {"type": "string"},
+                "detailed_summary_kh": {"type": "string"}
+            },
+            "required": ["direction", "setup_title", "timeframe", "pattern_detected", "pattern_kh", "entry_zone", "stop_loss", "take_profit_1", "take_profit_2", "confidence_score", "confluence_reasons", "risk_warning", "detailed_summary_kh"]
+        }
+
+        payload = {
+            "contents": [{
+                "role": "user",
+                "parts": [
+                    {"text": prompt},
+                    {
+                        "inline_data": {
+                            "mime_type": mime_type,
+                            "data": b64_image
+                        }
+                    }
+                ]
+            }],
+            "systemInstruction": {"role": "system", "parts": [{"text": _SYSTEM_RULES}]},
+            "generationConfig": {
+                "temperature": 0.2,
+                "responseMimeType": "application/json",
+                "responseSchema": schema,
+                "maxOutputTokens": 2500
+            }
+        }
+
+        try:
+            data = self._post(payload)
+            return json.loads(_extract_text(data))
+        except Exception as e:
+            logger.warning(f"[GeminiAnalyzer] analyze_user_chart_image failed: {e}")
+            return None
