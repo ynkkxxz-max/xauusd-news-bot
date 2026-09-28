@@ -423,7 +423,7 @@
 
     .hud-news-timer {
       font-family: 'Share Tech Mono', 'Orbitron', monospace;
-      font-size: 11px;
+      font-size: 11.5px;
       font-weight: 700;
       color: #FFFFFF;
       background: transparent;
@@ -431,7 +431,7 @@
       padding: 0;
       box-shadow: none;
       font-variant-numeric: tabular-nums;
-      letter-spacing: 0.6px;
+      letter-spacing: 0.8px;
       flex-shrink: 0;
       text-shadow: 0 0 8px rgba(0, 230, 118, 0.6);
       white-space: nowrap;
@@ -3519,14 +3519,16 @@
             timerEl.style.color = '#FFFFFF';
             timerEl.style.textShadow = '0 0 8px rgba(0, 230, 118, 0.5)';
           }
+          const padM = String(minutes).padStart(2, '0');
+          const padS = String(seconds).padStart(2, '0');
           if (hours >= 24) {
             const days = Math.floor(hours / 24);
             const remHours = hours % 24;
-            timerEl.innerText = `${days}d ${remHours}h ${minutes}m`;
+            timerEl.innerText = `${days}d ${remHours}:${padM}:${padS}`;
           } else if (hours > 0) {
-            timerEl.innerText = `${hours}h ${minutes}m ${seconds}s`;
+            timerEl.innerText = `${hours}:${padM}:${padS}`;
           } else {
-            timerEl.innerText = `${minutes}m ${seconds}s`;
+            timerEl.innerText = `0:${padM}:${padS}`;
           }
         }
       }
