@@ -493,6 +493,72 @@
       box-shadow: 0 0 10px rgba(0, 230, 118, 0.35);
     }
 
+    /* Pro Symmetrical Dual-Pill Header for Chart Tab */
+    .tv-hero-header-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      margin-bottom: 12px;
+    }
+
+    .tv-hero-badge-pill {
+      flex: 1 1 0;
+      min-width: 0;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      box-sizing: border-box;
+      transition: all 0.25s ease;
+    }
+
+    .tv-hero-badge-pill.bias-bear {
+      background: linear-gradient(135deg, rgba(255, 51, 102, 0.16) 0%, rgba(30, 15, 20, 0.8) 100%);
+      border: 1px solid rgba(255, 51, 102, 0.5);
+      color: #FF3366;
+      box-shadow: 0 0 12px rgba(255, 51, 102, 0.25);
+    }
+
+    .tv-hero-badge-pill.bias-bull {
+      background: linear-gradient(135deg, rgba(0, 230, 118, 0.16) 0%, rgba(15, 30, 22, 0.8) 100%);
+      border: 1px solid rgba(0, 230, 118, 0.5);
+      color: #00E676;
+      box-shadow: 0 0 12px rgba(0, 230, 118, 0.25);
+    }
+
+    .tv-hero-badge-pill.status-waiting {
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.16) 0%, rgba(30, 26, 15, 0.8) 100%);
+      border: 1px solid rgba(255, 215, 0, 0.55);
+      color: #FFD700;
+      box-shadow: 0 0 12px rgba(255, 215, 0, 0.25);
+    }
+
+    .tv-hero-badge-pill.status-ready {
+      background: linear-gradient(135deg, rgba(0, 230, 118, 0.25) 0%, rgba(10, 35, 20, 0.9) 100%);
+      border: 1.5px solid #00E676;
+      color: #00E676;
+      box-shadow: 0 0 20px rgba(0, 230, 118, 0.6);
+      animation: readyPulse 1.2s infinite;
+    }
+
+    .tv-hero-badge-pill.status-alert {
+      background: linear-gradient(135deg, rgba(255, 51, 102, 0.16) 0%, rgba(30, 15, 20, 0.8) 100%);
+      border: 1px solid rgba(255, 51, 102, 0.5);
+      color: #FF3366;
+      box-shadow: 0 0 12px rgba(255, 51, 102, 0.25);
+    }
+
     .smc-direction {
       font-size: 22px;
       font-weight: 900;
@@ -2542,11 +2608,9 @@
   <div class="tab-content" id="tabContentChart">
     <!-- Prominent AI Setup Execution Card (Direct Action Setup) -->
     <div class="smc-hero-box" id="tvSetupHero" style="margin-bottom: 12px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-        <span class="smc-badge" id="tvHeroBadge">AI SMC SETUP EXECUTION</span>
-        <span id="tvHeroLiveStatus" style="font-size: 11px; font-weight: 800; color: var(--gold); padding: 3px 8px; border-radius: 10px; background: rgba(255, 215, 0, 0.15); border: 1px solid rgba(255, 215, 0, 0.3);">
-          ⏳ កំពុងវិភាគ...
-        </span>
+      <div class="tv-hero-header-bar">
+        <div class="tv-hero-badge-pill bias-bear" id="tvHeroBadge">AI SMC SETUP</div>
+        <div class="tv-hero-badge-pill status-waiting" id="tvHeroLiveStatus">WAITING (+--)</div>
       </div>
       
       <div class="smc-direction" id="tvHeroDirection" style="font-size: 22px; color: var(--gold);">⚡ កំពុងវិភាគរចនាសម្ព័ន្ធទីផ្សារ...</div>
@@ -4517,6 +4581,11 @@
 
         const tvHeroEl = document.getElementById('tvSetupHero');
         if (tvHeroEl) tvHeroEl.classList.add('bullish');
+        const tvHeroBadge = document.getElementById('tvHeroBadge');
+        if (tvHeroBadge) {
+          tvHeroBadge.className = 'tv-hero-badge-pill bias-bull';
+          tvHeroBadge.innerText = 'AI SMC SETUP';
+        }
         const tvHeroDirEl = document.getElementById('tvHeroDirection');
         if (tvHeroDirEl) {
           tvHeroDirEl.innerText = '🟢 BUY PULLBACK ONLY';
@@ -4524,22 +4593,17 @@
         }
         const tvHeroStatusEl = document.getElementById('tvHeroLiveStatus');
         if (tvHeroStatusEl) {
+          tvHeroStatusEl.style.cssText = '';
           if (inZone) {
-            tvHeroStatusEl.innerText = 'READY TO BUY';
-            tvHeroStatusEl.style.color = '#00E676';
-            tvHeroStatusEl.style.borderColor = '#00E676';
-            tvHeroStatusEl.style.background = 'rgba(0, 230, 118, 0.2)';
+            tvHeroStatusEl.className = 'tv-hero-badge-pill status-ready';
+            tvHeroStatusEl.innerText = '🟢 READY TO BUY';
           } else if (price > Number(entryHigh)) {
             const waitP = (price - Number(entryHigh)).toFixed(1);
-            tvHeroStatusEl.innerText = `WAITING PULLBACK (-$${waitP})`;
-            tvHeroStatusEl.style.color = 'var(--gold)';
-            tvHeroStatusEl.style.borderColor = 'rgba(255, 215, 0, 0.3)';
-            tvHeroStatusEl.style.background = 'rgba(255, 215, 0, 0.15)';
+            tvHeroStatusEl.className = 'tv-hero-badge-pill status-waiting';
+            tvHeroStatusEl.innerText = `🟡 WAITING (-$${waitP})`;
           } else {
-            tvHeroStatusEl.innerText = 'DEEP DISCOUNT BUY';
-            tvHeroStatusEl.style.color = 'var(--bull)';
-            tvHeroStatusEl.style.borderColor = 'rgba(0, 230, 118, 0.3)';
-            tvHeroStatusEl.style.background = 'rgba(0, 230, 118, 0.15)';
+            tvHeroStatusEl.className = 'tv-hero-badge-pill status-ready';
+            tvHeroStatusEl.innerText = '🟢 DISCOUNT BUY';
           }
         }
       } else {
@@ -4744,6 +4808,11 @@
 
         const tvHeroEl = document.getElementById('tvSetupHero');
         if (tvHeroEl) tvHeroEl.classList.remove('bullish');
+        const tvHeroBadge = document.getElementById('tvHeroBadge');
+        if (tvHeroBadge) {
+          tvHeroBadge.className = 'tv-hero-badge-pill bias-bear';
+          tvHeroBadge.innerText = 'AI SMC SETUP';
+        }
         const tvHeroDirEl = document.getElementById('tvHeroDirection');
         if (tvHeroDirEl) {
           tvHeroDirEl.innerText = '🔴 SELL RETRACEMENT ONLY';
@@ -4751,22 +4820,17 @@
         }
         const tvHeroStatusEl = document.getElementById('tvHeroLiveStatus');
         if (tvHeroStatusEl) {
+          tvHeroStatusEl.style.cssText = '';
           if (inZone) {
-            tvHeroStatusEl.innerText = 'READY TO SELL';
-            tvHeroStatusEl.style.color = '#00E676';
-            tvHeroStatusEl.style.borderColor = '#00E676';
-            tvHeroStatusEl.style.background = 'rgba(0, 230, 118, 0.2)';
+            tvHeroStatusEl.className = 'tv-hero-badge-pill status-ready';
+            tvHeroStatusEl.innerText = '🟢 READY TO SELL';
           } else if (price < Number(entryLow)) {
             const waitP = (Number(entryLow) - price).toFixed(1);
-            tvHeroStatusEl.innerText = `WAITING BOUNCE (+$${waitP})`;
-            tvHeroStatusEl.style.color = 'var(--gold)';
-            tvHeroStatusEl.style.borderColor = 'rgba(255, 215, 0, 0.3)';
-            tvHeroStatusEl.style.background = 'rgba(255, 215, 0, 0.15)';
+            tvHeroStatusEl.className = 'tv-hero-badge-pill status-waiting';
+            tvHeroStatusEl.innerText = `🟡 WAITING (+$${waitP})`;
           } else {
-            tvHeroStatusEl.innerText = 'HIGH PREMIUM SELL';
-            tvHeroStatusEl.style.color = 'var(--bear)';
-            tvHeroStatusEl.style.borderColor = 'rgba(255, 51, 102, 0.3)';
-            tvHeroStatusEl.style.background = 'rgba(255, 51, 102, 0.15)';
+            tvHeroStatusEl.className = 'tv-hero-badge-pill status-alert';
+            tvHeroStatusEl.innerText = '🔴 PREMIUM SELL';
           }
         }
       }
