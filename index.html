@@ -3806,6 +3806,23 @@
     let lastRenderedPrice = 0;
     
     // ========================================================
+    // 🛡️ ANCHORED STRUCTURAL SMC LEVELS CACHE
+    // Prevents Entry Zone, SL, and TP from floating/jittering with live price ticks
+    // Numbers remain 100% fixed based on M15 closed candles geometry
+    // ========================================================
+    let staticSignalSetup = {
+      direction: null,
+      entryLow: 0,
+      entryHigh: 0,
+      sl: 0,
+      tp1: 0,
+      tp2: 0,
+      lastCalculated: 0,
+      anchorWaveHigh: 0,
+      anchorWaveLow: 0
+    };
+
+    // ========================================================
     // 🎯 FOREX SPOT CALIBRATION ENGINE (BINANCE PAXG -> REAL XAU/USD)
     // ========================================================
     // Binance PAXG is a crypto token that trades at a ~$11.20 basis premium over pure Forex Spot Gold.
@@ -4609,28 +4626,52 @@
         const recentCandles = (candles && candles.length >= 6) ? candles.slice(-10) : candles;
         const waveHigh = (recentCandles && recentCandles.length > 0) ? Math.max(...recentCandles.map(c => c.high)) : dayHigh;
         const waveLow = (recentCandles && recentCandles.length > 0) ? Math.min(...recentCandles.map(c => c.low)) : dayLow;
-        const waveRangeBuy = Math.max(waveHigh - waveLow, 8.0);
+        const waveRange = Math.max(waveHigh - waveLow, 10.0);
 
-        // Retracement down from waveHigh into Discount OTE (61.8% to 78.6%)
-        // In BUY Setup, institutional entry is strictly AT OR BELOW current price (Discount Demand / Retracement)
-        // Ensure Entry Zone is never higher than current market price, and max 2.5-3.0 USD tight sniper zone
-        const demandTop = Math.min(price, price - Math.max((price - waveLow) * 0.35, 0.8));
-        let entryHigh = Number(demandTop.toFixed(2));
-        let entryLow = Number((entryHigh - 2.80).toFixed(2));
+        // Recalculate fixed levels only when trend flips or on major 10-minute cycle
+        const nowTs = Date.now();
+        const needsBuyRecalc = !staticSignalSetup.direction ||
+                               staticSignalSetup.direction !== 'BULLISH' ||
+                               (nowTs - staticSignalSetup.lastCalculated > 600000) ||
+                               Math.abs(waveHigh - staticSignalSetup.anchorWaveHigh) >= 5.0 ||
+                               Math.abs(waveLow - staticSignalSetup.anchorWaveLow) >= 5.0;
 
-        // Standard Professional SMC Invalidation SL: strictly below swing low and minimum 35 pips below entry
-        let slVal = Math.min(entryLow - 3.8, waveLow - 1.5);
-        if (slVal >= entryLow - 3.0) slVal = entryLow - 3.8;
-        const sl = slVal.toFixed(2);
+        if (needsBuyRecalc) {
+          const fib618 = waveHigh - (waveRange * 0.618);
+          const fib786 = waveHigh - (waveRange * 0.786);
+          let top = Math.max(fib618, fib786);
+          let bot = Math.min(fib618, fib786);
+          // Anchor entry strictly at or below market price
+          if (top > price) {
+            top = price - 0.50;
+            bot = top - 3.00;
+          }
+          const eHigh = Number(top.toFixed(2));
+          const eLow = Number(bot.toFixed(2));
+          const slVal = Number((Math.min(eLow - 3.8, waveLow - 2.0)).toFixed(2));
+          const risk = Math.max(eHigh - slVal, 3.8);
+          const tp1Val = Number((Math.max(waveHigh, eHigh + (risk * 1.5))).toFixed(2));
+          const tp2Val = Number((eHigh + (risk * 2.5)).toFixed(2));
 
-        // Take Profit Targets: TP1 >= 1:1.5 R:R, TP2 >= 1:2.5 R:R
-        const riskBuy = Math.max(entryHigh - Number(sl), 3.8);
-        const tp1Val = Math.max(waveHigh, entryHigh + (riskBuy * 1.5));
-        const tp2Val = entryHigh + (riskBuy * 2.5);
-        const tp1 = tp1Val.toFixed(2);
-        const tp2 = tp2Val.toFixed(2);
+          staticSignalSetup = {
+            direction: 'BULLISH',
+            entryLow: eLow,
+            entryHigh: eHigh,
+            sl: slVal,
+            tp1: tp1Val,
+            tp2: tp2Val,
+            lastCalculated: nowTs,
+            anchorWaveHigh: waveHigh,
+            anchorWaveLow: waveLow
+          };
+        }
 
-        const inZone = (price >= entryLow && price <= entryHigh);
+        const entryLow = staticSignalSetup.entryLow.toFixed(2);
+        const entryHigh = staticSignalSetup.entryHigh.toFixed(2);
+        const sl = staticSignalSetup.sl.toFixed(2);
+        const tp1 = staticSignalSetup.tp1.toFixed(2);
+        const tp2 = staticSignalSetup.tp2.toFixed(2);
+        const inZone = (price >= Number(entryLow) && price <= Number(entryHigh));
         const execBadge = document.getElementById('smcExecBadge');
         const execDot = document.getElementById('smcExecDot');
         const execText = document.getElementById('smcExecText');
@@ -4831,37 +4872,57 @@
         }
 
         // ======================================================================
-        // INSTITUTIONAL GOLDEN RATIO FIBONACCI (0.618 - 0.786 OTE) + FVG CONFLUENCE (SELL)
+        // FIXED INSTITUTIONAL SMC PREMIUM SUPPLY ZONE (SELL)
         // ======================================================================
-        // Active M15 Dealing Wave (last 8-12 candles) to capture real intraday swing
         const recentCandles = (candles && candles.length >= 6) ? candles.slice(-10) : candles;
         const waveHigh = (recentCandles && recentCandles.length > 0) ? Math.max(...recentCandles.map(c => c.high)) : dayHigh;
         const waveLow = (recentCandles && recentCandles.length > 0) ? Math.min(...recentCandles.map(c => c.low)) : dayLow;
-        const waveRangeSell = Math.max(waveHigh - waveLow, 8.0);
+        const waveRange = Math.max(waveHigh - waveLow, 10.0);
 
-        // Retracement up from waveLow into Premium Supply OTE
-        // In SELL Setup, institutional entry is strictly AT OR ABOVE current price (Premium Supply / Pullback)
-        // Traders enter when price retraces up to supply, or when rejecting resistance (tight 2.5-3.0 USD zone)
-        const supplyBottom = Math.max(price + 1.2, price + Math.max((waveHigh - price) * 0.35, 2.5));
-        let entryLow = Number(supplyBottom.toFixed(2));
-        let entryHigh = Number((entryLow + 3.00).toFixed(2));
+        // Recalculate fixed levels only when trend flips or on major 10-minute cycle
+        const nowTs = Date.now();
+        const needsSellRecalc = !staticSignalSetup.direction ||
+                                staticSignalSetup.direction !== 'BEARISH' ||
+                                (nowTs - staticSignalSetup.lastCalculated > 600000) ||
+                                Math.abs(waveHigh - staticSignalSetup.anchorWaveHigh) >= 5.0 ||
+                                Math.abs(waveLow - staticSignalSetup.anchorWaveLow) >= 5.0;
 
-        // Standard Professional SMC Invalidation SL: strictly above swing high and minimum 35 pips above entry
-        let slVal = Math.max(entryHigh + 3.8, waveHigh + 1.5);
-        if (slVal <= entryHigh + 3.0) slVal = entryHigh + 3.8;
-        const sl = slVal.toFixed(2);
+        if (needsSellRecalc) {
+          const fib618 = waveLow + (waveRange * 0.618);
+          const fib786 = waveLow + (waveRange * 0.786);
+          let bot = Math.min(fib618, fib786);
+          let top = Math.max(fib618, fib786);
+          // Anchor entry strictly at or above market price
+          if (bot < price) {
+            bot = price + 1.50;
+            top = bot + 3.00;
+          }
+          const eLow = Number(bot.toFixed(2));
+          const eHigh = Number(top.toFixed(2));
+          const slVal = Number((Math.max(eHigh + 3.8, waveHigh + 2.0)).toFixed(2));
+          const risk = Math.max(slVal - eLow, 3.8);
+          const tp1Val = Number((Math.min(waveLow, eLow - (risk * 1.5))).toFixed(2));
+          const tp2Val = Number((eLow - (risk * 2.5)).toFixed(2));
 
-        // Take Profit Targets: TP1 >= 1:1.5 R:R, TP2 >= 1:2.5 R:R
-        const riskSell = Math.max(Number(sl) - entryLow, 3.8);
-        const tp1Val = Math.min(waveLow, entryLow - (riskSell * 1.5));
-        const tp2Val = entryLow - (riskSell * 2.5);
-        const tp1 = tp1Val.toFixed(2);
-        const tp2 = tp2Val.toFixed(2);
+          staticSignalSetup = {
+            direction: 'BEARISH',
+            entryLow: eLow,
+            entryHigh: eHigh,
+            sl: slVal,
+            tp1: tp1Val,
+            tp2: tp2Val,
+            lastCalculated: nowTs,
+            anchorWaveHigh: waveHigh,
+            anchorWaveLow: waveLow
+          };
+        }
 
-        const execBadge = document.getElementById('smcExecBadge');
-        const execDot = document.getElementById('smcExecDot');
-        const execText = document.getElementById('smcExecText');
-        const inZone = (price >= entryLow && price <= entryHigh);
+        const entryLow = staticSignalSetup.entryLow.toFixed(2);
+        const entryHigh = staticSignalSetup.entryHigh.toFixed(2);
+        const sl = staticSignalSetup.sl.toFixed(2);
+        const tp1 = staticSignalSetup.tp1.toFixed(2);
+        const tp2 = staticSignalSetup.tp2.toFixed(2);
+        const inZone = (price >= Number(entryLow) && price <= Number(entryHigh));
 
         // ======================================================================
         // 🧠 AI CONFLUENCE MATRIX METER CALCULATION (SELL MODE)
@@ -5131,8 +5192,8 @@
             status: 'ACTIVE'
           };
           localStorage.setItem('ai_locked_active_signal', JSON.stringify(activeSig));
-          // 🚀 DIRECT DISPATCH: Send Signal & Vote Poll directly to Telegram Channel GOLD FX!
-          broadcastSignalAndPollToTelegram(activeSig, matrixScore);
+          // Note: Automatic channel broadcast is strictly silenced per user request: "កុំទាន់ Signal ទៅChannel អី"
+          // broadcastSignalAndPollToTelegram(activeSig, matrixScore);
         }
       }
 
