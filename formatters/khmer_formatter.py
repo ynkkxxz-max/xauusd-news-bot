@@ -845,5 +845,73 @@ class KhmerFormatter:
             f"🛡️ <i>វិន័យត្រឹមត្រូវ: មិនត្រូវបណ្តោយឱ្យ Order ដែលកំពុងចំណេញ ប្រែត្រឡប់មកខាតវិញជាដាច់ខាត!</i>"
         )
 
+    @staticmethod
+    def format_ai_chat_response(query: str, answer_html: str, price_data: dict = None) -> str:
+        """Formats the interactive AI Q&A answer for Telegram."""
+        oz = price_data.get("price_oz", 0.0) if price_data else 0.0
+        change_pct = price_data.get("change_pct", 0.0) if price_data else 0.0
+        sign = "+" if change_pct >= 0 else ""
+        header = "🤖 <b>XAUUSD INSTITUTIONAL AI ASSISTANT</b> ⚡\n"
+        if oz > 0:
+            header += f"📊 <b>Spot Gold:</b> <code>${oz:,.2f}</code> ({sign}{change_pct:.2f}%)\n"
+        header += f"❓ <b>សំណួរ:</b> <i>\"{query}\"</i>\n━━━━━━━━━━━━━━━━━━━━\n\n"
+        footer = "\n\n━━━━━━━━━━━━━━━━━━━━\n💡 <i>វិភាគដោយ Gemini Institutional AI Engine • ផ្សារភ្ជាប់ជាមួយទិន្នន័យ Live Market</i>"
+        return f"{header}{answer_html}{footer}"
+
+    @staticmethod
+    def format_ai_chart_vision_response(analysis: dict, price_data: dict = None) -> str:
+        """Formats the AI Computer Vision Chart analysis for Telegram."""
+        if not analysis:
+            return "⚠️ មិនអាចវិភាគរូបភាព Chart បាននៅពេលនេះទេ។ សូមប្រាកដថារូបភាពមាន Candlestick និងតម្លៃច្បាស់លាស់។"
+
+        direction = analysis.get("direction", "WAIT").upper()
+        if "BUY" in direction:
+            dir_badge = "🟢 BUY SETUP (ទិញឡើង)"
+            dir_icon = "🟢"
+        elif "SELL" in direction:
+            dir_badge = "🔴 SELL SETUP (លក់ចុះ)"
+            dir_icon = "🔴"
+        else:
+            dir_badge = "🟡 WAIT / NO TRADE (រង់ចាំ)"
+            dir_icon = "🟡"
+
+        title = analysis.get("setup_title", dir_badge)
+        tf = analysis.get("timeframe", "M15 / H1")
+        pat_kh = analysis.get("pattern_kh", analysis.get("pattern_detected", "Price Action Structure"))
+        entry = analysis.get("entry_zone", "N/A")
+        sl = analysis.get("stop_loss", "N/A")
+        tp1 = analysis.get("take_profit_1", "N/A")
+        tp2 = analysis.get("take_profit_2", "N/A")
+        rr = analysis.get("rr_ratio", "1:2.0")
+        conf = analysis.get("confidence_score", "85%")
+        reasons = analysis.get("confluence_reasons", [])
+        reasons_text = "\n".join([f"• {r}" for r in reasons]) if reasons else "• សម្ពាធ Candlestick Rejection និងកម្រិតគន្លឹះ Liquidity"
+        inval = analysis.get("invalidation_rule", "តម្លៃទម្លុះកម្រិតគន្លឹះប្រឆាំងទិសដៅ")
+        risk = analysis.get("risk_warning", "គ្រប់គ្រងទំហំ Lot សមស្រប Risk 1-2% ជៀសវាង Overtrade!")
+        summary = analysis.get("detailed_summary_kh", "")
+
+        msg = (
+            f"🔍 <b>AI COMPUTER VISION CHART AUDIT</b> ⚡\n\n"
+            f"📌 <b>ផែនការ:</b> <b>{title}</b>\n"
+            f"⏱️ <b>Timeframe:</b> <code>{tf}</code> | <b>ពិន្ទុទំនុកចិត្ត:</b> <code>{conf}</code>\n"
+            f"🕯️ <b>ទម្រង់ Candlestick:</b> <b>{pat_kh}</b>\n\n"
+            f"🎯 <b>កម្រិតប្រតិបត្តិការ (Execution Levels):</b>\n"
+            f"• {dir_icon} <b>ទិសដៅ:</b> <b>{direction}</b>\n"
+            f"• 🎯 <b>តំបន់ Entry:</b> <code>{entry}</code>\n"
+            f"• 🛑 <b>Stop Loss (SL):</b> <code>{sl}</code>\n"
+            f"• 🏆 <b>Take Profit 1:</b> <code>{tp1}</code>\n"
+            f"• 🏆 <b>Take Profit 2:</b> <code>{tp2}</code>\n"
+            f"• ⚖️ <b>Risk:Reward:</b> <code>{rr}</code>\n\n"
+            f"💡 <b>ហេតុផលបញ្ជាក់ (Confluence Reasons):</b>\n"
+            f"{reasons_text}\n\n"
+            f"❌ <b>លក្ខខណ្ឌលុបចោល Setup:</b> {inval}\n\n"
+            f"🛡️ <b>ការគ្រប់គ្រងហានិភ័យ:</b> {risk}\n"
+        )
+        if summary:
+            msg += f"\n📝 <b>សេចក្តីសង្ខេប AI:</b>\n{summary}\n"
+        msg += "\n━━━━━━━━━━━━━━━━━━━━\n🤖 <i>វិភាគផ្ទាល់ពីរូបភាព Chart ដោយ Gemini Multimodal Vision AI</i>"
+        return msg
+
+
 
 
