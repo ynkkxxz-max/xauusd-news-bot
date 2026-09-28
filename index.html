@@ -5374,28 +5374,8 @@
       const actionTitle = isBuy ? '🟢 BUY NOW — SNIPER DIP BOUNCE' : '🔴 SELL NOW — SNIPER TOP REJECTION';
       const pollAction = isBuy ? 'Buy Dip' : 'Sell Top';
 
-      // 1. Send Detailed Signal Alert
-      const msgHtml = 
-        `⚡ <b>សញ្ញា AI SNIPER បញ្ជាក់ការចូល (GRADE A+ Setup ✓):</b>\n` +
-        `🛡️ <b>ប្រតិបត្តិការ:</b> <b>${actionTitle}</b>\n` +
-        `🎯 <b>ពិន្ទុទំនុកចិត្ត:</b> <code>${score || 85}% (Safety Index)</code>\n` +
-        `• 🥇 <b>Entry តំបន់ចូល:</b> <code>$${sig.entryLow.toFixed(2)} - $${sig.entryHigh.toFixed(2)}</code>\n` +
-        `• 🛑 <b>Stop Loss (SL):</b> <code>$${sig.sl.toFixed(2)}</code>\n` +
-        `• 🎯 <b>Take Profit 1 (BE):</b> <code>$${sig.tp1.toFixed(2)}</code>\n` +
-        `• 🏆 <b>Take Profit 2 (MAX):</b> <code>$${sig.tp2.toFixed(2)}</code>\n` +
-        `• ⚖️ <b>Risk:Reward:</b> <code>1:2.0 (TP1) / 1:3.5 (TP2)</code>\n` +
-        `• 💡 <b>ការបញ្ជាក់បច្ចេកទេស:</b> OTE 0.618 Fib + CVD Volume + Killzone Rejection\n\n` +
-        `⚠️ <i>គ្រប់គ្រងហានិភ័យ 1-2% នៃទុនគណនីជានិច្ច!</i>`;
+      // Note: Point 1 (detailed levels) strictly excluded so users view signal inside Mini App
 
-      await fetch(`https://api.telegram.org/bot${_tok}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: _chatId,
-          text: msgHtml,
-          parse_mode: 'HTML'
-        })
-      });
 
       // 2. Send Native Interactive Telegram Poll (Vote)
       const pollTitle = `📊 លទ្ធផល Signal XAUUSD (${pollAction}) — សូមបញ្ជាក់លទ្ធផលរបស់អ្នក:`;
