@@ -11,7 +11,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&family=Orbitron:wght@600;700;800;900&family=Outfit:wght@400;500;600;700;800&family=Rajdhani:wght@600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   
   <style>
     :root {
@@ -86,49 +86,54 @@
       z-index: 2;
     }
 
-    /* Hollywood Sci-Fi Cyberpunk Top Nav Tabs */
+    /* ========================================================= */
+    /* 🚀 NEXT-GEN SCI-FI CYBERNETIC COCKPIT HUD (HEADER SYSTEM) */
+    /* ========================================================= */
+
+    /* 1. Tactical Avionics Mode Deck (Tabs) */
     .tab-bar {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      background: linear-gradient(180deg, rgba(8, 14, 28, 0.96) 0%, rgba(3, 6, 12, 0.99) 100%);
+      background: linear-gradient(180deg, rgba(8, 16, 32, 0.98) 0%, rgba(3, 7, 16, 0.99) 100%);
       border: 1px solid rgba(0, 240, 255, 0.35);
-      border-radius: 12px;
-      padding: 4px;
-      margin-bottom: 14px;
-      gap: 4px;
-      box-shadow: 0 4px 25px rgba(0, 0, 0, 0.85), inset 0 0 15px rgba(0, 240, 255, 0.08);
+      border-radius: 14px;
+      padding: 5px;
+      margin-bottom: 12px;
+      gap: 5px;
+      box-shadow: 0 4px 25px rgba(0, 0, 0, 0.85), inset 0 0 16px rgba(0, 240, 255, 0.08);
       position: relative;
+      overflow: hidden;
     }
 
     .tab-bar::before {
       content: '';
       position: absolute;
-      top: -1px;
-      left: 8%;
-      right: 8%;
+      top: 0;
+      left: 0;
+      right: 0;
       height: 2px;
-      background: linear-gradient(90deg, transparent, #00F0FF, #00E676, #00F0FF, transparent);
-      box-shadow: 0 0 10px #00F0FF, 0 0 20px #00F0FF;
+      background: linear-gradient(90deg, transparent 0%, #00F0FF 25%, #00E676 50%, #00F0FF 75%, transparent 100%);
+      box-shadow: 0 0 12px #00F0FF, 0 0 20px #00F0FF;
     }
 
     .tab-btn {
-      padding: 7px 1px 6px 1px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 8px 2px 7px 2px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
       background: rgba(255, 255, 255, 0.02);
-      color: #6C7D93;
-      font-family: 'Outfit', sans-serif;
-      font-size: 10px;
+      color: #72849A;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 9.5px;
       font-weight: 800;
       letter-spacing: 0.8px;
       text-transform: uppercase;
-      border-radius: 8px;
+      border-radius: 10px;
       cursor: pointer;
       transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 3px;
+      gap: 4px;
       white-space: nowrap;
       position: relative;
       overflow: hidden;
@@ -142,143 +147,195 @@
     }
 
     .tab-btn .tab-icon svg {
-      width: 16px;
-      height: 16px;
-      stroke: #6C7D93;
+      width: 17px;
+      height: 17px;
+      stroke: #72849A;
       transition: stroke 0.25s ease, filter 0.25s ease;
     }
 
     .tab-btn:hover {
       color: #00F0FF;
       background: rgba(0, 240, 255, 0.08);
+      border-color: rgba(0, 240, 255, 0.3);
     }
 
     .tab-btn.active {
-      background: linear-gradient(135deg, rgba(0, 240, 255, 0.25) 0%, rgba(8, 28, 54, 0.98) 100%);
+      background: linear-gradient(180deg, rgba(0, 240, 255, 0.28) 0%, rgba(6, 26, 48, 0.98) 100%);
       color: #00F0FF;
-      border: 1px solid #00F0FF;
-      box-shadow: 0 0 18px rgba(0, 240, 255, 0.5), inset 0 0 14px rgba(0, 240, 255, 0.25);
-      text-shadow: 0 0 10px rgba(0, 240, 255, 0.95);
+      border: 1.5px solid #00F0FF;
+      box-shadow: 0 0 22px rgba(0, 240, 255, 0.6), inset 0 0 14px rgba(0, 240, 255, 0.25);
+      text-shadow: 0 0 12px rgba(0, 240, 255, 0.95);
       animation: cyberPulse 2s infinite alternate;
     }
 
     @keyframes cyberPulse {
       0% {
-        box-shadow: 0 0 12px rgba(0, 240, 255, 0.4), inset 0 0 10px rgba(0, 240, 255, 0.2);
-        border-color: rgba(0, 240, 255, 0.8);
+        box-shadow: 0 0 14px rgba(0, 240, 255, 0.45), inset 0 0 10px rgba(0, 240, 255, 0.2);
+        border-color: rgba(0, 240, 255, 0.85);
       }
       100% {
-        box-shadow: 0 0 22px rgba(0, 240, 255, 0.7), inset 0 0 16px rgba(0, 240, 255, 0.35);
+        box-shadow: 0 0 24px rgba(0, 240, 255, 0.75), inset 0 0 18px rgba(0, 240, 255, 0.35);
         border-color: #00F0FF;
       }
     }
 
-    .tab-btn.active .tab-icon svg {
-      stroke: #00F0FF;
-      filter: drop-shadow(0 0 8px #00F0FF);
-      transform: scale(1.15);
+    .tab-btn.active::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 20%;
+      right: 20%;
+      height: 1.5px;
+      background: #00F0FF;
+      box-shadow: 0 0 8px #00F0FF;
     }
 
     .tab-btn.active::after {
       content: '';
       position: absolute;
       bottom: 0;
-      left: 10%;
-      right: 10%;
-      height: 2px;
+      left: 12%;
+      right: 12%;
+      height: 2.5px;
       background: #00F0FF;
-      box-shadow: 0 0 12px #00F0FF;
+      box-shadow: 0 0 14px #00F0FF, 0 0 22px #00F0FF;
       border-radius: 2px;
     }
 
-    /* Hollywood Sci-Fi Cyberpunk Live Header Pill */
+    .tab-btn.active .tab-icon svg {
+      stroke: #00F0FF;
+      filter: drop-shadow(0 0 10px #00F0FF);
+      transform: scale(1.18);
+    }
+
+    /* 2. Quantum Ticker Flight HUD (Live Price Bar) */
     .live-pill {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: linear-gradient(135deg, rgba(10, 20, 36, 0.95) 0%, rgba(4, 9, 18, 0.98) 100%);
-      border: 1px solid rgba(0, 240, 255, 0.3);
-      border-radius: 12px;
-      padding: 9px 14px;
+      background: linear-gradient(135deg, rgba(8, 20, 38, 0.97) 0%, rgba(3, 8, 18, 0.99) 100%);
+      border: 1.5px solid rgba(0, 240, 255, 0.35);
+      border-radius: 14px;
+      padding: 10px 16px;
       margin-bottom: 14px;
-      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(0, 240, 255, 0.05);
+      box-shadow: 0 4px 22px rgba(0, 0, 0, 0.8), inset 0 0 18px rgba(0, 240, 255, 0.08);
       position: relative;
+      overflow: hidden;
     }
 
     .live-pill::before {
       content: '';
       position: absolute;
       left: 0;
-      top: 20%;
-      bottom: 20%;
-      width: 3px;
-      background: #00F0FF;
-      box-shadow: 0 0 10px #00F0FF;
-      border-radius: 0 3px 3px 0;
+      top: 15%;
+      bottom: 15%;
+      width: 4px;
+      background: linear-gradient(180deg, #00F0FF 0%, #00E676 100%);
+      box-shadow: 0 0 12px #00F0FF, 0 0 20px #00E676;
+      border-radius: 0 4px 4px 0;
     }
 
     .live-label {
-      font-size: 11px;
-      color: #7E92A9;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 10px;
+    }
+
+    .hud-radar-beacon {
+      position: relative;
+      width: 14px;
+      height: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .hud-beacon-core {
+      width: 7px;
+      height: 7px;
+      background: #00E676;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #00E676;
+      animation: beaconPulse 1.6s infinite;
+    }
+
+    .hud-beacon-ring {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1.5px solid #00E676;
+      opacity: 0.6;
+      animation: beaconWave 1.8s infinite;
+    }
+
+    @keyframes beaconPulse {
+      0%, 100% { transform: scale(0.9); opacity: 0.8; }
+      50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 14px #00E676; }
+    }
+
+    @keyframes beaconWave {
+      0% { transform: scale(0.6); opacity: 0.9; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+
+    .hud-asset-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hud-asset-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      font-weight: 800;
+      color: #EBF4FC;
+      letter-spacing: 0.6px;
+    }
+
+    .ws-badge {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 9.5px;
       font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: rgba(0, 230, 118, 0.15);
+      color: #00E676;
+      border: 1px solid rgba(0, 230, 118, 0.45);
+      box-shadow: 0 0 10px rgba(0, 230, 118, 0.25);
       letter-spacing: 0.5px;
     }
 
-    .pulse {
-      width: 8px;
-      height: 8px;
-      background: #00F0FF;
-      border-radius: 50%;
-      box-shadow: 0 0 10px #00F0FF;
-      animation: pulse 1.5s infinite;
-    }
-
-    @keyframes pulse {
-      0% { opacity: 0.4; transform: scale(0.9); box-shadow: 0 0 4px #00F0FF; }
-      50% { opacity: 1; transform: scale(1.3); box-shadow: 0 0 14px #00F0FF; }
-      100% { opacity: 0.4; transform: scale(0.9); box-shadow: 0 0 4px #00F0FF; }
-    }
-
     .live-price {
-      font-size: 15px;
-      font-weight: 800;
+      font-family: 'Orbitron', 'Share Tech Mono', monospace;
+      font-size: 20px;
+      font-weight: 900;
       color: #FFF;
+      letter-spacing: 0.8px;
       font-variant-numeric: tabular-nums;
-      text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
-      transition: color 0.25s, text-shadow 0.25s;
+      text-shadow: 0 0 14px rgba(255, 255, 255, 0.5), 0 0 25px rgba(0, 240, 255, 0.4);
+      transition: all 0.25s ease;
     }
 
     .live-price.flash-up {
       color: #00E676 !important;
-      text-shadow: 0 0 16px rgba(0, 230, 118, 0.9);
+      text-shadow: 0 0 20px #00E676, 0 0 35px rgba(0, 230, 118, 0.7);
+      transform: scale(1.05);
     }
 
     .live-price.flash-down {
       color: #FF3366 !important;
-      text-shadow: 0 0 16px rgba(255, 51, 102, 0.9);
+      text-shadow: 0 0 20px #FF3366, 0 0 35px rgba(255, 51, 102, 0.7);
+      transform: scale(1.05);
     }
 
-    .ws-badge {
-      font-size: 9px;
-      font-weight: 800;
-      padding: 2px 6px;
-      border-radius: 5px;
-      background: rgba(0, 240, 255, 0.15);
-      color: #00F0FF;
-      border: 1px solid rgba(0, 240, 255, 0.4);
-      box-shadow: 0 0 8px rgba(0, 240, 255, 0.2);
-      letter-spacing: 0.5px;
-    }
-
-    /* Futuristic Sci-Fi Hollywood Cyber Control Bar */
+    /* 3. Cyber Control Deck (Countdown, Audio, Sync) */
     .cyber-top-bar {
       display: grid;
       grid-template-columns: 1.6fr 1fr 1fr;
       align-items: stretch;
-      gap: 7px;
+      gap: 8px;
       margin-bottom: 12px;
       padding: 0 1px;
     }
@@ -287,13 +344,13 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 5px;
-      background: linear-gradient(135deg, rgba(255, 179, 0, 0.12) 0%, rgba(12, 18, 30, 0.98) 100%);
-      border: 1px solid rgba(255, 179, 0, 0.45);
-      border-radius: 9px;
-      padding: 0 8px;
-      height: 36px;
-      box-shadow: 0 2px 14px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(255, 179, 0, 0.08);
+      gap: 6px;
+      background: linear-gradient(135deg, rgba(0, 230, 118, 0.12) 0%, rgba(8, 20, 26, 0.98) 100%);
+      border: 1px solid rgba(0, 230, 118, 0.45);
+      border-radius: 11px;
+      padding: 0 9px;
+      height: 38px;
+      box-shadow: 0 2px 14px rgba(0, 0, 0, 0.7), inset 0 0 12px rgba(0, 230, 118, 0.08);
       cursor: pointer;
       position: relative;
       overflow: hidden;
@@ -308,7 +365,7 @@
       left: -50%;
       width: 200%;
       height: 200%;
-      background: linear-gradient(90deg, transparent, rgba(255, 179, 0, 0.06), transparent);
+      background: linear-gradient(90deg, transparent, rgba(0, 230, 118, 0.08), transparent);
       transform: rotate(35deg);
       pointer-events: none;
       animation: cyberSweep 5s infinite;
@@ -316,34 +373,88 @@
 
     .cyber-top-pill:hover, .cyber-top-pill:active {
       transform: translateY(-1px);
-      box-shadow: 0 0 16px rgba(255, 179, 0, 0.45), inset 0 0 14px rgba(255, 179, 0, 0.15);
-      border-color: #FFB300;
+      box-shadow: 0 0 18px rgba(0, 230, 118, 0.5), inset 0 0 14px rgba(0, 230, 118, 0.2);
+      border-color: #00E676;
     }
 
-    @keyframes cyberSweep {
-      0% { transform: translateX(-100%) rotate(35deg); }
-      100% { transform: translateX(100%) rotate(35deg); }
+    .hud-radar-target {
+      position: relative;
+      width: 14px;
+      height: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .hud-radar-dot {
+      width: 5px;
+      height: 5px;
+      background: #00E676;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #00E676;
+    }
+
+    .hud-radar-ring {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 1.5px solid #00E676;
+      opacity: 0.6;
+      animation: radarRingPulse 2s infinite;
+    }
+
+    @keyframes radarRingPulse {
+      0% { transform: scale(0.6); opacity: 0.9; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
+
+    .hud-news-title {
+      font-family: 'Rajdhani', 'Orbitron', sans-serif;
+      font-size: 11px;
+      font-weight: 800;
+      color: #00E676;
+      letter-spacing: 0.5px;
+      text-shadow: 0 0 8px rgba(0, 230, 118, 0.5);
+      white-space: nowrap;
+    }
+
+    .hud-news-timer {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #FFF;
+      background: rgba(0, 0, 0, 0.65);
+      border: 1px solid rgba(0, 230, 118, 0.35);
+      padding: 2px 6px;
+      border-radius: 6px;
+      box-shadow: inset 0 0 8px rgba(0, 230, 118, 0.15);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
     }
 
     .cyber-top-btn {
-      background: linear-gradient(180deg, rgba(0, 240, 255, 0.12) 0%, rgba(8, 16, 28, 0.98) 100%);
-      border: 1px solid rgba(0, 240, 255, 0.35);
-      border-radius: 9px;
-      padding: 0 6px;
-      height: 36px;
-      font-size: 11px;
+      background: linear-gradient(180deg, rgba(0, 240, 255, 0.14) 0%, rgba(6, 16, 28, 0.98) 100%);
+      border: 1px solid rgba(0, 240, 255, 0.4);
+      border-radius: 11px;
+      padding: 0 8px;
+      height: 38px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px;
       font-weight: 800;
       color: #00F0FF;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 5px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.6), inset 0 0 10px rgba(0, 240, 255, 0.08);
+      gap: 6px;
+      box-shadow: 0 2px 14px rgba(0, 0, 0, 0.7), inset 0 0 12px rgba(0, 240, 255, 0.1);
       position: relative;
       overflow: hidden;
       transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      letter-spacing: 0.4px;
+      letter-spacing: 0.6px;
       box-sizing: border-box;
       white-space: nowrap;
     }
@@ -358,19 +469,80 @@
       background: #00F0FF;
       box-shadow: 0 0 8px #00F0FF;
       border-radius: 2px;
-      opacity: 0.7;
+      opacity: 0.8;
     }
 
     .cyber-top-btn:hover {
-      background: linear-gradient(180deg, rgba(0, 240, 255, 0.22) 0%, rgba(10, 22, 38, 0.98) 100%);
+      background: linear-gradient(180deg, rgba(0, 240, 255, 0.25) 0%, rgba(8, 22, 40, 0.98) 100%);
       border-color: #00F0FF;
-      box-shadow: 0 0 15px rgba(0, 240, 255, 0.5), inset 0 0 14px rgba(0, 240, 255, 0.2);
+      box-shadow: 0 0 18px rgba(0, 240, 255, 0.6), inset 0 0 16px rgba(0, 240, 255, 0.25);
       transform: translateY(-1px);
     }
 
     .cyber-top-btn:active {
       transform: scale(0.96);
-      box-shadow: 0 0 20px #00F0FF;
+      box-shadow: 0 0 22px #00F0FF;
+    }
+
+    .cyber-top-btn.btn-update {
+      color: #00E676;
+      border-color: rgba(0, 230, 118, 0.45);
+      background: linear-gradient(180deg, rgba(0, 230, 118, 0.14) 0%, rgba(6, 22, 18, 0.98) 100%);
+      box-shadow: 0 2px 14px rgba(0, 0, 0, 0.7), inset 0 0 12px rgba(0, 230, 118, 0.1);
+    }
+
+    .cyber-top-btn.btn-update::after {
+      background: #00E676;
+      box-shadow: 0 0 8px #00E676;
+    }
+
+    .cyber-top-btn.btn-update:hover {
+      background: linear-gradient(180deg, rgba(0, 230, 118, 0.25) 0%, rgba(8, 30, 24, 0.98) 100%);
+      border-color: #00E676;
+      box-shadow: 0 0 18px rgba(0, 230, 118, 0.6), inset 0 0 16px rgba(0, 230, 118, 0.25);
+    }
+
+    .hud-equalizer {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 12px;
+      width: 11px;
+    }
+
+    .hud-bar {
+      width: 2.5px;
+      background: #00F0FF;
+      border-radius: 1px;
+      box-shadow: 0 0 6px #00F0FF;
+      transition: height 0.2s ease;
+    }
+
+    .hud-bar.b1 { height: 60%; animation: eqJump1 0.7s infinite alternate ease-in-out; }
+    .hud-bar.b2 { height: 100%; animation: eqJump2 0.5s infinite alternate ease-in-out; }
+    .hud-bar.b3 { height: 40%; animation: eqJump3 0.6s infinite alternate ease-in-out; }
+
+    .hud-equalizer.paused .hud-bar {
+      animation: none !important;
+      height: 20% !important;
+      background: #6C7D93 !important;
+      box-shadow: none !important;
+    }
+
+    @keyframes eqJump1 { 0% { height: 25%; } 100% { height: 90%; } }
+    @keyframes eqJump2 { 0% { height: 100%; } 100% { height: 35%; } }
+    @keyframes eqJump3 { 0% { height: 40%; } 100% { height: 100%; } }
+
+    .hud-reactor-icon {
+      font-size: 13px;
+      font-weight: 900;
+      display: inline-block;
+      transition: transform 0.3s ease;
+    }
+
+    @keyframes cyberSweep {
+      0% { transform: translateX(-100%) rotate(35deg); }
+      100% { transform: translateX(100%) rotate(35deg); }
     }
 
     .refresh-btn {
@@ -2219,23 +2391,28 @@
   <div class="cyber-top-bar">
     <!-- ⏳ 1. Next High-Impact News / Market Open Countdown Badge -->
     <div class="cyber-top-pill" id="topNewsCountdownPill" onclick="scrollToNewsDanger()" title="High-Impact USD News Countdown">
-      <div style="display: flex; align-items: center; gap: 5px; white-space: nowrap;">
-        <span class="pulse" id="newsPulseDot" style="width: 6px; height: 6px; background: #FFB300; box-shadow: 0 0 8px #FFB300; flex-shrink: 0;"></span>
-        <span style="font-size: 10px; font-weight: 800; color: #FFB300; letter-spacing: 0.3px; text-shadow: 0 0 6px rgba(255, 179, 0, 0.4); white-space: nowrap;" id="newsCountdownTitle">NY OPEN</span>
+      <div class="hud-radar-target">
+        <span class="hud-radar-dot" id="newsPulseDot"></span>
+        <span class="hud-radar-ring"></span>
       </div>
-      <span style="font-size: 9.5px; font-weight: 700; color: #FFF; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 179, 0, 0.3); padding: 2px 5px; border-radius: 5px; font-variant-numeric: tabular-nums; flex-shrink: 0;" id="newsCountdownTimer">--:--:--</span>
+      <span class="hud-news-title" id="newsCountdownTitle">NY OPEN</span>
+      <span class="hud-news-timer" id="newsCountdownTimer">--:--:--</span>
     </div>
 
     <!-- 🔊 2. SFX Audio Toggle Button -->
     <button class="cyber-top-btn" id="btnAudioToggle" onclick="toggleCyberAudio()" title="Cyber HUD Sound Effects (On/Off)">
-      <span id="audioIcon" style="font-size: 12px;">🔊</span>
-      <span id="audioStatusText" style="text-shadow: 0 0 8px rgba(0, 240, 255, 0.8);">SFX</span>
+      <div class="hud-equalizer" id="hudEqVisualizer">
+        <span class="hud-bar b1"></span>
+        <span class="hud-bar b2"></span>
+        <span class="hud-bar b3"></span>
+      </div>
+      <span id="audioStatusText">SFX</span>
     </button>
 
     <!-- 🔄 3. Update (Refresh) Live Data Button -->
-    <button class="cyber-top-btn" id="btnRefresh" onclick="manualRefresh()" title="ធ្វើបច្ចុប្បន្នភាពទិន្នន័យភ្លាមៗ (Update)" style="color: #00E676; border-color: rgba(0, 230, 118, 0.4); background: linear-gradient(180deg, rgba(0, 230, 118, 0.12) 0%, rgba(8, 20, 22, 0.98) 100%);">
-      <span id="refreshIcon" style="font-size: 11px;">🔄</span>
-      <span style="text-shadow: 0 0 8px rgba(0, 230, 118, 0.8);">Update</span>
+    <button class="cyber-top-btn btn-update" id="btnRefresh" onclick="manualRefresh()" title="ធ្វើបច្ចុប្បន្នភាពទិន្នន័យភ្លាមៗ (Update)">
+      <span id="refreshIcon" class="hud-reactor-icon">⟳</span>
+      <span>UPDATE</span>
     </button>
   </div>
 
@@ -2285,11 +2462,17 @@
     </button>
   </div>
 
-  <!-- Spot XAU/USD Live Price Pill (Positioned back below tabs like original) -->
+  <!-- Spot XAU/USD Quantum Ticker Flight HUD -->
   <div class="live-pill">
     <div class="live-label">
-      <span class="pulse" id="wsPulse"></span>
-      Spot XAU/USD <span class="ws-badge" id="wsStatusBadge">⚡ WS LIVE</span>
+      <div class="hud-radar-beacon">
+        <span class="hud-beacon-core" id="wsPulse"></span>
+        <span class="hud-beacon-ring"></span>
+      </div>
+      <div class="hud-asset-box">
+        <span class="hud-asset-title">Spot XAU/USD</span>
+        <span class="ws-badge" id="wsStatusBadge">⚡ LIVE 24/7</span>
+      </div>
     </div>
     <div class="live-price" id="livePrice">$4,284.00</div>
   </div>
@@ -3084,21 +3267,21 @@
 
     function toggleCyberAudio() {
       isCyberAudioEnabled = !isCyberAudioEnabled;
-      const icon = document.getElementById('audioIcon');
       const text = document.getElementById('audioStatusText');
       const btn = document.getElementById('btnAudioToggle');
+      const eq = document.getElementById('hudEqVisualizer');
       if (tg && tg.HapticFeedback) {
         tg.HapticFeedback.impactOccurred('medium');
       }
       if (isCyberAudioEnabled) {
         playCyberSound('beep');
-        if (icon) icon.innerText = '🔊';
-        if (text) text.innerText = 'SFX ON';
-        if (btn) btn.style.background = 'rgba(0, 240, 255, 0.2)';
+        if (text) text.innerText = 'SFX';
+        if (btn) btn.style.background = 'linear-gradient(180deg, rgba(0, 240, 255, 0.22) 0%, rgba(6, 18, 32, 0.98) 100%)';
+        if (eq) eq.classList.remove('paused');
       } else {
-        if (icon) icon.innerText = '🔇';
-        if (text) text.innerText = 'SFX OFF';
-        if (btn) btn.style.background = 'rgba(255, 255, 255, 0.05)';
+        if (text) text.innerText = 'MUTE';
+        if (btn) btn.style.background = 'rgba(255, 255, 255, 0.04)';
+        if (eq) eq.classList.add('paused');
       }
     }
 
