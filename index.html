@@ -4115,39 +4115,15 @@
         // Calculate Intraday High, Low, and Reference Open
         let dayHigh = price + 15.0;
         let dayLow = price - 15.0;
-        let trendDirection = 'BULLISH';
+        let trendDirection = 'BEARISH';
         let winRate = 90;
-        let h1Bias = 'BULLISH';
-        let m15Structure = 'Bullish Expansion';
-        let m5Trigger = 'Bullish Momentum';
+        let h1Bias = 'BEARISH';
+        let m15Structure = 'Bearish Structure (ទិសដៅធ្លាក់)';
+        let m5Trigger = 'Bearish Momentum';
         let confluenceCount = 0;
 
-      // 1. Analyze H1 Trend (Macro Direction)
-      if (h1Candles && h1Candles.length >= 2) {
-        const lastH1 = h1Candles[h1Candles.length - 1];
-        const prevH1 = h1Candles[h1Candles.length - 2];
-        if (lastH1.close > lastH1.open && lastH1.close >= prevH1.close) {
-          h1Bias = 'BULLISH';
-        } else {
-          h1Bias = 'BEARISH';
-        }
-      }
-
-      // 2. Real Institutional SMC Market Structure Analysis (M15 HH/HL vs LH/LL + EMA Confirmation)
-      if (candles && candles.length >= 4) {
-        const highs = candles.map(c => c.high);
-        const lows = candles.map(c => c.low);
-        const closes = candles.map(c => c.close);
-        dayHigh = Math.max(...highs);
-        dayLow = Math.min(...lows);
-
-        const lastC = candles[candles.length - 1];
-        const prevC = candles[candles.length - 2];
-        const prev2C = candles[candles.length - 3];
-        const recentHigh = Math.max(prevC.high, prev2C.high);
-        const recentLow = Math.min(prevC.low, prev2C.low);
-
-        // Calculate Fast EMA(9) and Slow EMA(21) matching MT5 Moving Averages
+        // 1. Multi-Timeframe Trend Engine (H1 + M15 Moving Average & SMC Alignment)
+        // Calculate M15 Fast EMA (9) and Slow EMA (21)
         const calculateEMA = (period, values) => {
           const k = 2 / (period + 1);
           let ema = values[0];
@@ -4156,53 +4132,60 @@
           }
           return ema;
         };
-        const emaFast = calculateEMA(8, closes);
-        const emaSlow = calculateEMA(16, closes);
 
-        // H1 and Closed M15 Higher-Timeframe Structural Anchor (Anti-Flicker)
-        const isClosedCandleBull = lastC.close >= emaFast && emaFast >= emaSlow;
-        const isClosedCandleBear = lastC.close <= emaFast && emaFast <= emaSlow;
+        if (candles && candles.length >= 4) {
+          const highs = candles.map(c => c.high);
+          const lows = candles.map(c => c.low);
+          const closes = candles.map(c => c.close);
+          dayHigh = Math.max(...highs);
+          dayLow = Math.min(...lows);
 
-        // Signal Stabilization & Hysteresis Lock (Minimum 3-5 minutes stability between flips)
-        if (!window._lastStableSignalTime) {
-          window._lastStableSignalTime = 0;
-          window._stableTrendDirection = 'BULLISH';
-        }
+          const lastC = candles[candles.length - 1];
+          const prevC = candles[candles.length - 2];
+          const recentHigh = Math.max(prevC.high, candles[candles.length - 3].high);
+          const recentLow = Math.min(prevC.low, candles[candles.length - 3].low);
 
-        const nowTs = Date.now();
-        const timeSinceLastFlip = nowTs - window._lastStableSignalTime;
-        const FLIP_COOLDOWN_MS = 180000; // 3-Minute Minimum Stabilization Lock
+          const emaFast = calculateEMA(9, closes);
+          const emaSlow = calculateEMA(21, closes);
 
-        let rawDirection = window._stableTrendDirection;
-        if (isClosedCandleBull && h1Bias === 'BULLISH') {
-          rawDirection = 'BULLISH';
-        } else if (isClosedCandleBear && h1Bias === 'BEARISH') {
-          rawDirection = 'BEARISH';
-        } else if (lastC.close > recentHigh) {
-          rawDirection = 'BULLISH';
-        } else if (lastC.close < recentLow) {
-          rawDirection = 'BEARISH';
-        }
-
-        // Only allow direction to switch if cooldown elapsed or strong BOS breakout occurred
-        if (rawDirection !== window._stableTrendDirection) {
-          const isDecisiveBreakout = (lastC.close > recentHigh + 1.5) || (lastC.close < recentLow - 1.5);
-          if (timeSinceLastFlip > FLIP_COOLDOWN_MS || isDecisiveBreakout) {
-            window._stableTrendDirection = rawDirection;
-            window._lastStableSignalTime = nowTs;
+          // H1 Multi-Hour Macro Bias:
+          if (h1Candles && h1Candles.length >= 2) {
+            const h1Closes = h1Candles.map(k => k.close);
+            const h1Avg = h1Closes.reduce((a, b) => a + b, 0) / h1Closes.length;
+            const lastH1 = h1Candles[h1Candles.length - 1];
+            const prevH1 = h1Candles[h1Candles.length - 2];
+            // If latest H1 price is below multi-hour average, macro bias is BEARISH
+            if (lastH1.close < h1Avg || (prevH1.close < prevH1.open && lastH1.close < prevH1.open)) {
+              h1Bias = 'BEARISH';
+            } else if (lastH1.close > h1Avg && lastH1.close > lastH1.open) {
+              h1Bias = 'BULLISH';
+            } else {
+              h1Bias = (price < emaSlow) ? 'BEARISH' : 'BULLISH';
+            }
+          } else {
+            h1Bias = (price < emaSlow) ? 'BEARISH' : 'BULLISH';
           }
-        }
 
-        trendDirection = window._stableTrendDirection;
-        if (trendDirection === 'BULLISH') {
-          m15Structure = (lastC.close > recentHigh) ? 'Bullish BOS (បំបែកឡើង)' : 'Bullish Structure (ទិសដៅឡើង)';
+          // Definitive Trend Determination based on MT5 Moving Averages:
+          // Bearish: Price is below Slow EMA, and Fast EMA is below Slow EMA (or breaking down below recent lows)
+          const isEmaBear = (emaFast <= emaSlow) && (price <= emaFast + 1.0);
+          const isEmaBull = (emaFast >= emaSlow) && (price >= emaFast - 1.0);
+
+          if (isEmaBear || (price < emaSlow && h1Bias === 'BEARISH')) {
+            trendDirection = 'BEARISH';
+            m15Structure = (price < recentLow) ? 'Bearish CHoCH (បំបែកចុះខ្លាំង)' : 'Bearish Structure (ទិសដៅធ្លាក់)';
+          } else if (isEmaBull || (price > emaSlow && h1Bias === 'BULLISH')) {
+            trendDirection = 'BULLISH';
+            m15Structure = (price > recentHigh) ? 'Bullish BOS (បំបែកឡើង)' : 'Bullish Structure (ទិសដៅឡើង)';
+          } else {
+            trendDirection = (price < emaSlow) ? 'BEARISH' : 'BULLISH';
+            m15Structure = (trendDirection === 'BEARISH') ? 'Bearish Pressure' : 'Bullish Pressure';
+          }
         } else {
-          m15Structure = (lastC.close < recentLow) ? 'Bearish CHoCH (បំបែកចុះ)' : 'Bearish Structure (ទិសដៅធ្លាក់)';
+          trendDirection = 'BEARISH';
+          h1Bias = 'BEARISH';
+          m15Structure = 'Bearish Structure';
         }
-      } else {
-        trendDirection = 'BULLISH';
-        m15Structure = 'Bullish Expansion';
-      }
 
       // 3. Analyze M5 Sniper Trigger Candle
       if (m5Candles && m5Candles.length >= 2) {
@@ -4629,34 +4612,25 @@
         const waveRangeBuy = Math.max(waveHigh - waveLow, 8.0);
 
         // Retracement down from waveHigh into Discount OTE (61.8% to 78.6%)
-        const fib618Buy = waveHigh - (waveRangeBuy * 0.618);
-        const fib786Buy = waveHigh - (waveRangeBuy * 0.786);
+        // In BUY Setup, institutional entry is strictly AT OR BELOW current price (Discount Demand / Retracement)
+        // Ensure Entry Zone is never higher than current market price, and max 2.5-3.0 USD tight sniper zone
+        const demandTop = Math.min(price, price - Math.max((price - waveLow) * 0.35, 0.8));
+        let entryHigh = Number(demandTop.toFixed(2));
+        let entryLow = Number((entryHigh - 2.80).toFixed(2));
 
-        let oteHigh = Number(fib618Buy.toFixed(2));
-        let oteLow = Number(fib786Buy.toFixed(2));
-
-        if (oteHigh < oteLow) {
-          const tmp = oteHigh; oteHigh = oteLow; oteLow = tmp;
-        }
-
-        const entryLow = oteLow.toFixed(2);
-        const entryHigh = oteHigh.toFixed(2);
-
-        // Standard Professional SMC Invalidation SL: strictly below swing low and minimum 35-45 pips below entry
-        let slVal = Math.min(Number(entryLow) - 3.8, waveLow - 2.0);
-        if (slVal >= Number(entryLow) - 3.0) {
-          slVal = Number(entryLow) - 3.8;
-        }
+        // Standard Professional SMC Invalidation SL: strictly below swing low and minimum 35 pips below entry
+        let slVal = Math.min(entryLow - 3.8, waveLow - 1.5);
+        if (slVal >= entryLow - 3.0) slVal = entryLow - 3.8;
         const sl = slVal.toFixed(2);
 
         // Take Profit Targets: TP1 >= 1:1.5 R:R, TP2 >= 1:2.5 R:R
-        const riskBuy = Math.max(Number(entryHigh) - Number(sl), 3.8);
-        const tp1Val = Math.max(waveHigh + 1.5, Number(entryHigh) + (riskBuy * 1.5));
-        const tp2Val = Number(entryHigh) + (riskBuy * 2.5);
+        const riskBuy = Math.max(entryHigh - Number(sl), 3.8);
+        const tp1Val = Math.max(waveHigh, entryHigh + (riskBuy * 1.5));
+        const tp2Val = entryHigh + (riskBuy * 2.5);
         const tp1 = tp1Val.toFixed(2);
         const tp2 = tp2Val.toFixed(2);
 
-        const inZone = (price >= Number(entryLow) && price <= Number(entryHigh));
+        const inZone = (price >= entryLow && price <= entryHigh);
         const execBadge = document.getElementById('smcExecBadge');
         const execDot = document.getElementById('smcExecDot');
         const execText = document.getElementById('smcExecText');
@@ -4865,38 +4839,29 @@
         const waveLow = (recentCandles && recentCandles.length > 0) ? Math.min(...recentCandles.map(c => c.low)) : dayLow;
         const waveRangeSell = Math.max(waveHigh - waveLow, 8.0);
 
-        // Retracement up from waveLow into Premium OTE (61.8% to 78.6%)
-        const fib618Sell = waveLow + (waveRangeSell * 0.618);
-        const fib786Sell = waveLow + (waveRangeSell * 0.786);
+        // Retracement up from waveLow into Premium Supply OTE
+        // In SELL Setup, institutional entry is strictly AT OR ABOVE current price (Premium Supply / Pullback)
+        // Traders enter when price retraces up to supply, or when rejecting resistance (tight 2.5-3.0 USD zone)
+        const supplyBottom = Math.max(price + 1.2, price + Math.max((waveHigh - price) * 0.35, 2.5));
+        let entryLow = Number(supplyBottom.toFixed(2));
+        let entryHigh = Number((entryLow + 3.00).toFixed(2));
 
-        let oteSellLow = Number(fib618Sell.toFixed(2));
-        let oteSellHigh = Number(fib786Sell.toFixed(2));
-
-        if (oteSellHigh < oteSellLow) {
-          const tmp = oteSellHigh; oteSellHigh = oteSellLow; oteSellLow = tmp;
-        }
-
-        const entryLow = oteSellLow.toFixed(2);
-        const entryHigh = oteSellHigh.toFixed(2);
-
-        // Standard Professional SMC Invalidation SL: strictly above swing high and minimum 35-45 pips above entry
-        let slVal = Math.max(Number(entryHigh) + 3.8, waveHigh + 2.0);
-        if (slVal <= Number(entryHigh) + 3.0) {
-          slVal = Number(entryHigh) + 3.8;
-        }
+        // Standard Professional SMC Invalidation SL: strictly above swing high and minimum 35 pips above entry
+        let slVal = Math.max(entryHigh + 3.8, waveHigh + 1.5);
+        if (slVal <= entryHigh + 3.0) slVal = entryHigh + 3.8;
         const sl = slVal.toFixed(2);
 
         // Take Profit Targets: TP1 >= 1:1.5 R:R, TP2 >= 1:2.5 R:R
-        const riskSell = Math.max(Number(sl) - Number(entryLow), 3.8);
-        const tp1Val = Math.min(waveLow - 1.5, Number(entryLow) - (riskSell * 1.5));
-        const tp2Val = Number(entryLow) - (riskSell * 2.5);
+        const riskSell = Math.max(Number(sl) - entryLow, 3.8);
+        const tp1Val = Math.min(waveLow, entryLow - (riskSell * 1.5));
+        const tp2Val = entryLow - (riskSell * 2.5);
         const tp1 = tp1Val.toFixed(2);
         const tp2 = tp2Val.toFixed(2);
 
         const execBadge = document.getElementById('smcExecBadge');
         const execDot = document.getElementById('smcExecDot');
         const execText = document.getElementById('smcExecText');
-        const inZone = (price >= Number(entryLow) && price <= Number(entryHigh));
+        const inZone = (price >= entryLow && price <= entryHigh);
 
         // ======================================================================
         // 🧠 AI CONFLUENCE MATRIX METER CALCULATION (SELL MODE)
@@ -5131,6 +5096,14 @@
         activeSig = JSON.parse(localStorage.getItem('ai_locked_active_signal') || 'null');
       } catch(e) { activeSig = null; }
 
+      // CRITICAL: If an active signal stored in localStorage has opposite direction from current market trend,
+      // IMMEDIATELY PURGE IT so user is never misled by an old flipped signal!
+      const currentExpectedAction = isBuy ? 'BUY' : 'SELL';
+      if (activeSig && activeSig.action !== currentExpectedAction) {
+        localStorage.removeItem('ai_locked_active_signal');
+        activeSig = null;
+      }
+
       // Check if existing active signal is expired (> 3.5 hours)
       if (activeSig) {
         const ageHours = (Date.now() - (activeSig.timestamp || 0)) / (1000 * 60 * 60);
@@ -5235,10 +5208,24 @@
         }
       }
 
-      // 3. No active trade or trade has closed -> Show Waiting state
+      // 3. No active trade or trade has closed -> Show Waiting state with precise distance to entry
       btn.className = 'signal-action-btn waiting';
       if (icon) icon.innerText = '⏳';
-      if (text) text.innerText = 'រង់ចាំ Signal ថ្មី';
+      if (isBuy) {
+        if (price > Number(entryHigh)) {
+          const waitP = (price - Number(entryHigh)).toFixed(1);
+          if (text) text.innerText = `រង់ចាំតម្លៃចុះ -$${waitP} ដល់ Entry Buy ($${entryLow} - $${entryHigh})`;
+        } else {
+          if (text) text.innerText = `រង់ចាំ Signal BUY ថ្មី`;
+        }
+      } else {
+        if (price < Number(entryLow)) {
+          const waitP = (Number(entryLow) - price).toFixed(1);
+          if (text) text.innerText = `រង់ចាំតម្លៃឡើង +$${waitP} ដល់ Entry Sell ($${entryLow} - $${entryHigh})`;
+        } else {
+          if (text) text.innerText = `រង់ចាំ Signal SELL ថ្មី`;
+        }
+      }
       btn.dataset.status = 'waiting';
 
     } catch(err) {
