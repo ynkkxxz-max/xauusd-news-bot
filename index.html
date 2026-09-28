@@ -2512,10 +2512,10 @@
       </div>
       <div class="hud-asset-box">
         <span class="hud-asset-title">Spot XAU/USD</span>
-        <span class="ws-badge" id="wsStatusBadge">⚡ LIVE 24/7</span>
+        <span class="ws-badge" id="wsStatusBadge">⚡ MT5 LIVE 24/7</span>
       </div>
     </div>
-    <div class="live-price" id="livePrice">$4,284.00</div>
+    <div class="live-price" id="livePrice">$4,133.10</div>
   </div>
 
   <!-- AI HIGH-IMPACT NEWS DANGER ZONE PROTOCOL BANNER -->
@@ -3828,7 +3828,7 @@
     // Binance PAXG is a crypto token that trades at a ~$11.20 basis premium over pure Forex Spot Gold.
     // We calibrate every tick and candle with Gold-API (Interbank Forex Spot) so the Mini App
     // exactly matches MT5 quotes ($4,119 - $4,124).
-    let spotCalibrationOffset = 11.20; // Default empirical basis
+    let spotCalibrationOffset = 7.81; // Default empirical basis
     let hasCalibratedSpot = false;
     let rawLatestPaxgTick = 0;
 
@@ -3836,31 +3836,33 @@
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 2500);
-        const res = await fetch('https://api.gold-api.com/price/XAU', { signal: controller.signal });
+        
+        const [goldRes, binanceRes] = await Promise.allSettled([
+          fetch('https://api.gold-api.com/price/XAU', { signal: controller.signal }),
+          fetch('https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT', { signal: controller.signal })
+        ]);
         clearTimeout(timeoutId);
-        if (res.ok) {
-          const data = await res.json();
-          const trueSpot = parseFloat(data.price);
-          if (trueSpot && trueSpot > 1000) {
-            if (rawLatestPaxgTick > 1000) {
-              spotCalibrationOffset = rawLatestPaxgTick - trueSpot;
-              hasCalibratedSpot = true;
-            } else {
-              try {
-                const bRes = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT');
-                if (bRes.ok) {
-                  const bData = await bRes.json();
-                  const bPrice = parseFloat(bData.price);
-                  if (bPrice > 1000) {
-                    rawLatestPaxgTick = bPrice;
-                    spotCalibrationOffset = bPrice - trueSpot;
-                    hasCalibratedSpot = true;
-                  }
-                }
-              } catch(e) {}
-            }
-            onPriceTickReceived(trueSpot);
-          }
+
+        let trueSpot = null;
+        let bPrice = null;
+
+        if (goldRes.status === 'fulfilled' && goldRes.value && goldRes.value.ok) {
+          const gData = await goldRes.value.json();
+          if (gData && gData.price && Number(gData.price) > 1000) trueSpot = parseFloat(gData.price);
+        }
+
+        if (binanceRes.status === 'fulfilled' && binanceRes.value && binanceRes.value.ok) {
+          const bData = await binanceRes.value.json();
+          if (bData && bData.price && Number(bData.price) > 1000) bPrice = parseFloat(bData.price);
+        }
+
+        if (trueSpot && bPrice) {
+          rawLatestPaxgTick = bPrice;
+          spotCalibrationOffset = Number((bPrice - trueSpot).toFixed(2));
+          hasCalibratedSpot = true;
+          onPriceTickReceived(trueSpot);
+        } else if (trueSpot) {
+          onPriceTickReceived(trueSpot);
         }
       } catch (e) {}
     }
@@ -3877,11 +3879,11 @@
 
         // Binance Spot WebSocket stream for PAXG/USDT (1:1 Troy Ounce Gold)
         // Works seamlessly on desktop and mobile webviews
-        wsConnection = new WebSocket('wss://stream.binance.com:9443/ws/paxgusdt@ticker');
+        wsConnection = new WebSocket('wss://stream.binance.com:9443/ws/paxgusdt@aggTrade');
 
         wsConnection.onopen = () => {
           if (badge) {
-            badge.innerText = '⚡ LIVE 24/7';
+            badge.innerText = '⚡ MT5 LIVE 24/7';
             badge.style.background = 'rgba(0, 230, 118, 0.15)';
             badge.style.borderColor = 'rgba(0, 230, 118, 0.4)';
             badge.style.color = '#00E676';
@@ -3892,7 +3894,7 @@
         wsConnection.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            const liveTick = parseFloat(data.c || data.p);
+            const liveTick = parseFloat(data.p || data.c);
             if (liveTick && liveTick > 1000) {
               rawLatestPaxgTick = liveTick;
               // Calibrate the live tick so it strictly matches Forex MT5 Spot Gold
@@ -5654,7 +5656,7 @@
     updateLivePrice();
 
     // Recalibrate spot basis every 10 seconds against Gold-API (Interbank Forex Spot)
-    setInterval(calibrateSpotFeed, 10000);
+    setInterval(calibrateSpotFeed, 3000);
 
     // ========================================================
     // HEARTBEAT CONNECTION PULSE (Checks every 2s, Auto-Force Refresh > 4s)
