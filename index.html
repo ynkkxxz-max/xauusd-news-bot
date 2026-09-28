@@ -3799,11 +3799,54 @@
     switchTab(initialTab);
 
     // Dynamic Live Gold Price with Ultra-Fast WebSocket & Multi-Feed Fallbacks
-    let currentLivePrice = 4284.0;
+    let currentLivePrice = 4124.0;
     let isFetchingPrice = false;
     let wsConnection = null;
     let wsReconnectTimer = null;
     let lastRenderedPrice = 0;
+    
+    // ========================================================
+    // 🎯 FOREX SPOT CALIBRATION ENGINE (BINANCE PAXG -> REAL XAU/USD)
+    // ========================================================
+    // Binance PAXG is a crypto token that trades at a ~$11.20 basis premium over pure Forex Spot Gold.
+    // We calibrate every tick and candle with Gold-API (Interbank Forex Spot) so the Mini App
+    // exactly matches MT5 quotes ($4,119 - $4,124).
+    let spotCalibrationOffset = 11.20; // Default empirical basis
+    let hasCalibratedSpot = false;
+    let rawLatestPaxgTick = 0;
+
+    async function calibrateSpotFeed() {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
+        const res = await fetch('https://api.gold-api.com/price/XAU', { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (res.ok) {
+          const data = await res.json();
+          const trueSpot = parseFloat(data.price);
+          if (trueSpot && trueSpot > 1000) {
+            if (rawLatestPaxgTick > 1000) {
+              spotCalibrationOffset = rawLatestPaxgTick - trueSpot;
+              hasCalibratedSpot = true;
+            } else {
+              try {
+                const bRes = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT');
+                if (bRes.ok) {
+                  const bData = await bRes.json();
+                  const bPrice = parseFloat(bData.price);
+                  if (bPrice > 1000) {
+                    rawLatestPaxgTick = bPrice;
+                    spotCalibrationOffset = bPrice - trueSpot;
+                    hasCalibratedSpot = true;
+                  }
+                }
+              } catch(e) {}
+            }
+            onPriceTickReceived(trueSpot);
+          }
+        }
+      } catch (e) {}
+    }
 
     // Millisecond-Precision Real-Time WebSocket Engine
     function initWebSocketPriceFeed() {
@@ -3834,7 +3877,10 @@
             const data = JSON.parse(event.data);
             const liveTick = parseFloat(data.c || data.p);
             if (liveTick && liveTick > 1000) {
-              onPriceTickReceived(liveTick);
+              rawLatestPaxgTick = liveTick;
+              // Calibrate the live tick so it strictly matches Forex MT5 Spot Gold
+              const realSpotTick = liveTick - spotCalibrationOffset;
+              onPriceTickReceived(realSpotTick);
             }
           } catch(err) {}
         };
@@ -3911,39 +3957,25 @@
       isFetchingPrice = true;
       let fetchedPrice = null;
 
-      // Feed 1: Swissquote Institutional Bullion Bank (Interbank Spot Feed)
+      // Feed 1: Gold-API Aggregated Spot (Sub-second global CDN, CORS enabled, pure XAU/USD)
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
-        const res = await fetch('https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/XAU/USD', { signal: controller.signal });
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
+        const res = await fetch('https://api.gold-api.com/price/XAU', { signal: controller.signal });
         clearTimeout(timeoutId);
         if (res.ok) {
-          const quotes = await res.json();
-          if (quotes && quotes[0] && quotes[0].spreadProfilePrices && quotes[0].spreadProfilePrices[0]) {
-            const p = quotes[0].spreadProfilePrices[0];
-            const mid = (parseFloat(p.bid) + parseFloat(p.ask)) / 2.0;
-            if (mid > 1000) fetchedPrice = mid;
+          const data = await res.json();
+          if (data && data.price && Number(data.price) > 1000) {
+            fetchedPrice = parseFloat(data.price);
+            if (rawLatestPaxgTick > 1000) {
+              spotCalibrationOffset = rawLatestPaxgTick - fetchedPrice;
+              hasCalibratedSpot = true;
+            }
           }
         }
       } catch (e) {}
 
-      // Feed 2: Gold-API Aggregated Spot (Sub-second global CDN)
-      if (!fetchedPrice) {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 2000);
-          const res = await fetch('https://api.gold-api.com/price/XAU', { signal: controller.signal });
-          clearTimeout(timeoutId);
-          if (res.ok) {
-            const data = await res.json();
-            if (data && data.price && Number(data.price) > 1000) {
-              fetchedPrice = parseFloat(data.price);
-            }
-          }
-        } catch (e) {}
-      }
-
-      // Feed 3: Binance PAXG/USDT (1:1 Troy Ounce Gold)
+      // Feed 2: Binance PAXG/USDT (calibrated with spot offset)
       if (!fetchedPrice) {
         try {
           const controller = new AbortController();
@@ -3953,7 +3985,27 @@
           if (res.ok) {
             const data = await res.json();
             if (data && data.price && Number(data.price) > 1000) {
-              fetchedPrice = parseFloat(data.price);
+              const bPrice = parseFloat(data.price);
+              rawLatestPaxgTick = bPrice;
+              fetchedPrice = bPrice - spotCalibrationOffset;
+            }
+          }
+        } catch (e) {}
+      }
+
+      // Feed 3: Swissquote Institutional Bullion Bank (Interbank Spot Feed)
+      if (!fetchedPrice) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
+          const res = await fetch('https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/XAU/USD', { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (res.ok) {
+            const quotes = await res.json();
+            if (quotes && quotes[0] && quotes[0].spreadProfilePrices && quotes[0].spreadProfilePrices[0]) {
+              const p = quotes[0].spreadProfilePrices[0];
+              const mid = (parseFloat(p.bid) + parseFloat(p.ask)) / 2.0;
+              if (mid > 1000) fetchedPrice = mid;
             }
           }
         } catch (e) {}
@@ -3991,6 +4043,7 @@
       }
 
       // Reconnect WebSocket or poll
+      calibrateSpotFeed();
       initWebSocketPriceFeed();
       updateLivePrice().finally(() => {
         setTimeout(() => {
@@ -4023,12 +4076,14 @@
           if (res.status === 'fulfilled' && res.value.ok) {
             const data = await res.value.json();
             if (Array.isArray(data)) {
+              // Strictly calibrate candles with the spot offset so SMC levels, entry, SL, TP match MT5
+              const offset = spotCalibrationOffset || 0;
               return data.map(k => ({
                 openTime: k[0],
-                open: parseFloat(k[1]),
-                high: parseFloat(k[2]),
-                low: parseFloat(k[3]),
-                close: parseFloat(k[4]),
+                open: parseFloat(k[1]) - offset,
+                high: parseFloat(k[2]) - offset,
+                low: parseFloat(k[3]) - offset,
+                close: parseFloat(k[4]) - offset,
                 volume: parseFloat(k[5])
               }));
             }
@@ -5321,15 +5376,16 @@
         if (res.ok) {
           const data = await res.json();
           if (data.bids && data.asks && data.bids.length > 0 && data.asks.length > 0) {
+            const offset = spotCalibrationOffset || 0;
             bidItems = data.bids.map(b => {
-              const price = parseFloat(b[0]);
+              const price = parseFloat(b[0]) - offset;
               const qty = parseFloat(b[1]);
               totalBidVol += qty;
               return { price, qty };
             });
 
             askItems = data.asks.map(a => {
-              const price = parseFloat(a[0]);
+              const price = parseFloat(a[0]) - offset;
               const qty = parseFloat(a[1]);
               totalAskVol += qty;
               return { price, qty };
@@ -5519,9 +5575,13 @@
       }
     }
 
-    // Initialize Millisecond WebSocket Feed immediately
+    // Calibrate and Initialize Millisecond WebSocket Feed immediately
+    calibrateSpotFeed();
     initWebSocketPriceFeed();
     updateLivePrice();
+
+    // Recalibrate spot basis every 10 seconds against Gold-API (Interbank Forex Spot)
+    setInterval(calibrateSpotFeed, 10000);
 
     // ========================================================
     // HEARTBEAT CONNECTION PULSE (Checks every 2s, Auto-Force Refresh > 4s)
