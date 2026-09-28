@@ -3092,16 +3092,16 @@
     <div class="section-card">
       <div class="section-title-row">
         <div class="section-title">🛑 ចម្ងាយ Stop Loss ($ ឬ Pips)</div>
-        <div class="section-value" id="valSL">$10.0 (100 Pips)</div>
+        <div class="section-value" id="valSL">$4.0 (40 Pips)</div>
       </div>
       <div class="slider-container">
-        <input type="range" id="sliderSL" min="3" max="30" step="1" value="10">
+        <input type="range" id="sliderSL" min="2" max="20" step="0.5" value="4">
       </div>
       <div class="preset-group">
-        <button class="preset-btn" onclick="setSL(6)">$6.0 (60p)</button>
-        <button class="preset-btn active" id="btnSL10" onclick="setSL(10)">$10 (100p)</button>
-        <button class="preset-btn" onclick="setSL(15)">$15 (150p)</button>
-        <button class="preset-btn" onclick="setSL(20)">$20 (200p)</button>
+        <button class="preset-btn active" id="btnSL_SMC" onclick="setSL(currentSMC_SLDistance)">🎯 តាម SMC ($4.0)</button>
+        <button class="preset-btn" id="btnSL35" onclick="setSL(3.5)">$3.5 (35p)</button>
+        <button class="preset-btn" id="btnSL50" onclick="setSL(5.0)">$5.0 (50p)</button>
+        <button class="preset-btn" id="btnSL80" onclick="setSL(8.0)">$8.0 (80p)</button>
       </div>
     </div>
 
@@ -4836,8 +4836,11 @@
       }
 
       // Update current dynamic SL distance for Auto-Lot Calculator
-      const dynamicSLVal = Math.abs(price - Number(sl));
-      currentSMC_SLDistance = dynamicSLVal > 1.0 ? dynamicSLVal : 10.0;
+      const entryRef = isBuy ? Number(entryLow) : Number(entryHigh);
+      const dynamicSLVal = Math.abs(entryRef - Number(sl));
+      currentSMC_SLDistance = (dynamicSLVal >= 1.5 && dynamicSLVal <= 10.0) ? Number(dynamicSLVal.toFixed(1)) : 4.0;
+      const btnSMC = document.getElementById('btnSL_SMC');
+      if (btnSMC) btnSMC.innerText = `🎯 តាម SMC ($${currentSMC_SLDistance.toFixed(1)})`;
       updateAutoLotWidget();
     } catch (err) {
       console.warn('[updateDynamicSMC] caught error safely:', err);
@@ -5105,7 +5108,7 @@
     // ==========================================
     // PERSONALIZED AUTO-LOT CALCULATION LOGIC
     // ==========================================
-    let currentSMC_SLDistance = 12.0; // Dynamic SL distance in $
+    let currentSMC_SLDistance = 4.0; // Dynamic SL distance in $
     let autoCapital = 1000;
     let autoRiskPct = 1.0;
 
@@ -5124,7 +5127,7 @@
     } catch(e) {}
 
     function updateAutoLotWidget() {
-      const slDist = currentSMC_SLDistance > 0.5 ? currentSMC_SLDistance : 10.0;
+      const slDist = (currentSMC_SLDistance >= 1.5 && currentSMC_SLDistance <= 15.0) ? currentSMC_SLDistance : 4.0;
       const riskUsd = autoCapital * (autoRiskPct / 100.0);
       
       // XAU/USD Lot Formula: 1 Standard Lot ($100 / $1.00 move)
@@ -5197,7 +5200,7 @@
     // LOT CALCULATOR LOGIC (Tab 3)
     let balance = 1000;
     let riskPct = 1.0;
-    let slDistance = 10.0;
+    let slDistance = 4.0;
 
     const sliderBal = document.getElementById('sliderBal');
     const sliderRisk = document.getElementById('sliderRisk');
@@ -5230,11 +5233,21 @@
       const tpUsd = riskUsd * 1.5;
       resTpUsd.innerText = '+$' + tpUsd.toFixed(2);
 
-      // Sync active state of preset buttons ($10, $50, $100, $1000, $5000)
+      // Sync active state of balance preset buttons ($10, $50, $100, $1000, $5000)
       ['10', '50', '100', '1000', '5000'].forEach(b => {
         const btn = document.getElementById('btnBal' + b);
         if (btn) btn.classList.toggle('active', balance === Number(b));
       });
+
+      // Sync active state of SL presets
+      const btnSMC = document.getElementById('btnSL_SMC');
+      if (btnSMC) btnSMC.classList.toggle('active', Math.abs(slDistance - currentSMC_SLDistance) < 0.1);
+      const btn35 = document.getElementById('btnSL35');
+      if (btn35) btn35.classList.toggle('active', Math.abs(slDistance - 3.5) < 0.1 && Math.abs(slDistance - currentSMC_SLDistance) >= 0.1);
+      const btn50 = document.getElementById('btnSL50');
+      if (btn50) btn50.classList.toggle('active', Math.abs(slDistance - 5.0) < 0.1);
+      const btn80 = document.getElementById('btnSL80');
+      if (btn80) btn80.classList.toggle('active', Math.abs(slDistance - 8.0) < 0.1);
     }
 
     sliderBal.addEventListener('input', (e) => {
