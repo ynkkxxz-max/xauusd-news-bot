@@ -640,13 +640,12 @@ class XAUUSDNewsAssistantBot:
                 ]
             }
 
-            # 3-Button Clean Custom Keyboard directly at the bottom (Price, SMC, and AI)
+            # 2-Button Clean Custom Keyboard directly at the bottom (Price & SMC)
             bottom_keyboard = {
                 "keyboard": [
                     [
                         {"text": "Price"},
-                        {"text": "SMC", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=120&tab=smc"}},
-                        {"text": "🤖 សួរ AI"}
+                        {"text": "SMC", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=120&tab=smc"}}
                     ]
                 ],
                 "resize_keyboard": True,
@@ -692,38 +691,11 @@ class XAUUSDNewsAssistantBot:
                         self.notifier.send_message(resp, chat_id=cb_chat_id, reply_markup=lot_calculator_inline_buttons)
                 continue
 
-            # 2. Handle Text Messages, WebApp Data, or Photo Uploads
+            # 2. Handle Text Messages or WebApp Data
             msg_obj = u.get("message", {})
             chat_id = msg_obj.get("chat", {}).get("id")
             web_app_data = msg_obj.get("web_app_data", {}).get("data", "")
             text = (web_app_data or msg_obj.get("text") or "").strip()
-            photos = msg_obj.get("photo", [])
-
-            # Handle AI Multimodal Computer Vision for User Chart Uploads
-            if photos and chat_id:
-                caption = msg_obj.get("caption", "").strip()
-                largest_photo = photos[-1]
-                file_id = largest_photo.get("file_id")
-                if file_id:
-                    self.notifier.send_message("🔍 <i>AI Computer Vision កំពុងពិនិត្យ Candlestick Chart, ទម្រង់ SMC និងតំបន់គន្លឹះ Liquidity...</i>", chat_id=chat_id)
-                    img_bytes = self.notifier.get_file_bytes(file_id)
-                    if img_bytes and len(img_bytes) > 500:
-                        price_data = self.gold_collector.fetch_price()
-                        levels = price_data.get("key_levels", {})
-                        oz = price_data.get("price_oz", 0.0)
-                        vision_res = self.analyzer.analyze_user_chart_image(
-                            image_bytes=img_bytes,
-                            caption=caption,
-                            current_price=oz,
-                            key_levels=levels,
-                            mime_type="image/jpeg"
-                        )
-                        reply_chart = KhmerFormatter.format_ai_chart_vision_response(vision_res, price_data=price_data)
-                        self.notifier.send_message(reply_chart, chat_id=chat_id, reply_markup=bottom_keyboard)
-                        continue
-                    else:
-                        self.notifier.send_message("⚠️ មិនអាចទាញយករូបភាពបានទេ។ សូមសាកល្បងផ្ញើម្តងទៀត។", chat_id=chat_id, reply_markup=bottom_keyboard)
-                        continue
 
             if not text or not chat_id:
                 continue
@@ -742,50 +714,7 @@ class XAUUSDNewsAssistantBot:
             # Command routing
             clean_cmd = text.split()[0].lower()
 
-            if clean_cmd in ("/ai", "/ask", "ai", "ask") or text == "🤖 សួរ AI" or "សួរ ai" in text.lower():
-                user_q = ""
-                if clean_cmd in ("/ai", "/ask", "ai", "ask") and len(text.split()) > 1:
-                    user_q = text.split(" ", 1)[1].strip()
-                elif text != "🤖 សួរ AI" and "សួរ ai" in text.lower():
-                    user_q = text.replace("🤖", "").replace("សួរ ai", "").replace("សួរ AI", "").strip()
-
-                if not user_q:
-                    msg_ai_help = (
-                        "🤖 <b>XAUUSD INSTITUTIONAL AI ASSISTANT</b> ⚡\n\n"
-                        "លោកអ្នកអាចជជែកសួរនាំ ឬផ្ញើរូបភាពមកកាន់ AI បានគ្រប់ពេល៖\n\n"
-                        "1. 💬 <b>សួរសំណួរទីផ្សារ (AI Q&A):</b>\n"
-                        "   • វាយ <code>/ai [សំណួររបស់អ្នក]</code> ឬវាយសួរសំណួរផ្ទាល់នៅទីនេះ\n"
-                        "   • ឧទាហរណ៍៖ <code>/ai តើគួរ Buy ឬ Sell មាសនៅពេលនេះ?</code>\n"
-                        "   • ឧទាហរណ៍៖ <code>/ai តើ CPI យប់នេះអាចធ្វើឱ្យមាសឡើង ឬចុះ?</code>\n"
-                        "   • ឧទាហរណ៍៖ <code>/ai ហេតុអ្វីបានជា DXY ឡើងតែមាសមិនព្រមចុះ?</code>\n\n"
-                        "2. 📸 <b>វិភាគរូបភាព Chart (Vision Scanner):</b>\n"
-                        "   • គ្រាន់តែ <b>ផ្ញើរូបភាព Screenshot នៃ Chart</b> (TradingView, MT4, MT5) ចូលក្នុងឆាតនេះ\n"
-                        "   • AI Vision នឹងស្កេនពិនិត្យ Candlestick, FVG, Liquidity Sweeps និងគណនា Entry/SL/TP ជូនភ្លាមៗ!"
-                    )
-                    self.notifier.send_message(msg_ai_help, chat_id=chat_id, reply_markup=bottom_keyboard)
-                else:
-                    self.notifier.send_message("🧠 <i>AI Assistant កំពុងដំណើរការវិភាគស៊ីជម្រៅ សូមរង់ចាំមួយភ្លែត...</i>", chat_id=chat_id)
-                    price_data = self.gold_collector.fetch_price()
-                    levels = price_data.get("key_levels", {})
-                    oz = price_data.get("price_oz", 0.0)
-                    chg_pct = price_data.get("change_pct", 0.0)
-                    macro = self.macro_collector.fetch_macro_correlations()
-
-                    market_ctx = {
-                        "price_oz": oz,
-                        "change_pct": chg_pct,
-                        "pivot": levels.get("pivot", 0.0),
-                        "r1": levels.get("r1", 0.0),
-                        "s1": levels.get("s1", 0.0),
-                        "dxy": macro.get("dxy_price", "N/A"),
-                        "us10y": macro.get("us10y_yield", "N/A"),
-                        "next_news": "តាមដានប្រតិទិនសេដ្ឋកិច្ច USD"
-                    }
-                    ai_answer = self.analyzer.answer_user_query(user_q, market_context=market_ctx)
-                    final_resp = KhmerFormatter.format_ai_chat_response(user_q, ai_answer, price_data=price_data)
-                    self.notifier.send_message(final_resp, chat_id=chat_id, reply_markup=bottom_keyboard)
-
-            elif clean_cmd in ("/stats", "/winrate", "stats", "winrate") or "ស្ថិតិ" in text:
+            if clean_cmd in ("/stats", "/winrate", "stats", "winrate") or "ស្ថិតិ" in text:
                 stats = database.get_overall_signal_vote_stats()
                 resp = KhmerFormatter.format_signal_stats(stats)
                 self.notifier.send_message(resp, chat_id=chat_id, reply_markup=bottom_keyboard)
@@ -1100,41 +1029,14 @@ class XAUUSDNewsAssistantBot:
                     cot_data = self.cot_collector.fetch_gold_cot()
                     resp = KhmerFormatter.format_cot_report(cot_data)
                     self.notifier.send_message(resp, chat_id=chat_id, reply_markup=bottom_keyboard)
-                elif clean_cmd in ("/help", "/start", "help", "start") or "ជំនួយ" in text:
+                else:
                     help_text = (
                         f"👋 <b>សូមស្វាគមន៍មកកាន់ XAUUSD AI Assistant!</b>\n\n"
-                        f"លោកអ្នកអាចចុចប៊ូតុងខាងក្រោម ឬប្រើប្រាស់មុខងារ AI ឆ្លាតវៃ៖\n"
+                        f"សូមជ្រើសរើសចុចប៊ូតុងខាងក្រោម៖\n"
                         f"• <b>[ Price ]</b> ➡️ មើលហាងឆេងមាស Spot និងផ្សារធំថ្មីបច្ចុប្បន្ន\n"
-                        f"• <b>[ SMC ]</b> ➡️ បើក Mini App មើល AI Setup & Quantum Chart\n"
-                        f"• <b>[ 🤖 សួរ AI ]</b> ➡️ សួរសំណួរ ឬផ្ញើរូប Chart មកកាន់ AI\n\n"
-                        f"⚡ <b>មុខងារ AI ពិសេសៗ៖</b>\n"
-                        f"• <code>/ai [សំណួរ]</code> ➡️ សួរនាំទីផ្សារមាស (AI ឆ្លើយតបស៊ីជម្រៅជាភាសាខ្មែរ)\n"
-                        f"• 📸 <b>ផ្ញើរូបភាព Chart</b> ➡️ AI Computer Vision ស្កេនពិនិត្យ Candlestick & Entry/SL/TP\n"
-                        f"• <code>/lot 1000 1 10</code> ➡️ គណនាទំហំ Lot Size តាមដើមទុន និង Risk Management"
+                        f"• <b>[ SMC ]</b> ➡️ មើលកម្រិតបច្ចេកទេស AI Pivot & SMC Setup Zone"
                     )
                     self.notifier.send_message(help_text, chat_id=chat_id, reply_markup=bottom_keyboard)
-                else:
-                    # Treat ANY free text message as a direct question to the AI Assistant!
-                    self.notifier.send_message("🧠 <i>AI Assistant កំពុងដំណើរការវិភាគស៊ីជម្រៅ សូមរង់ចាំមួយភ្លែត...</i>", chat_id=chat_id)
-                    price_data = self.gold_collector.fetch_price()
-                    levels = price_data.get("key_levels", {})
-                    oz = price_data.get("price_oz", 0.0)
-                    chg_pct = price_data.get("change_pct", 0.0)
-                    macro = self.macro_collector.fetch_macro_correlations()
-
-                    market_ctx = {
-                        "price_oz": oz,
-                        "change_pct": chg_pct,
-                        "pivot": levels.get("pivot", 0.0),
-                        "r1": levels.get("r1", 0.0),
-                        "s1": levels.get("s1", 0.0),
-                        "dxy": macro.get("dxy_price", "N/A"),
-                        "us10y": macro.get("us10y_yield", "N/A"),
-                        "next_news": "តាមដានប្រតិទិនសេដ្ឋកិច្ច USD"
-                    }
-                    ai_answer = self.analyzer.answer_user_query(text, market_context=market_ctx)
-                    final_resp = KhmerFormatter.format_ai_chat_response(text, ai_answer, price_data=price_data)
-                    self.notifier.send_message(final_resp, chat_id=chat_id, reply_markup=bottom_keyboard)
 
 
 
