@@ -1242,6 +1242,52 @@
       transform: scale(0.98);
     }
 
+    /* Futuristic Cyber Blessing Running Marquee */
+    .cyber-blessing-marquee {
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      height: 48px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .marquee-track-wrapper {
+      overflow: hidden;
+      white-space: nowrap;
+      display: flex;
+      flex: 1;
+      mask-image: linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%);
+    }
+
+    .marquee-content {
+      display: flex;
+      flex-shrink: 0;
+      white-space: nowrap;
+      animation: marqueeRunning 24s linear infinite;
+      font-weight: 800;
+      font-size: 13.5px;
+      color: #0B0E14;
+      letter-spacing: 0.3px;
+    }
+
+    .marquee-content:hover,
+    .marquee-content:active {
+      animation-play-state: paused;
+    }
+
+    @keyframes marqueeRunning {
+      0% {
+        transform: translateX(0%);
+      }
+      100% {
+        transform: translateX(-50%);
+      }
+    }
+
     /* Liquidity Heatmap Radar Card Styles */
     .radar-card {
       background: linear-gradient(135deg, rgba(16, 22, 36, 0.95) 0%, rgba(10, 14, 24, 0.98) 100%);
@@ -2753,10 +2799,15 @@
       </div>
     </div>
 
-    <button class="apply-btn" onclick="sendSMCPlanToBot()" style="letter-spacing: 0.5px; font-weight: 800;">
-      <span class="cyber-badge-dot" style="background: #00F0FF; color: #00F0FF; margin-right: 6px;"></span>
-      <span>🌟 ជូនពរសំណាងល្អ និងជោគជ័យក្នុងការជួញដូរ</span>
-    </button>
+    <div class="apply-btn cyber-blessing-marquee" onclick="sendSMCPlanToBot()" role="button" tabindex="0">
+      <span class="cyber-badge-dot" style="background: #0B0E14; box-shadow: 0 0 6px rgba(0,0,0,0.5); flex-shrink: 0; margin-right: 10px;"></span>
+      <div class="marquee-track-wrapper">
+        <div class="marquee-content">
+          <span>🌟 ជូនពរសំណាងល្អ និងជោគជ័យក្នុងការជួញដូរ • HAPPY TRADING &amp; MAXIMUM PROFITS 🚀 • 💎 រក្សាដើមទុន និងគ្រប់គ្រងហានិភ័យបានល្អ STRICT RISK DISCIPLINE • 🏆 សូមឱ្យគ្រប់ ORDER ឈានដល់ TAKE PROFIT 🎯 •&nbsp;&nbsp;&nbsp;</span>
+          <span>🌟 ជូនពរសំណាងល្អ និងជោគជ័យក្នុងការជួញដូរ • HAPPY TRADING &amp; MAXIMUM PROFITS 🚀 • 💎 រក្សាដើមទុន និងគ្រប់គ្រងហានិភ័យបានល្អ STRICT RISK DISCIPLINE • 🏆 សូមឱ្យគ្រប់ ORDER ឈានដល់ TAKE PROFIT 🎯 •&nbsp;&nbsp;&nbsp;</span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ============================================== -->
