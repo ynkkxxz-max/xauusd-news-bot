@@ -198,4 +198,27 @@ class TelegramNotifier:
             logger.error(f"[TelegramNotifier] Exception sending poll: {e}")
             return {"ok": False, "error": str(e)}
 
+    def get_file_bytes(self, file_id: str) -> bytes:
+        """Downloads a file (e.g. photo) from Telegram servers using getFile API."""
+        if not self.is_configured() or not file_id:
+            return b""
+        try:
+            url = f"{self.base_url}/getFile"
+            resp = requests.get(url, params={"file_id": file_id}, timeout=10)
+            data = resp.json()
+            if not data.get("ok"):
+                logger.error(f"[TelegramNotifier] getFile error: {data}")
+                return b""
+            file_path = data.get("result", {}).get("file_path")
+            if not file_path:
+                return b""
+            download_url = f"https://api.telegram.org/file/bot{self.bot_token}/{file_path}"
+            f_resp = requests.get(download_url, timeout=25)
+            if f_resp.status_code == 200:
+                return f_resp.content
+            logger.error(f"[TelegramNotifier] Error downloading file bytes: HTTP {f_resp.status_code}")
+        except Exception as e:
+            logger.error(f"[TelegramNotifier] Exception downloading file: {e}")
+        return b""
+
 
