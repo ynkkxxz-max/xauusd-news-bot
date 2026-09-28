@@ -2153,9 +2153,9 @@
   <div class="cyber-top-bar">
     <!-- ⏳ 1. Next High-Impact News / Market Open Countdown Badge -->
     <div class="cyber-top-pill" id="topNewsCountdownPill" onclick="scrollToNewsDanger()" title="High-Impact USD News Countdown">
-      <div style="display: flex; align-items: center; gap: 4px; overflow: hidden; white-space: nowrap;">
+      <div style="display: flex; align-items: center; gap: 5px; white-space: nowrap;">
         <span class="pulse" id="newsPulseDot" style="width: 6px; height: 6px; background: #FFB300; box-shadow: 0 0 8px #FFB300; flex-shrink: 0;"></span>
-        <span style="font-size: 10px; font-weight: 800; color: #FFB300; letter-spacing: 0.3px; text-shadow: 0 0 6px rgba(255, 179, 0, 0.4); text-overflow: ellipsis; overflow: hidden;" id="newsCountdownTitle">🔒 OPEN</span>
+        <span style="font-size: 10px; font-weight: 800; color: #FFB300; letter-spacing: 0.3px; text-shadow: 0 0 6px rgba(255, 179, 0, 0.4); white-space: nowrap;" id="newsCountdownTitle">NY OPEN</span>
       </div>
       <span style="font-size: 9.5px; font-weight: 700; color: #FFF; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 179, 0, 0.3); padding: 2px 5px; border-radius: 5px; font-variant-numeric: tabular-nums; flex-shrink: 0;" id="newsCountdownTimer">--:--:--</span>
     </div>
@@ -2265,7 +2265,7 @@
     <div class="smc-hero-box" id="smcHeroBox">
       <div class="smc-badge" id="smcBadge">AI Institutional Bias</div>
       <div class="smc-direction" id="smcDirection">⚡ កំពុងគណនាទិសដៅស្ថាប័ន...</div>
-      <div id="smcWinRate" class="smc-winrate-tag">🎯 ប្រូបាប៊ីលីតេឈ្នះ: --% | កំពុងផ្ទៀងផ្ទាត់...</div>
+      <div id="smcWinRate" class="smc-winrate-tag">ភាគរយឈ្នះ AI (Win Rate): --% | កំពុងផ្ទៀងផ្ទាត់...</div>
       
       <div id="smcExecBadge" class="smc-exec-badge waiting">
         <span id="smcExecDot">🟡</span> <span id="smcExecText">កំពុងទាញទិន្នន័យផ្សារ Live...</span>
@@ -2550,7 +2550,7 @@
       </div>
       
       <div class="smc-direction" id="tvHeroDirection" style="font-size: 22px; color: var(--gold);">⚡ កំពុងវិភាគរចនាសម្ព័ន្ធទីផ្សារ...</div>
-      <div id="tvHeroWinRate" class="smc-winrate-tag" style="margin-bottom: 8px;">🎯 ភាគរយឈ្នះ: --% | កំពុងផ្ទៀងផ្ទាត់...</div>
+      <div id="tvHeroWinRate" class="smc-winrate-tag" style="margin-bottom: 8px;">ភាគរយឈ្នះ AI (Win Rate): --% | កំពុងផ្ទៀងផ្ទាត់...</div>
       <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
         ផែនការចូល Order លើក្រាហ្វិក — ផ្ទៀងផ្ទាត់ទៀន M15/M5 មុនចូលទីផ្សារ
       </div>
@@ -3316,16 +3316,16 @@
 
       if (titleEl) {
         if (nextHighImpactNews.isWeekend) {
-          titleEl.innerText = '🔒 OPEN';
+          titleEl.innerText = 'MARKET OPEN';
           titleEl.style.color = 'var(--gold)';
         } else if (nextHighImpactNews.isNews) {
-          titleEl.innerText = '🔴 ' + shortTitle;
+          titleEl.innerText = shortTitle;
           titleEl.style.color = '#FF3366';
         } else if (nextHighImpactNews.isActive) {
-          titleEl.innerText = '⚡ NY LIVE';
+          titleEl.innerText = 'NY LIVE';
           titleEl.style.color = '#00E676';
         } else {
-          titleEl.innerText = '🗽 ' + shortTitle;
+          titleEl.innerText = shortTitle;
           titleEl.style.color = '#00E676';
         }
       }
@@ -4310,10 +4310,10 @@
       const tvEntryLabel = document.getElementById('tvChartEntryLabel');
 
       if (winRateEl) {
-        winRateEl.innerHTML = `🎯 ភាគរយឈ្នះ AI (Win Rate): <b>${winRate}%</b> | រចនាសម្ព័ន្ធ: ${isBuy ? 'Bullish Expansion' : 'Bearish CHoCH (ធ្លាក់ខ្លាំង)'}`;
+        winRateEl.innerHTML = `ភាគរយឈ្នះ AI (Win Rate): <b>${winRate}%</b> | រចនាសម្ព័ន្ធ: ${isBuy ? 'Bullish Expansion' : 'Bearish CHoCH (ធ្លាក់ខ្លាំង)'}`;
       }
       if (tvWinRateEl) {
-        tvWinRateEl.innerHTML = `🎯 ភាគរយឈ្នះ AI: <b>${winRate}%</b> | ${isBuy ? 'Bullish Structure' : 'Bearish Structure'}`;
+        tvWinRateEl.innerHTML = `ភាគរយឈ្នះ AI: <b>${winRate}%</b> | ${isBuy ? 'Bullish Structure' : 'Bearish Structure'}`;
       }
 
       if (isBuy) {
@@ -4435,7 +4435,7 @@
         if (inZone) {
           if (execBadge) execBadge.className = 'smc-exec-badge ready';
           if (execDot) execDot.innerText = '🟢';
-          if (execText) execText.innerText = '⚡ READY TO BUY (តម្លៃដល់តំបន់ទិញហើយ)';
+          if (execText) execText.innerText = 'READY TO BUY (តម្លៃដល់តំបន់ទិញហើយ)';
           if (sniperAlertEl) {
             const wasHidden = (sniperAlertEl.style.display === 'none' || sniperAlertEl.style.display === '');
             sniperAlertEl.style.display = isSniperSafe ? 'block' : 'none';
@@ -4451,12 +4451,12 @@
           if (execBadge) execBadge.className = 'smc-exec-badge waiting';
           if (execDot) execDot.innerText = '🟡';
           const waitPips = (price - Number(entryHigh)).toFixed(1);
-          if (execText) execText.innerText = `⏳ WAITING OTE 0.618 (រង់ចាំចុះ $${waitPips} ទៀត)`;
+          if (execText) execText.innerText = `WAITING OTE 0.618 (រង់ចាំចុះ $${waitPips} ទៀត)`;
           if (sniperAlertEl) sniperAlertEl.style.display = 'none';
         } else {
           if (execBadge) execBadge.className = 'smc-exec-badge ready';
           if (execDot) execDot.innerText = '🟢';
-          if (execText) execText.innerText = '⚡ DEEP DISCOUNT BUY (តំបន់បញ្ចុះតម្លៃពិសេស)';
+          if (execText) execText.innerText = 'DEEP DISCOUNT BUY (តំបន់បញ្ចុះតម្លៃពិសេស)';
           if (sniperAlertEl) {
             sniperAlertEl.style.display = isSniperSafe ? 'block' : 'none';
             if (sniperAlertDesc) sniperAlertDesc.innerText = `តម្លៃធ្លាក់ចុះដល់តំបន់ Discount ជ្រៅ ($${price.toFixed(2)}) ស្ថាប័នធំៗត្រៀមស្រូបយកទិញ!`;
@@ -4525,18 +4525,18 @@
         const tvHeroStatusEl = document.getElementById('tvHeroLiveStatus');
         if (tvHeroStatusEl) {
           if (inZone) {
-            tvHeroStatusEl.innerText = '⚡ READY TO BUY';
+            tvHeroStatusEl.innerText = 'READY TO BUY';
             tvHeroStatusEl.style.color = '#00E676';
             tvHeroStatusEl.style.borderColor = '#00E676';
             tvHeroStatusEl.style.background = 'rgba(0, 230, 118, 0.2)';
           } else if (price > Number(entryHigh)) {
             const waitP = (price - Number(entryHigh)).toFixed(1);
-            tvHeroStatusEl.innerText = `⏳ WAITING PULLBACK (-$${waitP})`;
+            tvHeroStatusEl.innerText = `WAITING PULLBACK (-$${waitP})`;
             tvHeroStatusEl.style.color = 'var(--gold)';
             tvHeroStatusEl.style.borderColor = 'rgba(255, 215, 0, 0.3)';
             tvHeroStatusEl.style.background = 'rgba(255, 215, 0, 0.15)';
           } else {
-            tvHeroStatusEl.innerText = '⚡ DEEP DISCOUNT BUY';
+            tvHeroStatusEl.innerText = 'DEEP DISCOUNT BUY';
             tvHeroStatusEl.style.color = 'var(--bull)';
             tvHeroStatusEl.style.borderColor = 'rgba(0, 230, 118, 0.3)';
             tvHeroStatusEl.style.background = 'rgba(0, 230, 118, 0.15)';
@@ -4662,7 +4662,7 @@
         if (inZone) {
           if (execBadge) execBadge.className = 'smc-exec-badge ready';
           if (execDot) execDot.innerText = '🟢';
-          if (execText) execText.innerText = '⚡ READY TO SELL (តម្លៃដល់តំបន់លក់ហើយ)';
+          if (execText) execText.innerText = 'READY TO SELL (តម្លៃដល់តំបន់លក់ហើយ)';
           if (sniperAlertEl) {
             const wasHidden = (sniperAlertEl.style.display === 'none' || sniperAlertEl.style.display === '');
             sniperAlertEl.style.display = isSniperSafe ? 'block' : 'none';
@@ -4678,12 +4678,12 @@
           if (execBadge) execBadge.className = 'smc-exec-badge waiting';
           if (execDot) execDot.innerText = '🟡';
           const waitPips = (Number(entryLow) - price).toFixed(1);
-          if (execText) execText.innerText = `⏳ WAITING OTE 0.618 (រង់ចាំឡើង $${waitPips} ទៀត)`;
+          if (execText) execText.innerText = `WAITING OTE 0.618 (រង់ចាំឡើង $${waitPips} ទៀត)`;
           if (sniperAlertEl) sniperAlertEl.style.display = 'none';
         } else {
           if (execBadge) execBadge.className = 'smc-exec-badge ready';
           if (execDot) execDot.innerText = '🟢';
-          if (execText) execText.innerText = '⚡ HIGH PREMIUM SELL (តំបន់លក់បានថ្លៃខ្ពស់)';
+          if (execText) execText.innerText = 'HIGH PREMIUM SELL (តំបន់លក់បានថ្លៃខ្ពស់)';
           if (sniperAlertEl) {
             sniperAlertEl.style.display = isSniperSafe ? 'block' : 'none';
             if (sniperAlertDesc) sniperAlertDesc.innerText = `តម្លៃស្ថិតនៅតំបន់ Premium ខ្ពស់ ($${price.toFixed(2)}) ស្ថាប័នធំៗចាប់ផ្តើមបញ្ចេញ Order Sell!`;
@@ -4752,18 +4752,18 @@
         const tvHeroStatusEl = document.getElementById('tvHeroLiveStatus');
         if (tvHeroStatusEl) {
           if (inZone) {
-            tvHeroStatusEl.innerText = '⚡ READY TO SELL';
+            tvHeroStatusEl.innerText = 'READY TO SELL';
             tvHeroStatusEl.style.color = '#00E676';
             tvHeroStatusEl.style.borderColor = '#00E676';
             tvHeroStatusEl.style.background = 'rgba(0, 230, 118, 0.2)';
           } else if (price < Number(entryLow)) {
             const waitP = (Number(entryLow) - price).toFixed(1);
-            tvHeroStatusEl.innerText = `⏳ WAITING BOUNCE (+$${waitP})`;
+            tvHeroStatusEl.innerText = `WAITING BOUNCE (+$${waitP})`;
             tvHeroStatusEl.style.color = 'var(--gold)';
             tvHeroStatusEl.style.borderColor = 'rgba(255, 215, 0, 0.3)';
             tvHeroStatusEl.style.background = 'rgba(255, 215, 0, 0.15)';
           } else {
-            tvHeroStatusEl.innerText = '⚡ HIGH PREMIUM SELL';
+            tvHeroStatusEl.innerText = 'HIGH PREMIUM SELL';
             tvHeroStatusEl.style.color = 'var(--bear)';
             tvHeroStatusEl.style.borderColor = 'rgba(255, 51, 102, 0.3)';
             tvHeroStatusEl.style.background = 'rgba(255, 51, 102, 0.15)';
