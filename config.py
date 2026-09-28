@@ -19,6 +19,8 @@ SIMULATION_MODE = os.getenv("SIMULATION_MODE", "false").lower() in ("true", "1",
 # Gemini AI settings (used for natural-language Khmer market analysis)
 # NOTE: Never commit your real key. Set GEMINI_API_KEY in the .env file only.
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+GEMINI_API_KEY_2 = os.getenv("GEMINI_API_KEY_2", "").strip()
+GEMINI_KEYS_POOL = [k for k in [GEMINI_API_KEY, GEMINI_API_KEY_2] if k and k != "YOUR_GEMINI_API_KEY_HERE"]
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest").strip()
 # If true, use Gemini for analysis; otherwise fall back to the rule-based MacroAnalyzer.
 USE_GEMINI = os.getenv("USE_GEMINI", "true").lower() in ("true", "1", "yes")
