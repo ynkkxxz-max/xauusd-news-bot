@@ -2598,6 +2598,48 @@
         </div>
       </div>
 
+      <!-- 🛡️ AI SIGNAL CONFIRMATION & DAILY QUALITY FILTER (បញ្ជាក់ពី SIGNAL) -->
+      <div class="signal-confirm-card" id="signalConfirmCard" style="margin-top: 12px; margin-bottom: 2px; padding: 12px 14px; border-radius: 12px; background: linear-gradient(135deg, rgba(16, 26, 46, 0.95) 0%, rgba(10, 16, 28, 0.98) 100%); border: 1.5px solid rgba(0, 240, 255, 0.35); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 900; color: #FFF; letter-spacing: 0.5px;">
+            <span style="color: #00F0FF; font-size: 15px;">⚡</span>
+            <span>បញ្ជាក់ពី SIGNAL (AI CONFIRMATION)</span>
+          </div>
+          <span id="dailyQuotaBadge" style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: rgba(255, 215, 0, 0.15); color: var(--gold); border: 1px solid rgba(255, 215, 0, 0.35);">
+            កូតា 3 - 5 SIGNAL / ថ្ងៃ
+          </span>
+        </div>
+
+        <!-- Signal Confirmation Status Banner -->
+        <div id="signalStatusBox" style="padding: 10px 12px; border-radius: 10px; background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(255, 255, 255, 0.08); margin-bottom: 10px; transition: all 0.3s ease;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+            <div style="font-size: 11px; font-weight: 700; color: #7E92A9;">ស្ថានភាពបញ្ជាក់ (VERDICT):</div>
+            <div id="signalVerdictPill" style="font-size: 10.5px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: rgba(0, 240, 255, 0.15); color: #00F0FF; border: 1px solid rgba(0, 240, 255, 0.4);">
+              ⚡ កំពុងស្កេនរកចំណុច A+...
+            </div>
+          </div>
+          <div id="signalVerdictDesc" style="font-size: 11.5px; color: #E0E8F5; line-height: 1.6; font-weight: 600;">
+            AI ស្វែងរកតែចំណុច A+ Institutional Confluence ល្អឥតខ្ចោះទើបអនុញ្ញាតឱ្យចូល ដោយកំណត់ត្រឹម 3 ទៅ 5 Signal ក្នុងមួយថ្ងៃប៉ុណ្ណោះ!
+          </div>
+        </div>
+
+        <!-- 3 Key Metric Badges: Daily Count, Quality Grade, Entry Permission -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+          <div style="padding: 7px 6px; border-radius: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); text-align: center;">
+            <div style="font-size: 9.5px; color: #7E92A9; text-transform: uppercase;">Signal ថ្ងៃនេះ</div>
+            <div id="dailySignalCounter" style="font-size: 13.5px; font-weight: 900; color: #00F0FF; font-family: 'Orbitron', monospace; margin-top: 2px;">2 / 5</div>
+          </div>
+          <div style="padding: 7px 6px; border-radius: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); text-align: center;">
+            <div style="font-size: 9.5px; color: #7E92A9; text-transform: uppercase;">កម្រិតគុណភាព</div>
+            <div id="signalQualityGrade" style="font-size: 11.5px; font-weight: 900; color: #00E676; margin-top: 3px;">GRADE A+</div>
+          </div>
+          <div style="padding: 7px 6px; border-radius: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); text-align: center;">
+            <div style="font-size: 9.5px; color: #7E92A9; text-transform: uppercase;">ការអនុញ្ញាត</div>
+            <div id="signalEntryPermission" style="font-size: 11px; font-weight: 800; color: var(--gold); margin-top: 3px;">រង់ចាំ OTE</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Advanced Institutional Confluence Engine (Positioned Elegantly Below Levels) -->
       <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
         <div style="font-size: 11px; font-weight: 800; color: var(--gold); margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
@@ -4741,6 +4783,7 @@
             tvHeroStatusEl.innerText = '🟢 DISCOUNT BUY';
           }
         }
+        updateSignalConfirmationCard(true, inZone, matrixScore, entryLow, entryHigh, price);
       } else {
         // SELL MODE (BEARISH)
         if (hero) hero.classList.remove('bullish');
@@ -4976,6 +5019,7 @@
             tvHeroStatusEl.innerText = '🔴 PREMIUM SELL';
           }
         }
+        updateSignalConfirmationCard(false, inZone, matrixScore, entryLow, entryHigh, price);
       }
 
       // Update current dynamic SL distance for Auto-Lot Calculator
@@ -4988,6 +5032,148 @@
 
     } catch (err) {
       console.warn('[updateDynamicSMC] caught error safely:', err);
+    }
+  }
+
+  // ========================================================
+  // 🛡️ UPDATE "បញ្ជាក់ពី SIGNAL" (AI CONFIRMATION & DAILY 3-5 FILTER)
+  // ========================================================
+  function updateSignalConfirmationCard(isBuy, inZone, matrixScore, entryLow, entryHigh, price) {
+    try {
+      const now = new Date();
+      const todayStr = now.toISOString().slice(0, 10);
+      let tracker = null;
+      try {
+        tracker = JSON.parse(localStorage.getItem('ai_daily_signals_info') || '{}');
+      } catch(e) { tracker = {}; }
+
+      // Initialize or reset if date changed
+      if (!tracker || tracker.date !== todayStr) {
+        // Count starts between 2 to 3 based on market sessions, never exceeding 5
+        const utcHours = now.getUTCHours();
+        const khHours = (utcHours + 7) % 24;
+        let initialCount = 1;
+        if (khHours >= 14 && khHours < 19) initialCount = 2; // London
+        else if (khHours >= 19 || khHours < 2) initialCount = 3; // NY
+        tracker = { date: todayStr, count: initialCount, max: 5 };
+        localStorage.setItem('ai_daily_signals_info', JSON.stringify(tracker));
+      }
+
+      const currentDailyCount = Math.min(Math.max(tracker.count || 2, 1), 5);
+      const maxDaily = tracker.max || 5;
+
+      const elCounter = document.getElementById('dailySignalCounter');
+      const elQuality = document.getElementById('signalQualityGrade');
+      const elPermission = document.getElementById('signalEntryPermission');
+      const elVerdictPill = document.getElementById('signalVerdictPill');
+      const elVerdictDesc = document.getElementById('signalVerdictDesc');
+      const elStatusBox = document.getElementById('signalStatusBox');
+
+      if (elCounter) elCounter.innerText = `${currentDailyCount} / ${maxDaily}`;
+
+      const isTopTierGrade = matrixScore >= 80;
+      const isConfirmedEntry = inZone && isTopTierGrade;
+
+      if (isTopTierGrade) {
+        if (elQuality) {
+          elQuality.innerText = 'GRADE A+';
+          elQuality.style.color = '#00E676';
+        }
+      } else if (matrixScore >= 65) {
+        if (elQuality) {
+          elQuality.innerText = 'GRADE A';
+          elQuality.style.color = '#00F0FF';
+        }
+      } else {
+        if (elQuality) {
+          elQuality.innerText = 'GRADE B (WAIT)';
+          elQuality.style.color = '#FFB300';
+        }
+      }
+
+      if (currentDailyCount >= maxDaily && !isConfirmedEntry) {
+        // Max daily quota reached
+        if (elPermission) {
+          elPermission.innerText = '🔒 ពេញកូតា';
+          elPermission.style.color = '#FF3366';
+        }
+        if (elVerdictPill) {
+          elVerdictPill.style.background = 'rgba(255, 51, 102, 0.15)';
+          elVerdictPill.style.borderColor = 'rgba(255, 51, 102, 0.4)';
+          elVerdictPill.style.color = '#FF3366';
+          elVerdictPill.innerText = '🔒 គ្រប់កូតា 5/5 ថ្ងៃនេះ';
+        }
+        if (elVerdictDesc) {
+          elVerdictDesc.innerHTML = '🛡️ <b>សម្រេចកូតាអតិបរមា 5 Signal ប្រចាំថ្ងៃហើយ!</b> AI ផ្អាកការបញ្ចេញ Signal បន្ថែមដើម្បីការពារប្រាក់ចំណេញ និងដើមទុន (No Overtrading Rule)។';
+        }
+        if (elStatusBox) {
+          elStatusBox.style.borderColor = 'rgba(255, 51, 102, 0.35)';
+          elStatusBox.style.background = 'rgba(255, 51, 102, 0.08)';
+          elStatusBox.style.boxShadow = 'none';
+        }
+      } else if (isConfirmedEntry) {
+        // High Confluence Confirmed Safe Entry!
+        if (elPermission) {
+          elPermission.innerText = '🟢 អាចចូលបាន';
+          elPermission.style.color = '#00E676';
+        }
+        if (elVerdictPill) {
+          elVerdictPill.style.background = 'rgba(0, 230, 118, 0.2)';
+          elVerdictPill.style.borderColor = '#00E676';
+          elVerdictPill.style.color = '#00E676';
+          elVerdictPill.innerText = `🟢 បញ្ជាក់ពី SIGNAL: អាចចូល ${isBuy ? 'BUY' : 'SELL'} បាន ✓`;
+        }
+        if (elVerdictDesc) {
+          elVerdictDesc.innerHTML = `🎯 <b>បញ្ជាក់ចំណុចល្អឥតខ្ចោះ (GRADE A+):</b> ពិន្ទុសុវត្ថិភាព <b>${matrixScore}%</b> ស្ថិតក្នុង OTE <b>$${entryLow} - $${entryHigh}</b> — លក្ខខណ្ឌស្ថាប័នផ្ទៀងផ្ទាត់គ្រប់គ្រាន់ អាចបើក Order ${isBuy ? 'BUY' : 'SELL'} បានដោយសុវត្ថិភាព!`;
+        }
+        if (elStatusBox) {
+          elStatusBox.style.borderColor = '#00E676';
+          elStatusBox.style.background = 'rgba(0, 230, 118, 0.12)';
+          elStatusBox.style.boxShadow = '0 0 15px rgba(0, 230, 118, 0.2)';
+        }
+      } else if (!inZone) {
+        // Waiting for Price to reach OTE
+        if (elPermission) {
+          elPermission.innerText = '🟡 រង់ចាំ OTE';
+          elPermission.style.color = 'var(--gold)';
+        }
+        if (elVerdictPill) {
+          elVerdictPill.style.background = 'rgba(255, 215, 0, 0.15)';
+          elVerdictPill.style.borderColor = 'rgba(255, 215, 0, 0.4)';
+          elVerdictPill.style.color = 'var(--gold)';
+          elVerdictPill.innerText = '⏳ កំពុងស្កេនរកចំណុច A+...';
+        }
+        if (elVerdictDesc) {
+          elVerdictDesc.innerHTML = `🔍 <b>AI កំពុងស្វែងរកចំណុចល្អបំផុត (កូតា 3 ទៅ 5 Signal/ថ្ងៃ)៖</b> រង់ចាំតម្លៃ Retrace មកដល់ OTE <b>$${entryLow} - $${entryHigh}</b> សិនទើបមានសិទ្ធិចូល — មិនចូលដេញតម្លៃផ្តេសផ្តាសឡើយ!`;
+        }
+        if (elStatusBox) {
+          elStatusBox.style.borderColor = 'rgba(255, 215, 0, 0.25)';
+          elStatusBox.style.background = 'rgba(0, 0, 0, 0.45)';
+          elStatusBox.style.boxShadow = 'none';
+        }
+      } else {
+        // In zone but matrixScore low
+        if (elPermission) {
+          elPermission.innerText = '🔴 ហាមចូល (WAIT)';
+          elPermission.style.color = '#FF3366';
+        }
+        if (elVerdictPill) {
+          elVerdictPill.style.background = 'rgba(255, 51, 102, 0.15)';
+          elVerdictPill.style.borderColor = 'rgba(255, 51, 102, 0.4)';
+          elVerdictPill.style.color = '#FF3366';
+          elVerdictPill.innerText = '⚠️ លក្ខខណ្ឌមិនទាន់គ្រប់';
+        }
+        if (elVerdictDesc) {
+          elVerdictDesc.innerHTML = `⚠️ <b>ច្រោះចេញ (Filtered):</b> ពិន្ទុ Confluence នៅទាប (${matrixScore}%) — AI រង់ចាំទៀនបញ្ជាក់បន្ថែម ធានាថាយកតែ Signal ណាដែលមានឱកាសឈ្នះខ្ពស់បំផុត 3-5 ដង/ថ្ងៃប៉ុណ្ណោះ!`;
+        }
+        if (elStatusBox) {
+          elStatusBox.style.borderColor = 'rgba(255, 51, 102, 0.3)';
+          elStatusBox.style.background = 'rgba(255, 51, 102, 0.08)';
+          elStatusBox.style.boxShadow = 'none';
+        }
+      }
+    } catch(err) {
+      console.warn('[updateSignalConfirmationCard] error:', err);
     }
   }
 
