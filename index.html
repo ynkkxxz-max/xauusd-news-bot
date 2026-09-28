@@ -2755,7 +2755,7 @@
 
     <button class="apply-btn" onclick="sendSMCPlanToBot()" style="letter-spacing: 0.5px; font-weight: 800;">
       <span class="cyber-badge-dot" style="background: #00F0FF; color: #00F0FF; margin-right: 6px;"></span>
-      <span>ផ្ញើសេចក្តីសង្ខេប SMC នេះទៅ TELEGRAM BOT</span>
+      <span>🌟 ជូនពរសំណាងល្អ និងជោគជ័យក្នុងការជួញដូរ</span>
     </button>
   </div>
 
@@ -3721,17 +3721,7 @@
       if (tg && tg.HapticFeedback) {
         tg.HapticFeedback.notificationOccurred('success');
       }
-      const entry = document.getElementById('smcEntry') ? document.getElementById('smcEntry').innerText : '--';
-      const sl = document.getElementById('smcSL') ? document.getElementById('smcSL').innerText : '--';
-      const tp1 = document.getElementById('smcTP1') ? document.getElementById('smcTP1').innerText : '--';
-      const tp2 = document.getElementById('smcTP2') ? document.getElementById('smcTP2').innerText : '--';
-      const summaryMsg = `🎯 ផែនការជួញដូរ XAU/USD SMC:\n• Entry: ${entry}\n• Stop Loss: ${sl}\n• Take Profit 1: ${tp1}\n• Take Profit 2: ${tp2}`;
-      
-      if (tg && tg.sendData) {
-        tg.sendData(summaryMsg);
-      } else {
-        showCyberToast('✓ ផែនការ SMC ត្រូវបានបញ្ជាក់រួចរាល់!');
-      }
+      showCyberToast('🌟 ជូនពរលោកអ្នកជួញដូរប្រកបដោយជោគជ័យ និងទទួលបានប្រាក់ចំណេញច្រើន!');
     }
 
     function openTradingViewChart() {
@@ -5904,16 +5894,6 @@
       }
     }
 
-    function sendSMCPlanToBot() {
-      if (tg && tg.HapticFeedback) {
-        tg.HapticFeedback.notificationOccurred('success');
-      }
-      if (tg && tg.sendData) {
-        tg.sendData("SMC");
-      } else {
-        alert("បានជ្រើសរើសផែនការ SMC!");
-      }
-    }
 
     // ========================================================
     // 🕯️ AMBIENT LIVE STREAMING CANDLESTICK CHART ENGINE
