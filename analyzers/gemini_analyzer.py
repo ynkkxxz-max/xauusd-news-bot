@@ -188,7 +188,14 @@ class GeminiAnalyzer:
 
     def __init__(self, api_key: str = None, model: str = None):
         self.name = "gemini"
-        self.api_key = (api_key or GEMINI_API_KEY).strip()
+        try:
+            from config import GEMINI_KEYS_POOL
+            self.api_keys = [k for k in [api_key] if k] if api_key else list(GEMINI_KEYS_POOL)
+        except Exception:
+            self.api_keys = [api_key] if api_key else [GEMINI_API_KEY]
+        if not self.api_keys and GEMINI_API_KEY:
+            self.api_keys = [GEMINI_API_KEY]
+        self.api_key = self.api_keys[0] if self.api_keys else ""
         self.model = (model or GEMINI_MODEL).strip()
         self.endpoint = (
             f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
@@ -216,43 +223,49 @@ class GeminiAnalyzer:
         )
 
     def is_available(self) -> bool:
-        return bool(USE_GEMINI and self.api_key and self.api_key != "YOUR_GEMINI_API_KEY_HERE")
+        return bool(USE_GEMINI and (self.api_key or self.api_keys) and self.api_key != "YOUR_GEMINI_API_KEY_HERE")
 
     def _post(self, payload: dict, max_retries: int = 1) -> dict:
-        """POSTs to Gemini with multi-model fallback on quota/transient errors."""
+        """POSTs to Gemini with dual-key pool and multi-model fallback on quota/transient errors."""
         self._throttle_wait()
-        candidate_models = [self.model, "gemini-flash-latest", "gemini-3.8-flash", "gemini-pro-latest"]
+        candidate_models = [self.model, "gemini-flash-latest", "gemini-flash-lite-latest", "gemini-3.8-flash"]
         seen = set()
         models_to_try = [m for m in candidate_models if m and not (m in seen or seen.add(m))]
 
+        keys_to_try = self.api_keys if self.api_keys else [self.api_key]
         last_exc = None
-        for current_model in models_to_try:
-            endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{current_model}:generateContent"
-            for attempt in range(max_retries):
-                try:
-                    resp = requests.post(
-                        endpoint,
-                        params={"key": self.api_key},
-                        json=payload,
-                        timeout=25,
-                    )
-                    GeminiAnalyzer._last_request_ts = time.time()
-                    if resp.status_code == 429:
-                        logger.warning(f"[GeminiAnalyzer] Model {current_model} hit 429 quota, trying fallback model...")
-                        break
-                    if resp.status_code in (404, 500, 503):
-                        logger.warning(f"[GeminiAnalyzer] Model {current_model} returned {resp.status_code}, trying fallback model...")
-                        break
-                    resp.raise_for_status()
-                    return resp.json()
-                except requests.RequestException as e:
-                    last_exc = e
-                    logger.debug(f"[GeminiAnalyzer] Request error on {current_model}: {e}")
-                    break
+
+        for current_key in keys_to_try:
+            for current_model in models_to_try:
+                endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{current_model}:generateContent"
+                for attempt in range(max_retries):
+                    try:
+                        resp = requests.post(
+                            endpoint,
+                            params={"key": current_key},
+                            json=payload,
+                            timeout=25,
+                        )
+                        GeminiAnalyzer._last_request_ts = time.time()
+                        if resp.status_code == 429:
+                            logger.warning(f"[GeminiAnalyzer] Key ...{current_key[-6:]} hit 429 quota on {current_model}, trying next key/model...")
+                            break
+                        if resp.status_code in (500, 503):
+                            logger.warning(f"[GeminiAnalyzer] Model {current_model} returned {resp.status_code} (attempt {attempt+1}/{max_retries}), retrying...")
+                            time.sleep(1.5)
+                            continue
+                        if resp.status_code == 404:
+                            break
+                        resp.raise_for_status()
+                        return resp.json()
+                    except requests.RequestException as e:
+                        last_exc = e
+                        logger.debug(f"[GeminiAnalyzer] Request error on {current_model}: {e}")
+                        time.sleep(1)
         if last_exc:
             self._trip_cooldown(60)
             raise last_exc
-        raise RuntimeError("All Gemini candidate models failed or exhausted quota.")
+        raise RuntimeError("All Gemini candidate models/keys failed or exhausted quota.")
 
     def _call(self, prompt: str) -> dict:
         """Sends one prompt to Gemini and returns the parsed JSON object."""
