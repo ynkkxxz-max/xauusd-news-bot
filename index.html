@@ -5377,7 +5377,7 @@
       // Note: Point 1 (detailed levels) strictly excluded so users view signal inside Mini App
 
 
-      // 2. Send Native Interactive Telegram Poll (Vote)
+      // 🎯 Merged Unified Message: Send Interactive Poll with Mini App CTA Button attached directly
       const pollTitle = `📊 លទ្ធផល Signal XAUUSD (${pollAction}) — សូមបញ្ជាក់លទ្ធផលរបស់អ្នក:`;
       await fetch(`https://api.telegram.org/bot${_tok}/sendPoll`, {
         method: 'POST',
@@ -5386,19 +5386,7 @@
           chat_id: _chatId,
           question: pollTitle,
           options: JSON.stringify(["🎯 ឈ្នះ (Hit TP)", "🛑 ចាញ់ (Hit SL)"]),
-          is_anonymous: true
-        })
-      });
-
-      // 3. Send Mini App Direct CTA Button
-      const ctaText = `👇 <b>ចុចប៊ូតុងខាងក្រោមដើម្បីចូលមើល Signal បន្តផ្ទាល់លើ Mini App:</b>`;
-      await fetch(`https://api.telegram.org/bot${_tok}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: _chatId,
-          text: ctaText,
-          parse_mode: 'HTML',
+          is_anonymous: true,
           reply_markup: {
             inline_keyboard: [
               [
