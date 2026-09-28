@@ -2621,25 +2621,25 @@
       <div class="smc-metrics-grid">
         <div class="smc-metric-pill" style="border-left: 3px solid #00F0FF; color: #00F0FF;">
           <div class="smc-pill-label"><span class="cyber-badge-dot" style="background: #00F0FF; color: #00F0FF; margin-right: 3px;"></span> ENTRY ZONE</div>
-          <div class="smc-pill-value" style="color: #00F0FF;" id="smcEntry">--</div>
+          <div class="smc-pill-value" style="color: #00F0FF;" id="smcEntry">$4,132.94 - $4,135.94</div>
         </div>
         <div class="smc-metric-pill" style="border-left: 3px solid #FF3366; color: #FF3366;">
           <div class="smc-pill-label"><span class="cyber-badge-dot" style="background: #FF3366; color: #FF3366; margin-right: 3px;"></span> STOP LOSS (SL)</div>
-          <div class="smc-pill-value" style="color: #FF3366;" id="smcSL">--</div>
+          <div class="smc-pill-value" style="color: #FF3366;" id="smcSL">$4,160.32</div>
         </div>
         <div class="smc-metric-pill" style="border-left: 3px solid #00E676; color: #00E676;">
           <div class="smc-pill-label"><span class="cyber-badge-dot" style="background: #00E676; color: #00E676; margin-right: 3px;"></span> TAKE PROFIT 1 (BE)</div>
-          <div class="smc-pill-value" style="color: #00E676;" id="smcTP1">--</div>
+          <div class="smc-pill-value" style="color: #00E676;" id="smcTP1">$4,091.87 (BE)</div>
         </div>
         <div class="smc-metric-pill" style="border-left: 3px solid #FFD700; color: #FFD700;">
           <div class="smc-pill-label"><span class="cyber-badge-dot" style="background: #FFD700; color: #FFD700; margin-right: 3px;"></span> TAKE PROFIT 2 (MAX)</div>
-          <div class="smc-pill-value" style="color: #FFD700;" id="smcTP2">--</div>
+          <div class="smc-pill-value" style="color: #FFD700;" id="smcTP2">$4,064.49</div>
         </div>
       </div>
 
       <!-- 🎯 SINGLE PROMINENT AI SIGNAL ACTION BUTTON (អាចប្រើប្រាស់ Signal នេះបាន / រង់ចាំ Signal ថ្មី) -->
       <div id="signalActionBtn" class="signal-action-btn waiting" onclick="handleSignalActionClick()">
-        <span id="signalActionIcon" style="font-size: 16px;">⏳</span>
+        <span id="signalActionIcon" style="font-size: 16px; display: none;"></span>
         <span id="signalActionText" style="letter-spacing: 0.5px;">រង់ចាំ Signal ថ្មី</span>
       </div>
 
@@ -5267,8 +5267,11 @@
           activeSig.status = 'HIT_SL';
           localStorage.setItem('ai_locked_active_signal', JSON.stringify(activeSig));
           btn.className = 'signal-action-btn waiting';
-          if (icon) icon.innerText = '🛑';
-          if (text) text.innerText = 'SIGNAL ប៉ះ SL — រង់ចាំ SIGNAL ថ្មី';
+          if (icon) {
+            icon.innerText = '';
+            icon.style.display = 'none';
+          }
+          if (text) text.innerText = 'រង់ចាំ Signal ថ្មី';
           btn.dataset.status = 'hit_sl';
           setTimeout(() => {
             localStorage.removeItem('ai_locked_active_signal');
@@ -6089,6 +6092,7 @@
     calculate();
     initHighImpactNewsCountdown();
     initCandlestickMotionBackground();
+    renderInstitutionalSignalBoxes();
   </script>
 </body>
 </html>
