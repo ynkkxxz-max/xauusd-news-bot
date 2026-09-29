@@ -803,15 +803,18 @@
       100% { box-shadow: 0 0 8px rgba(0, 230, 118, 0.4); transform: scale(1); }
     }
 
-    /* Futuristic Confluence Matrix Meter */
+    /* Futuristic Confluence Matrix Meter (Ultra-Sleek Institutional HUD) */
     .matrix-card {
-      background: linear-gradient(180deg, rgba(8, 14, 28, 0.96) 0%, rgba(4, 8, 16, 0.99) 100%);
-      border: 1px solid rgba(0, 240, 255, 0.3);
-      border-radius: 14px;
-      padding: 14px;
+      background: linear-gradient(180deg, rgba(12, 19, 34, 0.88) 0%, rgba(6, 11, 20, 0.96) 100%);
+      border: 1px solid rgba(0, 240, 255, 0.16);
+      border-top: 1px solid rgba(0, 240, 255, 0.4);
+      border-radius: 16px;
+      padding: 12px 14px 14px;
       margin-top: 10px;
       margin-bottom: 12px;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7), inset 0 0 15px rgba(0, 240, 255, 0.05);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       position: relative;
       z-index: 2;
     }
@@ -820,70 +823,120 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 9px;
     }
 
     .matrix-title {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 800;
-      color: #FFF;
+      color: #94A3B8;
       display: flex;
       align-items: center;
-      gap: 6px;
-      letter-spacing: 0.5px;
+      gap: 7px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+
+    .matrix-radar-pulse {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #00F0FF;
+      box-shadow: 0 0 10px #00F0FF;
+      animation: readyPulse 1.8s infinite;
+      display: inline-block;
     }
 
     .matrix-score-badge {
-      font-size: 15px;
+      font-size: 17px;
       font-weight: 900;
       color: #00F0FF;
-      text-shadow: 0 0 12px rgba(0, 240, 255, 0.85);
+      text-shadow: 0 0 14px rgba(0, 240, 255, 0.85);
+      font-family: 'JetBrains Mono', -apple-system, monospace;
       font-variant-numeric: tabular-nums;
+      letter-spacing: 0.5px;
     }
 
     .matrix-meter-track {
-      height: 8px;
-      background: rgba(255, 255, 255, 0.06);
-      border-radius: 4px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 999px;
       overflow: hidden;
-      margin-bottom: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 11px;
       position: relative;
     }
 
     .matrix-meter-fill {
       height: 100%;
-      background: linear-gradient(90deg, #FFD700 0%, #00F0FF 60%, #00E676 100%);
-      box-shadow: 0 0 15px #00F0FF;
-      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      background: linear-gradient(90deg, #FFB300 0%, #00F0FF 60%, #00E676 100%);
+      box-shadow: 0 0 10px rgba(0, 230, 118, 0.6);
+      border-radius: 999px;
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .matrix-checklist-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      gap: 6px;
     }
 
     .matrix-check-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 10px;
+      padding: 6px 9px;
       background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.05);
       border-radius: 8px;
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #94A3B8;
+      letter-spacing: 0.2px;
+      transition: all 0.25s ease;
+    }
+
+    .matrix-item-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .matrix-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      flex-shrink: 0;
+      transition: all 0.25s ease;
+    }
+
+    .matrix-dot.active {
+      background: #00E676;
+      box-shadow: 0 0 7px #00E676;
+    }
+
+    .matrix-pts {
       font-size: 10px;
       font-weight: 700;
-      color: #7E92A9;
-      letter-spacing: 0.3px;
-      transition: all 0.3s ease;
+      color: #64748B;
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+      margin-left: 6px;
+    }
+
+    .matrix-pts.active {
+      color: #00E676;
+      font-weight: 800;
+      text-shadow: 0 0 8px rgba(0, 230, 118, 0.4);
     }
 
     .matrix-check-item.passed {
-      background: linear-gradient(135deg, rgba(0, 230, 118, 0.12) 0%, rgba(10, 24, 20, 0.6) 100%);
-      border: 1px solid rgba(0, 230, 118, 0.5);
-      color: #FFF;
-      box-shadow: 0 0 12px rgba(0, 230, 118, 0.2), inset 0 0 8px rgba(0, 230, 118, 0.1);
+      background: linear-gradient(135deg, rgba(0, 230, 118, 0.06) 0%, rgba(10, 25, 20, 0.3) 100%);
+      border: 1px solid rgba(0, 230, 118, 0.25);
+      color: #F1F5F9;
     }
 
     .mtf-confluence-bar {
@@ -2649,45 +2702,46 @@
         </div>
       </div>
 
-      <!-- 🧠 AI CONFLUENCE MATRIX METER (0 - 100% WEIGHTED GAUGE) -->
+      <!-- 🧠 AI CONFLUENCE MATRIX METER (Ultra-Sleek Institutional HUD) -->
       <div class="matrix-card">
         <div class="matrix-header">
           <div class="matrix-title">
-            <span style="color:#00F0FF; font-size:14px;">⚡</span> AI CONFLUENCE MATRIX • SAFETY INDEX
+            <span class="matrix-radar-pulse"></span>
+            <span>AI CONFLUENCE MATRIX • SAFETY INDEX</span>
           </div>
-          <div class="matrix-score-badge" id="matrixScoreBadge">90%</div>
+          <div class="matrix-score-badge" id="matrixScoreBadge">70%</div>
         </div>
 
-        <!-- Meter Track -->
+        <!-- Sleek Laser Meter Track -->
         <div class="matrix-meter-track">
-          <div class="matrix-meter-fill" id="matrixMeterFill" style="width: 90%;"></div>
+          <div class="matrix-meter-fill" id="matrixMeterFill" style="width: 70%;"></div>
         </div>
 
         <!-- 6 Institutional Factors Breakdown -->
         <div class="matrix-checklist-grid">
           <div class="matrix-check-item passed" id="matrixCheckSMC">
-            <span>SMC M15 BOS/CHoCH</span>
-            <span>+20%</span>
+            <div class="matrix-item-left"><span class="matrix-dot active"></span><span>SMC Structure</span></div>
+            <span class="matrix-pts active">+20%</span>
           </div>
-          <div class="matrix-check-item passed" id="matrixCheckOTE">
-            <span>OTE Fib 0.618-0.786</span>
-            <span>+20%</span>
+          <div class="matrix-check-item" id="matrixCheckOTE">
+            <div class="matrix-item-left"><span class="matrix-dot"></span><span>OTE Fib 0.618-0.786</span></div>
+            <span class="matrix-pts">0%</span>
           </div>
           <div class="matrix-check-item passed" id="matrixCheckCVD">
-            <span>CVD Whale Inflow</span>
-            <span>+20%</span>
+            <div class="matrix-item-left"><span class="matrix-dot active"></span><span>CVD Whale Outflow</span></div>
+            <span class="matrix-pts active">+20%</span>
           </div>
           <div class="matrix-check-item passed" id="matrixCheckDepth">
-            <span>Iceberg Bids Support</span>
-            <span>+15%</span>
+            <div class="matrix-item-left"><span class="matrix-dot active"></span><span>Iceberg Asks Wall</span></div>
+            <span class="matrix-pts active">+15%</span>
           </div>
           <div class="matrix-check-item passed" id="matrixCheckDXY">
-            <span>DXY Inverse Align</span>
-            <span>+15%</span>
+            <div class="matrix-item-left"><span class="matrix-dot active"></span><span>Liquidity Sweep / FVG</span></div>
+            <span class="matrix-pts active">+15%</span>
           </div>
           <div class="matrix-check-item" id="matrixCheckKillzone">
-            <span>London/NY Killzone</span>
-            <span>+10%</span>
+            <div class="matrix-item-left"><span class="matrix-dot"></span><span>London/NY Killzone</span></div>
+            <span class="matrix-pts">0%</span>
           </div>
         </div>
       </div>
@@ -4951,10 +5005,10 @@
           if (!el) return;
           if (passed) {
             el.className = 'matrix-check-item passed';
-            el.innerHTML = `<span>${label}</span> <span style="color:#00E676; font-weight:800;">+${pts}% ✓</span>`;
+            el.innerHTML = `<div class="matrix-item-left"><span class="matrix-dot active"></span><span>${label}</span></div><span class="matrix-pts active">+${pts}%</span>`;
           } else {
             el.className = 'matrix-check-item';
-            el.innerHTML = `<span>${label}</span> <span style="color:var(--text-muted); font-weight:700;">0% ✗</span>`;
+            el.innerHTML = `<div class="matrix-item-left"><span class="matrix-dot"></span><span style="opacity:0.65;">${label}</span></div><span class="matrix-pts">0%</span>`;
           }
         };
 
@@ -5196,10 +5250,10 @@
           if (!el) return;
           if (passed) {
             el.className = 'matrix-check-item passed';
-            el.innerHTML = `<span>${label}</span> <span style="color:#00E676; font-weight:800;">+${pts}% ✓</span>`;
+            el.innerHTML = `<div class="matrix-item-left"><span class="matrix-dot active"></span><span>${label}</span></div><span class="matrix-pts active">+${pts}%</span>`;
           } else {
             el.className = 'matrix-check-item';
-            el.innerHTML = `<span>${label}</span> <span style="color:var(--text-muted); font-weight:700;">0% ✗</span>`;
+            el.innerHTML = `<div class="matrix-item-left"><span class="matrix-dot"></span><span style="opacity:0.65;">${label}</span></div><span class="matrix-pts">0%</span>`;
           }
         };
 
