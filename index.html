@@ -4217,31 +4217,56 @@
   // រង់អោយAi analy អោយបានត្រឹមត្រូវសិន ហើយចាំប៊ូតុងខាងក្រោមឡូតអោយប្រើប្រាស់បាន
   // ទើបចេញតម្លៃពិតប្រាកដច្បាស់ អោយគេប្រើប្រាស់signal នោះបានដោយភាពជឿជាក់"
   // ========================================================
-  function renderInstitutionalSignalBoxes(forcedSig = null) {
+  function renderInstitutionalSignalBoxes(forcedSig = null, expectedAction = null) {
     let display = forcedSig;
+    const expAct = expectedAction || (staticSignalSetup && staticSignalSetup.direction ? (staticSignalSetup.direction === 'BULLISH' ? 'BUY' : 'SELL') : 'SELL');
+
     if (!display) {
       try {
         const active = JSON.parse(localStorage.getItem('ai_locked_active_signal') || 'null');
-        if (active && active.status === 'ACTIVE') {
+        if (active && active.status === 'ACTIVE' && active.action === expAct) {
           display = active;
         }
       } catch(e) {}
     }
     if (!display) {
       try {
-        display = JSON.parse(localStorage.getItem('ai_confirmed_display_signal') || 'null');
+        const saved = JSON.parse(localStorage.getItem('ai_confirmed_display_signal') || 'null');
+        if (saved && saved.action === expAct) {
+          display = saved;
+        }
       } catch(e) {}
     }
-    // Baseline reference (matches initial established levels, strictly 8-10-12 SL)
+    // If no display or action mismatches current market structure, use staticSignalSetup or baseline for expAct
     if (!display) {
-      display = {
-        action: 'SELL',
-        entryLow: 4132.94,
-        entryHigh: 4135.94,
-        sl: 4145.94,
-        tp1: 4117.94,
-        tp2: 4107.94
-      };
+      if (staticSignalSetup && staticSignalSetup.direction && ((staticSignalSetup.direction === 'BULLISH' && expAct === 'BUY') || (staticSignalSetup.direction === 'BEARISH' && expAct === 'SELL')) && staticSignalSetup.entryLow > 0) {
+        display = {
+          action: expAct,
+          entryLow: staticSignalSetup.entryLow,
+          entryHigh: staticSignalSetup.entryHigh,
+          sl: staticSignalSetup.sl,
+          tp1: staticSignalSetup.tp1,
+          tp2: staticSignalSetup.tp2
+        };
+      } else if (expAct === 'BUY') {
+        display = {
+          action: 'BUY',
+          entryLow: 4126.18,
+          entryHigh: 4129.18,
+          sl: 4118.18,
+          tp1: 4141.18,
+          tp2: 4149.18
+        };
+      } else {
+        display = {
+          action: 'SELL',
+          entryLow: 4132.94,
+          entryHigh: 4135.94,
+          sl: 4145.94,
+          tp1: 4117.94,
+          tp2: 4107.94
+        };
+      }
       try { localStorage.setItem('ai_confirmed_display_signal', JSON.stringify(display)); } catch(e){}
     }
 
@@ -4249,16 +4274,22 @@
     if (display) {
       const eH = Number(display.entryHigh || display.entryLow);
       const eL = Number(display.entryLow || display.entryHigh);
-      if (display.action === 'SELL' && (display.sl > eH + 12.0 || display.sl < eH + 7.0)) {
-        display.sl = Number((eH + 10.0).toFixed(2));
-        display.tp1 = Number((eL - 15.0).toFixed(2));
-        display.tp2 = Number((eL - 25.0).toFixed(2));
-        try { localStorage.setItem('ai_confirmed_display_signal', JSON.stringify(display)); } catch(e){}
-      } else if (display.action === 'BUY' && (display.sl < eL - 12.0 || display.sl > eL - 7.0)) {
-        display.sl = Number((eL - 10.0).toFixed(2));
-        display.tp1 = Number((eH + 15.0).toFixed(2));
-        display.tp2 = Number((eH + 25.0).toFixed(2));
-        try { localStorage.setItem('ai_confirmed_display_signal', JSON.stringify(display)); } catch(e){}
+      if (display.action === 'SELL') {
+        // Enforce SL > entry for SELL (Strictly 8 - 10 - 12 pts above entry)
+        if (display.sl <= eH || display.sl > eH + 12.0 || display.sl < eH + 7.0) {
+          display.sl = Number((eH + 10.0).toFixed(2));
+          display.tp1 = Number((eL - 15.0).toFixed(2));
+          display.tp2 = Number((eL - 25.0).toFixed(2));
+          try { localStorage.setItem('ai_confirmed_display_signal', JSON.stringify(display)); } catch(e){}
+        }
+      } else if (display.action === 'BUY') {
+        // Enforce SL < entry for BUY (Strictly 8 - 10 - 12 pts below entry)
+        if (display.sl >= eL || display.sl < eL - 12.0 || display.sl > eL - 7.0) {
+          display.sl = Number((eL - 10.0).toFixed(2));
+          display.tp1 = Number((eH + 15.0).toFixed(2));
+          display.tp2 = Number((eH + 25.0).toFixed(2));
+          try { localStorage.setItem('ai_confirmed_display_signal', JSON.stringify(display)); } catch(e){}
+        }
       }
     }
 
@@ -4754,8 +4785,17 @@
         pivotEl.innerText = `$${pivot.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
       }
 
-      // Decision Engine: Aligned with Real Market Structure & Moving Average Order Flow
-      const isBuy = (trendDirection === 'BULLISH');
+      // Decision Engine: Aligned with Real Market Structure & Active Signal Harmony
+      let lockedActiveSig = null;
+      try {
+        lockedActiveSig = JSON.parse(localStorage.getItem('ai_locked_active_signal') || 'null');
+      } catch(e) {}
+
+      // If an active confirmed trade is running, strictly harmonize entire UI with active trade direction
+      let isBuy = (trendDirection === 'BULLISH');
+      if (lockedActiveSig && lockedActiveSig.status === 'ACTIVE') {
+        isBuy = (lockedActiveSig.action === 'BUY');
+      }
 
       const hero = document.getElementById('smcHeroBox');
       const dir = document.getElementById('smcDirection');
@@ -4948,7 +4988,7 @@
           }
         }
 
-        renderInstitutionalSignalBoxes();
+        renderInstitutionalSignalBoxes(null, 'BUY');
 
         if (whyTradeEl) {
           whyTradeEl.innerHTML = `
@@ -5193,7 +5233,7 @@
           }
         }
 
-        renderInstitutionalSignalBoxes();
+        renderInstitutionalSignalBoxes(null, 'SELL');
 
         if (whyTradeEl) {
           whyTradeEl.innerHTML = `
@@ -5328,6 +5368,15 @@
       const currentExpectedAction = isBuy ? 'BUY' : 'SELL';
       if (activeSig && activeSig.action !== currentExpectedAction) {
         localStorage.removeItem('ai_locked_active_signal');
+        localStorage.removeItem('ai_confirmed_display_signal');
+        activeSig = null;
+      }
+
+      // STRICT CONSTITUTIONAL RULE 3: Grade A+ setups require Institutional Safety Index >= 70%
+      // If safety index dropped below 50% or structure broken, safely invalidate active signal
+      if (activeSig && activeSig.status === 'ACTIVE' && matrixScore < 50) {
+        localStorage.removeItem('ai_locked_active_signal');
+        localStorage.removeItem('ai_confirmed_display_signal');
         activeSig = null;
       }
 
@@ -5459,6 +5508,17 @@
       }
       if (text) text.innerText = 'រង់ចាំ Signal ថ្មី';
       btn.dataset.status = 'waiting';
+
+      // Clean up sniper banner and execution status so no stale active signal text persists!
+      const sniperAlertEl = document.getElementById('smcSniperAlert');
+      if (sniperAlertEl) sniperAlertEl.style.display = 'none';
+      const execBadge = document.getElementById('smcExecBadge');
+      const execDot = document.getElementById('smcExecDot');
+      const execText = document.getElementById('smcExecText');
+      if (execBadge) execBadge.className = 'smc-exec-badge waiting';
+      if (execDot) execDot.innerText = '🟡';
+      if (execText) execText.innerText = inZone ? (isBuy ? 'READY TO BUY • ដល់តំបន់ទិញ OTE' : 'READY TO SELL • ដល់តំបន់លក់ OTE') : (isBuy ? 'WAITING OTE 0.618' : 'WAITING OTE 0.618');
+      renderInstitutionalSignalBoxes(null, currentExpectedAction);
 
     } catch(err) {
       console.warn('[updateSignalActionButton] error:', err);
