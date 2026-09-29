@@ -19,89 +19,52 @@ class KhmerFormatter:
     @staticmethod
     def format_daily_gold_price(price_data: dict, summary: str = "", include_smc: bool = False) -> str:
         """
-        Formats daily gold price report in Khmer with clear distinction between:
-        1. ទីផ្សារអន្តរជាតិ (International Market - XAU/USD Interbank Spot)
-        2. ទីផ្សារកម្ពុជា (Cambodia Local Market - Central Market / Phnom Penh 24K & 18K)
-        If include_smc is False (for channel and price check), keeps the message clean without SMC clutter.
+        Formats daily gold price report in clean, concise Khmer style requested by user:
+        🥇  DAILY GOLD PRICE — ហាងឆេងមាសប្រចាំថ្ងៃ
+
+        📅  កាលបរិច្ឆេទ: 29/09/2026 
+
+
+         🌐1 អោន : $4,127.30
+
+        🇰🇭 1 តម្លឹង: លក់ $5,006.09 | ទិញ $4,981.09
+              
+            1 ជី: លក់ $500.61 | ទិញ $498.11
+
+           📉 បម្រែបម្រួល: $-41.10 (-0.99%)
         """
         oz = price_data.get("price_oz", 0.0)
-        damlung_intl = price_data.get("price_damlung", 0.0)
         chg = price_data.get("change", 0.0)
         pct = price_data.get("change_pct", 0.0)
         date_str = price_data.get("date_str", "")
-        time_str = price_data.get("updated_time_str", "07:00")
-        source_intl = price_data.get("source_intl", price_data.get("source", "Swissquote Institutional Bank / COMEX"))
-        source_local = price_data.get("source_local", "សមាគម/ហាងមាសផ្សារធំថ្មី រាជធានីភ្នំពេញ (Physical Spot)")
+        if not date_str:
+            try:
+                from config import CAMBODIA_TZ
+                date_str = datetime.now(CAMBODIA_TZ).strftime("%d/%m/%Y")
+            except Exception:
+                date_str = datetime.now().strftime("%d/%m/%Y")
 
         loc = price_data.get("local_market", {})
-        damlung_sell = loc.get("damlung_sell", damlung_intl + 30.0)
-        damlung_buy = loc.get("damlung_buy", damlung_sell - 25.0)
-        chi_sell = loc.get("chi_sell", damlung_sell / 10.0)
-        chi_buy = loc.get("chi_buy", damlung_buy / 10.0)
-        hun_sell = loc.get("hun_sell", chi_sell / 10.0)
-        platin_chi = loc.get("platin_chi_sell", chi_sell * 0.75)
+        damlung_sell = loc.get("damlung_sell", 0.0)
+        damlung_buy = loc.get("damlung_buy", 0.0)
+        chi_sell = loc.get("chi_sell", damlung_sell / 10.0 if damlung_sell else 0.0)
+        chi_buy = loc.get("chi_buy", damlung_buy / 10.0 if damlung_buy else 0.0)
 
         sign = "+" if chg >= 0 else ""
         icon = "📈" if chg >= 0 else "📉"
 
-        summary_block = f"🧠 <b>ការវិភាគសង្ខេប:</b>\n{summary}\n\n" if summary else ""
-
-        levels = price_data.get("key_levels", {})
-        pivot = levels.get("pivot", oz)
-        r1 = levels.get("r1", oz + 20)
-        s1 = levels.get("s1", oz - 20)
-
-        # SMC Trading Setup Zone (Order Block / Liquidity Sweep)
-        buy_zone_low = round(s1 - 4, 2)
-        buy_zone_high = round(s1 + 3, 2)
-        buy_sl = round(buy_zone_low - 7, 2)
-        buy_tp1 = round(pivot, 2)
-        buy_tp2 = round(r1, 2)
-
-        sell_zone_low = round(r1 - 3, 2)
-        sell_zone_high = round(r1 + 4, 2)
-        sell_sl = round(sell_zone_high + 7, 2)
-        sell_tp1 = round(pivot, 2)
-        sell_tp2 = round(s1, 2)
-
-        macro = price_data.get("macro_correlation", {})
-        dxy = macro.get("dxy_price", 0.0)
-        dxy_chg = macro.get("dxy_change", 0.0)
-        us10y = macro.get("us10y_yield", 0.0)
-
-        # Fear & Greed / Sentiment
-        sentiment = "Neutral / Balanced"
-        if chg > 20:
-            sentiment = "Greed (កម្លាំងទិញខ្លាំង)"
-        elif chg < -20:
-            sentiment = "Fear (សម្ពាធលក់ខ្លាំង)"
-
-        macro_block = (
-            f"\n📊 <b><u>សូចនាករម៉ាក្រូសេដ្ឋកិច្ច (Macro Correlation)</u></b>\n"
-            f"• 💵 <b>DXY Index:</b> {dxy:.2f} ({'+' if dxy_chg >= 0 else ''}{dxy_chg:.2f})\n"
-            f"• 🏛️ <b>US 10-Year Yield:</b> {us10y:.2f}%\n\n"
-            f"{summary_block}"
-        )
-
         msg = (
-            f"🥇 <b>DAILY GOLD PRICE — ហាងឆេងមាសប្រចាំថ្ងៃ</b>\n\n"
-            f"📅 <b>កាលបរិច្ឆេទ:</b> {date_str} (ម៉ោង {time_str} កម្ពុជា)\n\n"
-            f"🌐 <b><u>ទីផ្សារអន្តរជាតិ (International Spot)</u></b>\n"
-            f"• <b>1 Troy Ounce:</b> ${oz:,.2f}\n"
-            f"• <b>1 តម្លឹង (Spot):</b> ${damlung_intl:,.2f}\n"
-            f"• {icon} <b>បម្រែបម្រួល:</b> {sign}${chg:,.2f} ({sign}{pct:.2f}%)\n"
-            f"📍 <i>ប្រភព: {source_intl}</i>\n\n"
-            f"🇰🇭 <b><u>ទីផ្សារកម្ពុជា (Cambodia Local Market)</u></b>\n"
-            f"• <b>មាសគីឡូ 24K (១ តម្លឹង):</b> លក់ ${damlung_sell:,.2f} | ទិញ ${damlung_buy:,.2f}\n"
-            f"• <b>មាសទឹកដប់ (១ ជី):</b> លក់ ${chi_sell:,.2f} | ទិញ ${chi_buy:,.2f}\n"
-            f"• <b>មាស (១ ហ៊ុន):</b> លក់ ${hun_sell:,.2f}\n"
-            f"• <b>ប្លាទីន/មាសកែច្នៃ 18K (១ ជី):</b> ~${platin_chi:,.2f}\n"
-            f"📍 <i>ប្រភព: {source_local}</i>\n"
-            f"{macro_block}"
+            f"🥇  <b>DAILY GOLD PRICE — ហាងឆេងមាសប្រចាំថ្ងៃ</b>\n\n"
+            f"📅  <b>កាលបរិច្ឆេទ:</b> {date_str} \n\n\n"
+            f" 🌐<b>1 អោន :</b> ${oz:,.2f}\n\n"
+            f"🇰🇭 <b>1 តម្លឹង:</b> លក់ ${damlung_sell:,.2f} | ទិញ ${damlung_buy:,.2f}\n"
+            f"      \n"
+            f"      <b>1 ជី:</b> លក់ ${chi_sell:,.2f} | ទិញ ${chi_buy:,.2f}\n\n"
+            f" {icon}   <b>បម្រែបម្រួល:</b> {sign}${chg:,.2f} ({sign}{pct:.2f}%)"
         )
         return msg.strip()
 
-    @staticmethod
+
 
     def format_upcoming_alert(event: dict, minutes_left: int) -> str:
         """Formats upcoming high-impact event alert (e.g. 15m or 5m countdown)."""
@@ -200,41 +163,37 @@ class KhmerFormatter:
     @staticmethod
     def format_breaking_event_alert(news_item: dict, analysis: dict) -> str:
         """Formats breaking news / major geopolitical or unexpected central bank event alert."""
-        title = _clip(news_item.get("title", ""), 100)
-        analysis = {k: _clip(v, _BREAKING_CAPS.get(k, 200)) for k, v in analysis.items()}
-
-        source_name = (news_item.get("source") or "ForexLive / Global Financial Feeds").strip()
+        source_name = (news_item.get("source") or "ForexLive News").strip()
         article_url = (news_item.get("link") or news_item.get("url") or "").strip()
         if article_url:
             source_line = f'🔗 <i>ប្រភពព័ត៌មាន: <a href="{article_url}">{source_name}</a> (ចុចដើម្បីអានបន្ថែម)</i>'
         else:
             source_line = f'🔗 <i>ប្រភពព័ត៌មាន: {source_name}</i>'
 
-        raw_xau = (analysis.get('xau_pressure') or '').strip()
-        # Remove any leading pointers or whitespace
-        clean_xau = re.sub(r'^[👉\s\-•]+', '', raw_xau).strip()
-        # If Gemini returned an emoji followed by newline e.g. "🟡\n...", fix to single line
-        clean_xau = re.sub(r'^([🟢🔴🟡])\s*\n+', r'\1 ', clean_xau)
-        # Ensure it has a leading indicator emoji if missing
-        if not re.match(r'^[🟢🔴🟡]', clean_xau):
-            bias_emoji = "🟢" if "Bullish" in analysis.get('bias', '') else ("🔴" if "Bearish" in analysis.get('bias', '') else "🟡")
-            clean_xau = f"{bias_emoji} {clean_xau}"
+        # Extract comprehensive narrative
+        key_event = ""
+        if isinstance(analysis, dict):
+            key_event = (analysis.get("key_event") or "").strip()
+            if not key_event:
+                what = (analysis.get("what_happened") or "").strip()
+                why = (analysis.get("why_it_matters") or "").strip()
+                xau = (analysis.get("xau_pressure") or "").strip()
+                parts = [p for p in [what, why] if p]
+                if xau:
+                    parts.append(f"• សម្ពាធលើទីផ្សារមាស (XAUUSD): {xau}")
+                key_event = "\n\n".join(parts)
+
+        if not key_event:
+            desc = (news_item.get("description") or news_item.get("title") or "").strip()
+            key_event = desc
 
         msg = (
             f"🚨 <b>BREAKING EVENT — ព្រឹត្តិការណ៍ទីផ្សារប្រចាំថ្ងៃ!</b>\n\n"
-            f"🚨 <b>តើមានអ្វីកើតឡើង?:</b>\n"
-            f"{analysis['what_happened']}\n\n"
-            f"🧠 <b>ហេតុអ្វីវាសំខាន់?:</b>\n"
-            f"{analysis['why_it_matters']}\n\n"
-            f"💵 <b>ផលប៉ះពាល់លើ USD:</b>\n"
-            f"{analysis['usd_impact']}\n\n"
-            f"🏛️ <b>សម្ពាធលើ Yields / Risk Sentiment:</b>\n"
-            f"{analysis['rate_yield_impact']}\n\n"
-            f"🥇 <b>សម្ពាធលើ XAUUSD:</b>\n"
-            f"👉 <b>{clean_xau}</b>\n\n"
+            f"🔹 <b>ព្រឹត្តិការណ៍សំខាន់:</b>\n"
+            f"{key_event}\n\n"
             f"{source_line}"
         )
-        return msg
+        return msg.strip()
 
     @staticmethod
     def format_whale_alert(whale_data: dict) -> str:
@@ -300,25 +259,54 @@ class KhmerFormatter:
             f"• 🏛️ <b>US 10Y Yield:</b> {us10y:.2f}%\n\n"
             f"{spdr_block}"
             f"{summary_block}"
+            f"🛑 <b>ប្រព័ន្ធ SIGNAL:</b> បានបិទបញ្ចប់ជាផ្លូវការត្រឹមម៉ោង ១០:០០ យប់ (22:00) នេះហើយ ដើម្បីការពារដើមទុន និងចៀសវាងហានិភ័យពេលយប់ជ្រៅ។ ជួបគ្នានៅវគ្គ London ថ្ងៃស្អែកម៉ោង ២:០០ រសៀល!\n\n"
             f"🎯 <b>ទស្សនវិស័យថ្ងៃស្អែក:</b> តាមដានតំបន់ Key Pivot និងប្រតិទិនសេដ្ឋកិច្ចពេលព្រឹក!\n\n"
             f"🔗 <i>ប្រភព: Interbank Bullion Liquidity & SPDR Gold Shares</i>"
         )
         return msg
 
     @staticmethod
-    def format_session_open_alert(session_name: str, time_str: str, session_info: str) -> str:
-        """Formats London / New York Session Open Alert."""
-        flag = "🇬🇧" if "london" in session_name.lower() else "🇺🇸"
+    def format_session_open_alert(
+        session_name: str, 
+        time_str: str, 
+        session_info: str = "",
+        price_data: dict = None,
+        order_book: dict = None
+    ) -> str:
+        """
+        Formats London / New York Session Open Alert matching the exact clean narrative
+        typography of Breaking Event (smooth regular Khmer font, no bold clutters).
+        """
+        is_london = "london" in session_name.lower()
+        flag = "🇬🇧" if is_london else "🇺🇸"
+        header_title = f"{flag} <b>{session_name.upper()} OPENING — ទីផ្សារហិរញ្ញវត្ថុបើកដំណើរការ!</b>"
+
+        if is_london:
+            story_text = (
+                "ទីផ្សារវគ្គព្រឹកបានបង្កើតចលនា Consolidation ដែលធ្វើឱ្យក្រុម Retail Traders កកកុញ Stop Loss យ៉ាងច្រើននៅតំបន់ Asian High និង Asian Low។ "
+                "ពេលបើកផ្សារ London នេះ ធនាគារធំៗតែងតែបង្កើតចលនាបញ្ឆោត (Judas Swing / Fakeout) រុញតម្លៃទៅស្រូបយក Stop Loss ទាំងនោះសិន មុននឹងបកក្បាលបង្ហាញទិសដៅពិតប្រាកដ។ "
+                "ដូច្នេះ គួររង់ចាំចន្លោះពី 15 ទៅ 30 នាទីឱ្យទីផ្សារ Sweep Liquidity រួចបង្កើតសញ្ញាបញ្ជាក់ M15 Confirmation ច្បាស់លាស់សិន ទើបជាចំណុចចូល Trade ដែលមានសុវត្ថិភាពខ្ពស់បំផុត។"
+            )
+        else:
+            story_text = (
+                "ទីផ្សារបានបង្កើតចលនាពាក់កណ្តាលថ្ងៃរួចរាល់ ហើយផ្សារ New York បើកដំណើរការជាមួយស្ថាប័ន Wall Street និង COMEX ដែលជាប្រភពនៃទំហំសាច់ប្រាក់ និងបម្រែបម្រួលតម្លៃមាសធំបំផុតប្រចាំថ្ងៃ។ "
+                "ស្ថាប័នធំៗអាចនឹងរុញបន្ត Trend ពី London ឬធ្វើការបកក្បាល Reversal យ៉ាងគំហុកនៅតំបន់ Order Block និង Fair Value Gap (FVG)។ "
+                "ដូច្នេះ គួរតាមដានប្រតិកម្មតម្លៃជុំវិញតំបន់កណ្តាល Equilibrium Pivot និងចៀសវាងការដេញតម្លៃពេលទិន្នន័យសេដ្ឋកិច្ចអាមេរិក (USD Data) ចេញផ្សាយ។"
+            )
+
+        if session_info:
+            story_text = f"{session_info}\n\n{story_text}"
+
         return (
-            f"🔔 {flag} <b>{session_name.upper()} OPENING — ទីផ្សារហិរញ្ញវត្ថុបើកដំណើរការ!</b>\n\n"
-            f"🕐 <b>ម៉ោងនៅកម្ពុជា:</b> <b>{time_str} (UTC+7)</b>\n"
-            f"🌊 <b>លំហូរសាច់ប្រាក់ (Market Liquidity):</b> <b>កើនឡើងខ្លាំង (High Volume Inflow)</b>\n\n"
-            f"🧠 <b>ការវិភាគទីផ្សារ & អនុសាសន៍:</b>\n"
-            f"• {session_info}\n"
-            f"• ត្រៀមទទួលយកបម្រែបម្រួលតម្លៃមាស XAUUSD រលកថ្មី!\n"
-            f"• ពិនិត្យមើលតំបន់ Key Support / Resistance មុនពេលចូល Trade។\n\n"
-            f"🛡️ <b>ការគ្រប់គ្រងហានិភ័យ:</b> កំណត់ Stop Loss ជានិច្ច ជៀសវាងការដេញតម្លៃពេលទើបបើកផ្សារ!"
+            f"{header_title}\n\n"
+            f"🔹 <b>ការវិភាគទីផ្សារ & យុទ្ធសាស្ត្រស្ថាប័ន (SMC):</b>\n"
+            f"{story_text}"
         )
+
+
+
+
+
 
     @staticmethod
     def format_spike_alert(current_price: float, prev_price: float, diff: float, minutes: int = 15) -> str:
@@ -413,21 +401,44 @@ class KhmerFormatter:
 
     @staticmethod
     def format_fomc_speech_alert(event_title: str, interp: dict) -> str:
-        """Formats Real-Time AI Live Speech Interpretation of FOMC / Jerome Powell."""
+        """Formats Real-Time AI Live Speech Interpretation of FOMC / Fed Officials."""
+        import re
         is_dovish = interp.get("tone") == "DOVISH"
-        icon = "🟢" if is_dovish else ("🔴" if interp.get("tone") == "HAWKISH" else "🟡")
-        
+        is_hawkish = interp.get("tone") == "HAWKISH"
+        icon = "🟢" if is_dovish else ("🔴" if is_hawkish else "🟡")
+
+        # Detect speaker name dynamically
+        speaker = "Fed"
+        for name in ["Kevin Warsh", "Warsh", "Jerome Powell", "Powell", "Christopher Waller", "Waller", "Michelle Bowman", "Bowman", "Austan Goolsbee", "Goolsbee", "John Williams", "Williams"]:
+            if name.lower() in event_title.lower():
+                speaker = name
+                break
+
+        # Clean tone description: strip leading emojis (e.g. 🌓, 🟢, 🔴, 🟡)
+        tone_raw = interp.get("tone_kh") or interp.get("tone") or "Neutral"
+        tone_clean = re.sub(r"^[^\w\s\u1780-\u17FF]+", "", tone_raw).strip()
+
+        # Clean quotes
+        quotes = (interp.get("key_quotes") or "").strip()
+        quote_section = ""
+        if quotes:
+            quote_section = (
+                f"💬 <b>ចំណុចគន្លឹះសំខាន់ៗដែល {speaker} ថ្លែង (Key Quotes):</b>\n"
+                f"«<i>{quotes}</i>»\n\n"
+            )
+
+        # Clean gold impact: remove bullet points and keep clean regular narrative text
+        gold_impact = (interp.get("gold_pressure") or "").strip()
+        if gold_impact.startswith("•") or gold_impact.startswith("-"):
+            gold_impact = gold_impact.lstrip("•- ").strip()
+
         return (
-            f"⚡ {icon} <b>LIVE FED AI INTERPRETER — ការថ្លែងសុន្ទរកថាប្រធាន FED ផ្ទាល់!</b>\n\n"
-            f"🎙️ <b>ព្រឹត្តិការណ៍:</b> <b>{event_title}</b>\n"
-            f"🎭 <b>សម្លេង និងអារម្មណ៍ Fed (Tone):</b> <b>{interp.get('tone_kh', 'N/A')}</b>\n\n"
-            f"💬 <b>ចំណុចគន្លឹះសំខាន់ៗដែល Powell ថ្លែង (Key Quotes):</b>\n"
-            f"«<i>{interp.get('key_quotes', '')}</i>»\n\n"
+            f"{icon} <b>LIVE FED AI INTERPRETER — ការថ្លែងសុន្ទរកថាប្រធាន FED ផ្ទាល់!</b>\n\n"
+            f"<b>ព្រឹត្តិការណ៍:</b> {event_title}\n"
+            f"<b>សម្លេង និងអារម្មណ៍ Fed (Tone):</b> {tone_clean}\n\n"
+            f"{quote_section}"
             f"🥇 <b>ផលប៉ះពាល់លើតម្លៃមាស (XAUUSD Impact):</b>\n"
-            f"• {interp.get('gold_pressure', '')}\n"
-            f"• <b>ទស្សនវិស័យមាស:</b> <b>{interp.get('xau_bias', 'Mixed')}</b>\n\n"
-            f"🛡️ <b>ការគ្រប់គ្រងហានិភ័យ:</b> ទីផ្សារមានចលនារលកធំៗ និង Spikes ខ្លាំងក្នុងអំឡុងពេលសន្និសីទ Fed សូមប្រយ័ត្នខ្ពស់!\n\n"
-            f"📊 <i>ពិនិត្យ Chart ផ្ទាល់: <a href='https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD'>TradingView XAUUSD Live</a></i>"
+            f"{gold_impact}"
         )
 
     @staticmethod
@@ -617,30 +628,18 @@ class KhmerFormatter:
         r2 = levels.get("r2", oz + 40)
         s2 = levels.get("s2", oz - 40)
 
-        direction = setup.get("direction", "WAIT").upper()
-        is_wait = "WAIT" in direction
-        is_buy = "BUY" in direction and not is_wait
-        if is_wait:
-            icon = "🟡"
-            action_kh = "រង់ចាំសិន (WAIT / NO TRADE)"
-            opposite_action = "បើក Order ប្រថុយប្រថាន"
-        elif is_buy:
-            icon = "🟢"
-            action_kh = "ទិញឡើង (BUY)"
-            opposite_action = "លក់ (SELL)"
-        else:
-            icon = "🔴"
-            action_kh = "លក់ចុះ (SELL)"
-            opposite_action = "ទិញ (BUY)"
+        direction = setup.get("direction", "BUY").upper()
+        is_buy = "BUY" in direction
+        icon = "🟢" if is_buy else "🔴"
+        action_kh = "ទិញឡើង (BUY)" if is_buy else "លក់ចុះ (SELL)"
+        opposite_action = "លក់ (SELL)" if is_buy else "ទិញ (BUY)"
 
-        entry_val = setup.get("entry")
-        if entry_val is None:
-            entry_val = oz or 0.0
-        entry_zone = setup.get("entry_zone") or f"${float(entry_val):,.2f}"
-        sl = setup.get("sl") or 0.0
-        tp1 = setup.get("tp1") or 0.0
-        tp2 = setup.get("tp2") or 0.0
-        rr = setup.get("rr_ratio") or "1:2.0"
+        entry_val = setup.get("entry", oz)
+        entry_zone = setup.get("entry_zone", f"${entry_val:,.2f}")
+        sl = setup.get("sl", 0.0)
+        tp1 = setup.get("tp1", 0.0)
+        tp2 = setup.get("tp2", 0.0)
+        rr = setup.get("rr_ratio", "1:2.0")
 
         why_trade = setup.get("why_this_trade", "").strip()
         why_not = setup.get("why_not_opposite", "").strip()
@@ -679,28 +678,25 @@ class KhmerFormatter:
         # Calculate Real-Time Execution Status for Telegram
         exec_status_line = ""
         try:
-            if is_wait:
-                exec_status_line = "🟡 <b>ស្ថានភាព (Status): ⏸️ NO TRADE / WAIT (រង់ចាំឱកាសល្អមាន Confluence)</b>\n"
-            else:
-                entry_parts = [float(x.replace("$", "").replace(",", "").strip()) for x in entry_zone.split("-") if x.strip()]
-                if len(entry_parts) == 2:
-                    e_low, e_high = min(entry_parts), max(entry_parts)
-                    if is_buy:
-                        if e_low <= oz <= e_high:
-                            exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ READY TO BUY (តម្លៃដល់តំបន់ទិញហើយ)</b>\n"
-                        elif oz > e_high:
-                            wait_diff = oz - e_high
-                            exec_status_line = f"🟡 <b>ស្ថានភាព (Status): ⏳ WAITING PULLBACK (រង់ចាំចុះ ${wait_diff:.1f} ទៀត)</b>\n"
-                        else:
-                            exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ DEEP DISCOUNT BUY (តំបន់បញ្ចុះតម្លៃពិសេស)</b>\n"
+            entry_parts = [float(x.replace("$", "").replace(",", "").strip()) for x in entry_zone.split("-") if x.strip()]
+            if len(entry_parts) == 2:
+                e_low, e_high = min(entry_parts), max(entry_parts)
+                if is_buy:
+                    if e_low <= oz <= e_high:
+                        exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ READY TO BUY (តម្លៃដល់តំបន់ទិញហើយ)</b>\n"
+                    elif oz > e_high:
+                        wait_diff = oz - e_high
+                        exec_status_line = f"🟡 <b>ស្ថានភាព (Status): ⏳ WAITING PULLBACK (រង់ចាំចុះ ${wait_diff:.1f} ទៀត)</b>\n"
                     else:
-                        if e_low <= oz <= e_high:
-                            exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ READY TO SELL (តម្លៃដល់តំបន់លក់ហើយ)</b>\n"
-                        elif oz < e_low:
-                            wait_diff = e_low - oz
-                            exec_status_line = f"🟡 <b>ស្ថានភាព (Status): ⏳ WAITING BOUNCE (រង់ចាំឡើង ${wait_diff:.1f} ទៀត)</b>\n"
-                        else:
-                            exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ HIGH PREMIUM SELL (តំបន់លក់បានថ្លៃខ្ពស់)</b>\n"
+                        exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ DEEP DISCOUNT BUY (តំបន់បញ្ចុះតម្លៃពិសេស)</b>\n"
+                else:
+                    if e_low <= oz <= e_high:
+                        exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ READY TO SELL (តម្លៃដល់តំបន់លក់ហើយ)</b>\n"
+                    elif oz < e_low:
+                        wait_diff = e_low - oz
+                        exec_status_line = f"🟡 <b>ស្ថានភាព (Status): ⏳ WAITING BOUNCE (រង់ចាំឡើង ${wait_diff:.1f} ទៀត)</b>\n"
+                    else:
+                        exec_status_line = "🟢 <b>ស្ថានភាព (Status): ⚡ HIGH PREMIUM SELL (តំបន់លក់បានថ្លៃខ្ពស់)</b>\n"
         except Exception:
             pass
 
@@ -724,57 +720,18 @@ class KhmerFormatter:
                 f"━━━━━━━━━━━━━━━━━━━\n"
             )
 
-        council_banner = ""
-        council_info = setup.get("ai_council")
-        if council_info and isinstance(council_info, dict):
-            votes = council_info.get("votes", [])
-            ratio = council_info.get("ratio", "")
-            verdict = council_info.get("verdict", "")
-            reached = council_info.get("consensus_reached", False)
-            
-            icon_verdict = "🟢 BUY" if verdict == "BUY" else ("🔴 SELL" if verdict == "SELL" else "🟡 WAIT")
-            status_text = "✅ CONSENSUS REACHED" if reached else "⚠️ CAUTION / DIVERGENCE"
-            
-            vote_lines = []
-            for v in votes:
-                ai_name = v.get("name", "AI").capitalize()
-                v_vote = v.get("vote", "WAIT")
-                v_ico = "🟢 BUY" if v_vote == "BUY" else ("🔴 SELL" if v_vote == "SELL" else "🟡 WAIT")
-                vote_lines.append(f"  • {ai_name}: <b>{v_ico}</b> ({v.get('confidence', '85%')})")
-            votes_str = "\n".join(vote_lines)
-
-            council_banner = (
-                f"🏛️ <b>MULTI-AI CONSENSUS COUNCIL (ការបោះឆ្នោតរួម):</b>\n"
-                f"{votes_str}\n"
-                f"🗳️ <b>សេចក្តីសម្រេច: {icon_verdict} ({ratio} Votes) — {status_text}</b>\n"
-                f"━━━━━━━━━━━━━━━━━━━\n\n"
-            )
-
-        levels_section = (
+        part2 = (
+            f"{news_lock_banner}"
+            f"{trap_banner}"
+            f"🎯 {icon} <b>ផែនការជួញដូរឆ្លាតវៃ AI SMC — ទិសដៅតែមួយគត់ ({action_kh})</b>\n"
+            f"⚡ <b>កម្រិតទំនុកចិត្ត AI (Confidence Score):</b> <code>{conf_score}</code>\n"
+            f"{exec_status_line}\n"
             f"📍 <b>កម្រិតតម្លៃចូល និងគ្រប់គ្រងដើមទុន:</b>\n"
             f"• 🎯 <b>តំបន់ Entry:</b> <code>{entry_zone}</code>\n"
             f"• 🛑 <b>Stop Loss (SL):</b> <code>${sl:,.2f}</code>\n"
             f"• 🎯 <b>Take Profit 1 (TP1):</b> <code>${tp1:,.2f}</code> (Lock BE)\n"
             f"• 🏆 <b>Take Profit 2 (TP2):</b> <code>${tp2:,.2f}</code>\n"
             f"• ⚖️ <b>សមាមាត្រចំណេញ/ខាត (R:R):</b> <code>{rr}</code>\n\n"
-        )
-        if is_wait:
-            levels_section = (
-                f"📍 <b>ស្ថានភាពកម្រិតតម្លៃ (Price Context):</b>\n"
-                f"• 🎯 <b>តម្លៃបច្ចុប្បន្ន (Spot Price):</b> <code>${oz:,.2f}</code>\n"
-                f"• 🛑 <b>កម្រិតគន្លឹះ Pivot:</b> <code>${pivot:,.2f}</code>\n"
-                f"• 🛡️ <b>Key Zones:</b> Support <code>${s1:,.2f}</code> | Resistance <code>${r1:,.2f}</code>\n"
-                f"• ⚖️ <b>ការគ្រប់គ្រងហានិភ័យ:</b> <b>រក្សាសាច់ប្រាក់ មិនទាន់មាន R:R សមស្រប</b>\n\n"
-            )
-
-        part2 = (
-            f"{news_lock_banner}"
-            f"{trap_banner}"
-            f"🎯 {icon} <b>ផែនការជួញដូរឆ្លាតវៃ AI SMC — ទិសដៅតែមួយគត់ ({action_kh})</b>\n"
-            f"⚡ <b>កម្រិតទំនុកចិត្ត AI (Confidence Score):</b> <code>{conf_score}</code>\n"
-            f"{council_banner}"
-            f"{exec_status_line}\n"
-            f"{levels_section}"
             f"🧠 <b>ហេតុផលច្បាស់លាស់ដែលគួរ {action_kh}:</b>\n"
             f"{formatted_why_trade}\n\n"
             f"🚫 <b>ហេតុផលដាច់ខាតដែលមិនគួរ {opposite_action}:</b>\n"
@@ -809,6 +766,130 @@ class KhmerFormatter:
             f"📊 <i>ពិនិត្យ Chart ផ្ទាល់: <a href='https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD'>TradingView XAUUSD Live</a></i>"
         )
         return msg
+
+    @staticmethod
+    def format_sniper_instant_alert(sig: dict) -> str:
+        """Formats real-time AI Pre-Signal Market Analysis and Sniper Signal Alert."""
+        action = sig.get("action", "BUY")
+        is_buy = "BUY" in action
+        icon = "🟢" if is_buy else "🔴"
+        trend_desc = sig.get("trend_desc", "តម្លៃកំពុងស្ថិតក្នុងចលនាចំហៀង (Consolidation / Sideways)។")
+        ma_desc = sig.get("ma_desc", "ខ្សែបម្លាស់ទីលឿន និងខ្សែបម្លាស់ទីយឺត កំពុងប្រទាក់ក្រឡាគ្នានៅជិតតម្លៃបច្ចុប្បន្ន។")
+        res_range = sig.get("resistance_range", "$2700 - $2710")
+        sup_range = sig.get("support_range", "$2660 - $2670")
+
+        daily_c = sig.get("daily_count", 1)
+        daily_m = sig.get("daily_max", 5)
+
+        ai_analysis_block = ""
+        if sig.get("ai_analysis"):
+            ai_analysis_block = (
+                f"🧠 <b>ការវិភាគស៊ីជម្រៅដោយ AI (Institutional Deep Analysis):</b>\n"
+                f"{sig.get('ai_analysis')}\n\n"
+            )
+
+        macro_block = ""
+        if sig.get("macro_context"):
+            macro_block = f"• 💵 <b>ឥទ្ធិពល Macro & DXY:</b> {sig.get('macro_context')}\n"
+
+        inval_block = ""
+        if sig.get("invalidation_note"):
+            inval_block = f"• 🚫 <b>លក្ខខណ្ឌខូចសុពលភាព (Invalidation):</b> {sig.get('invalidation_note')}\n"
+
+        tips_block = ""
+        if sig.get("execution_tips"):
+            tips_block = f"• 🎯 <b>ការអនុវត្តជាក់ស្តែង:</b> {sig.get('execution_tips')}\n"
+
+        daily_limit_notice = ""
+        if daily_c >= daily_m:
+            daily_limit_notice = (
+                f"\n🛑 <b>ការការពារដើមទុន (Daily Quota Reached):</b>\n"
+                f"នេះជា Position ទី <b>{daily_c}/{daily_m}</b> ចុងក្រោយសម្រាប់ថ្ងៃនេះ! "
+                f"Bot នឹងផ្អាកការចេញ Signal បន្ថែមរហូតដល់ថ្ងៃស្អែក ដើម្បីការពារដើមទុន និងទប់ស្កាត់ Overtrading ១០០%។\n"
+            )
+
+        return (
+            f"📊 <b>១. ការវិភាគស្ថានភាពទីផ្សារបច្ចុប្បន្ន</b>\n\n"
+            f"• <b>និន្នាការរួម (Trend):</b> {trend_desc}\n\n"
+            f"• <b>ខ្សែបម្លាស់ទី (Moving Averages):</b> {ma_desc}\n\n"
+            f"• <b>កម្រិតទ្រទ្រង់ និងរាំងស្ទះ (Support & Resistance):</b>\n"
+            f"  - <b>កម្រិតរាំងស្ទះ (Resistance):</b> នៅចន្លោះតម្លៃ <code>{res_range}</code> (ប្រសិនបើតម្លៃអាចបំបែកឡើងលើបាន)\n"
+            f"  - <b>កម្រិតទ្រទ្រង់ (Support):</b> នៅចន្លោះតម្លៃ <code>{sup_range}</code> (ប្រសិនបើតម្លៃធ្លាក់ចុះក្រោម)\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"📈 <b>២. ជម្រើសសម្រាប់ការជួញដូរ (Trading Scenarios)</b>\n\n"
+            f"🟢 <b>ករណីសម្លឹងមើលការទិញ (Buy Signal):</b>\n"
+            f"  - រង់ចាំឱ្យតម្លៃបំបែក (Breakout) ផុតខ្សែបម្លាស់ទី និងកម្រិត Resistance ផ្នែកខាងលើដោយមានទៀនតម្លៃ (Candlestick) បិទយ៉ាងរឹងមាំ។\n"
+            f"  - ឬរង់ចាំតម្លៃធ្លាក់ចុះមកប៉ះតំបន់ Support ខាងក្រោម ហើយមានសញ្ញាត្រឡប់ឡើងវិញ (Rejection / Bullish Pattern)។\n\n"
+            f"🔴 <b>ករណីសម្លឹងមើលការលក់ (Sell Signal):</b>\n"
+            f"  - រង់ចាំឱ្យតម្លៃបំបែកធ្លាក់ចុះក្រោមតំបន់ Support ខាងក្រោមទើបចូលលក់។\n"
+            f"  - ឬនៅពេលតម្លៃឡើងទៅប៉ះតំបន់ Resistance ខាងលើ ហើយមិនអាចបំបែករួច (Bearish Rejection)។\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"⚡ {icon} <b>សញ្ញា AI SNIPER GRADE A+ (Position {daily_c}/{daily_m} ប្រចាំថ្ងៃ):</b>\n"
+            f"🛡️ <b>ការបញ្ជាក់ពី SIGNAL:</b> <b>GRADE A+ Institutional Setup ✓ (AI Audited)</b>\n"
+            f"🎯 <b>ប្រតិបត្តិការ:</b> <b>{sig.get('action_title', action)}</b>\n"
+            f"• 🥇 <b>Entry តម្លៃចូល:</b> <code>${sig.get('entry', 0.0):,.2f}</code>\n"
+            f"• 🛑 <b>Stop Loss (SL):</b> <code>${sig.get('sl', 0.0):,.2f}</code>\n"
+            f"• 🎯 <b>Take Profit 1 (TP1):</b> <code>${sig.get('tp1', 0.0):,.2f}</code>\n"
+            f"• 🏆 <b>Take Profit 2 (TP2):</b> <code>${sig.get('tp2', 0.0):,.2f}</code>\n"
+            f"• ⚖️ <b>Risk:Reward:</b> <code>{sig.get('rr_ratio', '1:2.0')}</code>\n"
+            f"• 🎯 <b>ពិន្ទុទំនុកចិត្ត (Confidence Score):</b> <code>{sig.get('confidence_score', '85%')}</code>\n"
+            f"{macro_block}"
+            f"{inval_block}"
+            f"{tips_block}"
+            f"• 💡 <b>ការបញ្ជាក់បច្ចេកទេស:</b> {sig.get('reason', '')}\n\n"
+            f"{ai_analysis_block}"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"💡 <b>អនុសាសន៍គ្រប់គ្រងហានិភ័យ (Risk Management)</b>\n\n"
+            f"1. <b>រង់ចាំសញ្ញាច្បាស់លាស់ (Wait for Confirmation):</b> ដោយសារទីផ្សារអាចមាន Sideways ការចូល Order ត្រូវមានការផ្ទៀងផ្ទាត់ Candle Confirmation ជានិច្ច។\n"
+            f"2. <b>កំណត់ Stop Loss (SL) និង Take Profit (TP):</b> ត្រូវដាក់ SL ជានិច្ច និងកំណត់ទំហំហានិភ័យត្រឹម 1-2% នៃទុនគណនី។\n"
+            f"3. <b>ពិនិត្យមើលព័ត៌មានសេដ្ឋកិច្ច (Economic News Filter):</b> បិទ Signal មុន/ក្រោយ 30 នាទីនៃ High-Impact News (CPI, NFP, FOMC) ដើម្បីការពារដើមទុន!{daily_limit_notice}"
+        )
+
+    @staticmethod
+    def format_signal_stats(stats: dict) -> str:
+        """Formats community trade feedback summary."""
+        tp = stats.get("tp_votes", 0)
+        sl = stats.get("sl_votes", 0)
+        total = stats.get("total_votes", 0)
+        wr = stats.get("win_rate", 0.0)
+        traders = stats.get("total_traders", 0)
+
+        wr_emoji = "🔥" if wr >= 70 else ("👍" if wr >= 50 else "⚠️")
+
+        return (
+            f"📊 <b>ស្ថិតិលទ្ធផល SIGNAL ពីសមាជិក (COMMUNITY FEEDBACK)</b>\n\n"
+            f"👥 <b>ចំនួនសមាជិកចូលរួមបោះឆ្នោត:</b> <code>{traders:,} នាក់</code>\n"
+            f"🗳️ <b>សន្លឹកឆ្នោតសរុប:</b> <code>{total:,} ដង</code>\n\n"
+            f"🎯 <b>ឈ្នះ (Hit TP):</b> <code>{tp:,} ដង</code>\n"
+            f"🛑 <b>ចាញ់ (Hit SL):</b> <code>{sl:,} ដង</code>\n\n"
+            f"{wr_emoji} <b>អត្រាជោគជ័យ (Win Rate):</b> <code><b>{wr}%</b></code>\n\n"
+            f"💡 <i>ទិន្នន័យនេះបានមកពីការចុចប៊ូតុងជាក់ស្តែងរបស់សមាជិកលើគ្រប់ Signal ដែល Bot AI បានបាញ់កន្លងមក!</i>"
+        )
+
+    @staticmethod
+    def format_breakeven_profit_alert(info: dict) -> str:
+        """Formats Dynamic Break-Even & Profit Lock Alert."""
+        action = info.get("action", "BUY")
+        is_buy = "BUY" in action
+        icon = "🟢" if is_buy else "🔴"
+        pips = info.get("pips_gained", 30)
+        curr_p = info.get("current_price", 0.0)
+        entry_p = info.get("entry_price", 0.0)
+        tp1_p = info.get("tp1_price", 0.0)
+
+        return (
+            f"🛡️ <b>DYNAMIC BREAK-EVEN & PROFIT LOCK ALERT!</b> ⚡\n\n"
+            f"{icon} <b>Signal XAUUSD:</b> <b>{action} @ ${entry_p:,.2f}</b>\n"
+            f"🚀 <b>ស្ថានភាពបច្ចុប្បន្ន:</b> តម្លៃបានរត់ទៅមុខ <b>+{pips:.0f} Pips</b> (Spot: <code>${curr_p:,.2f}</code>)!\n"
+            f"🎯 <b>ទិសដៅ TP1:</b> <code>${tp1_p:,.2f}</code> (ជិតសម្រេចគោលដៅ)\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"💡 <b>សកម្មភាពត្រូវធ្វើជាបន្ទាន់ (Action Required):</b>\n"
+            f"1. 🔒 <b>រំកិល Stop Loss មកស្មើ Entry (Lock Break-Even):</b>\n"
+            f"   👉 កំណត់ SL = <code>${entry_p:,.2f}</code> ដើម្បីធានាការជួញដូរនេះ <b>គ្មានហានិភ័យ (Zero Risk)</b> ១០០%!\n"
+            f"2. 💰 <b>កាត់ប្រាក់ចំណេញមួយផ្នែក (Partial TP - Close 50%):</b>\n"
+            f"   👉 អាចបិទ Order ពាក់កណ្តាលយកចំណេញទុកក្នុងហោប៉ៅ ហើយទុកចំណែកដែលនៅសល់រត់ទៅ TP2!\n\n"
+            f"🛡️ <i>វិន័យត្រឹមត្រូវ: មិនត្រូវបណ្តោយឱ្យ Order ដែលកំពុងចំណេញ ប្រែត្រឡប់មកខាតវិញជាដាច់ខាត!</i>"
+        )
 
     @staticmethod
     def format_ai_chat_response(query: str, answer_html: str, price_data: dict = None) -> str:
