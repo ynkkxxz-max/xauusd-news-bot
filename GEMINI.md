@@ -11,6 +11,13 @@ This repository is governed by the 5 Golden Principles established by the system
 - Signal boxes (Entry Zone, Stop Loss, TP1, TP2) MUST remain 100% frozen/locked on established structural levels during waiting states. They NEVER float with market price ticks.
 - Levels only update to genuine confirmed numbers when AI validates the setup and the action button turns ready.
 - Real-time calibration against Interbank Forex Spot (Gold-API) ensures exact MT5 price alignment.
+- Stop Loss (SL) distance from Entry MUST strictly remain within 8 - 10 points (maximum 12 points, NEVER exceed 12 points / $12).
+- **Direction-Consistent SL Enforcement**:
+  - For **SELL**: SL MUST strictly be ABOVE the Entry Zone (`SL = EntryHigh + 8~10 points`). Never allow SL below entry.
+  - For **BUY**: SL MUST strictly be BELOW the Entry Zone (`SL = EntryLow - 8~10 points`). Never allow SL above entry.
+- **Zero UI Contradiction & Instant Auto-Purge**:
+  - Top Hero Bias, M15/H1 Structure, Confluence Matrix, Action Button, and Signal Boxes MUST be 100% harmonized. A SELL header must NEVER coexist with a BUY signal or vice versa.
+  - If market structure flips against an active signal or Safety Index drops below 50%, stale cached signals must be purged immediately, returning the button cleanly to `រង់ចាំ Signal ថ្មី`.
 
 ### 3. 🧠 ឆ្លាតខ្លាំង (Deep Intelligence & Institutional Confluence)
 - Dual-engine: SMC (BOS, CHoCH, Order Block, FVG, 0.618-0.786 OTE Fibonacci) combined with CVD Whale volume, Depth, Killzones, and Macro DXY analysis.
