@@ -32,3 +32,7 @@ This repository is governed by the 5 Golden Principles established by the system
 - Self-healing multi-stream architecture (Binance WebSocket, Gold-API, Swissquote, CoinGecko).
 - Automatic reconnects, memory safety, isolated error handlers.
 - Built for 24/7 uninterrupted high-reliability operation.
+
+### 6. 📌 អាទិភាពការងារបច្ចុប្បន្ន (Current Development Priority Directive)
+- **Mini App Update Freeze**: ផ្អាកការ Update លើ Telegram Mini App (`index.html`) ជាបណ្តោះអាសន្ន។ មិនធ្វើការកែសម្រួល ឬ Deploy ឡើយ រហូតទាល់តែមានការណែនាំឱ្យបន្តនៅពេលក្រោយ។
+- **Bot & Channel Priority**: ផ្តោតការងារជាចម្បងលើ Telegram Bot Engine (`main.py`, `telegram_notifier.py`), AI Analyzers (`analyzers/`), Collectors (`collectors/`), និងការផ្សាយព័ត៌មានលើ Channel។
