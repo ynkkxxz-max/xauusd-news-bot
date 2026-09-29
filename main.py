@@ -148,17 +148,13 @@ class XAUUSDNewsAssistantBot:
         self._bootstrap_news_cache()
 
     def _bootstrap_news_cache(self):
-        """On startup, marks any currently active news items in the feeds as already known
-        so the bot strictly broadcasts brand-new breaking news that appears AFTER startup."""
+        """
+        On startup, verifies feed connectivity without blindly discarding fresh breaking news.
+        Items that were already broadcasted in the last 24h are already tracked in SQLite database.
+        """
         try:
             items = self.news_collector.fetch_latest_news()
-            bootstrapped = 0
-            for item in items:
-                if not database.is_news_sent(item["id"]):
-                    database.record_news_sent(item["id"], item["title"], item.get("source", ""))
-                    bootstrapped += 1
-            if bootstrapped > 0:
-                logger.info(f"[Startup News Sync] Registered {bootstrapped} active feed items. Only future fresh news will trigger alerts.")
+            logger.info(f"[Startup News Sync] Successfully connected to global news feeds ({len(items)} active headlines).")
         except Exception as e:
             logger.warning(f"[Startup News Sync] Warning: {e}")
 
@@ -1103,9 +1099,8 @@ class XAUUSDNewsAssistantBot:
     def _fetch_news_image(item: dict) -> bytes:
         """
         Downloads the genuine photo attached to the news article.
-        1. Uses direct article image from feed if present.
-        2. Otherwise, fetches the article web page directly and extracts og:image / twitter:image.
-        3. If no genuine article image exists, returns None (Strictly NEVER uses random or unrelated images).
+        Strictly NEVER accepts generic logos (Google News logo, site icons, placeholders).
+        If no genuine news photo is found, returns None so the message is sent cleanly as text per Rule 8.
         """
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -1113,20 +1108,50 @@ class XAUUSDNewsAssistantBot:
         }
         url = (item.get("image_url") or "").strip()
         link = (item.get("link") or item.get("url") or "").strip()
-        
+
+        FORBIDDEN_PATTERNS = [
+            "googleusercontent", "gstatic", "google", "logo", "icon", "avatar",
+            "1x1", "placeholder", "default", "favicon", "badge", "button", "app-icon",
+            "branding", "spinner", "loader"
+        ]
+
+        def _is_valid_article_img(img_url: str) -> bool:
+            if not img_url or not img_url.startswith("http"):
+                return False
+            u_low = img_url.lower()
+            return not any(pat in u_low for pat in FORBIDDEN_PATTERNS)
+
+        def _verify_image_bytes(img_bytes: bytes) -> bool:
+            if not img_bytes or len(img_bytes) < 4000:
+                return False
+            try:
+                from PIL import Image
+                import io
+                with Image.open(io.BytesIO(img_bytes)) as im:
+                    w, h = im.size
+                    # Reject small square logos / icons; genuine news photos are landscape >= 380x200
+                    if w >= 380 and h >= 180 and (w / max(h, 1)) >= 1.15:
+                        return True
+            except Exception:
+                pass
+            return False
+
         # 1. Try direct article image from feed
-        if url and url.startswith("http"):
+        if _is_valid_article_img(url):
             try:
                 resp = requests.get(url, headers=headers, timeout=8)
-                if resp.status_code == 200 and len(resp.content) > 3000:
-                    ct = resp.headers.get("Content-Type", "")
-                    if ct.startswith("image/") or url.endswith((".jpg", ".jpeg", ".png", ".webp")):
-                        return resp.content
+                if resp.status_code == 200 and _verify_image_bytes(resp.content):
+                    return resp.content
             except Exception as e:
                 logger.warning(f"Direct news image fetch failed: {e}")
 
         # 2. Extract genuine article image directly from the publisher's web page (og:image / twitter:image)
-        if link and link.startswith("http"):
+        # Must be a specific deep article URL (not a generic section homepage like /world or /news)
+        is_deep_article = (
+            link.count("/") >= 4 and
+            not any(link.rstrip("/").endswith(sec) for sec in ["/world", "/news", "/politics", "/markets", "/business", "/economy", "/home"])
+        )
+        if link and link.startswith("http") and "news.google.com" not in link and is_deep_article:
             try:
                 art_resp = requests.get(link, headers=headers, timeout=6)
                 if art_resp.status_code == 200:
@@ -1140,11 +1165,12 @@ class XAUUSDNewsAssistantBot:
                         m = re.search(p, art_resp.text, re.IGNORECASE)
                         if m:
                             raw_img_url = m.group(1).replace("&amp;", "&").strip()
-                            from urllib.parse import urljoin
-                            full_img_url = urljoin(link, raw_img_url)
-                            img_resp = requests.get(full_img_url, headers=headers, timeout=8)
-                            if img_resp.status_code == 200 and len(img_resp.content) > 3000:
-                                return img_resp.content
+                            if _is_valid_article_img(raw_img_url):
+                                from urllib.parse import urljoin
+                                full_img_url = urljoin(link, raw_img_url)
+                                img_resp = requests.get(full_img_url, headers=headers, timeout=8)
+                                if img_resp.status_code == 200 and _verify_image_bytes(img_resp.content):
+                                    return img_resp.content
             except Exception as e:
                 logger.debug(f"Webpage og:image fetch failed for {link}: {e}")
 
