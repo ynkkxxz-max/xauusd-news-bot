@@ -1109,7 +1109,7 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      font-family: 'JetBrains Mono', -apple-system, monospace;
+      font-family: 'Orbitron', 'Share Tech Mono', monospace;
       margin-bottom: 2px;
       white-space: nowrap;
     }
@@ -1127,21 +1127,23 @@
     }
 
     .smc-pill-value {
-      font-size: 14.5px;
+      font-family: 'Orbitron', 'Share Tech Mono', monospace !important;
+      font-size: 15px;
       font-weight: 900;
       color: #FFF;
       font-variant-numeric: tabular-nums;
-      font-family: 'JetBrains Mono', -apple-system, monospace;
-      letter-spacing: 0.2px;
+      letter-spacing: 0.6px;
       white-space: nowrap;
-      text-shadow: 0 0 12px currentColor;
+      text-shadow: 0 0 14px currentColor, 0 0 25px currentColor;
+      filter: drop-shadow(0 0 6px currentColor);
     }
 
-    /* Entry card value: Big, Bold, Cinematic Hollywood Numbers */
+    /* Entry card value: Big, Bold, Cinematic Hollywood Numbers with Orbitron Font */
     .smc-metric-pill.entry-card .smc-pill-value {
-      font-size: 15px;
-      letter-spacing: 0.2px;
+      font-size: 15.5px;
+      letter-spacing: 0.6px;
       font-weight: 900;
+      font-family: 'Orbitron', 'Share Tech Mono', monospace !important;
     }
 
     .smc-pill-value.cyan { color: #00F0FF; text-shadow: 0 0 12px rgba(0, 240, 255, 0.6); }
@@ -1235,10 +1237,13 @@
     }
 
     .zone-val {
+      font-family: 'Orbitron', 'Share Tech Mono', monospace;
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 800;
       color: #FFF;
+      letter-spacing: 0.5px;
       font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
     }
 
     .reason-box {
@@ -2891,36 +2896,36 @@
 
       <!-- Core Institutional Levels (Hollywood Sci-Fi Glass HUD) -->
       <div class="smc-metrics-grid">
-        <!-- Entry Zone: Full-Width Primary Tactical Target -->
+        <!-- Entry Zone: Full-Width Primary Tactical Target (Orbitron Digital Font, No Commas) -->
         <div class="smc-metric-pill entry-card full-width">
           <div class="smc-pill-label">
             <span class="smc-card-dot" style="background: #00F0FF; box-shadow: 0 0 8px #00F0FF;"></span>
             <span>ENTRY ZONE</span>
           </div>
-          <div class="smc-pill-value cyan" id="smcEntry">$4,132.94 - $4,135.94</div>
+          <div class="smc-pill-value cyan" id="smcEntry">$4132.94 - $4135.94</div>
         </div>
 
-        <!-- 3 Tactical Protection & Profit Pillars -->
+        <!-- 3 Tactical Protection & Profit Pillars (Orbitron Digital Font, No Commas) -->
         <div class="smc-metric-pill sl-card">
           <div class="smc-pill-label">
             <span class="smc-card-dot" style="background: #FF3366; box-shadow: 0 0 8px #FF3366;"></span>
             <span>STOP LOSS (SL)</span>
           </div>
-          <div class="smc-pill-value ruby" id="smcSL">$4,145.94</div>
+          <div class="smc-pill-value ruby" id="smcSL">$4145.94</div>
         </div>
         <div class="smc-metric-pill tp1-card">
           <div class="smc-pill-label">
             <span class="smc-card-dot" style="background: #00E676; box-shadow: 0 0 8px #00E676;"></span>
             <span>TAKE PROFIT 1</span>
           </div>
-          <div class="smc-pill-value emerald" id="smcTP1">$4,117.94 BE</div>
+          <div class="smc-pill-value emerald" id="smcTP1">$4117.94 BE</div>
         </div>
         <div class="smc-metric-pill tp2-card">
           <div class="smc-pill-label">
             <span class="smc-card-dot" style="background: #FFD700; box-shadow: 0 0 8px #FFD700;"></span>
             <span>TAKE PROFIT 2</span>
           </div>
-          <div class="smc-pill-value gold" id="smcTP2">$4,107.94</div>
+          <div class="smc-pill-value gold" id="smcTP2">$4107.94</div>
         </div>
       </div>
 
@@ -2967,15 +2972,15 @@
       </div>
       <div class="zone-row">
         <div class="zone-tag"><span class="cyber-badge-dot" style="background: var(--bull); color: var(--bull); margin-right: 4px;"></span> Buy Zone</div>
-        <div class="zone-val" id="smcBuyZone">$4,201.50 - $4,208.50</div>
+        <div class="zone-val" id="smcBuyZone">$4201.50 - $4208.50</div>
       </div>
       <div class="zone-row">
         <div class="zone-tag"><span class="cyber-badge-dot" style="background: var(--bear); color: var(--bear); margin-right: 4px;"></span> Sell Zone</div>
-        <div class="zone-val" id="smcSellZone">$4,346.90 - $4,353.90</div>
+        <div class="zone-val" id="smcSellZone">$4346.90 - $4353.90</div>
       </div>
       <div class="zone-row">
         <div class="zone-tag"><span class="cyber-badge-dot" style="background: var(--gold); color: var(--gold); margin-right: 4px;"></span> Pivot Point</div>
-        <div class="zone-val" id="smcPivot">$4,275.30</div>
+        <div class="zone-val" id="smcPivot">$4275.30</div>
       </div>
     </div>
 
@@ -4520,10 +4525,11 @@
     const elTP1 = document.getElementById('smcTP1');
     const elTP2 = document.getElementById('smcTP2');
 
-    if (elEntry) elEntry.innerText = `$${Number(display.entryLow).toLocaleString('en-US', {minimumFractionDigits: 2})} - $${Number(display.entryHigh).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-    if (elSL) elSL.innerText = `$${Number(display.sl).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-    if (elTP1) elTP1.innerText = `$${Number(display.tp1).toLocaleString('en-US', {minimumFractionDigits: 2})} BE`;
-    if (elTP2) elTP2.innerText = `$${Number(display.tp2).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+    // Strict No-Comma Rule per user instruction: Only use dot (.) without commas (,)
+    if (elEntry) elEntry.innerText = `$${Number(display.entryLow).toFixed(2)} - $${Number(display.entryHigh).toFixed(2)}`;
+    if (elSL) elSL.innerText = `$${Number(display.sl).toFixed(2)}`;
+    if (elTP1) elTP1.innerText = `$${Number(display.tp1).toFixed(2)} BE`;
+    if (elTP2) elTP2.innerText = `$${Number(display.tp2).toFixed(2)}`;
 
     // Sync Glassmorphic TradingView Overlay lines
     const tvEntryEl = document.getElementById('tvChartEntry');
@@ -4990,7 +4996,7 @@
       const bzHigh = (s1 + 3.0).toFixed(2);
       const buyZoneEl = document.getElementById('smcBuyZone');
       if (buyZoneEl) {
-        buyZoneEl.innerText = `$${Number(bzLow).toLocaleString('en-US', {minimumFractionDigits: 2})} - $${Number(bzHigh).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+        buyZoneEl.innerText = `$${Number(bzLow).toFixed(2)} - $${Number(bzHigh).toFixed(2)}`;
       }
 
       // Sell Zone (Premium Supply Cluster)
@@ -4998,13 +5004,13 @@
       const szHigh = (r1 + 3.5).toFixed(2);
       const sellZoneEl = document.getElementById('smcSellZone');
       if (sellZoneEl) {
-        sellZoneEl.innerText = `$${Number(szLow).toLocaleString('en-US', {minimumFractionDigits: 2})} - $${Number(szHigh).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+        sellZoneEl.innerText = `$${Number(szLow).toFixed(2)} - $${Number(szHigh).toFixed(2)}`;
       }
 
       // Pivot
       const pivotEl = document.getElementById('smcPivot');
       if (pivotEl) {
-        pivotEl.innerText = `$${pivot.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        pivotEl.innerText = `$${pivot.toFixed(2)}`;
       }
 
       // Decision Engine: Aligned with Real Market Structure & Active Signal Harmony
