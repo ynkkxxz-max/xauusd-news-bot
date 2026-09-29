@@ -87,25 +87,61 @@ class GoldNewsFilter:
 
     @staticmethod
     def is_gold_relevant(title: str, description: str = "") -> bool:
-        """Determines whether a piece of news directly influences XAUUSD."""
+        """
+        Determines whether a piece of news directly or indirectly influences XAUUSD / Financial Markets
+        across the 7 Core News Pillars (Geopolitics, Macroeconomics, Fed/Monetary, Energy/Oil, Tech, Policies).
+        """
         text = f"{title} {description}".lower()
         
-        # Explicit gold mention
+        # 1. Explicit Gold mention
         if any(kw in text for kw in GOLD_KEYWORDS):
             return True
-        
-        # High impact USD/Fed/Macro mention
-        has_usd = any(kw in text for kw in USD_KEYWORDS)
-        has_macro = any(kw in text for kw in MACRO_KEYWORDS)
-        
-        if has_usd and has_macro:
-            return True
-            
-        # Fed or Central Bank direct policy moves or High Impact Catalysts
+
+        # 2. Immediate high-impact catalysts (War, FOMC, Emergency, Hormuz, Sanctions)
         if any(c in text for c in GoldNewsFilter.IMMEDIATE_CATALYSTS):
             return True
 
-        if any(kw in text for kw in ["interest rate", "fomc", "federal reserve", "cpi", "nfp", "pce", "yield"]):
+        # 3. Geopolitical, War, and Global Conflict (Pillar 2 - safe-haven drivers)
+        geopolitical_triggers = [
+            "iran", "israel", "middle east", "war", "conflict", "strait of hormuz", "hormuz",
+            "red sea", "russia", "ukraine", "taiwan", "missile", "airstrike", "drone attack",
+            "military", "nuclear", "sanctions", "ceasefire", "peace deal", "trump war",
+            "rial", "geopolitical", "safe haven", "safe-haven"
+        ]
+        if any(kw in text for kw in geopolitical_triggers):
+            return True
+
+        # 4. Energy & Commodities (Pillar 5 - inflation & market driver)
+        energy_triggers = [
+            "crude oil", "oil price", "oil prices", "brent", "wti", "opec", "energy crisis",
+            "gas prices", "petroleum"
+        ]
+        if any(kw in text for kw in energy_triggers):
+            return True
+
+        # 5. Monetary Policy & Central Banks (Pillar 4)
+        monetary_triggers = [
+            "fed", "federal reserve", "powell", "warsh", "kevin warsh", "fomc", "interest rate",
+            "rate cut", "rate hike", "ecb", "boe", "boj", "pboc", "central bank", "yield", "yields", "treasury"
+        ]
+        if any(kw in text for kw in monetary_triggers):
+            return True
+
+        # 6. Global Economy & Inflation (Pillar 1 & 7)
+        macro_triggers = [
+            "cpi", "inflation", "gdp", "nfp", "non-farm", "nonfarm", "jobs report", "pce", "ppi",
+            "recession", "pmi", "tariff", "trade war", "de-dollarization", "debt ceiling", "sovereign debt"
+        ]
+        if any(kw in text for kw in macro_triggers):
+            return True
+
+        # 7. Check across all 7 Core News Pillars (Macro, Geopolitics, Tech/AI, Energy, Social, Laws/Tariffs)
+        if any(kw in text for kw in MACRO_KEYWORDS):
+            return True
+
+        # 8. USD / Currency shocks (Pillar 1)
+        has_usd = any(kw in text for kw in USD_KEYWORDS)
+        if has_usd:
             return True
 
         return False
