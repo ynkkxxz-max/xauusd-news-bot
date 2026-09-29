@@ -7,21 +7,45 @@ USD_KEYWORDS = [
     "dollar", "usd", "dxy", "greenback"
 ]
 
-# Major Economic, Central Bank, Technology, AI & Geopolitical Macro Drivers
+# -------------------------------------------------------------------------
+# The 7 Core Pillars of Market News (Defined by System Standards):
+# 1. សេដ្ឋកិច្ច (Macroeconomics & Global Economy)
+# 2. នយោបាយភូមិសាស្ត្រ (Geopolitics & Security)
+# 3. បច្ចេកវិទ្យា (Technology, AI & Semiconductors)
+# 4. គោលនយោបាយរូបិយវត្ថុ និងធនាគារកណ្តាល (Monetary Policy & Central Banks)
+# 5. បរិស្ថាន និងធនធានធម្មជាតិ (Environment, Energy & Natural Resources)
+# 6. កត្តាសង្គម និងប្រជាសាស្ត្រ (Social, Demographics & Labor Markets)
+# 7. ច្បាប់ បទប្បញ្ញត្តិ និងគោលនយោបាយរដ្ឋាភិបាល (Laws, Tariffs & Government Policies)
+# -------------------------------------------------------------------------
 MACRO_KEYWORDS = [
-    # Central Banks & Rates
-    "fed", "federal reserve", "powell", "warsh", "kevin warsh", "fomc", "interest rate", "rate cut", "rate hike", 
-    "fomc statement", "fomc minutes", "fed speech", "monetary policy", "quantitative easing", "ecb", "boe", "boj", "pboc",
-    # Major Macro Releases
-    "cpi", "core cpi", "nfp", "non-farm", "nonfarm", "unemployment rate", "jobs report",
-    "pce", "core pce", "gdp", "ppi", "retail sales", "ism manufacturing", "ism services",
+    # 1. សេដ្ឋកិច្ច (Economy)
+    "gdp", "cpi", "core cpi", "inflation", "pce", "core pce", "ppi", "retail sales",
+    "unemployment rate", "jobs report", "non-farm", "nonfarm", "nfp", "recession",
+    "economic growth", "ism manufacturing", "ism services", "pmi", "consumer sentiment",
     "treasury", "treasuries", "yield", "yields", "10-year yield", "bond market", "real yield",
-    # Big Tech, AI & Global Tech Breakthroughs (Drivers of Yields, Liquidity & Inflation Expectations)
-    "artificial intelligence", "ai revolution", "nvidia", "big tech", "semiconductor", 
+    # 2. នយោបាយភូមិសាស្ត្រ (Geopolitics)
+    "geopolitical", "safe haven", "safe-haven", "middle east", "iran", "israel", "red sea",
+    "strait of hormuz", "russia", "ukraine", "taiwan", "war", "missile", "airstrike",
+    "military attack", "escalation", "conflict",
+    # 3. បច្ចេកវិទ្យា (Technology & AI)
+    "artificial intelligence", "ai revolution", "nvidia", "big tech", "semiconductor",
     "datacenter energy", "tech rally", "liquidity surge", "openai", "chip export controls",
-    # Safe Haven, Geopolitics & Global Events
-    "china gold", "central bank buying", "safe haven", "safe-haven", "geopolitical",
-    "middle east", "iran", "red sea", "taiwan", "russia", "ukraine", "sanctions", "tariff", "trade war"
+    "super intelligence", "quantum computing", "cyberattack",
+    # 4. គោលនយោបាយរូបិយវត្ថុ និងធនាគារកណ្តាល (Monetary Policy & Central Banks)
+    "fed", "federal reserve", "powell", "warsh", "kevin warsh", "fomc", "interest rate",
+    "rate cut", "rate hike", "fomc statement", "fomc minutes", "fed speech", "monetary policy",
+    "quantitative easing", "quantitative tightening", "qe", "qt", "ecb", "boe", "boj", "pboc",
+    "central bank buying", "china gold", "central bank reserves",
+    # 5. បរិស្ថាន និងធនធានធម្មជាតិ (Environment & Natural Resources)
+    "crude oil", "brent", "wti", "opec", "petroleum", "energy crisis", "natural gas",
+    "gold mining", "copper", "critical minerals", "climate disruption", "supply chain bottleneck",
+    # 6. កត្តាសង្គម និងប្រជាសាស្ត្រ (Social & Demographics)
+    "labor strike", "port strike", "union strike", "wage growth", "wage spiral",
+    "demographic shift", "cost of living crisis", "consumer spending squeeze",
+    # 7. ច្បាប់ បទប្បញ្ញត្តិ និងគោលនយោបាយរដ្ឋាភិបាល (Laws & Government Policies)
+    "tariff", "trade war", "sanctions", "protectionism", "government shutdown",
+    "debt ceiling", "fiscal deficit", "treasury issuance", "sovereign debt", "de-dollarization",
+    "sec regulation", "crypto regulation", "banking oversight"
 ]
 
 class GoldNewsFilter:
@@ -54,6 +78,9 @@ class GoldNewsFilter:
     def urgency_score(title: str) -> int:
         """Returns higher urgency score for major market catalysts."""
         text = title.lower()
+        # VIP Immediate Priority Tier: Fed Chair/Governor Speeches (Kevin Warsh, Powell, FOMC)
+        if any(w in text for w in ["kevin warsh", "warsh", "powell", "fomc statement", "fed rate decision"]):
+            return 3
         if any(c in text for c in GoldNewsFilter.IMMEDIATE_CATALYSTS):
             return 2
         return 1 if any(s in text for s in GoldNewsFilter.URGENT_SIGNALS) else 0
