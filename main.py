@@ -163,38 +163,22 @@ class XAUUSDNewsAssistantBot:
             logger.warning(f"[Startup News Sync] Warning: {e}")
 
     def check_daily_gold_price(self):
-        """Checks if daily gold price message needs to be sent and pinned at 07:00 AM Cambodia Time."""
+        """Checks if daily gold price message needs to be sent at 07:00 AM Cambodia Time (strictly once per day)."""
         now_kh = datetime.now(CAMBODIA_TZ)
         today_str = now_kh.strftime("%Y-%m-%d")
 
-        # Check if already sent today
+        # Check if already sent today (strictly once per day)
         if database.is_daily_price_sent(today_str):
             return
 
-        # Trigger every day at 07:00 AM Cambodia Time (or after 07:00 if bot was offline)
-        if (now_kh.hour > DAILY_PRICE_ALERT_HOUR) or (
-            now_kh.hour == DAILY_PRICE_ALERT_HOUR and now_kh.minute >= DAILY_PRICE_ALERT_MINUTE
-        ):
-            logger.info(f"Triggering 07:00 AM Daily Gold Price broadcast & auto-pin for {today_str}...")
+        # Trigger strictly at 07:00 AM Cambodia Time (7:00 AM - 7:59 AM)
+        if now_kh.hour == DAILY_PRICE_ALERT_HOUR and now_kh.minute >= DAILY_PRICE_ALERT_MINUTE:
+            logger.info(f"Triggering 07:00 AM Daily Gold Price broadcast for {today_str}...")
             price_data = self.gold_collector.fetch_price()
-            summary = self.analyzer.summarize_daily_price(price_data)
-            msg = KhmerFormatter.format_daily_gold_price(price_data, summary=summary)
+            msg = KhmerFormatter.format_daily_gold_price(price_data)
             
-            # Interactive Inline Keyboard Buttons
-            buttons = {
-                "inline_keyboard": [
-                    [
-                        {"text": "🔄 ឆែកតម្លៃ Live", "url": "https://t.me/FFNewsAlertBot?start=price"},
-                        {"text": "📊 មើល Chart ផ្ទាល់ (TradingView)", "url": "https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD"}
-                    ],
-                    [
-                        {"text": "📅 ប្រតិទិនសេដ្ឋកិច្ច", "url": "https://www.forexfactory.com/calendar"}
-                    ]
-                ]
-            }
-
-            # Send strictly to the Channel with Inline Buttons (Do NOT auto-pin to keep header clean)
-            res = self.notifier.send_message(msg, auto_pin=False, reply_markup=buttons)
+            # Send clean daily gold price report without cluttered buttons per user design
+            res = self.notifier.send_message(msg, auto_pin=False, reply_markup=None)
             msg_id = res.get("result", {}).get("message_id")
             database.record_daily_price_sent(today_str, msg_id)
 
@@ -205,12 +189,13 @@ class XAUUSDNewsAssistantBot:
 
         # London Session: 14:00 (2:00 PM) Cambodia Time
         if now_kh.hour == 14 and not database.get_state(f"london_session_{today_str}"):
-            msg = KhmerFormatter.format_session_open_alert(
-                "London Session", "14:00", 
-                "ធនាគារអឺរ៉ុប និងចក្រភពអង់គ្លេសចាប់ផ្តើមជួញដូរ។ សាច់ប្រាក់ងាយស្រួល (Liquidity) ចាក់ចូលទីផ្សារមាសយ៉ាងច្រើន!"
-            )
             price_data = self.gold_collector.fetch_price()
             order_book = self.order_book_tracker.fetch_order_book_depth()
+            msg = KhmerFormatter.format_session_open_alert(
+                "London Session", "14:00",
+                price_data=price_data,
+                order_book=order_book
+            )
             heatmap_png = self.heatmap_builder.generate_heatmap_png(price_data, order_book)
             if heatmap_png:
                 self.notifier.send_photo(heatmap_png, caption=msg)
@@ -221,12 +206,13 @@ class XAUUSDNewsAssistantBot:
 
         # New York Session: 19:00 (7:00 PM) Cambodia Time
         if now_kh.hour == 19 and not database.get_state(f"ny_session_{today_str}"):
-            msg = KhmerFormatter.format_session_open_alert(
-                "New York Session", "19:00",
-                "ផ្សារ Wall Street & COMEX អាមេរិកបើកដំណើរការ។ នេះជា Session ដែលមានទំហំជួញដូរមាសធំបំផុតលើលោក!"
-            )
             price_data = self.gold_collector.fetch_price()
             order_book = self.order_book_tracker.fetch_order_book_depth()
+            msg = KhmerFormatter.format_session_open_alert(
+                "New York Session", "19:00",
+                price_data=price_data,
+                order_book=order_book
+            )
             heatmap_png = self.heatmap_builder.generate_heatmap_png(price_data, order_book)
             if heatmap_png:
                 self.notifier.send_photo(heatmap_png, caption=msg)
@@ -235,66 +221,22 @@ class XAUUSDNewsAssistantBot:
             database.set_state(f"ny_session_{today_str}", "sent")
             logger.info("New York Session Open alert + Heatmap broadcasted.")
 
+
     def check_night_wrap_up(self):
-        """Checks if daily market wrap-up message needs to be sent at 22:00 (10:00 PM) Cambodia Time."""
-        now_kh = datetime.now(CAMBODIA_TZ)
-        today_str = now_kh.strftime("%Y-%m-%d")
-        key = f"night_wrap_up_{today_str}"
+        """
+        [PERMANENTLY DISABLED PER USER DIRECTIVE]
+        Daily Market Wrap-Up (សេចក្តីសង្ខេបទីផ្សារពេលយប់) is permanently disabled.
+        """
+        return
 
-        if database.get_state(key):
-            return
-
-        if now_kh.hour >= 22:
-            logger.info(f"Triggering Daily Market Wrap-Up for {today_str}...")
-            price_data = self.gold_collector.fetch_price()
-            summary = self.analyzer.summarize_daily_price(price_data)
-            msg = KhmerFormatter.format_night_wrap_up(price_data, summary=summary)
-            self.notifier.send_message(msg)
-            database.set_state(key, "sent")
-            logger.info(f"Daily Market Wrap-Up broadcasted successfully.")
 
     def check_price_volatility_spike(self):
         """
-        Monitors rapid Gold Price movement (Spike Warning).
-        If gold moves >= $15 within a 15-minute window, immediately triggers a Volatility Alert.
-        Includes a 30-minute cooldown to prevent spamming while keeping traders informed.
+        [PERMANENTLY DISABLED PER USER DIRECTIVE]
+        Volatility Spike / Flash Dump alerts are completely deactivated.
         """
-        now = time.time()
-        last_alert = float(database.get_state("last_spike_alert_ts") or 0.0)
-        if now - last_alert < 1800:  # 30-minute cooldown
-            return
+        return
 
-        price_data = self.gold_collector.fetch_price()
-        current_price = price_data.get("price_oz", 0.0)
-        if current_price <= 0:
-            return
-
-        # Fetch baseline price from 15 minutes ago
-        last_record = database.get_state("last_tracked_price_data")
-        import json
-        if last_record:
-            try:
-                prev_data = json.loads(last_record)
-                prev_ts = prev_data.get("ts", now)
-                prev_price = prev_data.get("price", current_price)
-
-                diff = round(current_price - prev_price, 2)
-                # If 10-20 minutes elapsed and price moved by $15 or more
-                if (now - prev_ts >= 600) and abs(diff) >= 15.0:
-                    logger.info(f"[VOLATILITY SPIKE DETECTED] XAUUSD moved ${diff:+.2f} (from ${prev_price} to ${current_price})")
-                    msg = KhmerFormatter.format_spike_alert(current_price, prev_price, diff, minutes=int((now - prev_ts) / 60))
-                    self.notifier.send_message(msg)
-                    database.set_state("last_spike_alert_ts", str(now))
-                    # Reset baseline after alert
-                    database.set_state("last_tracked_price_data", json.dumps({"price": current_price, "ts": now}))
-                    return
-                elif now - prev_ts >= 900:  # Roll forward reference every 15 minutes
-                    database.set_state("last_tracked_price_data", json.dumps({"price": current_price, "ts": now}))
-            except Exception as e:
-                logger.warning(f"Spike check parse error: {e}")
-                database.set_state("last_tracked_price_data", json.dumps({"price": current_price, "ts": now}))
-        else:
-            database.set_state("last_tracked_price_data", json.dumps({"price": current_price, "ts": now}))
 
     def check_candlestick_confirmation(self):
         """
@@ -317,9 +259,49 @@ class XAUUSDNewsAssistantBot:
         buy_zone = (s1 - 4, s1 + 3)
         sell_zone = (r1 - 3, r1 + 4)
 
+        DAILY_MAX_SIGNALS = 5
+        if not database.can_issue_signal_today(DAILY_MAX_SIGNALS):
+            return
+
+        now_kh = datetime.now(CAMBODIA_TZ)
+        hour_kh = now_kh.hour
+        # Signals strictly cut off at 22:00 (10:00 PM) Cambodia Time
+        is_active_session = (14 <= hour_kh < 18) or (19 <= hour_kh < 22)
+        if not is_active_session:
+            return
+
         conf = self.candle_analyzer.detect_confirmation(current_price, buy_zone, sell_zone)
         if conf:
-            logger.info(f"[CANDLESTICK CONFIRMATION DETECTED] {conf['pattern']} at {conf['zone_name']}")
+            # Audit setup through AI to guarantee Grade A+ accuracy
+            macro_data = self.macro_collector.fetch_macro_correlations()
+            order_book = self.order_book_tracker.fetch_order_book_depth()
+            raw_conf_sig = {
+                "action": "BUY" if "BULLISH" in conf.get("type", "") else "SELL",
+                "entry": conf.get("entry", current_price),
+                "sl": conf.get("sl"),
+                "tp1": conf.get("tp"),
+                "tp2": conf.get("tp2", conf.get("tp")),
+                "pattern": conf.get("pattern", "Candlestick Confirmation"),
+                "reason": conf.get("desc", "")
+            }
+            ai_audit = self.analyzer.analyze_and_validate_sniper_signal(
+                raw_signal=raw_conf_sig,
+                current_price=current_price,
+                key_levels=levels,
+                macro_data=macro_data,
+                order_book=order_book
+            )
+            if not ai_audit or not ai_audit.get("approved"):
+                logger.info(f"[CANDLE CONF REJECTED BY AI] Audit failed or low confluence: {ai_audit.get('rejection_reason') if ai_audit else 'No response'}")
+                return
+
+            if not database.can_issue_signal_today(DAILY_MAX_SIGNALS):
+                return
+
+            new_daily_c = database.increment_daily_signal_count()
+            conf["daily_count"] = new_daily_c
+            conf["daily_max"] = DAILY_MAX_SIGNALS
+            logger.info(f"[CANDLESTICK CONFIRMATION DETECTED & AI APPROVED] {conf['pattern']} at {conf['zone_name']} | Daily Position: {new_daily_c}/{DAILY_MAX_SIGNALS}")
             msg = KhmerFormatter.format_candlestick_confirmation(conf)
             
             # Render chart image for visual confirmation
@@ -338,7 +320,7 @@ class XAUUSDNewsAssistantBot:
                 self.notifier.send_message(msg)
 
             # Send native interactive Telegram Poll
-            poll_title = f"📊 លទ្ធផល Setup: {conf.get('pattern', 'SMC Confirmation')} — សូមបោះឆ្នោត:"
+            poll_title = f"📊 លទ្ធផល Signal XAUUSD ({conf.get('pattern', 'SMC Setup')}) — សូមបញ្ជាក់លទ្ធផលរបស់អ្នក:"
             self.notifier.send_poll(
                 question=poll_title,
                 options=["🎯 ឈ្នះ (Hit TP)", "🛑 ចាញ់ (Hit SL)"],
@@ -349,7 +331,7 @@ class XAUUSDNewsAssistantBot:
             app_cta_markup = {
                 "inline_keyboard": [
                     [
-                        {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=120&tab=smc"}
+                        {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=121&tab=smc"}
                     ]
                 ]
             }
@@ -385,8 +367,8 @@ class XAUUSDNewsAssistantBot:
     def check_sniper_instant_signals(self):
         """
         Monitors live market for AI Sniper Instant Entry (BUY DIP / SELL TOP) with precise SL & TP.
-        Sends immediate high-priority alert directly to Telegram when a high-probability setup triggers!
-        Blocked automatically if AI News Danger Zone is active.
+        Deeply audited by AI for maximum accuracy and strictly capped at 5 positions per day.
+        Blocked automatically if AI News Danger Zone is active or market is in Asian/pre-market low volume.
         """
         # Safety Gate 1: Do NOT send buy/sell signals within 30 minutes of High-Impact News!
         danger_info = self.calendar_collector.is_news_danger_zone(buffer_minutes=30)
@@ -394,13 +376,20 @@ class XAUUSDNewsAssistantBot:
             logger.info(f"[SNIPER SIGNAL BLOCKED] Danger zone active for {danger_info.get('title')}. Capital protection active.")
             return
 
-        # Safety Gate 2: Trading Sessions Filter (London 14:00 - 18:00 & NY 19:00 - 02:00 Cambodia Time)
+        # Safety Gate 2: Trading Sessions Filter (London 14:00 - 18:00 & NY 19:00 - 22:00 / 10:00 PM Cut-off)
         now_kh = datetime.now(CAMBODIA_TZ)
         hour_kh = now_kh.hour
-        # London (14-17:59), NY & Overlap (19-02:59). Low-volume Asian & Late NY hours (03:00 - 13:59) are filtered.
-        is_london_or_ny = (14 <= hour_kh < 18) or (19 <= hour_kh <= 23) or (0 <= hour_kh < 3)
-        if not is_london_or_ny:
-            # During Asian session or pre-market, avoid issuing real-money execution signals
+        # Signals strictly cut off at 22:00 (10:00 PM) Cambodia Time to protect capital from late-night chop and rollover spreads.
+        is_active_session = (14 <= hour_kh < 18) or (19 <= hour_kh < 22)
+        if not is_active_session:
+            # Outside active trading windows (after 22:00 / 10:00 PM or Asian morning session)
+            return
+
+        # Safety Gate 3: Strict Daily Signal Limit (Strictly maximum 5 position signals per day)
+        DAILY_MAX_SIGNALS = 5
+        daily_count = database.get_daily_signal_count()
+        if daily_count >= DAILY_MAX_SIGNALS:
+            logger.info(f"[SNIPER SIGNAL BLOCKED] Daily signal limit reached ({daily_count}/{DAILY_MAX_SIGNALS}). Overtrading protection active.")
             return
 
         now = time.time()
@@ -421,15 +410,51 @@ class XAUUSDNewsAssistantBot:
             if sig.get("action") == last_action and (now - last_sniper < 3600):
                 return
 
+            # Safety Gate 4: AI Deep Analysis & Accuracy Verification (AI Analy ត្រឹមត្រូវបំផុត)
+            macro_data = self.macro_collector.fetch_macro_correlations()
+            order_book = self.order_book_tracker.fetch_order_book_depth()
+            ai_audit = self.analyzer.analyze_and_validate_sniper_signal(
+                raw_signal=sig,
+                current_price=current_price,
+                key_levels=levels,
+                macro_data=macro_data,
+                order_book=order_book
+            )
+            if not ai_audit or not ai_audit.get("approved"):
+                logger.info(f"[SNIPER SIGNAL REJECTED BY AI AUDITOR] Reason: {ai_audit.get('rejection_reason') if ai_audit else 'Low confluence'}")
+                return
+
+            # Final check on daily quota limit before issuing
+            if not database.can_issue_signal_today(DAILY_MAX_SIGNALS):
+                logger.info(f"[SNIPER SIGNAL BLOCKED] Daily position limit of {DAILY_MAX_SIGNALS} reached. Capital protection active.")
+                return
+
+            new_daily_count = database.increment_daily_signal_count()
+            sig["daily_count"] = new_daily_count
+            sig["daily_max"] = DAILY_MAX_SIGNALS
+
+            # Apply AI audited & refined parameters
+            sig["entry"] = float(ai_audit.get("entry", sig["entry"]))
+            sig["sl"] = float(ai_audit.get("sl", sig["sl"]))
+            sig["tp1"] = float(ai_audit.get("tp1", sig["tp1"]))
+            sig["tp2"] = float(ai_audit.get("tp2", sig["tp2"]))
+            sig["rr_ratio"] = ai_audit.get("rr_ratio", sig.get("rr_ratio", "1:2.0"))
+            sig["confidence_score"] = ai_audit.get("confidence_score", sig.get("confidence_score", "88%"))
+            sig["ai_analysis"] = ai_audit.get("ai_analysis", "")
+            sig["macro_context"] = ai_audit.get("macro_context", "")
+            sig["invalidation_note"] = ai_audit.get("invalidation_note", "")
+            sig["execution_tips"] = ai_audit.get("execution_tips", "")
+
             sig_id = f"sig_{int(now)}"
-            logger.info(f"[AI SNIPER INSTANT SIGNAL] {sig['action_title']} at ${sig['entry']} (ID: {sig_id})")
+            logger.info(f"[AI SNIPER INSTANT SIGNAL APPROVED] {sig['action_title']} at ${sig['entry']} (ID: {sig_id}) | Daily Position: {new_daily_count}/{DAILY_MAX_SIGNALS}")
             msg = KhmerFormatter.format_sniper_instant_alert(sig)
             
             # Send clean signal message
             self.notifier.send_message(msg)
 
             # Send native interactive Telegram Poll immediately below the signal
-            poll_title = f"📊 លទ្ធផល Signal: {sig.get('action', 'TRADE')} @ ${sig.get('entry')} — សូមបោះឆ្នោត:"
+            poll_action = "Buy Dip" if sig.get("action") == "BUY" else "Sell Top"
+            poll_title = f"📊 លទ្ធផល Signal XAUUSD ({poll_action}) — សូមបញ្ជាក់លទ្ធផលរបស់អ្នក:"
             self.notifier.send_poll(
                 question=poll_title,
                 options=["🎯 ឈ្នះ (Hit TP)", "🛑 ចាញ់ (Hit SL)"],
@@ -440,7 +465,7 @@ class XAUUSDNewsAssistantBot:
             app_cta_markup = {
                 "inline_keyboard": [
                     [
-                        {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=120&tab=smc"}
+                        {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=121&tab=smc"}
                     ]
                 ]
             }
@@ -550,20 +575,11 @@ class XAUUSDNewsAssistantBot:
 
     def check_iceberg_orders(self):
         """
-        Monitors 100-level Gold Order Book for abnormal institutional iceberg walls (> 20 oz block).
-        Alerts when an aggressive whale wall defends support or caps resistance.
+        [PERMANENTLY DISABLED PER USER DIRECTIVE]
+        Whale Order Book / Iceberg Wall alerts are completely deactivated.
         """
-        now = time.time()
-        last_iceberg = float(database.get_state("last_iceberg_alert_ts") or 0.0)
-        if now - last_iceberg < 7200:  # 2-hour cooldown between iceberg wall alerts
-            return
+        return
 
-        iceberg = self.order_book_tracker.detect_iceberg_anomaly()
-        if iceberg:
-            logger.info(f"[WHALE ICEBERG DETECTED] {iceberg['type']} at ${iceberg['price']}")
-            msg = KhmerFormatter.format_iceberg_alert(iceberg)
-            self.notifier.send_message(msg)
-            database.set_state("last_iceberg_alert_ts", str(now))
 
     def check_weekly_sunday_outlook(self):
         """
@@ -645,7 +661,7 @@ class XAUUSDNewsAssistantBot:
                 "keyboard": [
                     [
                         {"text": "Price"},
-                        {"text": "SMC", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=120&tab=smc"}}
+                        {"text": "SMC", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=121&tab=smc"}}
                     ]
                 ],
                 "resize_keyboard": True,
@@ -761,11 +777,11 @@ class XAUUSDNewsAssistantBot:
                 smc_inline_buttons = {
                     "inline_keyboard": [
                         [
-                            {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=120&tab=smc"}
+                            {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=121&tab=smc"}
                         ],
                         [
-                            {"text": "📊 មើល TradingView Live Chart", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=120&tab=chart"},
-                            {"text": "🧮 គិត Lot Size", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=120&tab=lot"}
+                            {"text": "📊 មើល TradingView Live Chart", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=121&tab=chart"},
+                            {"text": "🧮 គិត Lot Size", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=121&tab=lot"}
                         ]
                     ]
                 }
@@ -945,7 +961,12 @@ class XAUUSDNewsAssistantBot:
                         if interp.get("voice_script"):
                             v_b = self.voice_synth.text_to_speech(interp["voice_script"])
                             if v_b and len(v_b) > 1000:
-                                self.notifier.send_voice(v_b, caption="🎙️ <b>សំឡេងបកប្រែសង្ខេប Fed / Powell Speech</b>", chat_id=chat_id)
+                                spk = "Fed"
+                                for name in ["Kevin Warsh", "Warsh", "Jerome Powell", "Powell", "Christopher Waller", "Waller", "Michelle Bowman", "Bowman", "Austan Goolsbee", "Goolsbee", "John Williams", "Williams"]:
+                                    if name.lower() in target['title'].lower():
+                                        spk = name
+                                        break
+                                self.notifier.send_voice(v_b, caption=f"🎙️ <b>សំឡេងបកប្រែសង្ខេប Fed / {spk} Speech (Live Voice Brief)</b>", chat_id=chat_id)
                         return
 
                 self.notifier.send_message("📅 មិនទាន់មានសេចក្តីថ្លែងការណ៍ FOMC ថ្មីភ្លាមៗក្នុងរយៈពេលប៉ុន្មានម៉ោងនេះទេ (រង់ចាំការប្រជុំ FOMC បន្ទាប់)។", chat_id=chat_id, reply_markup=bottom_keyboard)
@@ -1081,71 +1102,53 @@ class XAUUSDNewsAssistantBot:
     @staticmethod
     def _fetch_news_image(item: dict) -> bytes:
         """
-        Downloads real news photo. If the feed provides an article image, use it.
-        Otherwise, intelligently fetches a matching high-quality context photo
-        based on the news story (e.g. Trump, Powell, Fed, Gold, Middle East).
+        Downloads the genuine photo attached to the news article.
+        1. Uses direct article image from feed if present.
+        2. Otherwise, fetches the article web page directly and extracts og:image / twitter:image.
+        3. If no genuine article image exists, returns None (Strictly NEVER uses random or unrelated images).
         """
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+        }
         url = (item.get("image_url") or "").strip()
+        link = (item.get("link") or item.get("url") or "").strip()
         
         # 1. Try direct article image from feed
-        if url:
+        if url and url.startswith("http"):
             try:
-                resp = requests.get(url, headers=headers, timeout=10)
-                if resp.status_code == 200 and len(resp.content) <= 8_000_000:
+                resp = requests.get(url, headers=headers, timeout=8)
+                if resp.status_code == 200 and len(resp.content) > 3000:
                     ct = resp.headers.get("Content-Type", "")
                     if ct.startswith("image/") or url.endswith((".jpg", ".jpeg", ".png", ".webp")):
                         return resp.content
             except Exception as e:
                 logger.warning(f"Direct news image fetch failed: {e}")
 
-        # 2. Contextual story-matching: find an image that directly reflects the topic
-        full_text = (item.get("title", "") + " " + item.get("description", "")).lower()
-        search_query = None
-
-        if "adb" in full_text or "asian development bank" in full_text:
-            search_query = "Asian Development Bank"
-        elif "china" in full_text or "chinese economy" in full_text or "beijing" in full_text:
-            search_query = "Economy of China Beijing"
-        elif "trump" in full_text:
-            search_query = "Donald Trump United Nations General Assembly"
-        elif "powell" in full_text or "federal reserve" in full_text or "fomc" in full_text or "fed" in full_text:
-            search_query = "Jerome Powell Federal Reserve"
-        elif "putin" in full_text or ("russia" in full_text and ("ukraine" in full_text or "war" in full_text or "sanction" in full_text)):
-            search_query = "Vladimir Putin"
-        elif "ecb" in full_text or "lagarde" in full_text:
-            search_query = "Christine Lagarde European Central Bank"
-        elif "iran" in full_text or "middle east" in full_text or "red sea" in full_text or "houthis" in full_text:
-            search_query = "Middle East geopolitical tension"
-        elif "japan" in full_text or "boj" in full_text or "yen" in full_text:
-            search_query = "Bank of Japan Tokyo"
-        elif "oil" in full_text or "crude" in full_text or "opec" in full_text:
-            search_query = "Petroleum industry oil rig"
-        elif "gold" in full_text or "xau" in full_text or "bullion" in full_text or "precious metal" in full_text:
-            search_query = "Gold bars bullion vault"
-        elif "inflation" in full_text or "cpi" in full_text:
-            search_query = "Inflation economics price index"
-        elif "dollar" in full_text or "dxy" in full_text:
-            search_query = "United States dollar banknote"
-
-        if search_query:
+        # 2. Extract genuine article image directly from the publisher's web page (og:image / twitter:image)
+        if link and link.startswith("http"):
             try:
-                wiki_api = (
-                    f"https://en.wikipedia.org/w/api.php?action=query&format=json"
-                    f"&prop=pageimages&generator=search&gsrsearch={requests.utils.quote(search_query)}"
-                    f"&gsrlimit=3&piprop=thumbnail&pithumbsize=900"
-                )
-                res = requests.get(wiki_api, headers=headers, timeout=8).json()
-                pages = res.get("query", {}).get("pages", {})
-                for _, p in pages.items():
-                    thumb = p.get("thumbnail", {}).get("source")
-                    if thumb:
-                        img_resp = requests.get(thumb, headers=headers, timeout=10)
-                        if img_resp.status_code == 200 and len(img_resp.content) > 1000:
-                            return img_resp.content
+                art_resp = requests.get(link, headers=headers, timeout=6)
+                if art_resp.status_code == 200:
+                    patterns = [
+                        r'<meta[^>]+property=[\'"]og:image[\'"][^>]+content=[\'"]([^\'"]+)[\'"]',
+                        r'<meta[^>]+content=[\'"]([^\'"]+)[\'"][^>]+property=[\'"]og:image[\'"]',
+                        r'<meta[^>]+name=[\'"]twitter:image(?:[:\w]+)?[\'"][^>]+content=[\'"]([^\'"]+)[\'"]',
+                        r'<meta[^>]+content=[\'"]([^\'"]+)[\'"][^>]+name=[\'"]twitter:image(?:[:\w]+)?[\'"]',
+                    ]
+                    for p in patterns:
+                        m = re.search(p, art_resp.text, re.IGNORECASE)
+                        if m:
+                            raw_img_url = m.group(1).replace("&amp;", "&").strip()
+                            from urllib.parse import urljoin
+                            full_img_url = urljoin(link, raw_img_url)
+                            img_resp = requests.get(full_img_url, headers=headers, timeout=8)
+                            if img_resp.status_code == 200 and len(img_resp.content) > 3000:
+                                return img_resp.content
             except Exception as e:
-                logger.warning(f"Contextual news image fetch failed: {e}")
+                logger.debug(f"Webpage og:image fetch failed for {link}: {e}")
 
+        # Strictly return None - NEVER use random or unrelated images
         return None
 
     def _build_calendar_png(self) -> bytes:
@@ -1283,8 +1286,8 @@ class XAUUSDNewsAssistantBot:
         if not pending:
             return
 
-        # Fetch titles broadcasted in the last 4 hours for cross-source semantic deduplication
-        recent_sent_titles = database.get_recent_news_titles(hours=4)
+        # Fetch titles broadcasted in the last 24 hours for cross-source semantic deduplication
+        recent_sent_titles = database.get_recent_news_titles(hours=24)
 
         # Filter out items that discuss the exact same event as already broadcasted
         unique_pending = []
@@ -1306,13 +1309,15 @@ class XAUUSDNewsAssistantBot:
         logger.info(f"[ZERO-DELAY IMMEDIATE ALERT] News/Anomaly detected: {item['title']}")
         title = item["title"]
         desc = item.get("description", "")
-        logger.info(f"Sending breaking alert: {title}")
-        analysis = self.analyzer.analyze_breaking_news(title, desc)
-        if not analysis:
-            return
+        title = item["title"]
+        desc = item.get("description", "")
+        logger.info(f"Processing breaking alert: {title}")
 
-        # --- SPECIAL FOMC / POWELL / WARSH LIVE SPEECH INTERPRETATION ---
-        is_fomc_or_powell = any(w in (title + " " + desc).lower() for w in ["fomc", "powell", "warsh", "fed rate", "federal reserve issues", "rate decision"])
+        # --- SPECIAL FOMC / POWELL / WARSH LIVE SPEECH INTERPRETATION (TOP VIP PRIORITY) ---
+        is_fomc_or_powell = any(w in (title + " " + desc).lower() for w in [
+            "fomc", "powell", "warsh", "kevin warsh", "fed chair", "fed governor",
+            "fed rate", "federal reserve", "rate decision", "waller", "bowman"
+        ])
         fomc_interp = None
         if is_fomc_or_powell and self.fomc_interpreter.is_available():
             logger.info(f"[LIVE FOMC/POWELL/WARSH INTERPRETER] Detected Fed statement/speech: {title}")
@@ -1321,6 +1326,15 @@ class XAUUSDNewsAssistantBot:
         if fomc_interp:
             msg = KhmerFormatter.format_fomc_speech_alert(title, fomc_interp)
         else:
+            analysis = self.analyzer.analyze_breaking_news(title, desc)
+            if not analysis:
+                return
+
+            # Strict Quality & Freshness Gate: If AI flagged the story as unclear, stale, or insignificant, skip
+            if isinstance(analysis, dict) and analysis.get("is_clear") is False:
+                logger.info(f"[UNCLEAR/STALE NEWS SKIPPED] AI evaluated '{title}' as unclear or insignificant (is_clear=False).")
+                database.record_news_sent(item["id"], title, item.get("source", ""))
+                return
             msg = KhmerFormatter.format_breaking_event_alert(item, analysis)
 
 
@@ -1334,16 +1348,14 @@ class XAUUSDNewsAssistantBot:
                 ]
             }
 
-        photo = self._fetch_news_image(item) or self._build_calendar_png()
+        photo = self._fetch_news_image(item)
         if photo:
             # If caption exceeds Telegram's 1024 char limit, trim safely keeping HTML tags valid
             caption_text = self._truncate_html_caption(msg, max_visible_chars=950)
             res = self.notifier.send_photo(photo, caption=caption_text, reply_markup=news_button)
             sent_ok = bool(res.get("ok"))
-            if sent_ok:
-                self._calendar_attached = True
         else:
-            # If absolutely no photo is available, send as single text message
+            # If no genuine photo is available, send as clean text message (Strictly NEVER send random images)
             res = self.notifier.send_message(msg, reply_markup=news_button)
             sent_ok = bool(res.get("ok"))
 
@@ -1351,16 +1363,22 @@ class XAUUSDNewsAssistantBot:
             database.record_news_sent(item["id"], title, item.get("source", ""))
             database.set_state("last_breaking_alert_ts", str(time.time()))
 
-            # If FOMC / Powell Speech was interpreted, broadcast voice note immediately
+            # If FOMC / Warsh / Powell Speech was interpreted, broadcast voice note immediately
             if fomc_interp and fomc_interp.get("voice_script"):
                 try:
                     v_bytes = self.voice_synth.text_to_speech(fomc_interp["voice_script"])
-                    if v_bytes and len(v_bytes) > 1000:
+                    if v_bytes and len(v_bytes) > 500:
+                        spk = fomc_interp.get("speaker") or "Fed"
+                        if spk == "Fed":
+                            for name in ["Kevin Warsh", "Warsh", "Jerome Powell", "Powell", "Christopher Waller", "Waller", "Michelle Bowman", "Bowman", "Austan Goolsbee", "Goolsbee", "John Williams", "Williams"]:
+                                if name.lower() in title.lower():
+                                    spk = name
+                                    break
                         self.notifier.send_voice(
                             v_bytes,
-                            caption="🎙️ <b>សំឡេងបកប្រែសង្ខេប Fed / Powell Speech (Live Voice Brief)</b>"
+                            caption=f"🎙️ <b>សំឡេងបកប្រែសង្ខេប Fed / {spk} Speech (Live Voice Brief)</b>"
                         )
-                        logger.info("FOMC live voice translation broadcasted successfully.")
+                        logger.info(f"FOMC/Warsh live voice translation broadcasted successfully for {spk}.")
                 except Exception as e:
                     logger.warning(f"Failed to send FOMC voice note: {e}")
         else:
@@ -1383,8 +1401,8 @@ class XAUUSDNewsAssistantBot:
             # 4. Market Sessions Open Alerts (London 14:00 & NY 19:00 Cambodia Time)
             self.check_session_open_alerts()
 
-            # 5. Daily Market Wrap-Up (10:00 PM Cambodia Time)
-            self.check_night_wrap_up()
+            # 5. Daily Market Wrap-Up (10:00 PM Cambodia Time) - Disabled per user directive
+            # self.check_night_wrap_up()
 
             # 5.1 Weekly Sunday Outlook (Every Sunday 19:00 Cambodia Time)
             self.check_weekly_sunday_outlook()
@@ -1401,8 +1419,8 @@ class XAUUSDNewsAssistantBot:
             # 5.3 Macro Divergence Alert (DXY vs Gold)
             self.check_macro_divergence()
 
-            # 5.4 Whale Order Book Depth & Iceberg Orders Tracker
-            self.check_iceberg_orders()
+            # 5.4 Whale Order Book Depth & Iceberg Orders Tracker - Disabled per user directive
+            # self.check_iceberg_orders()
 
             # 6. Breaking News Alert (Strictly filtered: Only sends if 100% clear and high-impact)
             self.check_breaking_news()
@@ -1501,16 +1519,16 @@ class XAUUSDNewsAssistantBot:
                         self.check_database_maintenance()
                         self.check_daily_gold_price()
                         self.check_session_open_alerts()
-                        self.check_night_wrap_up()
+                        # self.check_night_wrap_up()  # Disabled per user directive
                         self.check_weekly_sunday_outlook()
-                        self.check_price_volatility_spike()
+                        # self.check_price_volatility_spike()  # Disabled per user directive
                         self.check_news_danger_zone()
                         self.check_sniper_instant_signals()
                         self.check_dynamic_breakeven_trailing()
                         self.check_candlestick_confirmation()
                         self.check_liquidity_sweep()
                         self.check_macro_divergence()
-                        self.check_iceberg_orders()
+                        # self.check_iceberg_orders()  # Disabled per user directive
                         self.check_breaking_news()
                         background_interval = self.check_economic_events()
                     except Exception as err:
