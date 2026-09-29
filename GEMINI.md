@@ -8,16 +8,22 @@ This repository is governed by the 5 Golden Principles established by the system
 - Instant initial UI rendering (Zero Glitch startup).
 
 ### 2. 🎯 ត្រឹមត្រូវច្បាស់លាស់ (Absolute Precision & Fixed Structural Levels)
-- Signal boxes (Entry Zone, Stop Loss, TP1, TP2) MUST remain 100% frozen/locked on established structural levels during waiting states. They NEVER float with market price ticks.
-- Levels only update to genuine confirmed numbers when AI validates the setup and the action button turns ready.
-- Real-time calibration against Interbank Forex Spot (Gold-API) ensures exact MT5 price alignment.
-- Stop Loss (SL) distance from Entry MUST strictly remain within 8 - 10 points (maximum 12 points, NEVER exceed 12 points / $12).
-- **Direction-Consistent SL Enforcement**:
-  - For **SELL**: SL MUST strictly be ABOVE the Entry Zone (`SL = EntryHigh + 8~10 points`). Never allow SL below entry.
-  - For **BUY**: SL MUST strictly be BELOW the Entry Zone (`SL = EntryLow - 8~10 points`). Never allow SL above entry.
+- **តម្លៃ Signal នៅដដែលមិនផ្លាស់ប្ដូរបន្ទាប់ពីចេញ Signal (Strict Post-Issue Signal Freezing):**
+  - បន្ទាប់ពី AI បញ្ជាក់ និងចេញ Signal រួច (ប៊ូតុងប្រែជា `អាចប្រើប្រាស់ Signal នេះបាន`) តម្លៃទាំង ៤ ប្រអប់ (`Entry Zone`, `Stop Loss`, `TP1`, `TP2`) ត្រូវតែស្ថិតនៅ **តម្លៃដដែល ១០០% មិនផ្លាស់ប្ដូរ** ដាច់ខាត។
+  - ហាមមិនឱ្យរត់តាម Tick ឬ Recalculate តាមរលក Fibonacci ជាដាច់ខាត ដើម្បីកុំឱ្យអ្នកប្រើប្រាស់ច្រឡំ និងអាចដឹងច្បាស់ថាតើពួកគេបានប្រើប្រាស់តម្លៃនេះក្នុងការចូលផ្សារពិតជាបាន TP1, TP2 ឬ SL ពិតប្រាកដឬទេ។
+- **ប្ដូរតម្លៃលុះត្រាតែ AI វិភាគត្រឹមត្រូវសិនទើបដាក់ឱ្យប្រើប្រាស់ Signal ថ្មី:**
+  - ក្នុងអំឡុងពេលរង់ចាំ `រង់ចាំ Signal ថ្មី` តម្លៃនឹងមិនផ្លាស់ប្តូរផ្តេសផ្តាសឡើយ។
+  - លុះត្រាតែ AI វិភាគ (Analyze) ផ្ទៀងផ្ទាត់គ្រប់លក្ខខណ្ឌត្រឹមត្រូវ ១០០% សិន (Safety Index >= 70%, ដល់តំបន់ OTE 0.618-0.786, រចនាសម្ព័ន្ធ M15/H1 ស្របគ្នា) ហើយប៊ូតុងប្រែជា `អាចប្រើប្រាស់ Signal នេះបាន` ទើបធ្វើបច្ចុប្បន្នភាពលេខ Signal ថ្មី។
+- **Stop Loss (SL) strictly $8, $10, max $12:**
+  - ចម្ងាយ SL ធៀបនឹង Entry ត្រូវតែគោរពតាមគោលការណ៍ចាស់ដដែលគឺ **$8, $10, អតិបរមា $12 ($8 - $10, max $12, NEVER exceed $12)**។
+  - សម្រាប់ **SELL**: SL MUST strictly be ABOVE the Entry Zone (`SL = EntryHigh + 8~10 points`, max 12 points). ហាមដាច់ខាតមិនឱ្យ SL នៅក្រោម Entry។
+  - សម្រាប់ **BUY**: SL MUST strictly be BELOW the Entry Zone (`SL = EntryLow - 8~10 points`, max 12 points). ហាមដាច់ខាតមិនឱ្យ SL នៅលើ Entry។
+- **TP តាមការគិតរបស់ AI & ចំណុច Entry សុវត្ថិភាពបំផុត:**
+  - Take Profit (TP1 & TP2) ត្រូវកំណត់តាមការគិត និងការវិភាគបច្ចេកទេសរបស់ AI SMC (TP1: 1.5R BE Secured, TP2: 2.5R+ Max Liquidity Sweep BSL/SSL)។
+  - ចំណុច Entry ត្រូវតែជាតំបន់សុវត្ថិភាពបំផុត (SMC OTE Golden Ratio 0.618-0.786 Fibonacci Retracement + Order Block / FVG mitigation)។
+- **Real-Time Calibration:** Real-time calibration against Interbank Forex Spot (Gold-API) ensures exact MT5 price alignment.
 - **Zero UI Contradiction & Instant Auto-Purge**:
   - Top Hero Bias, M15/H1 Structure, Confluence Matrix, Action Button, and Signal Boxes MUST be 100% harmonized. A SELL header must NEVER coexist with a BUY signal or vice versa.
-  - If market structure flips against an active signal or Safety Index drops below 50%, stale cached signals must be purged immediately, returning the button cleanly to `រង់ចាំ Signal ថ្មី`.
 
 ### 3. 🧠 ឆ្លាតខ្លាំង (Deep Intelligence & Institutional Confluence)
 - Dual-engine: SMC (BOS, CHoCH, Order Block, FVG, 0.618-0.786 OTE Fibonacci) combined with CVD Whale volume, Depth, Killzones, and Macro DXY analysis.
