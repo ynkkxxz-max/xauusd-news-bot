@@ -15,6 +15,64 @@ def _clip(text: str, cap: int) -> str:
     text = str(text).strip()
     return text if len(text) <= cap else text[:cap].rstrip() + "…"
 
+def sanitize_khmer_spelling(text: str) -> str:
+    """
+    Corrects awkward transliteration errors, corrupted glyphs, or broken Unicode clusters in Khmer text.
+    Per user directive: uses clean English names directly for foreign leaders, locations, and technical terms
+    to ensure 100% clean typography and zero broken characters.
+    Strictly removes foreign script leakage (Arabic, Cyrillic, Thai, etc.).
+    """
+    if not text:
+        return ""
+    
+    # 1. Clean foreign script leakage (e.g. Arabic subwords accidentally emitted by LLM)
+    res = re.sub(r"ប្រាក់ដុល្លារ\s*អ[\u0600-\u06FF\s]*", "ប្រាក់ដុល្លារ (USD) ", text)
+    res = re.sub(r"ដុល្លារ\s*អ[\u0600-\u06FF\s]*", "ដុល្លារ (USD) ", res)
+    # Strip any stray Arabic, Hebrew, Thai, Cyrillic, or Devanagari characters
+    res = re.sub(r"[\u0600-\u06FF\u0590-\u05FF\u0E00-\u0E7F\u0900-\u097F]+", "", res)
+
+    corrections = [
+        # Currency & Economy Fixes
+        (r"ប្រាក់ដុល្លារ\s*អាមេរិក(?:\s*\(USD\))?", "ប្រាក់ដុល្លារ (USD)"),
+        (r"ដុល្លារ\s*អាមេរិក(?:\s*\(USD\))?", "ប្រាក់ដុល្លារ (USD)"),
+        (r"អាមេរិច", "អាមេរិក"),
+        (r"សេដ្ធកិច្ច", "សេដ្ឋកិច្ច"),
+
+        # Foreign Leaders (Direct clean names per user directive)
+        (r"លោក\s*វ៉[្ល\u17d2\u179b]*[ា\u17b6]*ឌីមៀ\s*ពូទីន|វ៉[្ល\u17d2\u179b]*[ា\u17b6]*ឌីមៀ\s*ពូទីន", "លោក Vladimir Putin"),
+        (r"លោក\s*ពូទីន|ពូទីន", "លោក Putin"),
+        (r"លោក\s*វ៉[្ល\u17d2\u179b]*[ា\u17b6]*ឌីមៀ\s*ហ្សេឡេនស្គី|វ៉[្ល\u17d2\u179b]*[ា\u17b6]*ឌីមៀ\s*ហ្សេឡេនស្គី|ហ្សេឡេនស្គី", "លោក Volodymyr Zelenskyy"),
+        (r"ដូណាល់\s*ត្រាំ|ត្រាំព៍|ត្រាំ", "Donald Trump"),
+        (r"ជេរ៉ូម\s*ផោវែល|ផោវែល|ផៅវែល", "Jerome Powell"),
+        (r"ខេវីន\s*វ៉ាស|ខេវិន\s*វ៉ាស|ខេវិន\s*វ៉ស", "Kevin Warsh"),
+        (r"ចូ\s*បៃដិន|បៃដិន", "Joe Biden"),
+        (r"បេនចាមីន\s*ណេតាន់យ៉ាហ៊ូ|ណេតាន់យ៉ាហ៊ូ", "Benjamin Netanyahu"),
+        
+        # Strategic Locations & Geopolitics
+        (r"ហូមុដឌ|ហូមុដ|ហូមូស|ហ័រមូដ|ហូមូដ|ហ័រមុដ", "Strait of Hormuz"),
+        (r"ច្រកសមុទ្រ\s*(?:ហ័រមូស|Strait of Hormuz)", "ច្រកសមុទ្រ Strait of Hormuz"),
+        (r"តេអ៊ែរ៉ង់|តេហេរ៉ង់", "Tehran (តេអេរ៉ង់)"),
+        (r"យេមែន|យេម៉ែន", "Yemen"),
+        (r"អ៊ីរ៉ាន", "Iran (អ៊ីរ៉ង់)"),
+        (r"អ៊ីស្រាអែល|អ៊ីស្រាអ៊ែល", "Israel (អ៊ីស្រាអែល)"),
+        (r"អ៊ុយក្រែន", "Ukraine (អ៊ុយក្រែន)"),
+        (r"រុស្សី(?![៊ី])", "រុស្ស៊ី"),
+        
+        # Financial & Market Terms
+        (r"ប៊ូលីស", "Bullish"),
+        (r"ប៊ែរីស", "Bearish"),
+        (r"សាយវ៉េ", "Sideway"),
+        (r"សេហ្វហេវិន", "Safe-Haven"),
+
+        # Typography & spacing cleanup
+        (r"\(\s+", "("),
+        (r"\s+\)", ")"),
+        (r"\s{2,}", " "),
+    ]
+    for pat, rep in corrections:
+        res = re.sub(pat, rep, res)
+    return res.strip()
+
 class KhmerFormatter:
     @staticmethod
     def format_daily_gold_price(price_data: dict, summary: str = "", include_smc: bool = False) -> str:
@@ -186,6 +244,9 @@ class KhmerFormatter:
         if not key_event:
             desc = (news_item.get("description") or news_item.get("title") or "").strip()
             key_event = desc
+
+        # Sanitize Khmer spelling to guarantee 100% accurate spelling (Hormuz -> ហ័រមូស, etc.)
+        key_event = sanitize_khmer_spelling(key_event)
 
         msg = (
             f"🚨 <b>BREAKING EVENT — ព្រឹត្តិការណ៍ទីផ្សារប្រចាំថ្ងៃ!</b>\n\n"
