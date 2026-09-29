@@ -1003,38 +1003,59 @@
     /* ======================================================================
        PREMIUM INSTITUTIONAL AI SMC EXECUTION PROTOCOL & METRICS
        ====================================================================== */
+    /* Ultra-Modern Metallic Cyber Steel Header with Glowing Neon Light */
     .smc-protocol-divider {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin: 14px 0 10px 0;
+      justify-content: center;
+      gap: 8px;
+      margin: 16px 0 12px 0;
       width: 100%;
     }
 
     .smc-divider-line {
       flex: 1;
-      height: 1px;
-      background: linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.02) 100%);
+      height: 1.5px;
+      background: linear-gradient(90deg, transparent 0%, rgba(0, 240, 255, 0.65) 100%);
+      box-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
     }
 
-    .smc-divider-text {
-      font-size: 9.5px;
-      font-weight: 700;
-      color: #94A3B8;
-      letter-spacing: 1.2px;
-      text-transform: uppercase;
-      font-family: 'JetBrains Mono', -apple-system, monospace;
+    .smc-divider-line.right {
+      background: linear-gradient(90deg, rgba(0, 240, 255, 0.65) 0%, transparent 100%);
+    }
+
+    .smc-divider-pill {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
+      padding: 5px 14px;
+      background: linear-gradient(180deg, rgba(24, 34, 52, 0.9) 0%, rgba(10, 16, 28, 0.96) 100%);
+      border: 1px solid rgba(0, 240, 255, 0.45);
+      border-radius: 999px;
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.25);
     }
 
-    .smc-divider-text .smc-dot {
-      width: 5px;
-      height: 5px;
+    .smc-dot {
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       background: #00F0FF;
-      box-shadow: 0 0 6px #00F0FF;
+      box-shadow: 0 0 10px #00F0FF, 0 0 18px #00F0FF;
+      flex-shrink: 0;
+      animation: readyPulse 1.4s infinite;
+    }
+
+    .smc-metallic-title {
+      font-size: 12.5px;
+      font-weight: 900;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      font-family: 'Orbitron', 'Rajdhani', 'JetBrains Mono', -apple-system, sans-serif;
+      background: linear-gradient(180deg, #FFFFFF 0%, #E2E8F0 28%, #8E9BAE 65%, #DCE5F2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 9px rgba(0, 240, 255, 0.85));
+      white-space: nowrap;
     }
 
     /* Hollywood Sci-Fi Tactical Metrics Grid (Clean, Larger Fonts, Zero Cut-off) */
@@ -2858,11 +2879,14 @@
         </div>
       </div>
 
-      <!-- Clean Luxury Protocol Divider -->
+      <!-- Ultra-Modern Metallic Cyber Steel Header with Glowing Neon Light -->
       <div class="smc-protocol-divider">
         <span class="smc-divider-line"></span>
-        <span class="smc-divider-text"><span class="smc-dot"></span> AI SMC QUANTUM EXECUTION PROTOCOL</span>
-        <span class="smc-divider-line"></span>
+        <div class="smc-divider-pill">
+          <span class="smc-dot"></span>
+          <span class="smc-metallic-title">AI SMC QUANTUM EXECUTION PROTOCOL</span>
+        </div>
+        <span class="smc-divider-line right"></span>
       </div>
 
       <!-- Core Institutional Levels (Hollywood Sci-Fi Glass HUD) -->
