@@ -4221,23 +4221,35 @@
     let display = forcedSig;
     const expAct = expectedAction || (staticSignalSetup && staticSignalSetup.direction ? (staticSignalSetup.direction === 'BULLISH' ? 'BUY' : 'SELL') : 'SELL');
 
+    // 1. Retrieve official persistent signal from localStorage
     if (!display) {
       try {
-        const active = JSON.parse(localStorage.getItem('ai_locked_active_signal') || 'null');
-        if (active && active.status === 'ACTIVE' && active.action === expAct) {
-          display = active;
+        const official = JSON.parse(localStorage.getItem('ai_official_signal') || localStorage.getItem('ai_locked_active_signal') || 'null');
+        // Constitutional Rule: "តម្លៃ signal អោយវានៅតម្លៃដដែលមិនផ្លាស់ប្ដូរបន្ទាប់ពីចេញ signal...
+        // ប្ដូរតម្លៃលុះត្រាតែដាក់អោយប្រើប្រាស់តម្លៃ signal ថ្មីអោយប្រើប្រាស់"
+        if (official && official.entryLow && official.sl) {
+          // If active trade is running, strictly display it (never overwrite mid-trade)
+          if (official.status === 'ACTIVE' || official.status === 'HIT_TP1') {
+            display = official;
+          } else if (official.action === expAct) {
+            // Concluded trade matches current trend direction -> keep exact numbers locked so user can verify TP/SL!
+            display = official;
+          }
         }
       } catch(e) {}
     }
+
+    // 2. Fallback to confirmed display signal if action matches
     if (!display) {
       try {
         const saved = JSON.parse(localStorage.getItem('ai_confirmed_display_signal') || 'null');
-        if (saved && saved.action === expAct) {
+        if (saved && saved.action === expAct && saved.entryLow > 0) {
           display = saved;
         }
       } catch(e) {}
     }
-    // If no display or action mismatches current market structure, use staticSignalSetup or baseline for expAct
+
+    // 3. Fallback to prepared setup strictly aligned with current market structure (Zero UI Contradiction)
     if (!display) {
       if (staticSignalSetup && staticSignalSetup.direction && ((staticSignalSetup.direction === 'BULLISH' && expAct === 'BUY') || (staticSignalSetup.direction === 'BEARISH' && expAct === 'SELL')) && staticSignalSetup.entryLow > 0) {
         display = {
@@ -4270,29 +4282,28 @@
       try { localStorage.setItem('ai_confirmed_display_signal', JSON.stringify(display)); } catch(e){}
     }
 
-    // Auto-sanitize SL distance strictly within 8 - 10 - 12 dollars rule
+    // 4. Strict Direction-Consistent SL and TP Sanitization (Max 12 points, Never Violate Direction)
     if (display) {
       const eH = Number(display.entryHigh || display.entryLow);
       const eL = Number(display.entryLow || display.entryHigh);
       if (display.action === 'SELL') {
-        // Enforce SL > entry for SELL (Strictly 8 - 10 - 12 pts above entry)
+        // For SELL: SL MUST strictly be ABOVE entry (eH + 8 ~ 10). TP MUST strictly be BELOW entry!
         if (display.sl <= eH || display.sl > eH + 12.0 || display.sl < eH + 7.0) {
           display.sl = Number((eH + 10.0).toFixed(2));
           display.tp1 = Number((eL - 15.0).toFixed(2));
           display.tp2 = Number((eL - 25.0).toFixed(2));
-          try { localStorage.setItem('ai_confirmed_display_signal', JSON.stringify(display)); } catch(e){}
         }
       } else if (display.action === 'BUY') {
-        // Enforce SL < entry for BUY (Strictly 8 - 10 - 12 pts below entry)
+        // For BUY: SL MUST strictly be BELOW entry (eL - 8 ~ 10). TP MUST strictly be ABOVE entry!
         if (display.sl >= eL || display.sl < eL - 12.0 || display.sl > eL - 7.0) {
           display.sl = Number((eL - 10.0).toFixed(2));
           display.tp1 = Number((eH + 15.0).toFixed(2));
           display.tp2 = Number((eH + 25.0).toFixed(2));
-          try { localStorage.setItem('ai_confirmed_display_signal', JSON.stringify(display)); } catch(e){}
         }
       }
     }
 
+    // 5. Render to UI Signal Boxes (Frozen Exact Numbers)
     const elEntry = document.getElementById('smcEntry');
     const elSL = document.getElementById('smcSL');
     const elTP1 = document.getElementById('smcTP1');
@@ -4303,7 +4314,7 @@
     if (elTP1) elTP1.innerText = `$${Number(display.tp1).toLocaleString('en-US', {minimumFractionDigits: 2})} BE`;
     if (elTP2) elTP2.innerText = `$${Number(display.tp2).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
 
-    // Sync Glassmorphic TV lines
+    // Sync Glassmorphic TradingView Overlay lines
     const tvEntryEl = document.getElementById('tvChartEntry');
     if (tvEntryEl) tvEntryEl.innerText = `$${Number(display.entryLow).toFixed(1)} - $${Number(display.entryHigh).toFixed(1)}`;
     const tvSLEl = document.getElementById('tvChartSL');
@@ -4788,7 +4799,7 @@
       // Decision Engine: Aligned with Real Market Structure & Active Signal Harmony
       let lockedActiveSig = null;
       try {
-        lockedActiveSig = JSON.parse(localStorage.getItem('ai_locked_active_signal') || 'null');
+        lockedActiveSig = JSON.parse(localStorage.getItem('ai_official_signal') || localStorage.getItem('ai_locked_active_signal') || 'null');
       } catch(e) {}
 
       // If an active confirmed trade is running, strictly harmonize entire UI with active trade direction
@@ -5357,114 +5368,117 @@
       const text = document.getElementById('signalActionText');
       if (!btn) return;
 
-      // Retrieve existing active signal if any
+      // Retrieve official signal from localStorage
       let activeSig = null;
       try {
-        activeSig = JSON.parse(localStorage.getItem('ai_locked_active_signal') || 'null');
+        activeSig = JSON.parse(localStorage.getItem('ai_official_signal') || localStorage.getItem('ai_locked_active_signal') || 'null');
       } catch(e) { activeSig = null; }
 
-      // CRITICAL: If an active signal stored in localStorage has opposite direction from current market trend,
-      // IMMEDIATELY PURGE IT so user is never misled by an old flipped signal!
-      const currentExpectedAction = isBuy ? 'BUY' : 'SELL';
-      if (activeSig && activeSig.action !== currentExpectedAction) {
-        localStorage.removeItem('ai_locked_active_signal');
-        localStorage.removeItem('ai_confirmed_display_signal');
-        activeSig = null;
-      }
-
-      // STRICT CONSTITUTIONAL RULE 3: Grade A+ setups require Institutional Safety Index >= 70%
-      // If safety index dropped below 50% or structure broken, safely invalidate active signal
-      if (activeSig && activeSig.status === 'ACTIVE' && matrixScore < 50) {
-        localStorage.removeItem('ai_locked_active_signal');
-        localStorage.removeItem('ai_confirmed_display_signal');
-        activeSig = null;
-      }
-
-      // Check if existing active signal is expired (> 3.5 hours)
-      if (activeSig) {
-        const ageHours = (Date.now() - (activeSig.timestamp || 0)) / (1000 * 60 * 60);
-        if (ageHours > 3.5) {
-          activeSig = null;
-          localStorage.removeItem('ai_locked_active_signal');
-        }
-      }
-
-      const isTopTierGrade = matrixScore >= 70;
-      const isTriggerCondition = inZone && isTopTierGrade;
-
-      // 1. If no active signal, but condition is met -> LOCK IN NEW SIGNAL DECISIVELY!
-      // THIS IS THE MOMENT THE BUTTON BECOMES USABLE (GREEN), AND WE UNLOCK THE OFFICIAL EXECUTION NUMBERS!
-      if (!activeSig && isTriggerCondition) {
-        if (currentDailyCount <= maxDaily) {
-          activeSig = {
-            id: 'SIG_' + Date.now(),
-            action: isBuy ? 'BUY' : 'SELL',
-            entryLow: Number(entryLow),
-            entryHigh: Number(entryHigh),
-            sl: Number(sl),
-            tp1: Number(tp1),
-            tp2: Number(tp2),
-            timestamp: Date.now(),
-            status: 'ACTIVE'
-          };
+      // Check if existing active signal is expired (> 4 hours)
+      if (activeSig && activeSig.timestamp) {
+        const ageHours = (Date.now() - activeSig.timestamp) / (1000 * 60 * 60);
+        if (ageHours > 4.0 && activeSig.status === 'ACTIVE') {
+          activeSig.status = 'EXPIRED';
+          localStorage.setItem('ai_official_signal', JSON.stringify(activeSig));
           localStorage.setItem('ai_locked_active_signal', JSON.stringify(activeSig));
-          localStorage.setItem('ai_confirmed_display_signal', JSON.stringify(activeSig));
-          playCyberSound('sniper');
-          if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-          // Update the 4 boxes to the verified execution numbers at this exact moment!
-          renderInstitutionalSignalBoxes(activeSig);
-
-          // 🚀 Broadcast confirmed Signal + Poll + Mini App CTA to Telegram Channel GOLD FX
-          broadcastSignalAndPollToTelegram(activeSig, matrixScore);
         }
       }
 
-      // 2. If there IS an active signal, track its life cycle until TP or SL!
-      if (activeSig && activeSig.status === 'ACTIVE') {
+      // ======================================================================
+      // 1. IF ACTIVE SIGNAL IS RUNNING (ACTIVE or HIT_TP1) -> TRACK TO EXACT TP/SL!
+      // Constitutional Rule: "តម្លៃ signal អោយវានៅតម្លៃដដែលមិនផ្លាស់ប្ដូរបន្ទាប់ពីចេញ signal
+      // ដើម្បីកុំអោយអ្នកប្រើប្រាស់ច្រឡំតើខ្ញុំបានប្រើប្រាស់តម្លៃនេះពិតមែនក្នុងការចូលផ្សារពិតជាបានTp or Sl"
+      // ======================================================================
+      if (activeSig && (activeSig.status === 'ACTIVE' || activeSig.status === 'HIT_TP1')) {
         const isSigBuy = (activeSig.action === 'BUY');
-        let isHitSL = isSigBuy ? (price <= activeSig.sl) : (price >= activeSig.sl);
-        let isHitTP2 = isSigBuy ? (price >= activeSig.tp2) : (price <= activeSig.tp2);
-        let isHitTP1 = isSigBuy ? (price >= activeSig.tp1) : (price <= activeSig.tp1);
+        const isHitSL = isSigBuy ? (price <= activeSig.sl) : (price >= activeSig.sl);
+        const isHitTP2 = isSigBuy ? (price >= activeSig.tp2) : (price <= activeSig.tp2);
+        const isHitTP1 = isSigBuy ? (price >= activeSig.tp1) : (price <= activeSig.tp1);
 
-        if (isHitSL) {
-          // Trade hit Stop Loss -> Conclude signal
-          activeSig.status = 'HIT_SL';
-          localStorage.setItem('ai_locked_active_signal', JSON.stringify(activeSig));
-          btn.className = 'signal-action-btn waiting';
-          if (icon) {
-            icon.innerText = '';
-            icon.style.display = 'none';
-          }
-          if (text) text.innerText = 'រង់ចាំ Signal ថ្មី';
-          btn.dataset.status = 'hit_sl';
-          setTimeout(() => {
-            localStorage.removeItem('ai_locked_active_signal');
-          }, 15000);
-          return;
-        } else if (isHitTP2) {
+        if (isHitTP2) {
           // Trade hit TP2 -> Max Profit Win!
           activeSig.status = 'HIT_TP2';
+          activeSig.closedAt = Date.now();
+          activeSig.closePrice = price;
+          localStorage.setItem('ai_official_signal', JSON.stringify(activeSig));
           localStorage.setItem('ai_locked_active_signal', JSON.stringify(activeSig));
+
           btn.className = 'signal-action-btn ready';
-          if (icon) icon.innerText = '🏆';
+          if (icon) {
+            icon.innerText = '🏆';
+            icon.style.display = 'inline-block';
+          }
           if (text) text.innerText = '🎯 ឈ្នះ HIT TP2 (MAX PROFIT) ✓';
           btn.dataset.status = 'hit_tp2';
-          setTimeout(() => {
-            localStorage.removeItem('ai_locked_active_signal');
-          }, 20000);
+          renderInstitutionalSignalBoxes(activeSig);
+
+          // Update Hero Badge to celebrate Win
+          const execBadge = document.getElementById('smcExecBadge');
+          const execDot = document.getElementById('smcExecDot');
+          const execText = document.getElementById('smcExecText');
+          if (execBadge) execBadge.className = 'smc-exec-badge ready';
+          if (execDot) execDot.innerText = '🏆';
+          if (execText) execText.innerText = `SIGNAL ${activeSig.action} ឈ្នះ HIT TP2 ($${activeSig.tp2})!`;
           return;
-        } else if (isHitTP1) {
+
+        } else if (isHitSL) {
+          // Trade hit Stop Loss (or Break-Even if TP1 was already reached)
+          if (activeSig.tp1Reached) {
+            activeSig.status = 'HIT_BE';
+            btn.className = 'signal-action-btn ready';
+            if (icon) {
+              icon.innerText = '🛡️';
+              icon.style.display = 'inline-block';
+            }
+            if (text) text.innerText = '🛡️ ប៉ះ BREAK-EVEN (បាន TP1 រួចរាល់)';
+            btn.dataset.status = 'hit_be';
+          } else {
+            activeSig.status = 'HIT_SL';
+            btn.className = 'signal-action-btn waiting';
+            if (icon) {
+              icon.innerText = '🛑';
+              icon.style.display = 'inline-block';
+            }
+            if (text) text.innerText = '🛑 SIGNAL ប៉ះ SL — រង់ចាំ SIGNAL ថ្មី';
+            btn.dataset.status = 'hit_sl';
+          }
+          activeSig.closedAt = Date.now();
+          activeSig.closePrice = price;
+          localStorage.setItem('ai_official_signal', JSON.stringify(activeSig));
+          localStorage.setItem('ai_locked_active_signal', JSON.stringify(activeSig));
+          renderInstitutionalSignalBoxes(activeSig);
+
+          // Update Hero Badge
+          const execBadge = document.getElementById('smcExecBadge');
+          const execDot = document.getElementById('smcExecDot');
+          const execText = document.getElementById('smcExecText');
+          if (execBadge) execBadge.className = 'smc-exec-badge waiting';
+          if (execDot) execDot.innerText = '🛑';
+          if (execText) execText.innerText = `SIGNAL ${activeSig.action} បានប៉ះ SL ($${activeSig.sl})`;
+          return;
+
+        } else if (isHitTP1 || activeSig.tp1Reached) {
           // Hit TP1 -> Secure Break-Even
+          activeSig.tp1Reached = true;
+          activeSig.status = 'HIT_TP1';
+          localStorage.setItem('ai_official_signal', JSON.stringify(activeSig));
+          localStorage.setItem('ai_locked_active_signal', JSON.stringify(activeSig));
+
           btn.className = 'signal-action-btn ready';
-          if (icon) icon.innerText = '🎯';
+          if (icon) {
+            icon.innerText = '🎯';
+            icon.style.display = 'inline-block';
+          }
           if (text) text.innerText = 'ឈ្នះ TP1 (លើក SL មកស្មើដើម BE) អាចប្រើបាន';
           btn.dataset.status = 'ready';
           btn.dataset.action = activeSig.action;
           btn.dataset.entryLow = activeSig.entryLow;
           btn.dataset.entryHigh = activeSig.entryHigh;
+          renderInstitutionalSignalBoxes(activeSig);
           return;
+
         } else {
-          // Trade is actively running! KEEP BUTTON SOLIDLY READY! (DO NOT FLICKER)
+          // Trade is actively running! KEEP BUTTON SOLIDLY READY & BOXES 100% FROZEN!
           btn.className = 'signal-action-btn ready';
           if (icon) {
             icon.innerText = '🟢';
@@ -5500,7 +5514,80 @@
         }
       }
 
-      // 3. No active trade or trade has closed -> Simply "រង់ចាំ Signal ថ្មី" without long descriptions!
+      // ======================================================================
+      // 2. NO ACTIVE TRADE RUNNING -> WAITING FOR AI VALIDATION OF NEW SIGNAL!
+      // Constitutional Rule: "ប្ដូរតម្លៃលុះត្រាតែដាក់អោយប្រើប្រាស់តម្លៃ signal ថ្មីអោយប្រើប្រាស់
+      // (បញ្ជាក់អោយ Ai Analy អោយបានត្រឹមត្រូវសិនទើបដាក់signal អោយប្រើប្រាស់ត្រូវគោរពច្បាប់នេះ)"
+      // ======================================================================
+      const currentExpectedAction = isBuy ? 'BUY' : 'SELL';
+      const isTopTierGrade = matrixScore >= 70;
+      const isTriggerCondition = inZone && isTopTierGrade;
+
+      // Check cooldown from last closed trade (30 seconds before issuing another trade)
+      let isCooldown = false;
+      if (activeSig && activeSig.closedAt && (Date.now() - activeSig.closedAt < 30000)) {
+        isCooldown = true;
+      }
+
+      // If condition is MET and AI has validated -> ISSUE NEW OFFICIAL SIGNAL!
+      if (!isCooldown && isTriggerCondition && currentDailyCount <= maxDaily) {
+        // Enforce direction-consistent SL strictly 8 - 10 - 12 points
+        let validSL = Number(sl);
+        const eL = Number(entryLow);
+        const eH = Number(entryHigh);
+        if (isBuy) {
+          validSL = Math.min(validSL, eL - 8.0);
+          if (validSL < eL - 12.0) validSL = eL - 10.0;
+        } else {
+          validSL = Math.max(validSL, eH + 8.0);
+          if (validSL > eH + 12.0) validSL = eH + 10.0;
+        }
+
+        const newSig = {
+          id: 'SIG_' + Date.now(),
+          action: isBuy ? 'BUY' : 'SELL',
+          entryLow: eL,
+          entryHigh: eH,
+          sl: Number(validSL.toFixed(2)),
+          tp1: Number(tp1),
+          tp2: Number(tp2),
+          timestamp: Date.now(),
+          status: 'ACTIVE',
+          tp1Reached: false,
+          safetyScore: matrixScore
+        };
+
+        localStorage.setItem('ai_official_signal', JSON.stringify(newSig));
+        localStorage.setItem('ai_locked_active_signal', JSON.stringify(newSig));
+        localStorage.setItem('ai_confirmed_display_signal', JSON.stringify(newSig));
+
+        playCyberSound('sniper');
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+
+        // Render the NEW official numbers in 4 boxes
+        renderInstitutionalSignalBoxes(newSig);
+
+        // Turn action button to Ready
+        btn.className = 'signal-action-btn ready';
+        if (icon) {
+          icon.innerText = '🟢';
+          icon.style.display = 'inline-block';
+        }
+        if (text) text.innerText = 'អាចប្រើប្រាស់ Signal នេះបាន';
+        btn.dataset.status = 'ready';
+        btn.dataset.action = newSig.action;
+        btn.dataset.entryLow = newSig.entryLow;
+        btn.dataset.entryHigh = newSig.entryHigh;
+
+        // Broadcast confirmed Signal + Poll + Mini App CTA to Telegram Channel
+        broadcastSignalAndPollToTelegram(newSig, matrixScore);
+        return;
+      }
+
+      // ======================================================================
+      // 3. WAITING STATE: Display "រង់ចាំ Signal ថ្មី" cleanly
+      // Keep boxes showing either the last concluded trade or the prepared setup
+      // ======================================================================
       btn.className = 'signal-action-btn waiting';
       if (icon) {
         icon.innerText = '';
@@ -5509,7 +5596,7 @@
       if (text) text.innerText = 'រង់ចាំ Signal ថ្មី';
       btn.dataset.status = 'waiting';
 
-      // Clean up sniper banner and execution status so no stale active signal text persists!
+      // Clean up sniper banner and execution status
       const sniperAlertEl = document.getElementById('smcSniperAlert');
       if (sniperAlertEl) sniperAlertEl.style.display = 'none';
       const execBadge = document.getElementById('smcExecBadge');
@@ -5518,6 +5605,8 @@
       if (execBadge) execBadge.className = 'smc-exec-badge waiting';
       if (execDot) execDot.innerText = '🟡';
       if (execText) execText.innerText = inZone ? (isBuy ? 'READY TO BUY • ដល់តំបន់ទិញ OTE' : 'READY TO SELL • ដល់តំបន់លក់ OTE') : (isBuy ? 'WAITING OTE 0.618' : 'WAITING OTE 0.618');
+
+      // Keep boxes rendered consistently without floating numbers
       renderInstitutionalSignalBoxes(null, currentExpectedAction);
 
     } catch(err) {
@@ -5525,9 +5614,6 @@
     }
   }
 
-  // ========================================================
-  // 🚀 DIRECT BROADCAST TO TELEGRAM CHANNEL (SIGNAL + VOTE POLL)
-  // ========================================================
   async function broadcastSignalAndPollToTelegram(sig, score) {
     if (!sig || !sig.id) return;
     try {
@@ -5589,7 +5675,7 @@
       // Note: Channel broadcast strictly disabled per user instruction: "កុំទាន់ Signal ទៅChannel អី"
       // broadcastSignalAndPollToTelegram(activeSig, 85);
       let activeSig = null;
-      try { activeSig = JSON.parse(localStorage.getItem('ai_locked_active_signal') || 'null'); } catch(e){}
+      try { activeSig = JSON.parse(localStorage.getItem('ai_official_signal') || localStorage.getItem('ai_locked_active_signal') || 'null'); } catch(e){}
       if (activeSig) {
         broadcastSignalAndPollToTelegram(activeSig, 90);
       }
