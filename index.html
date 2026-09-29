@@ -996,64 +996,111 @@
       font-size: 11px;
     }
 
-    /* Prominent AI Signal Decision Button (អាចប្រើប្រាស់ Signal នេះបាន / រង់ចាំ Signal ថ្មី) */
-    .signal-action-btn {
-      width: 100%;
-      box-sizing: border-box;
-      margin-top: 12px;
-      margin-bottom: 6px;
-      padding: 13px 16px;
-      border-radius: 12px;
+    /* Futuristic AI SMC Quantum Execution Protocol Header */
+    /* ======================================================================
+       ULTRA-FUTURISTIC AI SMC QUANTUM EXECUTION PROTOCOL & TACTICAL HUD
+       ====================================================================== */
+    .cyber-hud-protocol-bar {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
-      font-size: 14.5px;
-      font-weight: 900;
-      letter-spacing: 0.6px;
-      text-transform: uppercase;
-      cursor: pointer;
-      user-select: none;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .signal-action-btn:active {
-      transform: scale(0.98);
-    }
-    .signal-action-btn.ready {
-      background: linear-gradient(135deg, rgba(0, 230, 118, 0.22) 0%, rgba(0, 200, 83, 0.4) 100%);
-      border: 1.5px solid #00E676;
-      box-shadow: 0 0 25px rgba(0, 230, 118, 0.45), inset 0 0 15px rgba(0, 230, 118, 0.25);
-      color: #00E676;
-      text-shadow: 0 0 10px rgba(0, 230, 118, 0.6);
-      animation: readyPulse 1.8s infinite;
-    }
-    .signal-action-btn.waiting {
-      background: linear-gradient(135deg, rgba(20, 28, 45, 0.9) 0%, rgba(12, 17, 30, 0.98) 100%);
-      border: 1.5px solid rgba(255, 215, 0, 0.4);
-      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(255, 215, 0, 0.08);
-      color: var(--gold);
-      text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+      gap: 8px;
+      margin: 14px 0 10px 0;
+      width: 100%;
+      position: relative;
     }
 
+    .hud-laser-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(0, 240, 255, 0.45) 100%);
+      box-shadow: 0 0 6px rgba(0, 240, 255, 0.3);
+    }
+
+    .hud-laser-line.right {
+      background: linear-gradient(90deg, rgba(0, 240, 255, 0.45) 0%, transparent 100%);
+    }
+
+    .hud-protocol-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 4px 12px;
+      background: linear-gradient(180deg, rgba(10, 18, 34, 0.95) 0%, rgba(5, 9, 20, 0.98) 100%);
+      border: 1px solid rgba(0, 240, 255, 0.35);
+      border-radius: 999px;
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.16), inset 0 0 10px rgba(0, 240, 255, 0.08);
+      position: relative;
+    }
+
+    .hud-quantum-core {
+      color: #00F0FF;
+      font-size: 11px;
+      text-shadow: 0 0 8px #00F0FF;
+      animation: spinSlow 12s linear infinite;
+      display: inline-block;
+    }
+
+    .hud-protocol-title {
+      font-size: 9.5px;
+      font-weight: 800;
+      color: #00F0FF;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-family: 'JetBrains Mono', -apple-system, monospace;
+      text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+    }
+
+    .hud-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 1.5px 6px;
+      border-radius: 999px;
+      background: rgba(0, 230, 118, 0.12);
+      border: 1px solid rgba(0, 230, 118, 0.35);
+      font-size: 8px;
+      font-weight: 800;
+      color: #00E676;
+      letter-spacing: 0.6px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .hud-live-blinker {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #00E676;
+      box-shadow: 0 0 6px #00E676;
+      animation: readyPulse 1.2s infinite;
+      display: inline-block;
+    }
+
+    @keyframes spinSlow {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* 4 Institutional Signal Metrics Grid (Futuristic Glass HUD Terminal) */
     .smc-metrics-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-      margin-top: 12px;
+      gap: 8px;
+      margin-top: 4px;
       position: relative;
       z-index: 2;
     }
 
     .smc-metric-pill {
-      background: linear-gradient(135deg, rgba(12, 18, 32, 0.95) 0%, rgba(6, 10, 20, 0.98) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: linear-gradient(145deg, rgba(10, 16, 28, 0.88) 0%, rgba(5, 9, 18, 0.96) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.07);
       border-radius: 12px;
-      padding: 11px 12px;
+      padding: 9px 11px;
       text-align: left;
-      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
       position: relative;
       overflow: hidden;
-      transition: all 0.25s ease;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .smc-metric-pill::before {
@@ -1061,28 +1108,200 @@
       position: absolute;
       top: 0;
       left: 0;
-      width: 3px;
-      height: 100%;
+      right: 0;
+      height: 2px;
       background: currentColor;
-      box-shadow: 0 0 10px currentColor;
+      box-shadow: 0 0 8px currentColor;
+      opacity: 0.9;
+    }
+
+    .smc-metric-pill.entry-card { color: #00F0FF; border-left: 2px solid #00F0FF; }
+    .smc-metric-pill.sl-card { color: #FF3366; border-left: 2px solid #FF3366; }
+    .smc-metric-pill.tp1-card { color: #00E676; border-left: 2px solid #00E676; }
+    .smc-metric-pill.tp2-card { color: #FFD700; border-left: 2px solid #FFD700; }
+
+    .smc-pill-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 3px;
     }
 
     .smc-pill-label {
-      font-size: 9.5px;
+      font-size: 9px;
       font-weight: 800;
-      color: #7E92A9;
+      color: #8FA2B7;
       text-transform: uppercase;
       letter-spacing: 0.6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-family: 'JetBrains Mono', -apple-system, monospace;
+    }
+
+    .smc-pill-subtag {
+      font-size: 8px;
+      font-weight: 700;
+      color: currentColor;
+      opacity: 0.8;
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 1px 4px;
+      border-radius: 4px;
     }
 
     .smc-pill-value {
-      font-size: 14.5px;
+      font-size: 13.5px;
       font-weight: 800;
       color: #FFF;
-      margin-top: 4px;
       font-variant-numeric: tabular-nums;
-      text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+      font-family: 'JetBrains Mono', -apple-system, monospace;
+      letter-spacing: 0.3px;
+      margin-top: 2px;
     }
+
+    .smc-pill-value.cyan { color: #00F0FF; text-shadow: 0 0 10px rgba(0, 240, 255, 0.4); }
+    .smc-pill-value.ruby { color: #FF3366; text-shadow: 0 0 10px rgba(255, 51, 102, 0.4); }
+    .smc-pill-value.emerald { color: #00E676; text-shadow: 0 0 10px rgba(0, 230, 118, 0.4); }
+    .smc-pill-value.gold { color: #FFD700; text-shadow: 0 0 10px rgba(255, 215, 0, 0.4); }
+
+    /* Sci-Fi Cyber Tactical Signal Action Button */
+    .signal-action-btn {
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 11px;
+      margin-bottom: 8px;
+      padding: 11px 14px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Radar scan light line effect */
+    .signal-action-btn::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 45px;
+      background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.12) 50%, transparent 100%);
+      transform: skewX(-20deg);
+      animation: radarScan 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      pointer-events: none;
+    }
+
+    @keyframes radarScan {
+      0% { left: -60px; }
+      35%, 100% { left: calc(100% + 60px); }
+    }
+
+    .signal-action-btn:active {
+      transform: scale(0.985);
+    }
+
+    /* Beacon Indicator */
+    .cyber-btn-beacon {
+      position: relative;
+      width: 10px;
+      height: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .cyber-beacon-core {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 8px var(--gold);
+      position: relative;
+      z-index: 2;
+    }
+
+    .cyber-beacon-ripple {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1px solid var(--gold);
+      opacity: 0.7;
+      animation: beaconRipple 2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+    }
+
+    @keyframes beaconRipple {
+      0% { transform: scale(0.4); opacity: 0.9; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
+
+    .cyber-btn-label {
+      flex: 1;
+      text-align: center;
+      font-size: 13.5px;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+
+    .cyber-btn-tag {
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 2.5px 6px;
+      border-radius: 4px;
+      background: rgba(255, 215, 0, 0.12);
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      color: var(--gold);
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    /* Waiting State: Ambient Gold Radar Scanning */
+    .signal-action-btn.waiting {
+      background: linear-gradient(180deg, rgba(14, 20, 32, 0.95) 0%, rgba(6, 10, 18, 0.98) 100%);
+      border: 1px solid rgba(255, 215, 0, 0.38);
+      border-top: 1.5px solid rgba(255, 215, 0, 0.65);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      color: var(--gold);
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+
+    /* Ready State: Vibrant Institutional Emerald Laser Pulse */
+    .signal-action-btn.ready {
+      background: linear-gradient(135deg, rgba(0, 230, 118, 0.2) 0%, rgba(8, 38, 24, 0.96) 100%);
+      border: 1.5px solid #00E676;
+      border-top: 1.5px solid #69F0AE;
+      box-shadow: 0 8px 30px rgba(0, 230, 118, 0.35), inset 0 0 20px rgba(0, 230, 118, 0.2);
+      color: #00E676;
+      text-shadow: 0 0 12px rgba(0, 230, 118, 0.7);
+      animation: readyPulse 1.8s infinite;
+    }
+
+    .signal-action-btn.ready .cyber-beacon-core {
+      background: #00E676;
+      box-shadow: 0 0 10px #00E676;
+    }
+
+    .signal-action-btn.ready .cyber-beacon-ripple {
+      border-color: #00E676;
+    }
+
+    .signal-action-btn.ready .cyber-btn-tag {
+      background: rgba(0, 230, 118, 0.18);
+      border-color: #00E676;
+      color: #00E676;
+      box-shadow: 0 0 10px rgba(0, 230, 118, 0.3);
+    }
+
 
     .zone-row {
       display: flex;
@@ -2746,32 +2965,61 @@
         </div>
       </div>
 
-      <div style="font-size: 11px; color: #7E92A9; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px; font-weight: 700;">AI SMC QUANTUM EXECUTION PROTOCOL</div>
+      <!-- Futuristic AI SMC Quantum Protocol Header -->
+      <div class="cyber-hud-protocol-bar">
+        <div class="hud-laser-line left"></div>
+        <div class="hud-protocol-chip">
+          <span class="hud-quantum-core">◈</span>
+          <span class="hud-protocol-title">AI SMC QUANTUM PROTOCOL</span>
+          <span class="hud-status-pill">
+            <span class="hud-live-blinker"></span>
+            <span>SECURE</span>
+          </span>
+        </div>
+        <div class="hud-laser-line right"></div>
+      </div>
 
       <!-- Core Institutional Levels (Entry, SL, TP1, TP2) -->
       <div class="smc-metrics-grid">
-        <div class="smc-metric-pill" style="border-left: 3px solid #00F0FF; color: #00F0FF;">
-          <div class="smc-pill-label"><span class="cyber-badge-dot" style="background: #00F0FF; color: #00F0FF; margin-right: 3px;"></span> ENTRY ZONE</div>
-          <div class="smc-pill-value" style="color: #00F0FF;" id="smcEntry">$4,132.94 - $4,135.94</div>
+        <div class="smc-metric-pill entry-card">
+          <div class="smc-pill-top">
+            <div class="smc-pill-label"><span class="cyber-badge-dot" style="background: #00F0FF; box-shadow: 0 0 6px #00F0FF;"></span> ENTRY ZONE</div>
+            <span class="smc-pill-subtag">OTE 0.618</span>
+          </div>
+          <div class="smc-pill-value cyan" id="smcEntry">$4,132.94 - $4,135.94</div>
         </div>
-        <div class="smc-metric-pill" style="border-left: 3px solid #FF3366; color: #FF3366;">
-          <div class="smc-pill-label"><span class="cyber-badge-dot" style="background: #FF3366; color: #FF3366; margin-right: 3px;"></span> STOP LOSS SL</div>
-          <div class="smc-pill-value" style="color: #FF3366;" id="smcSL">$4,145.94</div>
+        <div class="smc-metric-pill sl-card">
+          <div class="smc-pill-top">
+            <div class="smc-pill-label"><span class="cyber-badge-dot" style="background: #FF3366; box-shadow: 0 0 6px #FF3366;"></span> STOP LOSS SL</div>
+            <span class="smc-pill-subtag">MAX $10</span>
+          </div>
+          <div class="smc-pill-value ruby" id="smcSL">$4,145.94</div>
         </div>
-        <div class="smc-metric-pill" style="border-left: 3px solid #00E676; color: #00E676;">
-          <div class="smc-pill-label"><span class="cyber-badge-dot" style="background: #00E676; color: #00E676; margin-right: 3px;"></span> TAKE PROFIT 1 BE</div>
-          <div class="smc-pill-value" style="color: #00E676;" id="smcTP1">$4,117.94 BE</div>
+        <div class="smc-metric-pill tp1-card">
+          <div class="smc-pill-top">
+            <div class="smc-pill-label"><span class="cyber-badge-dot" style="background: #00E676; box-shadow: 0 0 6px #00E676;"></span> TAKE PROFIT 1</div>
+            <span class="smc-pill-subtag">1.5R BE</span>
+          </div>
+          <div class="smc-pill-value emerald" id="smcTP1">$4,117.94 BE</div>
         </div>
-        <div class="smc-metric-pill" style="border-left: 3px solid #FFD700; color: #FFD700;">
-          <div class="smc-pill-label"><span class="cyber-badge-dot" style="background: #FFD700; color: #FFD700; margin-right: 3px;"></span> TAKE PROFIT 2 MAX</div>
-          <div class="smc-pill-value" style="color: #FFD700;" id="smcTP2">$4,107.94</div>
+        <div class="smc-metric-pill tp2-card">
+          <div class="smc-pill-top">
+            <div class="smc-pill-label"><span class="cyber-badge-dot" style="background: #FFD700; box-shadow: 0 0 6px #FFD700;"></span> TAKE PROFIT 2</div>
+            <span class="smc-pill-subtag">2.5R+ MAX</span>
+          </div>
+          <div class="smc-pill-value gold" id="smcTP2">$4,107.94</div>
         </div>
       </div>
 
       <!-- 🎯 SINGLE PROMINENT AI SIGNAL ACTION BUTTON (អាចប្រើប្រាស់ Signal នេះបាន / រង់ចាំ Signal ថ្មី) -->
       <div id="signalActionBtn" class="signal-action-btn waiting" onclick="handleSignalActionClick()">
-        <span id="signalActionIcon" style="font-size: 16px; display: none;"></span>
-        <span id="signalActionText" style="letter-spacing: 0.5px;">រង់ចាំ Signal ថ្មី</span>
+        <span class="cyber-btn-beacon" id="signalActionBeacon">
+          <span class="cyber-beacon-core"></span>
+          <span class="cyber-beacon-ripple"></span>
+        </span>
+        <span id="signalActionIcon" style="font-size: 15px; display: none;"></span>
+        <span id="signalActionText" class="cyber-btn-label">រង់ចាំ SIGNAL ថ្មី</span>
+        <span class="cyber-btn-tag" id="signalActionTag">STANDBY</span>
       </div>
 
       <!-- Advanced Institutional Confluence Engine (Positioned Elegantly Below Levels) -->
@@ -5486,6 +5734,8 @@
             }
             if (text) text.innerText = '🛡️ ប៉ះ BREAK-EVEN (បាន TP1 រួចរាល់)';
             btn.dataset.status = 'hit_be';
+            const actionTag = document.getElementById('signalActionTag');
+            if (actionTag) { actionTag.innerText = 'BE HIT'; actionTag.className = 'cyber-btn-tag'; }
           } else {
             activeSig.status = 'HIT_SL';
             btn.className = 'signal-action-btn waiting';
@@ -5495,6 +5745,8 @@
             }
             if (text) text.innerText = '🛑 SIGNAL ប៉ះ SL — រង់ចាំ SIGNAL ថ្មី';
             btn.dataset.status = 'hit_sl';
+            const actionTag = document.getElementById('signalActionTag');
+            if (actionTag) { actionTag.innerText = 'SL HIT'; actionTag.className = 'cyber-btn-tag'; }
           }
           activeSig.closedAt = Date.now();
           activeSig.closePrice = price;
@@ -5525,6 +5777,8 @@
           }
           if (text) text.innerText = 'ឈ្នះ TP1 (លើក SL មកស្មើដើម BE) អាចប្រើបាន';
           btn.dataset.status = 'ready';
+          const actionTag = document.getElementById('signalActionTag');
+          if (actionTag) { actionTag.innerText = 'TP1 HIT ❯'; actionTag.className = 'cyber-btn-tag active'; }
           btn.dataset.action = activeSig.action;
           btn.dataset.entryLow = activeSig.entryLow;
           btn.dataset.entryHigh = activeSig.entryHigh;
@@ -5540,6 +5794,8 @@
           }
           if (text) text.innerText = 'អាចប្រើប្រាស់ Signal នេះបាន';
           btn.dataset.status = 'ready';
+          const actionTag = document.getElementById('signalActionTag');
+          if (actionTag) { actionTag.innerText = 'ACTIVE ❯'; actionTag.className = 'cyber-btn-tag active'; }
           btn.dataset.action = activeSig.action;
           btn.dataset.entryLow = activeSig.entryLow;
           btn.dataset.entryHigh = activeSig.entryHigh;
@@ -5649,6 +5905,8 @@
       }
       if (text) text.innerText = 'រង់ចាំ Signal ថ្មី';
       btn.dataset.status = 'waiting';
+      const actionTag = document.getElementById('signalActionTag');
+      if (actionTag) { actionTag.innerText = 'STANDBY'; actionTag.className = 'cyber-btn-tag'; }
 
       // Clean up sniper banner and execution status
       const sniperAlertEl = document.getElementById('smcSniperAlert');
