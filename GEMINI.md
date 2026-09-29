@@ -36,3 +36,103 @@ This repository is governed by the 5 Golden Principles established by the system
 ### 6. 📌 អាទិភាពការងារបច្ចុប្បន្ន (Current Development Priority Directive)
 - **Mini App Update Freeze**: ផ្អាកការ Update លើ Telegram Mini App (`index.html`) ជាបណ្តោះអាសន្ន។ មិនធ្វើការកែសម្រួល ឬ Deploy ឡើយ រហូតទាល់តែមានការណែនាំឱ្យបន្តនៅពេលក្រោយ។
 - **Bot & Channel Priority**: ផ្តោតការងារជាចម្បងលើ Telegram Bot Engine (`main.py`, `telegram_notifier.py`), AI Analyzers (`analyzers/`), Collectors (`collectors/`), និងការផ្សាយព័ត៌មានលើ Channel។
+
+### 7. 🥇 ស្តង់ដារផ្សាយហាងឆេងមាសប្រចាំថ្ងៃ (Daily Gold Price Broadcast Standard)
+- **កាលវិភាគម៉ោង ៧:០០ ព្រឹក (Strict 07:00 AM, Once Per Day)**:
+  - ត្រូវផ្សាយចូល Telegram Group/Channel ត្រឹមតែ **១ ដងគត់ក្នុងមួយថ្ងៃនៅវេលាម៉ោង ៧:០០ ព្រឹក** (ម៉ោងនៅកម្ពុជា UTC+7)។ មិនត្រូវផ្សាយខុសម៉ោង ឬច្រឡំផ្សាយពេលរសៀលនៅពេល Bot restart ឡើយ។
+  - ផ្ញើជា Plain/HTML Text ស្អាត គ្មានប៊ូតុង Inline Buttons រញ៉េរញ៉ៃឡើយ។
+- **ទម្រង់អក្សរ និងគម្លាតច្បាស់លាស់ (Strict Alignment Template)**:
+  - ត្រូវរក្សាទម្រង់ស្អាត ស្មើជួរគម្លាត Space ឥតខ្ចោះដូចខាងក្រោម៖
+```text
+🥇  <b>DAILY GOLD PRICE — ហាងឆេងមាសប្រចាំថ្ងៃ</b>
+
+📅  <b>កាលបរិច្ឆេទ:</b> {date_str} 
+
+
+ 🌐<b>1 អោន :</b> ${price_oz:,.2f}
+
+🇰🇭 <b>1 តម្លឹង:</b> លក់ ${damlung_sell:,.2f} | ទិញ ${damlung_buy:,.2f}
+      
+      <b>1 ជី:</b> លក់ ${chi_sell:,.2f} | ទិញ ${chi_buy:,.2f}
+
+ 📉   <b>បម្រែបម្រួល:</b> {sign}${change:,.2f} ({sign}{change_pct:.2f}%)
+```
+  - លុបចោលទាំងស្រុងនូវការបកស្រាយវែងអន្លាយ (Macro correlation, Pivot breakdown, Summary) ដើម្បីរក្សាភាពសាមញ្ញ ស្រួលមើល និងមានសោភ័ណភាពខ្ពស់។
+
+### 8. 🚨 ស្តង់ដារផ្សាយព័ត៌មានទាន់ហេតុការណ៍ (Breaking News Standard)
+- **វិស័យស្នូលទាំង ៧ នៃព័ត៌មាន (The 7 Core News Pillars)**:
+  1. 🌐 **សេដ្ឋកិច្ច (Economy)**: GDP, CPI, អតិផរណា, NFP, ការងារ, Retail Sales, PMI, កំណើនសេដ្ឋកិច្ច។
+  2. ⚔️ **នយោបាយភូមិសាស្ត្រ (Geopolitics)**: សង្គ្រាម, ជម្លោះ, មជ្ឈិមបូព៌ា, អ៊ុយក្រែន, ច្រកសមុទ្រយុទ្ធសាស្ត្រ។
+  3. 💻 **បច្ចេកវិទ្យា (Technology)**: AI, Semiconductor, បន្ទះឈីប Chips, Big Tech, សន្តិសុខ Cyber។
+  4. 🏦 **គោលនយោបាយរូបិយវត្ថុ និងធនាគារកណ្តាល (Monetary Policy & Central Banks)**: Fed, Powell, FOMC, អត្រាការប្រាក់, ECB, BOJ, PBOC, ទុនបម្រុងមាស។
+  5. 🛢️ **បរិស្ថាន និងធនធានធម្មជាតិ (Environment & Natural Resources)**: ប្រេងកាត OPEC, ថាមពល, រ៉ែមាស, ធនធានធម្មជាតិ។
+  6. 👥 **កត្តាសង្គម និងប្រជាសាស្ត្រ (Social & Demographic Factors)**: កូដកម្មការងារ, ប្រាក់ឈ្នួល, ចិត្តសាស្ត្រអ្នកប្រើប្រាស់។
+  7. ⚖️ **ច្បាប់ បទប្បញ្ញត្តិ និងគោលនយោបាយរដ្ឋាភិបាល (Laws, Regulations & Government Policies)**: ពន្ធគយ Tariffs, ទណ្ឌកម្ម, បំណុលរដ្ឋ, ច្បាប់ហិរញ្ញវត្ថុ/Crypto។
+- **ភាពថ្មីស្រឡាង និងការទប់ស្កាត់ការផ្ញើជាន់គ្នា (Strict Freshness & Anti-Duplicate Rule)**:
+  - **ត្រូវតែថ្មី (Fresh Only)**: ហាមផ្ញើសារដដែល ឬព័ត៌មានដែលបានផ្សាយរួចក្នុងរយៈពេល ២៤ ម៉ោងជាដាច់ខាត (Cross-Source Semantic Deduplication 24 Hours)។
+  - **បើមិនថ្មី ឬមិនច្បាស់ កុំផ្ញើ**: ប្រសិនបើព័ត៌មាននោះចាស់ ស្រពិចស្រពិល ឬគ្មានឥទ្ធិពលជាក់ស្តែងលើទីផ្សារ ត្រូវទម្លាក់ចោល (`is_clear = false`) មិនត្រូវផ្ញើចូល Channel ឡើយ។
+- **ខ្លឹមសាររៀបរាប់ក្បោះក្បាយត្រឹមត្រូវទាន់ហេតុការណ៍ (Accurate & Comprehensive Storytelling)**:
+  - ត្រូវរៀបរាប់ដំណើររឿងជាក់ស្តែងឱ្យបានក្បោះក្បាយ ត្រឹមត្រូវតាមសាច់រឿងព័ត៌មាន និងទាន់ហេតុការណ៍ក្រោមចំណងជើង `🔹 ព្រឹត្តិការណ៍សំខាន់:` ដើម្បីឱ្យអ្នកអានយល់ពីប្រភពរឿងដើមហេតុ ហេតុអ្វីបានជាកើតឡើង និងផលប៉ះពាល់លើតម្លៃមាស (XAUUSD) និងប្រាក់ដុល្លារ (USD)។
+  - លុបចោលការបែងចែកជាចំណុចកំប៉ិកកំប៉ុកដាច់ៗ (តើមានអ្វីកើតឡើង, ហេតុអ្វីសំខាន់, ផលប៉ះពាល់ USD/Yields)។
+- **រូបភាពពិតប្រាកដ ១០០% ពីអត្ថបទ (Genuine Article Image Only)**:
+  - រូបភាពដែលត្រូវភ្ជាប់មកជាមួយ ត្រូវតែជារូបភាពពិតប្រាកដដែលទាញចេញផ្ទាល់ពី Article នៃសារព័ត៌មាននោះ (`og:image` / `twitter:image`)។
+  - ប្រសិនបើព័ត៌មាននោះគ្មានរូបភាពទេ ត្រូវផ្ញើជា Plain Text Message ស្អាត ជាមួយ Link និង Button អានបន្ថែម។
+
+### 9. 🚫 លុបចោលសាររំញ័រតម្លៃមាស (Disable Volatility Spike Alerts Permanently)
+- មិនត្រូវផ្ញើសារប្រភេទ `🚨 XAUUSD VOLATILITY ALERT — បម្រែបម្រួលតម្លៃមាសខុសប្រក្រតី` (Bullish Spike / Flash Dump) ចូល Channel/Group ឡើយ។
+- មុខងារ `check_price_volatility_spike` ត្រូវបានបិទទាំងស្រុងជាអចិន្ត្រៃយ៍ មិនឱ្យដំណើរការទៀតជាដាច់ខាត។
+
+### 10. 🚫 លុបចោលសេចក្តីសង្ខេបទីផ្សារពេលយប់ (Disable Daily Market Wrap-Up Permanently)
+- មិនត្រូវផ្ញើសារប្រភេទ `🌙 DAILY MARKET WRAP-UP — សេចក្តីសង្ខេបទីផ្សារពេលយប់` ចូល Channel/Group ឡើយ។
+- មុខងារ `check_night_wrap_up` ត្រូវបានបិទទាំងស្រុងជាអចិន្ត្រៃយ៍ មិនឱ្យដំណើរការទៀតជាដាច់ខាត។
+
+### 11. 🔔 ស្តង់ដារផ្សាយដំណឹងបើកទីផ្សារ London & New York (Session Open Alert Standard)
+- **រូបភាព Heatmap Ultra-HD (Zero Broken Glyphs)**:
+  - ត្រូវប្រើប្រាស់ Vector Shapes (Circles/Pills) សម្រាប់ Indicator Dots ជៀសវាង Emoji ក្នុង Pillow Canvas ដើម្បីកុំឱ្យធ្លាក់ Font ឬចេញប្រអប់បាក់ `[]`។
+  - Label `BSL`, `SSL`, `SPOT` ត្រូវមាន Dark Background Pill ការពារកុំឱ្យចាំងបាំងជាមួយ Bar ពណ៌ទឹកក្រូច/ក្រហម។
+- **ខ្លឹមសារពន្យល់ស៊ីជម្រៅ (Institutional SMC Storytelling)**:
+  - ត្រូវពន្យល់ពីចលនា **Judas Swing / Fakeout** របស់ធនាគារធំៗក្នុងការ Hunt Stop Loss នៅ Asian High/Low មុនបង្ហាញទិសដៅពិត។
+  - ផ្អែកលើ ៣ ដំណាក់កាល៖ រចនាសម្ព័ន្ធ Asian Range ➡️ ចលនាបញ្ឆោត Judas Swing Trap ➡️ ផែនការអនុវត្ត។
+- **ទម្រង់អក្សរស្អាត សាមញ្ញ ឥតស្ទួន (Clean & Concise Caption Layout)**:
+  - គ្មាន Emoji កណ្តឹង `🔔` នៅខាងមុខ Title។
+  - មិនដាក់ជួរ `🕐 ពេលវេលា:` ឡើយ។
+  - លុបចោលទាំងស្រុងនូវផ្នែក `តំបន់គន្លឹះយុទ្ធសាស្ត្រ (SMC Key Levels)` និង `ការគ្រប់គ្រងហានិភ័យ` ក្នុង Caption ព្រោះមានបង្ហាញច្បាស់នៅលើផ្ទាំងរូបភាព Heatmap រួចហើយ ដើម្បីរក្សាភាពសាមញ្ញ ស្រួលមើល និងមានសោភ័ណភាពខ្ពស់។
+- **ស្តង់ដារពុម្ពអក្សររៀបរាប់រលូន (Smooth Regular Narrative Typography)**:
+  - ត្រូវប្រើប្រាស់ទម្រង់ដូចគ្នាបេះបិទនឹងសារ Breaking Event ដោយដាក់តែចំណងជើង `🔹 ការវិភាគទីផ្សារ & យុទ្ធសាស្ត្រស្ថាប័ន (SMC):` រួចសរសេរសាច់រឿងរៀបរាប់ជាអក្សរធម្មតា (Regular Text) ជាប់គ្នា ដោយមិនប្រើចំណុចផ្កាយ `•` ឬដាក់ `<b>` ដិតកំប៉ិកកំប៉ុកនាំឱ្យធ្លាក់រាងពុម្ពអក្សរឡើយ។
+
+### 12. 🚫 លុបចោលសារ Whale Order Book / Iceberg Alerts (Disable Whale Alerts Permanently)
+- មិនត្រូវផ្ញើសារប្រភេទ `🛰️ WHALE ORDER BOOK ALERT — រកឃើញ Order ស្ថាប័នលាក់មុខ!` (Whale Iceberg Buy/Sell Wall) ចូល Channel/Group ឡើយ។
+- មុខងារ `check_iceberg_orders` ត្រូវបានបិទទាំងស្រុងជាអចិន្ត្រៃយ៍ មិនឱ្យដំណើរការទៀតជាដាច់ខាត។
+
+### 13. 🏛️ ស្តង់ដារផ្សាយ Fed AI Interpreter (Live Speech Interpretation Standard)
+- **លុបចោល Emojis រញ៉េរញ៉ៃ (Clean Minimalist Emojis)**:
+  - គ្មាន Emoji ផ្លេកបន្ទោរ `⚡` នៅខាងមុខ Header Title (ដាក់ត្រឹម `{icon} <b>LIVE FED AI INTERPRETER...</b>`)។
+  - គ្មាន Emoji `🎙️` នៅខាងមុខ `ព្រឹត្តិការណ៍:` (ដាក់ `<b>ព្រឹត្តិការណ៍:</b> {event_title}`)។
+  - គ្មាន Emoji `🎭` នៅខាងមុខ `សម្លេង និងអារម្មណ៍ Fed (Tone):` (ដាក់ `<b>សម្លេង និងអារម្មណ៍ Fed (Tone):</b> {tone_clean}`)។
+  - លុបចេញនូវ Emojis មុខ Tone ដូចជា `🌓`, `🟢`, `🔴`, `🟡` ដោយទុកតែអក្សរបកស្រាយស្អាត (Regular Text) ដូចជា `Neutral (ប្រុងប្រយ័ត្ន និងរង់ចាំមើលទិន្នន័យ)`។
+- **លុបចោលផ្នែកកំប៉ិកកំប៉ុក និងការព្រមានដដែលៗ (Remove Clutter & Repetitive Warnings)**:
+  - លុបចោលទាំងស្រុងនូវជួរ `• ទស្សនវិស័យមាស: 🟡 Mixed`។
+  - លុបចោលទាំងស្រុងនូវជួរ `🛡️ ការគ្រប់គ្រងហានិភ័យ:...`។
+  - លុបចោលទាំងស្រុងនូវជួរ `📊 ពិនិត្យ Chart ផ្ទាល់:...`។
+- **សាច់រឿងរៀបរាប់រលូន (Smooth Regular Narrative Typography)**:
+  - ផ្នែក `🥇 ផលប៉ះពាល់លើតម្លៃមាស (XAUUSD Impact):` ត្រូវសរសេរជាអក្សរធម្មតា (Regular Text) ជាប់គ្នា ដោយមិនប្រើចំណុចផ្កាយ `•` ឡើយ។
+  - ផ្នែក Key Quotes បង្ហាញឈ្មោះ Speaker ជាក់ស្តែង (ឧ. `Kevin Warsh`, `Jerome Powell`, ឬ `Fed`) តាមរយៈ `💬 <b>ចំណុចគន្លឹះសំខាន់ៗដែល {speaker} ថ្លែង (Key Quotes):</b>`។
+- **ល្បឿនបន្ទាន់ និងអាទិភាពកំពូលភ្លាមៗ (Zero-Delay & Instant VIP Priority for Kevin Warsh / Fed Chair)**:
+  - រាល់ពេលដែលលោក **Kevin Warsh**, Jerome Powell ឬថ្នាក់ដឹកនាំ Fed ថ្លែងសុន្ទរកថា ឬចេញសេចក្តីថ្លែងការណ៍ FOMC ត្រូវតែដំណើរការ និងផ្សាយចេញជាបន្ទាន់ភ្លាមៗ (Instant Zero-Delay) ដោយមិនឱ្យរង់ចាំ ឬច្រានចោលដោយសារ Filter ព័ត៌មានទូទៅឡើយ។
+- **ភ្ជាប់សំឡេងបកប្រែជាភាសាខ្មែរជានិច្ច (Mandatory Khmer Voice Note Brief)**:
+  - ត្រូវតែបង្កើត និងផ្សាយសំឡេងបកប្រែសង្ខេបជាភាសាខ្មែរ (Natural Khmer Voice Note `.mp3`) អំពីប្រសាសន៍របស់ **Kevin Warsh** ឬ Fed Speaker ភ្លាមៗបន្ទាប់ពីសារ Text ដោយប្រើ Caption: `🎙️ <b>សំឡេងបកប្រែសង្ខេប Fed / {speaker} Speech (Live Voice Brief)</b>`។
+- **សម្លេងប្រុសធម្មជាតិដូចមនុស្សពិត ១០០% (100% Natural Human Prosody — Zero Robotic Artifacts)**:
+  - ហាមប្រើសំឡេងស្រីជាដាច់ខាតសម្រាប់សុន្ទរកថារបស់លោក **Kevin Warsh** ឬថ្នាក់ដឹកនាំ Fed។
+  - ត្រូវប្រើប្រាស់បច្ចេកវិទ្យា Neural Male Voice (`km-KH-PisethNeural`) កម្រិតសូរសព្ទធម្មជាតិរបស់មនុស្សពិត (`pitch='+0Hz'`, `rate='+0%'`, `volume='+30%'`) ដោយគ្មានការបង្ខូចសម្លេងដែលនាំឱ្យចេញសម្លេងម៉ាស៊ីន (Zero metallic synthesizer distortion)។
+  - ត្រូវបំប្លែងពាក្យបច្ចេកទេស និងឈ្មោះបរទេសជាសូរសព្ទខ្មែរស្វ័យប្រវត្តិតាមរយៈ `humanize_khmer_text` (ដូចជា `Kevin Warsh` ទៅ `ខេវិន វ៉ាស`, `Fed` ទៅ `ហ្វេត`, `Bullish` ទៅ `ប៊ូលីស`, `Buy` ទៅ `ទិញ បាយ`) ដើម្បីឱ្យការបញ្ចេញសំឡេងមានដង្ហើម និងចង្វាក់រលូនឥតទាក់ ដូចជាពិធីករអានព័ត៌មានទូរទស្សន៍អាជីពផ្ទាល់។
+- **ប្រាប់ទិសដៅទីផ្សារមាសនៅចុងបញ្ចប់ជានិច្ច (Mandatory Gold Market Direction Conclusion)**:
+  - នៅចុងបញ្ចប់នៃសំឡេងនិយាយ Voice Note ត្រូវតែមានការសន្និដ្ឋាន និងបញ្ជាក់ពីទិសដៅទីផ្សារមាស (Bullish / Bearish / Sideway) និងយុទ្ធសាស្ត្រជួញដូរ (Buy / Sell Priority) ឱ្យបានច្បាស់លាស់ជានិច្ច ដើម្បីឱ្យ Trader ងាយស្រួលសម្រេចចិត្តភ្លាមៗ។
+
+
+
+
+
+
+
+
+
