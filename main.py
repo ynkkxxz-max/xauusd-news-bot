@@ -1421,34 +1421,18 @@ class XAUUSDNewsAssistantBot:
         logger.info(f"[ZERO-DELAY IMMEDIATE ALERT] News/Anomaly detected: {item['title']}")
         title = item["title"]
         desc = item.get("description", "")
-        title = item["title"]
-        desc = item.get("description", "")
         logger.info(f"Processing breaking alert: {title}")
 
-        # --- SPECIAL FOMC / POWELL / WARSH LIVE SPEECH INTERPRETATION (TOP VIP PRIORITY) ---
-        is_fomc_or_powell = any(w in (title + " " + desc).lower() for w in [
-            "fomc", "powell", "warsh", "kevin warsh", "fed chair", "fed governor",
-            "fed rate", "federal reserve", "rate decision", "waller", "bowman"
-        ])
-        fomc_interp = None
-        if is_fomc_or_powell and self.fomc_interpreter.is_available():
-            logger.info(f"[LIVE FOMC/POWELL/WARSH INTERPRETER] Detected Fed statement/speech: {title}")
-            fomc_interp = self.fomc_interpreter.interpret_powell_speech(f"{title}\n{desc}", event_title=title)
+        analysis = self.analyzer.analyze_breaking_news(title, desc)
+        if not analysis:
+            return
 
-        if fomc_interp:
-            msg = KhmerFormatter.format_fomc_speech_alert(title, fomc_interp)
-        else:
-            analysis = self.analyzer.analyze_breaking_news(title, desc)
-            if not analysis:
-                return
-
-            # Strict Quality & Freshness Gate: If AI flagged the story as unclear, stale, or insignificant, skip
-            if isinstance(analysis, dict) and analysis.get("is_clear") is False:
-                logger.info(f"[UNCLEAR/STALE NEWS SKIPPED] AI evaluated '{title}' as unclear or insignificant (is_clear=False).")
-                database.record_news_sent(item["id"], title, item.get("source", ""))
-                return
-            msg = KhmerFormatter.format_breaking_event_alert(item, analysis)
-
+        # Strict Quality & Freshness Gate: If AI flagged the story as unclear, stale, or insignificant, skip
+        if isinstance(analysis, dict) and analysis.get("is_clear") is False:
+            logger.info(f"[UNCLEAR/STALE NEWS SKIPPED] AI evaluated '{title}' as unclear or insignificant (is_clear=False).")
+            database.record_news_sent(item["id"], title, item.get("source", ""))
+            return
+        msg = KhmerFormatter.format_breaking_event_alert(item, analysis)
 
         article_url = (item.get("link") or item.get("url") or "").strip()
         source_name = (item.get("source") or "ForexLive").strip()
@@ -1474,25 +1458,6 @@ class XAUUSDNewsAssistantBot:
         if sent_ok:
             database.record_news_sent(item["id"], title, item.get("source", ""))
             database.set_state("last_breaking_alert_ts", str(time.time()))
-
-            # If FOMC / Warsh / Powell Speech was interpreted, broadcast voice note immediately
-            if fomc_interp and fomc_interp.get("voice_script"):
-                try:
-                    v_bytes = self.voice_synth.text_to_speech(fomc_interp["voice_script"])
-                    if v_bytes and len(v_bytes) > 500:
-                        spk = fomc_interp.get("speaker") or "Fed"
-                        if spk == "Fed":
-                            for name in ["Kevin Warsh", "Warsh", "Jerome Powell", "Powell", "Christopher Waller", "Waller", "Michelle Bowman", "Bowman", "Austan Goolsbee", "Goolsbee", "John Williams", "Williams"]:
-                                if name.lower() in title.lower():
-                                    spk = name
-                                    break
-                        self.notifier.send_voice(
-                            v_bytes,
-                            caption=f"🎙️ <b>សំឡេងបកប្រែសង្ខេប Fed / {spk} Speech (Live Voice Brief)</b>"
-                        )
-                        logger.info(f"FOMC/Warsh live voice translation broadcasted successfully for {spk}.")
-                except Exception as e:
-                    logger.warning(f"Failed to send FOMC voice note: {e}")
         else:
             logger.error("Breaking alert send failed; item kept for retry next cycle.")
 
