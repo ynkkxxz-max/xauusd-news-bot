@@ -327,7 +327,7 @@ class XAUUSDNewsAssistantBot:
             app_cta_markup = {
                 "inline_keyboard": [
                     [
-                        {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=135&tab=smc"}
+                        {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=136&tab=smc"}
                     ]
                 ]
             }
@@ -461,7 +461,7 @@ class XAUUSDNewsAssistantBot:
             app_cta_markup = {
                 "inline_keyboard": [
                     [
-                        {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=135&tab=smc"}
+                        {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=136&tab=smc"}
                     ]
                 ]
             }
@@ -657,7 +657,7 @@ class XAUUSDNewsAssistantBot:
                 "keyboard": [
                     [
                         {"text": "Price"},
-                        {"text": "SMC", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=135&tab=smc"}}
+                        {"text": "SMC", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=136&tab=smc"}}
                     ]
                 ],
                 "resize_keyboard": True,
@@ -701,7 +701,34 @@ class XAUUSDNewsAssistantBot:
                         calc = RiskLotCalculator.calculate_lot_size(balance=bal, risk_pct=rp, sl_points_usd=sl_usd)
                         resp = KhmerFormatter.format_lot_size_calculator(calc)
                         self.notifier.send_message(resp, chat_id=cb_chat_id, reply_markup=lot_calculator_inline_buttons)
-                continue
+                    continue
+
+                # 🔒 Handle Official Channel Join Verification Gate
+                if cb_data == "verify_channel_join":
+                    is_now_member = self.notifier.is_user_member_of_channel(user_id=user_id)
+                    if is_now_member:
+                        self.notifier.answer_callback_query(cb_id, text="🎉 ផ្ទៀងផ្ទាត់ជោគជ័យ! អរគុណសម្រាប់ការចូលរួម Channel។", show_alert=True)
+                        unlock_text = (
+                            "🎉 <b>អបអរសាទរ! ការផ្ទៀងផ្ទាត់បានជោគជ័យ</b>\n\n"
+                            "✅ គណនីរបស់អ្នកត្រូវបានផ្ទៀងផ្ទាត់ថាបានចូលរួម <b>GOLD FX Official Channel</b> រួចរាល់ហើយ!\n\n"
+                            "📱 ឥឡូវនេះលោកអ្នកអាចបើកប្រើប្រាស់ <b>Telegram Mini App (SMC AI Terminal)</b> និង Signal Live បានពេញលេញ!"
+                        )
+                        unlocked_markup = {
+                            "inline_keyboard": [
+                                [
+                                    {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=136&tab=smc"}
+                                ],
+                                [
+                                    {"text": "📊 មើល TradingView Live Chart", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=136&tab=chart"},
+                                    {"text": "🧮 គិត Lot Size", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=136&tab=lot"}
+                                ]
+                            ]
+                        }
+                        self.notifier.send_message(unlock_text, chat_id=cb_chat_id, reply_markup=unlocked_markup)
+                        self.notifier.send_message("👇 <b>ចុចប៊ូតុង [ SMC ] ខាងក្រោមដើម្បីបើក Mini App គ្រប់ពេល៖</b>", chat_id=cb_chat_id, reply_markup=bottom_keyboard)
+                    else:
+                        self.notifier.answer_callback_query(cb_id, text="⚠️ លោកអ្នកមិនទាន់បាន Join Channel នៅឡើយទេ! សូមចុចប៊ូតុង [📢 ចូលរួម Telegram Channel] ជាមុនសិន។", show_alert=True)
+                    continue
 
             # 2. Handle Text Messages or WebApp Data
             msg_obj = u.get("message", {})
@@ -712,7 +739,32 @@ class XAUUSDNewsAssistantBot:
             if not text or not chat_id:
                 continue
 
-
+            # 🔒 Force Join Channel Gate for Private Users (chat_id > 0)
+            if chat_id > 0:
+                from_user = msg_obj.get("from", {})
+                from_user_id = from_user.get("id") or chat_id
+                # Check if user has joined the official channel
+                is_member = self.notifier.is_user_member_of_channel(user_id=from_user_id)
+                if not is_member:
+                    force_join_text = (
+                        "🔒 <b>សូមចូលរួម (Join) Telegram Channel ជាមុនសិន!</b>\n\n"
+                        "ដើម្បីទប់ស្កាត់ការលួចចម្លង Signal និងអាចបើកប្រើប្រាស់ <b>Telegram Mini App</b> បាន "
+                        "លោកអ្នកត្រូវតែជាសមាជិកនៃ Channel ផ្លូវការរបស់យើងខ្ញុំជាមុនសិន។\n\n"
+                        "📢 <b>Channel ផ្លូវការ:</b> @GoldMarketKH8888 (GOLD FX)\n\n"
+                        "<i>បន្ទាប់ពីចុច Join រួចរាល់ សូមចុចប៊ូតុង «✅ ខ្ញុំបាន Join រួចហើយ» ខាងក្រោមដើម្បីដោះសោរបើក Mini App!</i>"
+                    )
+                    force_join_markup = {
+                        "inline_keyboard": [
+                            [
+                                {"text": "📢 ចូលរួម Telegram Channel (Join Now)", "url": "https://t.me/GoldMarketKH8888"}
+                            ],
+                            [
+                                {"text": "✅ ខ្ញុំបាន Join រួចហើយ (Verify & Open)", "callback_data": "verify_channel_join"}
+                            ]
+                        ]
+                    }
+                    self.notifier.send_message(force_join_text, chat_id=chat_id, reply_markup=force_join_markup)
+                    continue
 
             inline_trading_buttons = {
                 "inline_keyboard": [
@@ -773,11 +825,11 @@ class XAUUSDNewsAssistantBot:
                 smc_inline_buttons = {
                     "inline_keyboard": [
                         [
-                            {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=135&tab=smc"}
+                            {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=136&tab=smc"}
                         ],
                         [
-                            {"text": "📊 មើល TradingView Live Chart", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=135&tab=chart"},
-                            {"text": "🧮 គិត Lot Size", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=135&tab=lot"}
+                            {"text": "📊 មើល TradingView Live Chart", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=136&tab=chart"},
+                            {"text": "🧮 គិត Lot Size", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=136&tab=lot"}
                         ]
                     ]
                 }
