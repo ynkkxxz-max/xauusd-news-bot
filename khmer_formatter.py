@@ -222,11 +222,7 @@ class KhmerFormatter:
     def format_breaking_event_alert(news_item: dict, analysis: dict) -> str:
         """Formats breaking news / major geopolitical or unexpected central bank event alert."""
         source_name = (news_item.get("source") or "ForexLive News").strip()
-        article_url = (news_item.get("link") or news_item.get("url") or "").strip()
-        if article_url:
-            source_line = f'🔗 <i>ប្រភពព័ត៌មាន: <a href="{article_url}">{source_name}</a> (ចុចដើម្បីអានបន្ថែម)</i>'
-        else:
-            source_line = f'🔗 <i>ប្រភពព័ត៌មាន: {source_name}</i>'
+        source_line = f'🔗 <i>ប្រភពព័ត៌មាន: {source_name}</i>'
 
         # Extract comprehensive narrative
         key_event = ""
