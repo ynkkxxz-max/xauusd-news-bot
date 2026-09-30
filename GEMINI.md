@@ -193,6 +193,27 @@ This repository is governed by the 5 Golden Principles established by the system
 - **ការដោះស្រាយ Client-Side Cache របស់ Telegram**:
   - កម្មវិធី Telegram លើទូរស័ព្ទដៃចងចាំ Reply Keyboard តាម Local Cache។ នៅពេលមានការផ្លាស់ប្តូររូបរាង Keyboard ត្រូវផ្ញើសារថ្មីមួយដែលមាន Markup ថ្មីទៅកាន់ Chat (ឬឱ្យអ្នកប្រើប្រាស់វាយ `/start` ឬ `Price`) ដើម្បីឱ្យ Telegram Client ជម្រះប៊ូតុងចាស់ចេញភ្លាមៗ។
 
+### 20. 🎯 ស្តង់ដារប៊ូតុង Signal Action Button, ក្រឡា ២x២ និង TAKE PROFIT 3 (Mini App Signal Card & Action Button Standards)
+- **ប៊ូតុង Action Button ក្នុងស្ថានភាព Waiting / Closed (Strict Prominent `🔒 CLOSED` Button)**:
+  - ក្នុងអំឡុងពេលរង់ចាំ Signal ថ្មី ពេលហួសម៉ោង (ក្រៅពី 7:00 ព្រឹក - 11:00 យប់) ឬនៅពេល Safety Index មិនទាន់គ្រប់ ៧០% ប៊ូតុងត្រូវបង្ហាញត្រឹមតែ **`🔒 CLOSED`** តែមួយគត់ យ៉ាងសាមញ្ញ ស្រស់ស្អាត ចំកណ្តាលប៊ូតុង ជាមួយពុម្ពអក្សរ Orbitron Bold ពណ៌មាស Gold (letter-spacing: 2px)។
+  - **ហាមដាច់ខាតកុំប្រើអក្សរវែងអន្លាយ** ដូចជា `មិនអាចប្រើប្រាស់ SIGNAL នេះបានទេ (រង់ចាំ SIGNAL ថ្មី)` ដែលនាំឱ្យធ្លាក់ជា ២ ជួរ ឬមាន Icon សោរជាន់គ្នាពីរ `🔒 🔒` ឬមាន tag តូចៗនៅកៀនប៊ូតុងនាំឱ្យចង្អៀត។
+  - នៅពេល AI ផ្ទៀងផ្ទាត់គ្រប់លក្ខខណ្ឌត្រឹមត្រូវ (Safety Index >= 70% ដល់តំបន់ OTE) ទើបប៊ូតុងប្រែជាពណ៌បៃតង **`🟢 អាចប្រើប្រាស់ SIGNAL នេះបាន`** (Ready/Active)។
+- **ការរៀបចំក្រឡាប្រអប់ការពារ និងប្រាក់ចំណេញ ២x២ (2x2 Balanced Grid Layout & Full Names)**:
+  - ប្រអប់ទាំង ៤ ត្រូវរៀបជាក្រឡា ២x២ ស្មើគ្នាឥតខ្ចោះ:
+    - ជួរលើ: `STOP LOSS` ជាប់គ្នាជាមួយ `TAKE PROFIT 1`
+    - ជួរក្រោម: `TAKE PROFIT 2` ជាប់គ្នាជាមួយ `TAKE PROFIT 3`
+  - ត្រូវប្រើឈ្មោះពេញលេញ (Full Names) ទាំងអស់: `STOP LOSS`, `TAKE PROFIT 1`, `TAKE PROFIT 2`, `TAKE PROFIT 3` (ហាមប្រើពាក្យកាត់ដូចជា SL ឬ TP1 ឡើយ)។
+- **ភាពត្រឹមត្រូវដាច់ខាតនៃតម្លៃ TAKE PROFIT 3 និង STOP LOSS (Strict Directional Sanitization)**:
+  - សម្រាប់ **SELL**:
+    - `SL` ត្រូវតែនៅ **លើ Entry ($8 - $10, max $12)** ជានិច្ច (`SL = EntryHigh + 8~10 pts`, max 12 pts)។
+    - `TP1 < EntryLow`, `TP2 < TP1`, `TP3 < TP2` ជានិច្ច (`TP3 = EntryLow - 37.0` ឬ 1:3.8R)។ ហាមដាច់ខាតមិនឱ្យ TP3 ធំជាង Entry ឬធំជាង TP2 ឡើយ។
+  - សម្រាប់ **BUY**:
+    - `SL` ត្រូវតែនៅ **ក្រោម Entry ($8 - $10, max $12)** ជានិច្ច (`SL = EntryLow - 8~10 pts`, max 12 pts)។
+    - `TP1 > EntryHigh`, `TP2 > TP1`, `TP3 > TP2` ជានិច្ច (`TP3 = EntryHigh + 37.0` ឬ 1:3.8R)។ ហាមដាច់ខាតមិនឱ្យ TP3 តូចជាង Entry ឬតូចជាង TP2 ឡើយ។
+- **ការកែប្រែកូដដោយសុវត្ថិភាពខ្ពស់ ជៀសវាង Blank Screen (Zero Corrupted Script Replacement Policy)**:
+  - នៅពេលធ្វើការកែសម្រួល `index.html` ត្រូវប្រើប្រាស់ Exact String Replacement ដោយប្រុងប្រយ័ត្នបំផុត ហាមប្រើ Regex ធំៗ `[\s\S]*?` ដែលអាចស៊ីរំលោភកាត់បាត់ JavaScript នាំឱ្យ Mini App គាំងចេញផ្ទាំងខ្មៅ (Blank Grid Screen) ជាដាច់ខាត។
+  - ត្រូវផ្ទៀងផ្ទាត់ និង Compile មុនពេល Push ទៅ GitHub ជានិច្ច។
+
 
 
 
