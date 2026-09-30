@@ -40,15 +40,21 @@ class TelegramNotifier:
                 if "can't parse entities" in desc or "entity" in desc:
                     logger.info("[TelegramNotifier] Retrying message with sanitized HTML tags...")
                     import re
+                    import html
+                    # Normalize anchor tags to only keep href (strip target="_blank" and other unsupported attributes)
+                    clean_text = re.sub(r'<a\s+[^>]*href=["\']([^"\']+)["\'][^>]*>', r'<a href="\1">', text, flags=re.IGNORECASE)
                     # Strip all tags except supported Telegram tags
-                    clean_text = re.sub(r'<(?!(?:b|strong|i|em|u|ins|s|strike|del|a|code|pre|blockquote)\b)[^>]+>', '', text)
+                    clean_text = re.sub(r'<(?!(?:b|strong|i|em|u|ins|s|strike|del|a|code|pre|blockquote)\b)[^>]+>', '', clean_text)
                     clean_text = re.sub(r'</(?!(?:b|strong|i|em|u|ins|s|strike|del|a|code|pre|blockquote)\b)[^>]+>', '', clean_text)
                     payload["text"] = clean_text
                     retry_resp = requests.post(url, json=payload, timeout=15)
                     data = retry_resp.json()
                     if not data.get("ok"):
-                        # Ultimate fallback: Plain text without parse_mode
+                        # Ultimate fallback: Plain text without parse_mode (strip ALL HTML tags so raw tags never show)
+                        logger.warning("[TelegramNotifier] HTML retry failed, falling back to pure plain text.")
                         payload.pop("parse_mode", None)
+                        pure_text = re.sub(r'<[^>]+>', '', text)
+                        payload["text"] = html.unescape(pure_text).strip()
                         plain_resp = requests.post(url, json=payload, timeout=15)
                         data = plain_resp.json()
 
