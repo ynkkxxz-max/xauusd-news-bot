@@ -1416,22 +1416,101 @@
     }
 
     .reason-box {
-      background: rgba(255, 255, 255, 0.02);
-      border-radius: 10px;
-      padding: 12px;
-      margin-top: 10px;
-      font-size: 12px;
-      line-height: 1.6;
-      color: #D1D5DB;
+      background: linear-gradient(135deg, rgba(8, 16, 32, 0.95) 0%, rgba(5, 10, 22, 0.98) 100%);
+      border: 1px solid rgba(0, 240, 255, 0.28);
+      border-left: 3.5px solid #00F0FF;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-top: 8px;
+      font-size: 13px;
+      line-height: 1.75;
+      color: #F8FAFC;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), inset 0 0 16px rgba(0, 240, 255, 0.08);
+      text-shadow: 0 0 6px rgba(255, 255, 255, 0.15);
+      transition: all 0.3s ease;
+    }
+
+    .reason-box.warning-box {
+      border: 1px solid rgba(255, 51, 102, 0.3);
+      border-left: 3.5px solid #FF3366;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), inset 0 0 16px rgba(255, 51, 102, 0.08);
+    }
+
+    .reason-box .expl-item {
+      display: block;
+      position: relative;
+      padding-left: 16px;
+      margin-bottom: 10px;
+      font-size: 13px;
+      line-height: 1.75;
+      text-align: left;
+    }
+
+    .reason-box .expl-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .reason-box .expl-dot {
+      position: absolute;
+      left: 0;
+      top: -1px;
+      color: #00F0FF;
+      font-size: 16px;
+      text-shadow: 0 0 8px #00F0FF;
+      user-select: none;
+    }
+
+    .reason-box.warning-box .expl-dot {
+      color: #FF3366;
+      text-shadow: 0 0 8px #FF3366;
+    }
+
+    .reason-box .expl-tag {
+      font-size: 12.5px;
+      font-weight: 800;
+      color: #00F0FF;
+      text-shadow: 0 0 8px rgba(0, 240, 255, 0.65);
+      letter-spacing: 0.3px;
+      margin-right: 6px;
+      display: inline;
+    }
+
+    .reason-box.warning-box .expl-tag {
+      color: #FF3366;
+      text-shadow: 0 0 8px rgba(255, 51, 102, 0.65);
+    }
+
+    .reason-box .expl-text {
+      color: #F8FAFC;
+      font-size: 13px;
+      letter-spacing: 0.15px;
+      text-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+      font-family: 'Kantumruy Pro', sans-serif;
+      display: inline;
+    }
+
+    .reason-box .expl-highlight {
+      color: #FFD700;
+      font-weight: 700;
+      text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
     }
 
     .reason-title {
-      font-weight: 700;
-      color: #FFF;
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #00F0FF;
+      text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
       margin-bottom: 6px;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 7px;
+      letter-spacing: 0.3px;
+    }
+
+    .reason-title.warning-title {
+      color: #FF3366;
+      text-shadow: 0 0 10px rgba(255, 51, 102, 0.6);
+      margin-top: 14px;
     }
 
     /* ========================================= */
@@ -2290,16 +2369,19 @@
     }
 
     .session-alert-box {
-      background: rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 10px;
-      padding: 8px 10px;
+      background: linear-gradient(135deg, rgba(8, 16, 32, 0.95) 0%, rgba(5, 10, 22, 0.98) 100%);
+      border: 1px solid rgba(0, 240, 255, 0.28);
+      border-left: 3.5px solid #00F0FF;
+      border-radius: 12px;
+      padding: 10px 14px;
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 11px;
-      color: var(--text-muted);
-      line-height: 1.4;
+      gap: 10px;
+      font-size: 12.5px;
+      color: #F8FAFC;
+      line-height: 1.6;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(0, 240, 255, 0.06);
+      text-shadow: 0 0 6px rgba(255, 255, 255, 0.15);
     }
 
     /* Cyber Futuristic Action Buttons & HUD Elements */
@@ -3282,17 +3364,43 @@
 
     <!-- Dual Reasoning -->
     <div class="smc-card">
-      <div class="reason-title">ហេតុផលច្បាស់លាស់ដែលគួរជួញដូរ៖</div>
+      <div class="reason-title">
+        <span class="cyber-badge-dot" style="background: #00F0FF; color: #00F0FF;"></span>
+        <span>ហេតុផលច្បាស់លាស់ដែលគួរជួញដូរ៖</span>
+      </div>
       <div class="reason-box" id="smcWhyTrade">
-        • តម្លៃស្ថិតនៅក្រោម Pivot Point បញ្ជាក់ពីសម្ពាធលក់វាយសម្រុក (Bearish Structure)។<br>
-        • Order Book បង្ហាញជញ្ជាំង Asks រារាំងក្រាស់ក្រែលនៅតំបន់ Premium Zone មិនឱ្យតម្លៃឡើងងាយៗឡើយ។<br>
-        • ទីផ្សារកំពុងស្វែងរក Sell-Side Liquidity (SSL) នៅតំបន់ខាងក្រោម។
+        <div class="expl-item">
+          <span class="expl-dot">•</span>
+          <span class="expl-tag">Golden Ratio OTE (Fib 61.8% - 78.6%):</span>
+          <span class="expl-text">តម្លៃបាន Retrace មកដល់ចំណុចមាស <span class="expl-highlight">$4,172.05 - $4,177.15</span> ដែលជាតំបន់ទិញថោកបំផុតរបស់ស្ថាប័នធំៗ។</span>
+        </div>
+        <div class="expl-item">
+          <span class="expl-dot">•</span>
+          <span class="expl-tag">FVG & Order Flow Confluence:</span>
+          <span class="expl-text">ចន្លោះ Imbalance ត្រូវបាន Mitigated គាំទ្រដោយកម្លាំងទិញត្រឡប់មកវិញ Win Rate <span class="expl-highlight">92%</span> (Safety Index: <span class="expl-highlight">80%</span>)។</span>
+        </div>
+        <div class="expl-item">
+          <span class="expl-dot">•</span>
+          <span class="expl-tag">Liquidity Sweep Target:</span>
+          <span class="expl-text">ស្ថាប័នធំៗរៀបចំរុញតម្លៃឡើងទៅបោសសម្អាត Buy-Side Liquidity (BSL) នៅ TP1: <span class="expl-highlight">$4,189.90</span> និង TP2: <span class="expl-highlight">$4,198.40</span>។</span>
+        </div>
       </div>
 
-      <div class="reason-title" style="margin-top: 12px; color: var(--bear);">ហេតុផលដាច់ខាតដែលមិនគួរផ្ទុយ៖</div>
-      <div class="reason-box" style="border-left: 2px solid var(--bear);" id="smcWhyNot">
-        • ការចូល Buy នៅចំណុចនេះមានហានិភ័យខ្ពស់ខ្លាំង ដោយសារគ្មានទម្រង់ Bottom Reversal ច្បាស់លាស់។<br>
-        • សម្ពាធលក់កំពុងគ្របដណ្តប់ ការ Buy អាចប្រឈមនឹងការទម្លុះ Support និងជាប់អន្ទាក់ស្ថាប័នធំៗ!
+      <div class="reason-title warning-title">
+        <span class="cyber-badge-dot" style="background: #FF3366; color: #FF3366;"></span>
+        <span>ហេតុផលដាច់ខាតដែលមិនគួរផ្ទុយ៖</span>
+      </div>
+      <div class="reason-box warning-box" id="smcWhyNot">
+        <div class="expl-item">
+          <span class="expl-dot">•</span>
+          <span class="expl-tag">ហាម Sell ដាច់ខាត:</span>
+          <span class="expl-text">ចរន្តសាច់ប្រាក់ធំស្ថិតក្នុង Bullish Expansion ការចូល Sell គឺដើរបញ្ច្រាសរថភ្លើងស្ថាប័ន!</span>
+        </div>
+        <div class="expl-item">
+          <span class="expl-dot">•</span>
+          <span class="expl-tag">កុំដេញទិញនៅកំពូល:</span>
+          <span class="expl-text">ត្រូវរង់ចាំឱ្យតម្លៃចុះដល់ OTE 0.618 (<span class="expl-highlight">$4,172.05-$4,177.15</span>) សិនទើបមានសុវត្ថិភាពខ្ពស់។</span>
+        </div>
       </div>
       <!-- 🦆 Smiling Lucky Mascot (No glasses, friendly smile) -->
       <div class="mascot-peeking" onclick="interactMascot()" title="ចុចដើម្បីទទួលពរ!">
@@ -5583,15 +5691,35 @@
 
         if (whyTradeEl) {
           whyTradeEl.innerHTML = `
-            • <b>Golden Ratio OTE (Fibonacci 61.8% - 78.6%):</b> តម្លៃបាន Retrace មកដល់ចំណុចមាស <b>$${entryLow} - $${entryHigh}</b> ដែលជាតំបន់ទិញថោកបំផុតរបស់ស្ថាប័នធំៗ។<br>
-            • <b>FVG & Order Flow Confluence:</b> ចន្លោះ Imbalance ត្រូវបាន Mitigated គាំទ្រដោយកម្លាំងទិញត្រឡប់មកវិញ Win Rate <b>${winRate}%</b> (Safety Index: <b>${matrixScore}%</b>)។<br>
-            • ស្ថាប័នធំៗរៀបចំរុញតម្លៃឡើងទៅបោសសម្អាត Buy-Side Liquidity (BSL) នៅ TP1: <b>$${tp1}</b> និង TP2: <b>$${tp2}</b>។
+            <div class="expl-item">
+              <span class="expl-dot">•</span>
+              <span class="expl-tag">Golden Ratio OTE (Fib 61.8% - 78.6%):</span>
+              <span class="expl-text">តម្លៃបាន Retrace មកដល់ចំណុចមាស <span class="expl-highlight">$${entryLow} - $${entryHigh}</span> ដែលជាតំបន់ទិញថោកបំផុតរបស់ស្ថាប័នធំៗ។</span>
+            </div>
+            <div class="expl-item">
+              <span class="expl-dot">•</span>
+              <span class="expl-tag">FVG & Order Flow Confluence:</span>
+              <span class="expl-text">ចន្លោះ Imbalance ត្រូវបាន Mitigated គាំទ្រដោយកម្លាំងទិញត្រឡប់មកវិញ Win Rate <span class="expl-highlight">${winRate}%</span> (Safety Index: <span class="expl-highlight">${matrixScore}%</span>)។</span>
+            </div>
+            <div class="expl-item">
+              <span class="expl-dot">•</span>
+              <span class="expl-tag">Liquidity Sweep Target:</span>
+              <span class="expl-text">ស្ថាប័នធំៗរៀបចំរុញតម្លៃឡើងទៅបោសសម្អាត Buy-Side Liquidity (BSL) នៅ TP1: <span class="expl-highlight">$${tp1}</span> និង TP2: <span class="expl-highlight">$${tp2}</span>។</span>
+            </div>
           `;
         }
         if (whyNotEl) {
           whyNotEl.innerHTML = `
-            • <b>ហាម Sell ដាច់ខាត៖</b> ចរន្តសាច់ប្រាក់ធំស្ថិតក្នុង Bullish Expansion ការចូល Sell គឺដើរបញ្ច្រាសរថភ្លើងស្ថាប័ន!<br>
-            • កុំដេញទិញនៅកំពូល ត្រូវរង់ចាំឱ្យតម្លៃចុះដល់ OTE 0.618 ($${entryLow}-$${entryHigh}) សិនទើបមានសុវត្ថិភាពខ្ពស់។
+            <div class="expl-item">
+              <span class="expl-dot">•</span>
+              <span class="expl-tag">ហាម Sell ដាច់ខាត:</span>
+              <span class="expl-text">ចរន្តសាច់ប្រាក់ធំស្ថិតក្នុង Bullish Expansion ការចូល Sell គឺដើរបញ្ច្រាសរថភ្លើងស្ថាប័ន!</span>
+            </div>
+            <div class="expl-item">
+              <span class="expl-dot">•</span>
+              <span class="expl-tag">កុំដេញទិញនៅកំពូល:</span>
+              <span class="expl-text">ត្រូវរង់ចាំឱ្យតម្លៃចុះដល់ OTE 0.618 (<span class="expl-highlight">$${entryLow}-$${entryHigh}</span>) សិនទើបមានសុវត្ថិភាពខ្ពស់។</span>
+            </div>
           `;
         }
 
@@ -5828,15 +5956,35 @@
 
         if (whyTradeEl) {
           whyTradeEl.innerHTML = `
-            • <b>Golden Ratio OTE (Fibonacci 61.8% - 78.6%):</b> តម្លៃបានលោតឡើង (Bounce) ចូលតំបន់ Premium <b>$${entryLow} - $${entryHigh}</b> ផ្តល់ឱកាសលក់បានថ្លៃខ្ពស់បំផុត។<br>
-            • <b>Bearish FVG & Order Flow:</b> ចន្លោះខ្វះតុល្យភាពផ្គត់ផ្គង់ត្រូវបានបំពេញរួចរាល់ គាំទ្រសម្ពាធលក់ធ្លាក់ចុះ Win Rate <b>${winRate}%</b> (Safety Index: <b>${matrixScore}%</b>)។<br>
-            • គោលដៅស្ថាប័នធំៗគឺទម្លាក់តម្លៃទៅស្រូបយក Sell-Side Liquidity (SSL) នៅ TP1: <b>$${tp1}</b> និង TP2: <b>$${tp2}</b>។
+            <div class="expl-item">
+              <span class="expl-dot">•</span>
+              <span class="expl-tag">Golden Ratio OTE (Fib 61.8% - 78.6%):</span>
+              <span class="expl-text">តម្លៃបានលោតឡើង (Bounce) ចូលតំបន់ Premium <span class="expl-highlight">$${entryLow} - $${entryHigh}</span> ផ្តល់ឱកាសលក់បានថ្លៃខ្ពស់បំផុត។</span>
+            </div>
+            <div class="expl-item">
+              <span class="expl-dot">•</span>
+              <span class="expl-tag">Bearish FVG & Order Flow:</span>
+              <span class="expl-text">ចន្លោះខ្វះតុល្យភាពផ្គត់ផ្គង់ត្រូវបានបំពេញរួចរាល់ គាំទ្រសម្ពាធលក់ធ្លាក់ចុះ Win Rate <span class="expl-highlight">${winRate}%</span> (Safety Index: <span class="expl-highlight">${matrixScore}%</span>)។</span>
+            </div>
+            <div class="expl-item">
+              <span class="expl-dot">•</span>
+              <span class="expl-tag">Liquidity Sweep Target:</span>
+              <span class="expl-text">គោលដៅស្ថាប័នធំៗគឺទម្លាក់តម្លៃទៅស្រូបយក Sell-Side Liquidity (SSL) នៅ TP1: <span class="expl-highlight">$${tp1}</span> និង TP2: <span class="expl-highlight">$${tp2}</span>។</span>
+            </div>
           `;
         }
         if (whyNotEl) {
           whyNotEl.innerHTML = `
-            • <b>ហាមដាច់ខាតកុំ Buy ចាប់កាំបិតកំពុងធ្លាក់៖</b> រចនាសម្ព័ន្ធទីផ្សារកំពុងស្ថិតក្នុង Bearish CHoCH ការចូល Buy ប្រឈមនឹង SL ភ្លាមៗ!<br>
-            • កុំ Sell ដេញតាមបាត ត្រូវរង់ចាំតម្លៃទាញឡើងដល់ OTE 0.618 ($${entryLow}-$${entryHigh}) សិនទើបចូល Sell ដោយសុវត្ថិភាព។
+            <div class="expl-item">
+              <span class="expl-dot">•</span>
+              <span class="expl-tag">ហាមដាច់ខាតកុំ Buy ចាប់កាំបិតកំពុងធ្លាក់:</span>
+              <span class="expl-text">រចនាសម្ព័ន្ធទីផ្សារកំពុងស្ថិតក្នុង Bearish CHoCH ការចូល Buy ប្រឈមនឹង SL ភ្លាមៗ!</span>
+            </div>
+            <div class="expl-item">
+              <span class="expl-dot">•</span>
+              <span class="expl-tag">កុំ Sell ដេញតាមបាត:</span>
+              <span class="expl-text">ត្រូវរង់ចាំតម្លៃទាញឡើងដល់ OTE 0.618 (<span class="expl-highlight">$${entryLow}-$${entryHigh}</span>) សិនទើបចូល Sell ដោយសុវត្ថិភាព។</span>
+            </div>
           `;
         }
 
@@ -6244,7 +6392,7 @@
           reply_markup: {
             inline_keyboard: [
               [
-                { text: "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", url: "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=129&tab=smc" }
+                { text: "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", url: "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=130&tab=smc" }
               ]
             ]
           }
