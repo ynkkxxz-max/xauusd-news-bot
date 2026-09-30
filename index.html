@@ -3053,25 +3053,30 @@
       position: fixed;
       top: 0;
       left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(4, 8, 16, 0.94);
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(4, 8, 16, 0.96);
       backdrop-filter: blur(25px);
       -webkit-backdrop-filter: blur(25px);
       z-index: 9999999;
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 20px;
+      padding: 14px;
+      overflow-y: auto;
+      box-sizing: border-box;
     }
 
     .channel-gate-card {
+      margin: auto;
       width: 100%;
-      max-width: 420px;
+      max-width: 380px;
       background: linear-gradient(145deg, rgba(16, 24, 40, 0.98) 0%, rgba(10, 15, 26, 0.99) 100%);
       border: 1px solid rgba(255, 215, 0, 0.45);
-      border-radius: 22px;
-      padding: 30px 22px;
+      border-radius: 20px;
+      padding: 20px 18px;
       text-align: center;
       box-shadow: 0 16px 48px rgba(0, 0, 0, 0.95), 0 0 30px rgba(255, 215, 0, 0.18);
       animation: gateCardPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -3083,9 +3088,9 @@
     }
 
     .gate-lock-glow {
-      width: 68px;
-      height: 68px;
-      margin: 0 auto 16px auto;
+      width: 50px;
+      height: 50px;
+      margin: 0 auto 10px auto;
       border-radius: 50%;
       background: rgba(255, 51, 102, 0.15);
       border: 1px solid rgba(255, 51, 102, 0.45);
@@ -3102,37 +3107,37 @@
     }
 
     .gate-lock-icon {
-      font-size: 32px;
+      font-size: 24px;
     }
 
     .gate-title {
       font-family: 'Orbitron', sans-serif;
-      font-size: 19px;
+      font-size: 17px;
       font-weight: 900;
       color: #FFF;
       letter-spacing: 1.2px;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
 
     .gate-badge {
       display: inline-block;
       font-family: 'Orbitron', sans-serif;
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 800;
       color: #FFB300;
       background: rgba(255, 179, 0, 0.12);
       border: 1px solid rgba(255, 179, 0, 0.35);
-      padding: 4px 12px;
+      padding: 3px 10px;
       border-radius: 20px;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
       letter-spacing: 0.8px;
     }
 
     .gate-desc {
-      font-size: 13.5px;
+      font-size: 12.5px;
       color: #CBD5E1;
-      line-height: 1.7;
-      margin-bottom: 20px;
+      line-height: 1.55;
+      margin-bottom: 14px;
     }
 
     .gate-channel-box {
@@ -3142,28 +3147,28 @@
       gap: 12px;
       background: rgba(0, 240, 255, 0.06);
       border: 1px solid rgba(0, 240, 255, 0.3);
-      border-radius: 14px;
-      padding: 12px 16px;
+      border-radius: 12px;
+      padding: 9px 14px;
       text-align: center;
-      margin-bottom: 22px;
+      margin-bottom: 14px;
     }
 
     .gate-ch-name {
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 800;
       color: #FFF;
     }
 
     .gate-ch-handle {
       font-family: 'Share Tech Mono', monospace;
-      font-size: 12.5px;
+      font-size: 12px;
       color: #00F0FF;
     }
 
     .gate-actions {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
     }
 
     .gate-btn {
@@ -3171,11 +3176,11 @@
       justify-content: center;
       align-items: center;
       gap: 8px;
-      padding: 14px;
+      padding: 11px 14px;
       border-radius: 12px;
       text-decoration: none;
       font-weight: 800;
-      font-size: 13.5px;
+      font-size: 13px;
       transition: all 0.2s ease;
       cursor: pointer;
     }
@@ -4182,6 +4187,7 @@
       // 1. If running outside of Telegram WebApp (e.g. Chrome, Safari, Edge):
       if (!isTg || !window.Telegram.WebApp.initData) {
         gateModal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
         return;
       }
 
@@ -4201,6 +4207,7 @@
             if (!isMember) {
               // 🚨 User has NOT joined the channel! Trigger Alert & Show Gate Modal!
               gateModal.style.display = 'flex';
+              document.body.style.overflow = 'hidden';
               if (window.Telegram.WebApp.showAlert) {
                 window.Telegram.WebApp.showAlert('⚠️ លោកអ្នកមិនទាន់បាន Join Channel នៅឡើយទេ!\n\nសូមចុច Join Channel @GoldMarketKH8888 ជាមុនសិន ទើបអាចបើកមើល Signal & Mini App បាន!');
               }
@@ -4217,6 +4224,7 @@
 
       // User is verified member
       gateModal.style.display = 'none';
+      document.body.style.overflow = '';
     }
 
     async function recheckMembership() {
@@ -4242,6 +4250,7 @@
             
             if (isMember) {
               if (gateModal) gateModal.style.display = 'none';
+              document.body.style.overflow = '';
               if (window.Telegram.WebApp.showAlert) {
                 window.Telegram.WebApp.showAlert('🎉 ផ្ទៀងផ្ទាត់ជោគជ័យ! សូមស្វាគមន៍មកកាន់ XAUUSD AI SMC Terminal!');
               }
@@ -4260,7 +4269,7 @@
       // Still not a member:
       if (btn) btn.innerText = '🔄 ខ្ញុំបាន Join រួចហើយ (Verify & Open)';
       if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.showAlert) {
-        window.Telegram.WebApp.showAlert('⚠️ លោកអ្នកមិនទាន់បាន Join Channel នៅឡើយទេ! សូមចុចប៊ូតុង [📢 ចូលរួម Telegram Channel] ខាងលើជាមុនសិន។');
+        window.Telegram.WebApp.showAlert('⚠️ លោកអ្នកមិនទាន់បាន Join Channel នៅឡើយទេ! សូមចុចប៊ូតុង [ចូលរួម Telegram Channel] ខាងលើជាមុនសិន។');
       } else {
         alert('⚠️ លោកអ្នកមិនទាន់បាន Join Channel នៅឡើយទេ! សូមចុច Join ជាមុនសិន។');
       }
