@@ -6484,19 +6484,18 @@
         tracker = JSON.parse(localStorage.getItem('ai_daily_signals_info') || '{}');
       } catch(e) { tracker = {}; }
 
-      // Daily limit: 3 to 5 signals per day (Background logic)
+      // Protocol Rule: Strictly 07:00 AM to 11:00 PM (23:00) & Maximum 5 signals per day
+      const utcHours = now.getUTCHours();
+      const khHours = (utcHours + 7) % 24;
+      const isWithinTradingHours = (khHours >= 7 && khHours < 23); // 07:00 AM - 11:00 PM Cambodia Time
+
       if (!tracker || tracker.date !== todayStr) {
-        const utcHours = now.getUTCHours();
-        const khHours = (utcHours + 7) % 24;
-        let initialCount = 1;
-        if (khHours >= 14 && khHours < 19) initialCount = 2;
-        else if (khHours >= 19 || khHours < 2) initialCount = 3;
-        tracker = { date: todayStr, count: initialCount, max: 5 };
+        tracker = { date: todayStr, count: 0, max: 5 };
         localStorage.setItem('ai_daily_signals_info', JSON.stringify(tracker));
       }
 
-      const currentDailyCount = Math.min(Math.max(tracker.count || 2, 1), 5);
-      const maxDaily = tracker.max || 5;
+      const currentDailyCount = Number(tracker.count || 0);
+      const maxDaily = 5;
 
       const btn = document.getElementById('signalActionBtn');
       const icon = document.getElementById('signalActionIcon');
@@ -6753,7 +6752,11 @@
                                   : (!m5Trigger.includes('Bullish') && !m5Trigger.includes('Dip'));
       const isTrapBlocking = (isBuy && isBullTrapNow) || (!isBuy && isBearTrapNow);
 
-      const isTriggerCondition = inZone && isTopTierGrade && isMtfAligned && isM5Confirmed && !isTrapBlocking;
+      // Strict Protocol Compliance:
+      // 1. Trading hours: Strictly 07:00 AM to 11:00 PM (23:00) Cambodia Time (7:00 - 23:00)
+      // 2. Daily limit: Strictly maximum 5 signals per day (Never exceed 5)
+      const isUnderDailyLimit = (currentDailyCount < maxDaily);
+      const isTriggerCondition = isWithinTradingHours && isUnderDailyLimit && inZone && isTopTierGrade && isMtfAligned && isM5Confirmed && !isTrapBlocking;
 
       // Check cooldown from last closed trade (30 seconds before issuing another trade)
       let isCooldown = false;
@@ -6762,7 +6765,7 @@
       }
 
       // If condition is MET and AI has validated -> ISSUE NEW OFFICIAL SIGNAL!
-      if (!isCooldown && isTriggerCondition && currentDailyCount <= maxDaily) {
+      if (!isCooldown && isTriggerCondition) {
         // Enforce direction-consistent SL strictly 8 - 10 - 12 points
         let validSL = Number(sl);
         const eL = Number(entryLow);
@@ -6794,6 +6797,10 @@
         localStorage.setItem('ai_official_signal', JSON.stringify(newSig));
         localStorage.setItem('ai_locked_active_signal', JSON.stringify(newSig));
         localStorage.setItem('ai_confirmed_display_signal', JSON.stringify(newSig));
+
+        // Increment daily count (Strictly capped at max 5 signals)
+        tracker.count = currentDailyCount + 1;
+        localStorage.setItem('ai_daily_signals_info', JSON.stringify(tracker));
 
         playCyberSound('sniper');
         if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
@@ -6829,7 +6836,13 @@
         icon.innerText = '';
         icon.style.display = 'none';
       }
-      if (text) text.innerText = 'រង់ចាំ Signal ថ្មី';
+      if (!isWithinTradingHours) {
+        if (text) text.innerText = 'រង់ចាំ SIGNAL ថ្មី (បើក 7:00 ព្រឹក - 11:00 យប់)';
+      } else if (currentDailyCount >= maxDaily) {
+        if (text) text.innerText = 'គ្រប់ចំនួន SIGNAL ថ្ងៃនេះហើយ (5/5)';
+      } else {
+        if (text) text.innerText = 'រង់ចាំ SIGNAL ថ្មី';
+      }
       btn.dataset.status = 'waiting';
       const actionTag = document.getElementById('signalActionTag');
       if (actionTag) { actionTag.innerText = 'STANDBY'; actionTag.className = 'cyber-btn-tag'; }
