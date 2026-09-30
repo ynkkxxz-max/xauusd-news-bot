@@ -243,7 +243,10 @@ class KhmerFormatter:
 
         if not key_event:
             desc = (news_item.get("description") or news_item.get("title") or "").strip()
-            key_event = desc
+        # Strip any unsupported HTML tags from RSS descriptions (e.g. <font>, <div>, <p>, etc.)
+        import re
+        key_event = re.sub(r'<(?!(?:b|strong|i|em|u|ins|s|strike|del|a|code|pre|blockquote)\b)[^>]+>', '', key_event)
+        key_event = re.sub(r'</(?!(?:b|strong|i|em|u|ins|s|strike|del|a|code|pre|blockquote)\b)[^>]+>', '', key_event)
 
         # Sanitize Khmer spelling to guarantee 100% accurate spelling (Hormuz -> ហ័រមូស, etc.)
         key_event = sanitize_khmer_spelling(key_event)
