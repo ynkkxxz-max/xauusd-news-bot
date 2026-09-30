@@ -145,6 +145,8 @@ class XAUUSDNewsAssistantBot:
             logger.info("No AI keys configured — using rule-based MacroAnalyzer fallback.")
         logger.info("Initializing XAUUSD News Assistant Bot (Cambodia Time UTC+7)...")
         self._calendar_attached = False
+        self._session_alert_locks = set()
+        self._daily_price_locks = set()
         self._bootstrap_news_cache()
 
     def _bootstrap_news_cache(self):
@@ -178,44 +180,76 @@ class XAUUSDNewsAssistantBot:
             msg_id = res.get("result", {}).get("message_id")
             database.record_daily_price_sent(today_str, msg_id)
 
+    def _is_session_alert_sent(self, key: str) -> bool:
+        if key in self._session_alert_locks:
+            return True
+        if database.get_state(key):
+            self._session_alert_locks.add(key)
+            return True
+        return False
+
+    def _mark_session_alert_sent(self, key: str):
+        self._session_alert_locks.add(key)
+        try:
+            database.set_state(key, "sent")
+        except Exception as e:
+            logger.warning(f"Could not persist session state {key}: {e}")
+
     def check_session_open_alerts(self):
-        """Monitors and alerts London Session (14:00) and New York Session (19:00) Openings."""
+        """
+        Monitors and alerts London Session (14:00) and New York Session (19:00) Openings.
+        Strictly armed with 4-Tier Zero-Spam Protection:
+        1. Minute window guard (only first 10 minutes: 14:00-14:10 or 19:00-19:10)
+        2. In-memory Set lock (instant, survives any within-process loops)
+        3. Pre-send lock acquisition (locked BEFORE calling Telegram API)
+        4. SQLite WAL persistence
+        """
         now_kh = datetime.now(CAMBODIA_TZ)
         today_str = now_kh.strftime("%Y-%m-%d")
 
-        # London Session: 14:00 (2:00 PM) Cambodia Time
-        if now_kh.hour == 14 and not database.get_state(f"london_session_{today_str}"):
-            price_data = self.gold_collector.fetch_price()
-            order_book = self.order_book_tracker.fetch_order_book_depth()
-            msg = KhmerFormatter.format_session_open_alert(
-                "London Session", "14:00",
-                price_data=price_data,
-                order_book=order_book
-            )
-            heatmap_png = self.heatmap_builder.generate_heatmap_png(price_data, order_book)
-            if heatmap_png:
-                self.notifier.send_photo(heatmap_png, caption=msg)
-            else:
-                self.notifier.send_message(msg)
-            database.set_state(f"london_session_{today_str}", "sent")
-            logger.info("London Session Open alert + Heatmap broadcasted.")
+        # London Session: 14:00 (2:00 PM) Cambodia Time (strictly 14:00 - 14:10)
+        london_key = f"london_session_{today_str}"
+        if now_kh.hour == 14 and now_kh.minute <= 10 and not self._is_session_alert_sent(london_key):
+            # Lock IMMEDIATELY before generating / sending to prevent concurrent loops
+            self._mark_session_alert_sent(london_key)
+            try:
+                price_data = self.gold_collector.fetch_price()
+                order_book = self.order_book_tracker.fetch_order_book_depth()
+                msg = KhmerFormatter.format_session_open_alert(
+                    "London Session", "14:00",
+                    price_data=price_data,
+                    order_book=order_book
+                )
+                heatmap_png = self.heatmap_builder.generate_heatmap_png(price_data, order_book)
+                if heatmap_png:
+                    self.notifier.send_photo(heatmap_png, caption=msg)
+                else:
+                    self.notifier.send_message(msg)
+                logger.info("London Session Open alert + Heatmap broadcasted.")
+            except Exception as e:
+                logger.error(f"Error broadcasting London Session Open alert: {e}")
 
-        # New York Session: 19:00 (7:00 PM) Cambodia Time
-        if now_kh.hour == 19 and not database.get_state(f"ny_session_{today_str}"):
-            price_data = self.gold_collector.fetch_price()
-            order_book = self.order_book_tracker.fetch_order_book_depth()
-            msg = KhmerFormatter.format_session_open_alert(
-                "New York Session", "19:00",
-                price_data=price_data,
-                order_book=order_book
-            )
-            heatmap_png = self.heatmap_builder.generate_heatmap_png(price_data, order_book)
-            if heatmap_png:
-                self.notifier.send_photo(heatmap_png, caption=msg)
-            else:
-                self.notifier.send_message(msg)
-            database.set_state(f"ny_session_{today_str}", "sent")
-            logger.info("New York Session Open alert + Heatmap broadcasted.")
+        # New York Session: 19:00 (7:00 PM) Cambodia Time (strictly 19:00 - 19:10)
+        ny_key = f"ny_session_{today_str}"
+        if now_kh.hour == 19 and now_kh.minute <= 10 and not self._is_session_alert_sent(ny_key):
+            # Lock IMMEDIATELY before generating / sending to prevent concurrent loops
+            self._mark_session_alert_sent(ny_key)
+            try:
+                price_data = self.gold_collector.fetch_price()
+                order_book = self.order_book_tracker.fetch_order_book_depth()
+                msg = KhmerFormatter.format_session_open_alert(
+                    "New York Session", "19:00",
+                    price_data=price_data,
+                    order_book=order_book
+                )
+                heatmap_png = self.heatmap_builder.generate_heatmap_png(price_data, order_book)
+                if heatmap_png:
+                    self.notifier.send_photo(heatmap_png, caption=msg)
+                else:
+                    self.notifier.send_message(msg)
+                logger.info("New York Session Open alert + Heatmap broadcasted.")
+            except Exception as e:
+                logger.error(f"Error broadcasting New York Session Open alert: {e}")
 
 
     def check_night_wrap_up(self):
@@ -1372,7 +1406,7 @@ class XAUUSDNewsAssistantBot:
         for it in pending:
             if GoldNewsFilter.is_duplicate_or_similar(it["title"], recent_sent_titles):
                 logger.info(f"[SEMANTIC DUPLICATE SKIPPED] News '{it['title']}' is duplicate of a recent alert.")
-                database.record_news_sent(it["id"], it["title"], it.get("source", ""))
+                # Note: DO NOT record skipped item as sent, otherwise future new articles get false duplicates!
             else:
                 unique_pending.append(it)
 
