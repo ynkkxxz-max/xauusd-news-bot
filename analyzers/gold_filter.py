@@ -187,8 +187,9 @@ class GoldNewsFilter:
             union = new_tokens.union(past_tokens)
             similarity = len(intersection) / len(union) if union else 0.0
 
-            # If 35%+ of core words match, or 3+ critical subject entities overlap
-            if similarity >= threshold or len(intersection) >= 3:
+            # Strict deduplication: Only true duplicates with >= 60% token overlap
+            # or when at least 5 meaningful non-generic words match
+            if similarity >= 0.60 or (len(intersection) >= 5 and similarity >= 0.40):
                 return True
 
         return False
