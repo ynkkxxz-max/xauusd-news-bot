@@ -65,7 +65,7 @@
       height: 100vh;
       pointer-events: none;
       z-index: 0;
-      opacity: 0.28; /* Soft, subtle, non-distracting ambient background */
+      opacity: 0.35; /* Crisp, beautifully visible institutional background for all screens */
     }
 
     /* Ambient scanline texture for true Hollywood terminal aesthetic */
@@ -6974,147 +6974,212 @@
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      let width = canvas.width = window.innerWidth;
-      let height = canvas.height = window.innerHeight;
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
 
-      window.addEventListener('resize', () => {
-        width = canvas.width = window.innerWidth;
-        height = canvas.height = window.innerHeight;
-      });
+      // Candle visual layout parameters
+      const candleSpacing = 28; // Optimal distance between candles for all screens
+      const candleWidth = 12;   // Crisp proportional candle width
 
-      // CPI Volatility Sequence matching user drawing precisely (8 explosive swings):
-      // Arrow 1: Push UP from bottom-left
-      // Arrow 2: Drop DOWN (Liquidity sweep)
-      // Arrow 3: Surge UP strongly
-      // Arrow 4: Retrace DOWN
-      // Arrow 5: MASSIVE SPIKE UP directly to top header (covering almost full height!)
-      // Arrow 6: VIOLENT CRASH DOWN deep into bottom (Sweeping all longs!)
-      // Arrow 7: EXPLOSIVE V-SHAPED RECOVERY UP to high levels
-      // Arrow 8: FINAL MOON SPIKE UP breaking highest ceiling!
-      // Tightly-spaced CPI sequence extending beyond screen boundaries (14 candles)
-      const cpiSpikes = [
-        { isBull: true,  topY: 0.74, botY: 0.94, wickTop: 0.68, wickBot: 0.98 }, // 1. Surge up from bottom
-        { isBull: false, topY: 0.76, botY: 0.92, wickTop: 0.72, wickBot: 0.96 }, // 2. Pullback down
-        { isBull: true,  topY: 0.60, botY: 0.84, wickTop: 0.54, wickBot: 0.88 }, // 3. Push up
-        { isBull: false, topY: 0.64, botY: 0.80, wickTop: 0.58, wickBot: 0.85 }, // 4. Dip down
-        { isBull: true,  topY: 0.44, botY: 0.70, wickTop: 0.38, wickBot: 0.75 }, // 5. Pre-CPI rally
-        { isBull: false, topY: 0.48, botY: 0.66, wickTop: 0.42, wickBot: 0.72 }, // 6. Trap retrace
-        { isBull: true,  topY: 0.06, botY: 0.68, wickTop: 0.02, wickBot: 0.74 }, // 7. 💥 MEGA SPIKE UP (High ceiling)
-        { isBull: false, topY: 0.08, botY: 0.90, wickTop: 0.04, wickBot: 0.96 }, // 8. 🚨 VIOLENT CRASH DOWN (Deep sweep)
-        { isBull: true,  topY: 0.32, botY: 0.84, wickTop: 0.25, wickBot: 0.90 }, // 9. V-Shape Rocket Up
-        { isBull: false, topY: 0.36, botY: 0.55, wickTop: 0.30, wickBot: 0.60 }, // 10. Pause consolidation
-        { isBull: true,  topY: 0.16, botY: 0.46, wickTop: 0.10, wickBot: 0.52 }, // 11. Expansion surge
-        { isBull: false, topY: 0.20, botY: 0.38, wickTop: 0.15, wickBot: 0.44 }, // 12. Retrace
-        { isBull: true,  topY: 0.04, botY: 0.30, wickTop: 0.01, wickBot: 0.35 }, // 13. Moon Breakout to border
-        { isBull: true,  topY: -0.05, botY: 0.18, wickTop: -0.10, wickBot: 0.24 } // 14. 🚀 SHOOT OFF-SCREEN!
-      ];
+      // SMC Market Structure Generator State
+      // 0: Bullish Markup, 1: FVG Pullback, 2: Judas Swing, 3: Bearish Markdown, 4: Accumulation
+      let marketPhase = 0;
+      let phaseStep = 0;
+      let phaseMaxSteps = 12;
+      let currentPriceNorm = 0.55; // 0.0 (top) to 1.0 (bottom) - inverted Y in canvas
 
-      // Tighter spacing (approx 18-20px) to pack candles densely together and run past screen
-      const candleSpacing = Math.max(18, Math.min(24, width / 11));
-      const candleWidth = Math.max(8, candleSpacing * 0.48); // Perfectly proportioned compact candles
-
-      // State for sequential candle formation
-      let activeIndex = 0;       // Which candle is currently printing
-      let formationProgress = 0; // 0.0 to 1.0 (growth of active candle)
-      let growthSpeed = 0.022;   // Energetic CPI news building speed
-
-      const candles = [];
-      for (let i = 0; i < cpiSpikes.length; i++) {
-        const sp = cpiSpikes[i];
-        const open = height * (sp.isBull ? sp.botY : sp.topY);
-        const finalClose = height * (sp.isBull ? sp.topY : sp.botY);
-        const finalHigh = height * sp.wickTop;
-        const finalLow = height * sp.wickBot;
-
-        candles.push({
-          x: (i + 1) * candleSpacing,
-          open,
-          finalClose,
-          finalHigh,
-          finalLow,
-          isBull: sp.isBull,
-          currentClose: open,
-          currentHigh: open,
-          currentLow: open,
-          completed: false
-        });
-      }
-
-      function render() {
-        ctx.clearRect(0, 0, width, height);
-
-        // Advance active candle formation (Sequential growth one by one)
-        if (activeIndex < candles.length) {
-          formationProgress += growthSpeed;
-          const target = candles[activeIndex];
-
-          // Interpolate current candle height from open to finalClose
-          target.currentClose = target.open + (target.finalClose - target.open) * Math.min(1.0, formationProgress);
-          target.currentHigh = target.open + (target.finalHigh - target.open) * Math.min(1.0, formationProgress);
-          target.currentLow = target.open + (target.finalLow - target.open) * Math.min(1.0, formationProgress);
-
-          if (formationProgress >= 1.0) {
-            target.completed = true;
-            target.currentClose = target.finalClose;
-            target.currentHigh = target.finalHigh;
-            target.currentLow = target.finalLow;
-            formationProgress = 0;
-            activeIndex++;
-          }
-        } else {
-          // Once all 10 CPI candles are built, pause 2.5 seconds then reset sequence
-          formationProgress += growthSpeed;
-          if (formationProgress > 2.5) {
-            activeIndex = 0;
-            formationProgress = 0;
-            candles.forEach(c => {
-              c.completed = false;
-              c.currentClose = c.open;
-              c.currentHigh = c.open;
-              c.currentLow = c.open;
-            });
-          }
+      function generateNextCandle(xPos) {
+        phaseStep++;
+        if (phaseStep >= phaseMaxSteps) {
+          phaseStep = 0;
+          // Transition to next realistic SMC market phase
+          const nextPhases = {
+            0: [1, 2],       // Markup -> Pullback or Judas
+            1: [0, 3],       // Pullback -> Markup or Markdown
+            2: [0, 3, 4],    // Judas -> Reversal
+            3: [4, 2],       // Markdown -> Accumulation or Judas Sweep
+            4: [0, 1]        // Accumulation -> Markup Breakout
+          };
+          const choices = nextPhases[marketPhase] || [0, 1, 2, 3, 4];
+          marketPhase = choices[Math.floor(Math.random() * choices.length)];
+          phaseMaxSteps = 6 + Math.floor(Math.random() * 12);
         }
 
+        let deltaY = 0;
+        let isBull = true;
+        let wickTopFactor = 0.02 + Math.random() * 0.03;
+        let wickBotFactor = 0.02 + Math.random() * 0.03;
 
+        // Determine price move based on active market phase
+        if (marketPhase === 0) { // Bullish Markup (Strong upward trend - lower Y)
+          deltaY = -(0.03 + Math.random() * 0.07);
+          isBull = Math.random() > 0.15;
+          wickBotFactor += 0.02; // buying pressure wick
+        } else if (marketPhase === 1) { // FVG Pullback / Retrace (Gentle drop - higher Y)
+          deltaY = (0.015 + Math.random() * 0.04);
+          isBull = Math.random() > 0.70;
+        } else if (marketPhase === 2) { // 💥 Judas Swing / News Spike (Massive volatile candle)
+          const spikeUp = Math.random() > 0.5;
+          deltaY = spikeUp ? -(0.14 + Math.random() * 0.18) : (0.14 + Math.random() * 0.18);
+          isBull = deltaY < 0;
+          wickTopFactor = 0.04 + Math.random() * 0.08;
+          wickBotFactor = 0.04 + Math.random() * 0.08;
+        } else if (marketPhase === 3) { // Bearish Markdown (Sellers in control)
+          deltaY = (0.03 + Math.random() * 0.06);
+          isBull = Math.random() > 0.85;
+          wickTopFactor += 0.02;
+        } else { // 4: Accumulation / Range (Tight sideways chop)
+          deltaY = (Math.random() - 0.5) * 0.03;
+          isBull = deltaY < 0;
+        }
 
-        // Draw only revealed/currently forming candles
-        for (let i = 0; i <= Math.min(activeIndex, candles.length - 1); i++) {
+        // Clamp price within safe vertical boundaries (10% to 90% of screen height)
+        let openNorm = currentPriceNorm;
+        let closeNorm = openNorm + deltaY;
+
+        if (closeNorm < 0.08) {
+          closeNorm = 0.08 + Math.random() * 0.06;
+          isBull = false;
+        } else if (closeNorm > 0.92) {
+          closeNorm = 0.92 - Math.random() * 0.06;
+          isBull = true;
+        }
+
+        currentPriceNorm = closeNorm;
+
+        const highNorm = Math.max(0.02, Math.min(openNorm, closeNorm) - wickTopFactor);
+        const lowNorm = Math.min(0.98, Math.max(openNorm, closeNorm) + wickBotFactor);
+
+        return {
+          x: xPos,
+          openNorm,
+          closeNorm,
+          highNorm,
+          lowNorm,
+          isBull: closeNorm < openNorm
+        };
+      }
+
+      const candles = [];
+
+      function resizeCanvas() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = window.innerWidth;
+        height = window.innerHeight;
+
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        // Populate or expand candle array to guarantee 100% full screen coverage (Endless for 4K / Ultrawide)
+        const targetCandleCount = Math.ceil(width / candleSpacing) + 20;
+
+        if (candles.length === 0) {
+          // Initial population from left edge to beyond right edge
+          let startX = -candleSpacing * 2;
+          for (let i = 0; i < targetCandleCount; i++) {
+            candles.push(generateNextCandle(startX));
+            startX += candleSpacing;
+          }
+        } else {
+          // If resized to wider screen, dynamically generate remaining candles to fill new width immediately
+          let lastX = candles[candles.length - 1].x;
+          while (lastX < width + candleSpacing * 5) {
+            lastX += candleSpacing;
+            candles.push(generateNextCandle(lastX));
+          }
+        }
+      }
+
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+
+      // Continuous Streaming Motion Parameters
+      const scrollSpeed = 0.5; // Smooth cinematic drift (pixels per frame)
+      let tickAnim = 0;
+
+      function render() {
+        if (document.hidden) {
+          requestAnimationFrame(render);
+          return;
+        }
+
+        ctx.clearRect(0, 0, width, height);
+
+        tickAnim += 0.05;
+        const liveTickDelta = Math.sin(tickAnim) * 4;
+
+        // Shift all candles leftward for continuous endless stream
+        for (let i = 0; i < candles.length; i++) {
+          candles[i].x -= scrollSpeed;
+        }
+
+        // Recycle leftmost candle when it rolls off screen
+        while (candles.length > 0 && candles[0].x < -candleSpacing * 3) {
+          candles.shift();
+        }
+
+        // Continuously generate new candles on right edge
+        while (candles.length === 0 || candles[candles.length - 1].x < width + candleSpacing * 4) {
+          const nextX = candles.length > 0 ? candles[candles.length - 1].x + candleSpacing : width;
+          candles.push(generateNextCandle(nextX));
+        }
+
+        // Draw all candlesticks across entire screen width
+        for (let i = 0; i < candles.length; i++) {
           const c = candles[i];
-          const isBull = c.isBull;
+          const isLiveCandle = (i === candles.length - 1);
 
-          const bodyColor = isBull ? 'rgba(0, 230, 118, 0.38)' : 'rgba(255, 75, 75, 0.35)';
-          const wickColor = isBull ? 'rgba(0, 230, 118, 0.50)' : 'rgba(255, 75, 75, 0.48)';
+          let openY = c.openNorm * height;
+          let closeY = c.closeNorm * height;
+          let highY = c.highNorm * height;
+          let lowY = c.lowNorm * height;
 
-          // Subtle ambient glow
-          ctx.shadowBlur = 8;
-          ctx.shadowColor = isBull ? 'rgba(0, 230, 118, 0.35)' : 'rgba(255, 75, 75, 0.3)';
+          // Apply micro-tick to leading live candle
+          if (isLiveCandle) {
+            closeY += liveTickDelta;
+            if (closeY < highY) highY = closeY - 2;
+            if (closeY > lowY) lowY = closeY + 2;
+          }
 
-          // Draw Wick
+          const isBull = closeY <= openY;
+          const bodyTop = Math.min(openY, closeY);
+          const bodyHeight = Math.max(4, Math.abs(closeY - openY));
+
+          // Institutional Colors & Glow
+          const bodyColor = isBull ? 'rgba(0, 230, 118, 0.36)' : 'rgba(255, 51, 102, 0.34)';
+          const wickColor = isBull ? 'rgba(0, 230, 118, 0.55)' : 'rgba(255, 51, 102, 0.52)';
+          const glowColor = isBull ? 'rgba(0, 230, 118, 0.38)' : 'rgba(255, 51, 102, 0.35)';
+
+          // Wick
           ctx.strokeStyle = wickColor;
           ctx.lineWidth = 1.6;
           ctx.beginPath();
-          ctx.moveTo(c.x, c.currentHigh);
-          ctx.lineTo(c.x, c.currentLow);
+          ctx.moveTo(c.x, highY);
+          ctx.lineTo(c.x, lowY);
           ctx.stroke();
 
-          // Draw Giant Candle Body
+          // Candle Body
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = glowColor;
           ctx.fillStyle = bodyColor;
-          const top = Math.min(c.open, c.currentClose);
-          const bodyH = Math.max(5, Math.abs(c.currentClose - c.open));
-
-          // Draw stylish rounded rectangle candle
           ctx.beginPath();
-          ctx.roundRect ? ctx.roundRect(c.x - candleWidth / 2, top, candleWidth, bodyH, 3) : ctx.fillRect(c.x - candleWidth / 2, top, candleWidth, bodyH);
-          ctx.fill();
-
+          if (ctx.roundRect) {
+            ctx.roundRect(c.x - candleWidth / 2, bodyTop, candleWidth, bodyHeight, 3);
+          } else {
+            ctx.fillRect(c.x - candleWidth / 2, bodyTop, candleWidth, bodyHeight);
           }
-        ctx.shadowBlur = 0;
+          ctx.fill();
+        }
 
+        ctx.shadowBlur = 0;
         requestAnimationFrame(render);
       }
 
-      render();
+      requestAnimationFrame(render);
     }
 
     calculate();
