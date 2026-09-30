@@ -661,7 +661,7 @@ class XAUUSDNewsAssistantBot:
                     ]
                 ],
                 "resize_keyboard": True,
-                "persistent": True
+                "is_persistent": True
             }
 
             # 1. Handle Callback Query clicks (Inline Buttons)
