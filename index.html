@@ -3047,8 +3047,190 @@
       background: rgba(10, 13, 20, 0.85);
       border: 1px solid currentColor;
     }
+
+    /* 🔒 Official Channel Membership Gate Overlay */
+    .channel-gate-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(4, 8, 16, 0.94);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      z-index: 9999999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .channel-gate-card {
+      width: 100%;
+      max-width: 420px;
+      background: linear-gradient(145deg, rgba(16, 24, 40, 0.98) 0%, rgba(10, 15, 26, 0.99) 100%);
+      border: 1px solid rgba(255, 215, 0, 0.45);
+      border-radius: 22px;
+      padding: 30px 22px;
+      text-align: center;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.95), 0 0 30px rgba(255, 215, 0, 0.18);
+      animation: gateCardPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes gateCardPop {
+      0% { transform: scale(0.85); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .gate-lock-glow {
+      width: 68px;
+      height: 68px;
+      margin: 0 auto 16px auto;
+      border-radius: 50%;
+      background: rgba(255, 51, 102, 0.15);
+      border: 1px solid rgba(255, 51, 102, 0.45);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 0 25px rgba(255, 51, 102, 0.35);
+      animation: lockPulse 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes lockPulse {
+      0% { box-shadow: 0 0 15px rgba(255, 51, 102, 0.2); transform: scale(1); }
+      100% { box-shadow: 0 0 30px rgba(255, 51, 102, 0.6); transform: scale(1.06); }
+    }
+
+    .gate-lock-icon {
+      font-size: 32px;
+    }
+
+    .gate-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 19px;
+      font-weight: 900;
+      color: #FFF;
+      letter-spacing: 1.2px;
+      margin-bottom: 6px;
+    }
+
+    .gate-badge {
+      display: inline-block;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px;
+      font-weight: 800;
+      color: #FFB300;
+      background: rgba(255, 179, 0, 0.12);
+      border: 1px solid rgba(255, 179, 0, 0.35);
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+      letter-spacing: 0.8px;
+    }
+
+    .gate-desc {
+      font-size: 13.5px;
+      color: #CBD5E1;
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+
+    .gate-channel-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(0, 240, 255, 0.06);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      border-radius: 14px;
+      padding: 12px 16px;
+      text-align: left;
+      margin-bottom: 22px;
+    }
+
+    .gate-ch-icon {
+      font-size: 26px;
+    }
+
+    .gate-ch-name {
+      font-size: 14px;
+      font-weight: 800;
+      color: #FFF;
+    }
+
+    .gate-ch-handle {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12.5px;
+      color: #00F0FF;
+    }
+
+    .gate-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .gate-btn {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      padding: 14px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 13.5px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .gate-btn-primary {
+      background: linear-gradient(135deg, #00F0FF 0%, #0088FF 100%);
+      color: #0B0E14;
+      box-shadow: 0 4px 18px rgba(0, 240, 255, 0.35);
+    }
+
+    .gate-btn-secondary {
+      background: rgba(255, 215, 0, 0.12);
+      border: 1px solid rgba(255, 215, 0, 0.45);
+      color: #FFD700;
+    }
+
+    .gate-btn:active {
+      transform: scale(0.98);
+    }
   </style>
 <body>
+
+  <!-- 🔒 Official Channel Membership Security Gate Overlay -->
+  <div id="channelGateModal" class="channel-gate-overlay" style="display: none;">
+    <div class="channel-gate-card">
+      <div class="gate-lock-glow">
+        <span class="gate-lock-icon">🔒</span>
+      </div>
+      <div class="gate-title">ACCESS RESTRICTED</div>
+      <div class="gate-badge">CHANNEL VERIFICATION REQUIRED</div>
+      <p class="gate-desc">
+        ដើម្បីសុវត្ថិភាព និងទប់ស្កាត់ការលួចចម្លង Signal លោកអ្នកត្រូវតែ <b>Join Telegram Channel</b> ផ្លូវការរបស់យើងខ្ញុំ និងបើកដំណើរការតាមរយៈ Telegram App ទើបអាចប្រើប្រាស់ Mini App នេះបាន!
+      </p>
+      
+      <div class="gate-channel-box">
+        <div class="gate-ch-icon">📢</div>
+        <div class="gate-ch-info">
+          <div class="gate-ch-name">GOLD FX — Official Channel</div>
+          <div class="gate-ch-handle">@GoldMarketKH8888</div>
+        </div>
+      </div>
+
+      <div class="gate-actions">
+        <a href="https://t.me/GoldMarketKH8888" target="_blank" class="gate-btn gate-btn-primary">
+          📢 ចូលរួម Telegram Channel (Join Now)
+        </a>
+        <a href="https://t.me/FFNewsAlertBot?start=smc" target="_blank" class="gate-btn gate-btn-secondary">
+          🤖 បើកតាមរយៈ Bot (@FFNewsAlertBot)
+        </a>
+      </div>
+    </div>
+  </div>
 
   <!-- Ambient Cyber Candlestick Chart Motion Canvas -->
   <canvas id="candlestickBgCanvas"></canvas>
@@ -3983,6 +4165,24 @@
       tg.expand();
       tg.enableClosingConfirmation();
     }
+
+    // 🔒 Official Channel & Telegram Security Gatekeeper
+    function checkChannelSecurityGate() {
+      const gateModal = document.getElementById('channelGateModal');
+      if (!gateModal) return;
+
+      // 1. If running outside of Telegram WebApp (e.g. Chrome, Safari, Edge):
+      const hasTelegramInit = !!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData);
+      
+      if (!hasTelegramInit) {
+        gateModal.style.display = 'flex';
+        return;
+      }
+
+      // 2. If inside Telegram WebApp, user is granted access
+      gateModal.style.display = 'none';
+    }
+    checkChannelSecurityGate();
 
     // ========================================================
     // 🎧 CYBER HUD SOUND EFFECTS SYNTHESIZER (WEB AUDIO API)
