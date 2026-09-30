@@ -5847,7 +5847,16 @@
       // If an active confirmed trade is running, strictly harmonize entire UI with active trade direction
       let isBuy = (trendDirection === 'BULLISH');
       if (lockedActiveSig && lockedActiveSig.status === 'ACTIVE') {
-        isBuy = (lockedActiveSig.action === 'BUY');
+        const sigAgeMin = (Date.now() - (lockedActiveSig.timestamp || 0)) / (1000 * 60);
+        const isTrapped = (isTrapActive && ((lockedActiveSig.action === 'BUY' && trapTitleEl && trapTitleEl.innerText.includes('BULL TRAP')) || (lockedActiveSig.action === 'SELL' && trapTitleEl && trapTitleEl.innerText.includes('BEAR TRAP'))));
+        if (sigAgeMin <= 30.0 && !isTrapped) {
+          isBuy = (lockedActiveSig.action === 'BUY');
+        } else {
+          // Stale (> 30 min) or trapped signal -> clear it immediately so UI follows live trend!
+          localStorage.removeItem('ai_official_signal');
+          localStorage.removeItem('ai_locked_active_signal');
+          lockedActiveSig = null;
+        }
       }
 
       const hero = document.getElementById('smcHeroBox');
@@ -6464,13 +6473,32 @@
         activeSig = JSON.parse(localStorage.getItem('ai_official_signal') || localStorage.getItem('ai_locked_active_signal') || 'null');
       } catch(e) { activeSig = null; }
 
-      // Check if existing active signal is expired (> 4 hours)
+      // 1. Strict Signal Expiration: A sniper entry setup is only valid for MAX 30 minutes (not hours)!
       if (activeSig && activeSig.timestamp) {
-        const ageHours = (Date.now() - activeSig.timestamp) / (1000 * 60 * 60);
-        if (ageHours > 4.0 && activeSig.status === 'ACTIVE') {
+        const ageMinutes = (Date.now() - activeSig.timestamp) / (1000 * 60);
+        if (ageMinutes > 30.0 && activeSig.status === 'ACTIVE') {
           activeSig.status = 'EXPIRED';
-          localStorage.setItem('ai_official_signal', JSON.stringify(activeSig));
-          localStorage.setItem('ai_locked_active_signal', JSON.stringify(activeSig));
+          activeSig.closedAt = Date.now();
+          localStorage.removeItem('ai_official_signal');
+          localStorage.removeItem('ai_locked_active_signal');
+          activeSig = null;
+        }
+      }
+
+      // 2. Strict Institutional Trap Conflict Veto:
+      const trapBanner = document.getElementById('trapAlertBanner');
+      const trapTitle = document.getElementById('trapTitle');
+      const isBullTrapNow = !!trapBanner && trapBanner.style.display !== 'none' && trapTitle && trapTitle.innerText.includes('BULL TRAP');
+      const isBearTrapNow = !!trapBanner && trapBanner.style.display !== 'none' && trapTitle && trapTitle.innerText.includes('BEAR TRAP');
+
+      if (activeSig && activeSig.status === 'ACTIVE') {
+        if ((activeSig.action === 'BUY' && isBullTrapNow) || (activeSig.action === 'SELL' && isBearTrapNow)) {
+          // 🚨 CRITICAL: Instant Invalidation on Institutional Trap! Never allow BUY during Bull Trap!
+          activeSig.status = 'INVALIDATED_TRAP';
+          activeSig.closedAt = Date.now();
+          localStorage.removeItem('ai_official_signal');
+          localStorage.removeItem('ai_locked_active_signal');
+          activeSig = null;
         }
       }
 
@@ -6538,8 +6566,9 @@
           }
           activeSig.closedAt = Date.now();
           activeSig.closePrice = price;
-          localStorage.setItem('ai_official_signal', JSON.stringify(activeSig));
-          localStorage.setItem('ai_locked_active_signal', JSON.stringify(activeSig));
+          localStorage.removeItem('ai_official_signal');
+          localStorage.removeItem('ai_locked_active_signal');
+          localStorage.setItem('ai_last_concluded_signal', JSON.stringify(activeSig));
           renderInstitutionalSignalBoxes(activeSig);
 
           // Update Hero Badge
@@ -6574,7 +6603,39 @@
           return;
 
         } else {
-          // Trade is actively running! KEEP BUTTON SOLIDLY READY & BOXES 100% FROZEN!
+          // Active trade is running: Check if price is STILL within valid Entry Zone
+          const isSigBuy = (activeSig.action === 'BUY');
+          const isStillInEntryRange = (price >= activeSig.entryLow - 0.8 && price <= activeSig.entryHigh + 0.8);
+
+          // If price has moved outside the entry zone (missed or moving towards SL/TP):
+          if (!isStillInEntryRange) {
+            btn.className = 'signal-action-btn waiting';
+            if (icon) icon.style.display = 'none';
+            if (isSigBuy ? price < activeSig.entryLow : price > activeSig.entryHigh) {
+              if (text) text.innerText = '⚠️ ផុត Entry Zone — ហាមដេញថ្លៃ (រង់ចាំ Signal ថ្មី)';
+            } else {
+              if (text) text.innerText = '🚀 កំពុងរត់ទៅរក TP — ហាមដេញថ្លៃ (Wait)';
+            }
+            btn.dataset.status = 'waiting';
+            const actionTag = document.getElementById('signalActionTag');
+            if (actionTag) { actionTag.innerText = 'IN PLAY'; actionTag.className = 'cyber-btn-tag'; }
+            const sniperAlertEl = document.getElementById('smcSniperAlert');
+            if (sniperAlertEl) sniperAlertEl.style.display = 'none';
+            renderInstitutionalSignalBoxes(activeSig);
+            return;
+          }
+
+          // If Safety Matrix has decayed below 70%, DO NOT ALLOW ENTRY:
+          if (matrixScore < 70) {
+            btn.className = 'signal-action-btn waiting';
+            if (icon) icon.style.display = 'none';
+            if (text) text.innerText = 'រង់ចាំ Signal ថ្មី (Safety < 70%)';
+            btn.dataset.status = 'waiting';
+            renderInstitutionalSignalBoxes(activeSig);
+            return;
+          }
+
+          // Only if STILL in Entry Zone AND Safety >= 70%:
           btn.className = 'signal-action-btn ready';
           if (icon) {
             icon.innerText = '🟢';
@@ -6619,7 +6680,8 @@
       // ======================================================================
       const currentExpectedAction = isBuy ? 'BUY' : 'SELL';
       const isTopTierGrade = matrixScore >= 70;
-      const isTriggerCondition = inZone && isTopTierGrade;
+      const isTrapBlocking = (isBuy && isBullTrapNow) || (!isBuy && isBearTrapNow);
+      const isTriggerCondition = inZone && isTopTierGrade && !isTrapBlocking;
 
       // Check cooldown from last closed trade (30 seconds before issuing another trade)
       let isCooldown = false;
