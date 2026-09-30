@@ -1349,10 +1349,11 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 9px;
-      font-size: 14px;
+      gap: 10px;
+      font-family: 'Orbitron', 'Inter', sans-serif;
+      font-size: 15px;
       font-weight: 800;
-      letter-spacing: 0.5px;
+      letter-spacing: 2px;
       text-transform: uppercase;
       cursor: pointer;
       user-select: none;
@@ -3448,12 +3449,10 @@
         </div>
       </div>
 
-      <!-- 🎯 SINGLE PROMINENT AI SIGNAL ACTION BUTTON (អាចប្រើប្រាស់ Signal នេះបាន / មិនអាចប្រើប្រាស់ Signal នេះបានទេ) -->
+      <!-- 🎯 SINGLE PROMINENT AI SIGNAL ACTION BUTTON (CLOSED / អាចប្រើប្រាស់ Signal នេះបាន) -->
       <div id="signalActionBtn" class="signal-action-btn waiting" onclick="handleSignalActionClick()">
-        <span class="btn-pulse-dot" id="signalActionBeacon" style="display: none;"></span>
         <span id="signalActionIcon" style="font-size: 15px; display: inline-block;">🔒</span>
-        <span id="signalActionText">🔒 មិនអាចប្រើប្រាស់ Signal នេះបានទេ (រង់ចាំ Signal ថ្មី)</span>
-        <span id="signalActionTag" class="cyber-btn-tag">CLOSED</span>
+        <span id="signalActionText" style="letter-spacing: 2px; font-weight: 800; font-family: 'Orbitron', 'Inter', sans-serif;">CLOSED</span>
       </div>
 
       <!-- 🧠 AI CONFLUENCE MATRIX METER (Ultra-Sleek Institutional HUD) -->
@@ -6618,17 +6617,14 @@
               icon.innerText = '🛑';
               icon.style.display = 'inline-block';
             }
-            if (text) text.innerText = '🛑 បិទ SIGNAL (ប៉ះ SL) — មិនអាចប្រើប្រាស់បានទេ';
+            if (text) text.innerText = 'CLOSED';
             btn.dataset.status = 'hit_sl';
-            const actionTag = document.getElementById('signalActionTag');
-            if (actionTag) { actionTag.innerText = 'CLOSED'; actionTag.className = 'cyber-btn-tag'; }
-          }
-          activeSig.closedAt = Date.now();
-          activeSig.closePrice = price;
-          localStorage.removeItem('ai_official_signal');
-          localStorage.removeItem('ai_locked_active_signal');
-          localStorage.setItem('ai_last_concluded_signal', JSON.stringify(activeSig));
-          renderInstitutionalSignalBoxes(activeSig);
+            activeSig.closedAt = Date.now();
+            activeSig.closePrice = price;
+            localStorage.removeItem('ai_official_signal');
+            localStorage.removeItem('ai_locked_active_signal');
+            localStorage.setItem('ai_last_concluded_signal', JSON.stringify(activeSig));
+            renderInstitutionalSignalBoxes(activeSig);
 
           // Update Hero Badge
           const execBadge = document.getElementById('smcExecBadge');
@@ -6670,17 +6666,11 @@
           if (!isStillInEntryRange) {
             btn.className = 'signal-action-btn waiting';
             if (icon) {
-              icon.innerText = '⚠️';
+              icon.innerText = '🔒';
               icon.style.display = 'inline-block';
             }
-            if (isSigBuy ? price < activeSig.entryLow : price > activeSig.entryHigh) {
-              if (text) text.innerText = '⚠️ មិនអាចប្រើប្រាស់បានទេ — ផុត Entry Zone (ហាមដេញថ្លៃ)';
-            } else {
-              if (text) text.innerText = '🚀 កំពុងរត់ទៅរក TP — មិនអាចប្រើប្រាស់បានទេ (ហាមដេញ)';
-            }
+            if (text) text.innerText = 'CLOSED';
             btn.dataset.status = 'waiting';
-            const actionTag = document.getElementById('signalActionTag');
-            if (actionTag) { actionTag.innerText = 'CLOSED'; actionTag.className = 'cyber-btn-tag'; }
             const sniperAlertEl = document.getElementById('smcSniperAlert');
             if (sniperAlertEl) sniperAlertEl.style.display = 'none';
             renderInstitutionalSignalBoxes(activeSig);
@@ -6694,12 +6684,8 @@
               icon.innerText = '🔒';
               icon.style.display = 'inline-block';
             }
-            const beacon = document.getElementById('signalActionBeacon');
-            if (beacon) beacon.style.display = 'none';
-            if (text) text.innerText = '🔒 មិនអាចប្រើប្រាស់ Signal នេះបានទេ (រង់ចាំ Signal ថ្មី)';
+            if (text) text.innerText = 'CLOSED';
             btn.dataset.status = 'waiting';
-            const actionTag = document.getElementById('signalActionTag');
-            if (actionTag) { actionTag.innerText = 'CLOSED'; actionTag.className = 'cyber-btn-tag'; }
             renderInstitutionalSignalBoxes(activeSig);
             return;
           }
@@ -6837,23 +6823,13 @@
       }
 
       // ======================================================================
-      // 3. WAITING STATE: Display "រង់ចាំ Signal ថ្មី" cleanly
-      // Keep boxes showing either the last concluded trade or the prepared setup
-      // ======================================================================
+      // 3. WAITING STATE: Clean prominent "CLOSED" button per user directive
       btn.className = 'signal-action-btn waiting';
       if (icon) {
         icon.innerText = '🔒';
         icon.style.display = 'inline-block';
       }
-      const beacon = document.getElementById('signalActionBeacon');
-      if (beacon) beacon.style.display = 'none';
-      if (!isWithinTradingHours) {
-        if (text) text.innerText = '🔒 បិទ SIGNAL (មិនអាចប្រើប្រាស់បានទេ — ម៉ោងសម្រាក)';
-      } else if (currentDailyCount >= maxDaily) {
-        if (text) text.innerText = '🔒 បិទ SIGNAL (មិនអាចប្រើប្រាស់បានទេ — គ្រប់ 5/5 ថ្ងៃនេះ)';
-      } else {
-        if (text) text.innerText = '🔒 មិនអាចប្រើប្រាស់ Signal នេះបានទេ (រង់ចាំ Signal ថ្មី)';
-      }
+      if (text) text.innerText = 'CLOSED';
       btn.dataset.status = 'waiting';
       const actionTag = document.getElementById('signalActionTag');
       if (actionTag) { actionTag.innerText = 'CLOSED'; actionTag.className = 'cyber-btn-tag'; }
@@ -6908,7 +6884,7 @@
           reply_markup: {
             inline_keyboard: [
               [
-                { text: "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", url: "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=145&tab=smc" }
+                { text: "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", url: "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=148&tab=smc" }
               ]
             ]
           }
@@ -7648,14 +7624,10 @@
 
     const initActionBtn = document.getElementById('signalActionBtn');
     const initActionText = document.getElementById('signalActionText');
-    const initActionTag = document.getElementById('signalActionTag');
-    const initActionBeacon = document.getElementById('signalActionBeacon');
     const initActionIcon = document.getElementById('signalActionIcon');
     if (initActionBtn) initActionBtn.className = 'signal-action-btn waiting';
-    if (initActionBeacon) initActionBeacon.style.display = 'none';
     if (initActionIcon) { initActionIcon.innerText = '🔒'; initActionIcon.style.display = 'inline-block'; }
-    if (initActionText) initActionText.innerText = '🔒 មិនអាចប្រើប្រាស់ Signal នេះបានទេ (រង់ចាំ Signal ថ្មី)';
-    if (initActionTag) { initActionTag.innerText = 'CLOSED'; initActionTag.className = 'cyber-btn-tag'; }
+    if (initActionText) initActionText.innerText = 'CLOSED';
   </script>
 </body>
 </html>
