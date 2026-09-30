@@ -5321,8 +5321,10 @@
           display.tp1 = Number((eL - 15.0).toFixed(2));
           display.tp2 = Number((eL - 25.0).toFixed(2));
           display.tp3 = Number((eL - 37.0).toFixed(2));
-        } else if (!display.tp3) {
-          display.tp3 = Number((eL - 37.0).toFixed(2));
+        } else {
+          if (!display.tp1 || display.tp1 >= eL) display.tp1 = Number((eL - 15.0).toFixed(2));
+          if (!display.tp2 || display.tp2 >= display.tp1) display.tp2 = Number((eL - 25.0).toFixed(2));
+          if (!display.tp3 || display.tp3 >= display.tp2) display.tp3 = Number((eL - 37.0).toFixed(2));
         }
       } else if (display.action === 'BUY') {
         // For BUY: SL MUST strictly be BELOW entry (eL - 8 ~ 10). TP MUST strictly be ABOVE entry!
@@ -5331,8 +5333,10 @@
           display.tp1 = Number((eH + 15.0).toFixed(2));
           display.tp2 = Number((eH + 25.0).toFixed(2));
           display.tp3 = Number((eH + 37.0).toFixed(2));
-        } else if (!display.tp3) {
-          display.tp3 = Number((eH + 37.0).toFixed(2));
+        } else {
+          if (!display.tp1 || display.tp1 <= eH) display.tp1 = Number((eH + 15.0).toFixed(2));
+          if (!display.tp2 || display.tp2 <= display.tp1) display.tp2 = Number((eH + 25.0).toFixed(2));
+          if (!display.tp3 || display.tp3 <= display.tp2) display.tp3 = Number((eH + 37.0).toFixed(2));
         }
       }
     }
@@ -6246,7 +6250,7 @@
         const sl = staticSignalSetup.sl.toFixed(2);
         const tp1 = staticSignalSetup.tp1.toFixed(2);
         const tp2 = staticSignalSetup.tp2.toFixed(2);
-        const tp3 = (staticSignalSetup.tp3 || Number((Number(entryLow) - 35.0).toFixed(2))).toFixed(2);
+        const tp3 = (staticSignalSetup.tp3 && Number(staticSignalSetup.tp3) < Number(entryLow) ? staticSignalSetup.tp3 : Number((Number(entryLow) - 35.0).toFixed(2))).toFixed(2);
         const elTP3 = document.getElementById('smcTP3');
         if (elTP3) elTP3.innerText = `$${Number(tp3).toFixed(2)}`;
         const inZone = (price >= Number(entryLow) && price <= Number(entryHigh));
@@ -6619,10 +6623,10 @@
               icon.innerText = '🛑';
               icon.style.display = 'inline-block';
             }
-            if (text) text.innerText = '🛑 SIGNAL ប៉ះ SL — រង់ចាំ SIGNAL ថ្មី';
+            if (text) text.innerText = '🛑 បិទ SIGNAL (ប៉ះ SL) — មិនអាចប្រើប្រាស់បានទេ';
             btn.dataset.status = 'hit_sl';
             const actionTag = document.getElementById('signalActionTag');
-            if (actionTag) { actionTag.innerText = 'SL HIT'; actionTag.className = 'cyber-btn-tag'; }
+            if (actionTag) { actionTag.innerText = 'CLOSED'; actionTag.className = 'cyber-btn-tag'; }
           }
           activeSig.closedAt = Date.now();
           activeSig.closePrice = price;
@@ -6670,15 +6674,18 @@
           // If price has moved outside the entry zone (missed or moving towards SL/TP):
           if (!isStillInEntryRange) {
             btn.className = 'signal-action-btn waiting';
-            if (icon) icon.style.display = 'none';
+            if (icon) {
+              icon.innerText = '⚠️';
+              icon.style.display = 'inline-block';
+            }
             if (isSigBuy ? price < activeSig.entryLow : price > activeSig.entryHigh) {
-              if (text) text.innerText = '⚠️ ផុត Entry Zone — ហាមដេញថ្លៃ (រង់ចាំ Signal ថ្មី)';
+              if (text) text.innerText = '⚠️ មិនអាចប្រើប្រាស់បានទេ — ផុត Entry Zone (ហាមដេញថ្លៃ)';
             } else {
-              if (text) text.innerText = '🚀 កំពុងរត់ទៅរក TP — ហាមដេញថ្លៃ (Wait)';
+              if (text) text.innerText = '🚀 កំពុងរត់ទៅរក TP — មិនអាចប្រើប្រាស់បានទេ (ហាមដេញ)';
             }
             btn.dataset.status = 'waiting';
             const actionTag = document.getElementById('signalActionTag');
-            if (actionTag) { actionTag.innerText = 'IN PLAY'; actionTag.className = 'cyber-btn-tag'; }
+            if (actionTag) { actionTag.innerText = 'CLOSED'; actionTag.className = 'cyber-btn-tag'; }
             const sniperAlertEl = document.getElementById('smcSniperAlert');
             if (sniperAlertEl) sniperAlertEl.style.display = 'none';
             renderInstitutionalSignalBoxes(activeSig);
@@ -6833,19 +6840,19 @@
       // ======================================================================
       btn.className = 'signal-action-btn waiting';
       if (icon) {
-        icon.innerText = '';
-        icon.style.display = 'none';
+        icon.innerText = '🔒';
+        icon.style.display = 'inline-block';
       }
       if (!isWithinTradingHours) {
-        if (text) text.innerText = 'រង់ចាំ SIGNAL ថ្មី (បើក 7:00 ព្រឹក - 11:00 យប់)';
+        if (text) text.innerText = '🔒 បិទ SIGNAL — ម៉ោងសម្រាក (បើក 7:00 ព្រឹក - 11:00 យប់)';
       } else if (currentDailyCount >= maxDaily) {
-        if (text) text.innerText = 'គ្រប់ចំនួន SIGNAL ថ្ងៃនេះហើយ (5/5)';
+        if (text) text.innerText = '🔒 បិទ SIGNAL — គ្រប់ចំនួន 5/5 ថ្ងៃនេះហើយ';
       } else {
-        if (text) text.innerText = 'រង់ចាំ SIGNAL ថ្មី';
+        if (text) text.innerText = '🔒 មិនអាចប្រើប្រាស់ Signal នេះបានទេ (រង់ចាំ Signal ថ្មី)';
       }
       btn.dataset.status = 'waiting';
       const actionTag = document.getElementById('signalActionTag');
-      if (actionTag) { actionTag.innerText = 'STANDBY'; actionTag.className = 'cyber-btn-tag'; }
+      if (actionTag) { actionTag.innerText = 'CLOSED'; actionTag.className = 'cyber-btn-tag'; }
 
       // Clean up sniper banner and execution status
       const sniperAlertEl = document.getElementById('smcSniperAlert');
