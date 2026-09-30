@@ -295,16 +295,31 @@
     }
 
     .ws-badge {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: fit-content;
+      max-width: fit-content;
       font-family: 'Orbitron', 'Share Tech Mono', monospace;
-      font-size: 9.5px;
-      font-weight: 700;
-      padding: 2px 7px;
-      border-radius: 6px;
+      font-size: 7.5px;
+      line-height: 1.15;
+      font-weight: 800;
+      padding: 2px 5px;
+      border-radius: 5px;
       background: rgba(0, 230, 118, 0.15);
       color: #00E676;
       border: 1px solid rgba(0, 230, 118, 0.45);
-      box-shadow: 0 0 10px rgba(0, 230, 118, 0.25);
-      letter-spacing: 0.5px;
+      box-shadow: 0 0 8px rgba(0, 230, 118, 0.2);
+      letter-spacing: 0.3px;
+      text-align: center;
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+
+    .ws-badge span {
+      display: block;
+      white-space: nowrap;
     }
 
     .live-price {
@@ -3321,7 +3336,7 @@
       </div>
       <div class="hud-asset-box">
         <span class="hud-asset-title">Spot XAU/USD</span>
-        <span class="ws-badge" id="wsStatusBadge">MT5 LIVE 24/7</span>
+        <span class="ws-badge" id="wsStatusBadge"><span>MT5 LIVE</span><span>24/7</span></span>
       </div>
     </div>
     <div class="live-price" id="livePrice">$4,139.41</div>
@@ -4964,7 +4979,7 @@
 
         wsConnection.onopen = () => {
           if (badge) {
-            badge.innerText = 'MT5 LIVE 24/7';
+            badge.innerHTML = '<span>MT5 LIVE</span><span>24/7</span>';
             badge.style.background = 'rgba(0, 230, 118, 0.15)';
             badge.style.borderColor = 'rgba(0, 230, 118, 0.4)';
             badge.style.color = '#00E676';
@@ -4988,7 +5003,7 @@
         wsConnection.onerror = () => {
           // If mobile carrier/firewall blocks WebSocket, smoothly fallback to HTTP Auto-Sync
           if (badge) {
-            badge.innerText = 'AUTO-SYNC';
+            badge.innerHTML = '<span>AUTO</span><span>SYNC</span>';
             badge.style.background = 'rgba(0, 230, 118, 0.12)';
             badge.style.borderColor = 'rgba(0, 230, 118, 0.35)';
             badge.style.color = '#00E676';
@@ -5004,7 +5019,7 @@
 
       } catch (err) {
         if (badge) {
-          badge.innerText = 'AUTO-SYNC';
+          badge.innerHTML = '<span>AUTO</span><span>SYNC</span>';
           badge.style.background = 'rgba(0, 230, 118, 0.12)';
           badge.style.borderColor = 'rgba(0, 230, 118, 0.35)';
           badge.style.color = '#00E676';
