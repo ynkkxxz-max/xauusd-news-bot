@@ -64,10 +64,10 @@ def sanitize_khmer_spelling(text: str) -> str:
         (r"សាយវ៉េ", "Sideway"),
         (r"សេហ្វហេវិន", "Safe-Haven"),
 
-        # Typography & spacing cleanup
-        (r"\(\s+", "("),
-        (r"\s+\)", ")"),
-        (r"\s{2,}", " "),
+        # Typography & spacing cleanup (preserve newlines \n)
+        (r"\([ \t]+", "("),
+        (r"[ \t]+\)", ")"),
+        (r"[ \t]{2,}", " "),
     ]
     for pat, rep in corrections:
         res = re.sub(pat, rep, res)
@@ -242,11 +242,26 @@ class KhmerFormatter:
                 key_event = "\n\n".join(parts)
 
         if not key_event:
-            desc = (news_item.get("description") or news_item.get("title") or "").strip()
-        # Strip any unsupported HTML tags from RSS descriptions (e.g. <font>, <div>, <p>, etc.)
+            key_event = (news_item.get("description") or news_item.get("title") or "").strip()
+
         import re
-        key_event = re.sub(r'<(?!(?:b|strong|i|em|u|ins|s|strike|del|a|code|pre|blockquote)\b)[^>]+>', '', key_event)
-        key_event = re.sub(r'</(?!(?:b|strong|i|em|u|ins|s|strike|del|a|code|pre|blockquote)\b)[^>]+>', '', key_event)
+        import html
+
+        # Decode HTML entities (&nbsp;, &amp;, etc.)
+        key_event = html.unescape(key_event)
+
+        # Remove any embedded anchor tags entirely from narrative text (links belong only in footer / CTA button)
+        key_event = re.sub(r'<a\b[^>]*>(.*?)</a>', r'\1', key_event, flags=re.DOTALL | re.IGNORECASE)
+
+        # Remove any lingering raw http/https links dumped into the middle of text
+        key_event = re.sub(r'https?://\S+', '', key_event)
+
+        # Strip all HTML tags EXCEPT clean Telegram formatting tags (<b>, <i>, <code>, <blockquote>)
+        key_event = re.sub(r'<(?!/?(?:b|strong|i|em|code|blockquote)\b)[^>]+>', '', key_event)
+
+        # Clean multiple spaces / newlines
+        key_event = re.sub(r'[ \t]+', ' ', key_event)
+        key_event = re.sub(r'\n{3,}', '\n\n', key_event).strip()
 
         # Sanitize Khmer spelling to guarantee 100% accurate spelling (Hormuz -> ហ័រមូស, etc.)
         key_event = sanitize_khmer_spelling(key_event)
