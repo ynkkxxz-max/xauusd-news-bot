@@ -175,6 +175,22 @@ This repository is governed by the 5 Golden Principles established by the system
 - **ដំណើរការវិលជុំមិនចេះចប់ (Infinite Full-Width Loop)**:
   - ពេលទៀនដើរពេញអេក្រង់ដល់គែមស្តាំ ត្រូវផ្អាក ២ វិនាទី រួចកំណត់ឡើងវិញ (`activeIndex = 0`) ដើម្បីចាប់ផ្តើមដើររៀបក្បួនជាថ្មីជានិច្ច ឥតចេះចប់ឡើយ។
 
+### 18. 🔒 ស្តង់ដារការពារសុវត្ថិភាពទប់ស្កាត់ការលួចចម្លង Signal (Channel Membership Gate & Anti-Theft Security Standard)
+- **ការពារមិនឱ្យអ្នកក្រៅលួចយក Signal ទៅធ្វើអាជីវកម្ម ឬទីផ្សារ (Anti-Theft Protection)**:
+  - អ្នកប្រើប្រាស់ដែលមិនទាន់បាន Join Channel ផ្លូវការ (`@GoldMarketKH8888`) មិនអាចមើល Signal ឬប្រើប្រាស់ Telegram Mini App (SMC AI Terminal) បានឡើយ។
+  - នៅពេលមានអ្នកចុច Mini App, ប៊ូតុង SMC ឬផ្ញើសារមកកាន់ Bot ដោយមិនទាន់បានចូលរួម Channel ប្រព័ន្ធត្រូវ **Alert និងចាក់សោរបង្ហាញផ្ទាំង Gate Lock ភ្លាមៗ (Instant Gatekeeper)** ព្រមទាំងបង្ហាញប៊ូតុងឱ្យ Join Telegram Channel ជាមុនសិន។
+- **ការផ្ទៀងផ្ទាត់ស្វ័យប្រវត្តិតាម Telegram Bot API (`getChatMember`)**:
+  - Bot ត្រួតពិនិត្យឋានៈអ្នកប្រើប្រាស់ក្នុង Channel (`is_user_member_of_channel`)៖ ប្រសិនបើឋានៈជា `member`, `administrator`, ឬ `creator` ទើបដោះសោរបើកដំណើរការ Signal Live ជូន។
+
+### 19. ⌨️ ស្តង់ដារ Keyboard ខាងក្រោម Bot (Strict 2-Button Persistent Reply Keyboard Standard)
+- **រក្សាត្រឹមតែ ២ ប៊ូតុងគត់ (Strict 2 Buttons Only: `[ Price ]` និង `[ SMC ]`)**:
+  - ក្ដារចុចខាងក្រោម (`ReplyKeyboardMarkup`) ត្រូវកំណត់ត្រឹមតែ ២ ប៊ូតុងគត់គឺ `[ Price ]` និង `[ SMC ]` (ភ្ជាប់ WebApp Link ទៅកាន់ Mini App)។
+  - **ហាមដាច់ខាតមិនឱ្យមានប៊ូតុង `[ 🧮 គិត Lot ]` លើ Reply Keyboard ឡើយ** (មុខងារគិត Lot ត្រូវស្ថិតក្នុង Mini App ឬតាម Command `/lot` វិញ)។
+- **ការកំណត់ប៉ារ៉ាម៉ែត្រ Telegram API ត្រឹមត្រូវ**:
+  - ត្រូវប្រើ `"is_persistent": True` (មិនមែន `"persistent": True`) និង `"resize_keyboard": True` ជានិច្ច ដើម្បីឱ្យ Telegram រក្សារូបរាងប៊ូតុងសមមាត្រ និងជាប់រហូត។
+- **ការដោះស្រាយ Client-Side Cache របស់ Telegram**:
+  - កម្មវិធី Telegram លើទូរស័ព្ទដៃចងចាំ Reply Keyboard តាម Local Cache។ នៅពេលមានការផ្លាស់ប្តូររូបរាង Keyboard ត្រូវផ្ញើសារថ្មីមួយដែលមាន Markup ថ្មីទៅកាន់ Chat (ឬឱ្យអ្នកប្រើប្រាស់វាយ `/start` ឬ `Price`) ដើម្បីឱ្យ Telegram Client ជម្រះប៊ូតុងចាស់ចេញភ្លាមៗ។
+
 
 
 
