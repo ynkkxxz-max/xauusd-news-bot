@@ -5238,10 +5238,14 @@
         // Constitutional Rule: "តម្លៃ signal អោយវានៅតម្លៃដដែលមិនផ្លាស់ប្ដូរបន្ទាប់ពីចេញ signal...
         // ប្ដូរតម្លៃលុះត្រាតែដាក់អោយប្រើប្រាស់តម្លៃ signal ថ្មីអោយប្រើប្រាស់"
         if (official && official.entryLow && official.sl) {
-          // If active trade is running, strictly display it (never overwrite mid-trade)
-          if (official.status === 'ACTIVE' || official.status === 'HIT_TP1') {
+          const ageMin = (Date.now() - (official.timestamp || 0)) / (1000 * 60);
+          // Strict Max 10-minute validity for sniper entry alerts
+          if (ageMin > 10.0 && official.status === 'ACTIVE') {
+            localStorage.removeItem('ai_official_signal');
+            localStorage.removeItem('ai_locked_active_signal');
+          } else if (official.status === 'ACTIVE' || official.status === 'HIT_TP1') {
             display = official;
-          } else if (official.action === expAct) {
+          } else if (official.action === expAct && ageMin <= 10.0) {
             // Concluded trade matches current trend direction -> keep exact numbers locked so user can verify TP/SL!
             display = official;
           }
@@ -5849,10 +5853,10 @@
       if (lockedActiveSig && lockedActiveSig.status === 'ACTIVE') {
         const sigAgeMin = (Date.now() - (lockedActiveSig.timestamp || 0)) / (1000 * 60);
         const isTrapped = (isTrapActive && ((lockedActiveSig.action === 'BUY' && trapTitleEl && trapTitleEl.innerText.includes('BULL TRAP')) || (lockedActiveSig.action === 'SELL' && trapTitleEl && trapTitleEl.innerText.includes('BEAR TRAP'))));
-        if (sigAgeMin <= 30.0 && !isTrapped) {
+        if (sigAgeMin <= 10.0 && !isTrapped) {
           isBuy = (lockedActiveSig.action === 'BUY');
         } else {
-          // Stale (> 30 min) or trapped signal -> clear it immediately so UI follows live trend!
+          // Stale (> 10 min) or trapped signal -> clear it immediately so UI follows live trend!
           localStorage.removeItem('ai_official_signal');
           localStorage.removeItem('ai_locked_active_signal');
           lockedActiveSig = null;
@@ -6146,7 +6150,7 @@
             tvHeroStatusEl.innerText = '🟢 DISCOUNT BUY';
           }
         }
-        updateSignalActionButton(true, inZone, matrixScore, entryLow, entryHigh, sl, tp1, tp2, price);
+        updateSignalActionButton(true, inZone, matrixScore, entryLow, entryHigh, sl, tp1, tp2, price, h1Bias, m15Structure, m5Trigger);
       } else {
         // SELL MODE (BEARISH)
         if (hero) hero.classList.remove('bullish');
@@ -6411,7 +6415,7 @@
             tvHeroStatusEl.innerText = '🔴 PREMIUM SELL';
           }
         }
-        updateSignalActionButton(false, inZone, matrixScore, entryLow, entryHigh, sl, tp1, tp2, price);
+        updateSignalActionButton(false, inZone, matrixScore, entryLow, entryHigh, sl, tp1, tp2, price, h1Bias, m15Structure, m5Trigger);
       }
 
       // Sync Multi-AI Direction Consensus Strip (Clean Minimalist 🟢🔴 HUD)
@@ -6439,7 +6443,7 @@
   // 🛡️ DECISIVE SIGNAL STATE MANAGER (LOCKED SIGNAL PERSISTENCE)
   // "ដាក់ Signal មួយអោយដឹងមួយ — មិនរលាក់រង់ចាំ Signal ថ្មីពេល Signal កំពុងដំណើរការ"
   // ========================================================
-  function updateSignalActionButton(isBuy, inZone, matrixScore, entryLow, entryHigh, sl, tp1, tp2, price) {
+  function updateSignalActionButton(isBuy, inZone, matrixScore, entryLow, entryHigh, sl, tp1, tp2, price, h1Bias = '', m15Structure = '', m5Trigger = '') {
     try {
       const now = new Date();
       const todayStr = now.toISOString().slice(0, 10);
@@ -6473,10 +6477,11 @@
         activeSig = JSON.parse(localStorage.getItem('ai_official_signal') || localStorage.getItem('ai_locked_active_signal') || 'null');
       } catch(e) { activeSig = null; }
 
-      // 1. Strict Signal Expiration: A sniper entry setup is only valid for MAX 30 minutes (not hours)!
+      // 1. Strict Signal Expiration: A sniper entry setup is only valid for MAX 10 minutes (៥ ទៅ ១០ នាទី)!
+      let ageMinutes = 0;
       if (activeSig && activeSig.timestamp) {
-        const ageMinutes = (Date.now() - activeSig.timestamp) / (1000 * 60);
-        if (ageMinutes > 30.0 && activeSig.status === 'ACTIVE') {
+        ageMinutes = (Date.now() - activeSig.timestamp) / (1000 * 60);
+        if (ageMinutes > 10.0 && activeSig.status === 'ACTIVE') {
           activeSig.status = 'EXPIRED';
           activeSig.closedAt = Date.now();
           localStorage.removeItem('ai_official_signal');
@@ -6625,26 +6630,27 @@
             return;
           }
 
-          // If Safety Matrix has decayed below 70%, DO NOT ALLOW ENTRY:
-          if (matrixScore < 70) {
+          // If Safety Matrix has decayed below 75%, DO NOT ALLOW ENTRY:
+          if (matrixScore < 75) {
             btn.className = 'signal-action-btn waiting';
             if (icon) icon.style.display = 'none';
-            if (text) text.innerText = 'រង់ចាំ Signal ថ្មី (Safety < 70%)';
+            if (text) text.innerText = 'រង់ចាំ Signal ថ្មី (Safety < 75%)';
             btn.dataset.status = 'waiting';
             renderInstitutionalSignalBoxes(activeSig);
             return;
           }
 
-          // Only if STILL in Entry Zone AND Safety >= 70%:
+          // Only if STILL in Entry Zone AND Safety >= 75%:
           btn.className = 'signal-action-btn ready';
           if (icon) {
             icon.innerText = '🟢';
             icon.style.display = 'inline-block';
           }
-          if (text) text.innerText = 'អាចប្រើប្រាស់ Signal នេះបាន';
+          const remMin = Math.max(1, Math.ceil(10 - ageMinutes));
+          if (text) text.innerText = `អាចប្រើប្រាស់ Signal នេះបាន (${remMin} នាទី)`;
           btn.dataset.status = 'ready';
           const actionTag = document.getElementById('signalActionTag');
-          if (actionTag) { actionTag.innerText = 'ACTIVE ❯'; actionTag.className = 'cyber-btn-tag active'; }
+          if (actionTag) { actionTag.innerText = `ACTIVE ${remMin}m ❯`; actionTag.className = 'cyber-btn-tag active'; }
           btn.dataset.action = activeSig.action;
           btn.dataset.entryLow = activeSig.entryLow;
           btn.dataset.entryHigh = activeSig.entryHigh;
@@ -6674,14 +6680,24 @@
       }
 
       // ======================================================================
-      // 2. NO ACTIVE TRADE RUNNING -> WAITING FOR AI VALIDATION OF NEW SIGNAL!
-      // Constitutional Rule: "ប្ដូរតម្លៃលុះត្រាតែដាក់អោយប្រើប្រាស់តម្លៃ signal ថ្មីអោយប្រើប្រាស់
-      // (បញ្ជាក់អោយ Ai Analy អោយបានត្រឹមត្រូវសិនទើបដាក់signal អោយប្រើប្រាស់ត្រូវគោរពច្បាប់នេះ)"
+      // 2. NO ACTIVE TRADE RUNNING -> WAITING FOR STRICT AI VALIDATION OF NEW SIGNAL!
+      // Constitutional Rule: "បញ្ជាក់សូមអ្នក Ai Analy អោយបានត្រឹមត្រូវសុវត្តិភាពសិនមុនចេញ signal អោយប្រើ"
+      // Strict Institutional Safety Gates:
+      // Gate 1: Institutional Safety Index >= 75%
+      // Gate 2: Exact OTE Fibonacci Retracement Zone 0.618 - 0.786 (inZone)
+      // Gate 3: M15 Structure & H1 Multi-Hour Bias 100% harmonized (never trade against H1 macro trend)
+      // Gate 4: M5 Trigger Candle confirms momentum (no opposite momentum candle)
+      // Gate 5: Absolutely Zero Trap (Bull Trap / Bear Trap veto)
       // ======================================================================
       const currentExpectedAction = isBuy ? 'BUY' : 'SELL';
-      const isTopTierGrade = matrixScore >= 70;
+      const isTopTierGrade = matrixScore >= 75;
+      const isMtfAligned = isBuy ? (h1Bias === 'BULLISH' && !m15Structure.includes('Bearish CHoCH') && !m15Structure.includes('Bearish Structure'))
+                                 : (h1Bias === 'BEARISH' && !m15Structure.includes('Bullish BOS') && !m15Structure.includes('Bullish Structure'));
+      const isM5Confirmed = isBuy ? (!m5Trigger.includes('Bearish') && !m5Trigger.includes('Pullback'))
+                                  : (!m5Trigger.includes('Bullish') && !m5Trigger.includes('Dip'));
       const isTrapBlocking = (isBuy && isBullTrapNow) || (!isBuy && isBearTrapNow);
-      const isTriggerCondition = inZone && isTopTierGrade && !isTrapBlocking;
+
+      const isTriggerCondition = inZone && isTopTierGrade && isMtfAligned && isM5Confirmed && !isTrapBlocking;
 
       // Check cooldown from last closed trade (30 seconds before issuing another trade)
       let isCooldown = false;
@@ -6727,14 +6743,16 @@
         // Render the NEW official numbers in 4 boxes
         renderInstitutionalSignalBoxes(newSig);
 
-        // Turn action button to Ready
+        // Turn action button to Ready (strictly active for 10 minutes)
         btn.className = 'signal-action-btn ready';
         if (icon) {
           icon.innerText = '🟢';
           icon.style.display = 'inline-block';
         }
-        if (text) text.innerText = 'អាចប្រើប្រាស់ Signal នេះបាន';
+        if (text) text.innerText = 'អាចប្រើប្រាស់ Signal នេះបាន (10 នាទី)';
         btn.dataset.status = 'ready';
+        const actionTag = document.getElementById('signalActionTag');
+        if (actionTag) { actionTag.innerText = 'ACTIVE 10m ❯'; actionTag.className = 'cyber-btn-tag active'; }
         btn.dataset.action = newSig.action;
         btn.dataset.entryLow = newSig.entryLow;
         btn.dataset.entryHigh = newSig.entryHigh;
