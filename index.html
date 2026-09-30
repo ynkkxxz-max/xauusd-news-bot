@@ -3256,6 +3256,7 @@
               <line x1="3" y1="21" x2="10" y2="14"></line>
             </svg>
           </button>
+          <button class="tv-tf-btn active" id="btnToggleTvIndicator" onclick="toggleTvIndicator()" title="AI Trend Indicator (🟢 Buy / 🔴 Sell)" style="color: #00E676; border-color: rgba(0, 230, 118, 0.5); background: rgba(0, 230, 118, 0.15); font-size: 9px; padding: 4px 6px;">AI 🟢🔴</button>
           <button class="tv-tf-btn" id="btnTf5" onclick="changeTvInterval('5')">5M</button>
           <button class="tv-tf-btn active" id="btnTf15" onclick="changeTvInterval('15')">15M</button>
           <button class="tv-tf-btn" id="btnTf60" onclick="changeTvInterval('60')">1H</button>
@@ -3319,7 +3320,7 @@
         <iframe 
           id="tvIframe"
           class="tv-chart-frame"
-          src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_widget&symbol=OANDA%3AXAUUSD&interval=15&hidesidetoolbar=1&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=%5B%5D&theme=dark&style=1&timezone=Asia%2FPhnom_Penh&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=en"
+          src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_widget&symbol=OANDA%3AXAUUSD&interval=15&hidesidetoolbar=1&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=%5B%7B%22id%22%3A%22Supertrend%40tv-basicstudies%22%7D%5D&theme=dark&style=1&timezone=Asia%2FPhnom_Penh&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=en"
           allowtransparency="true" 
           frameborder="0">
         </iframe>
@@ -4135,7 +4136,16 @@
     // Apply initial tab
     switchTab(initialTab);
 
+    let currentTvInterval = '15';
+    let isTvSupertrendEnabled = true;
+
+    function getTvWidgetUrl(interval, withSupertrend) {
+      const studies = withSupertrend ? '%5B%7B%22id%22%3A%22Supertrend%40tv-basicstudies%22%7D%5D' : '%5B%5D';
+      return `https://s.tradingview.com/widgetembed/?frameElementId=tradingview_widget&symbol=OANDA%3AXAUUSD&interval=${interval}&hidesidetoolbar=1&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=${studies}&theme=dark&style=1&timezone=Asia%2FPhnom_Penh&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=en`;
+    }
+
     function changeTvInterval(interval) {
+      currentTvInterval = interval;
       if (tg && tg.HapticFeedback) {
         tg.HapticFeedback.selectionChanged();
       }
@@ -4148,7 +4158,32 @@
 
       const iframe = document.getElementById('tvIframe');
       if (iframe) {
-        iframe.src = `https://s.tradingview.com/widgetembed/?frameElementId=tradingview_widget&symbol=OANDA%3AXAUUSD&interval=${interval}&hidesidetoolbar=1&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=%5B%5D&theme=dark&style=1&timezone=Asia%2FPhnom_Penh&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=en`;
+        iframe.src = getTvWidgetUrl(currentTvInterval, isTvSupertrendEnabled);
+      }
+    }
+
+    function toggleTvIndicator() {
+      if (tg && tg.HapticFeedback) {
+        tg.HapticFeedback.selectionChanged();
+      }
+      isTvSupertrendEnabled = !isTvSupertrendEnabled;
+      const btn = document.getElementById('btnToggleTvIndicator');
+      if (btn) {
+        if (isTvSupertrendEnabled) {
+          btn.classList.add('active');
+          btn.style.color = '#00E676';
+          btn.style.borderColor = 'rgba(0, 230, 118, 0.5)';
+          btn.style.background = 'rgba(0, 230, 118, 0.15)';
+        } else {
+          btn.classList.remove('active');
+          btn.style.color = '#7E92A9';
+          btn.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+          btn.style.background = 'rgba(255, 255, 255, 0.03)';
+        }
+      }
+      const iframe = document.getElementById('tvIframe');
+      if (iframe) {
+        iframe.src = getTvWidgetUrl(currentTvInterval, isTvSupertrendEnabled);
       }
     }
 
@@ -6167,7 +6202,7 @@
           reply_markup: {
             inline_keyboard: [
               [
-                { text: "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", url: "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=125&tab=smc" }
+                { text: "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", url: "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=126&tab=smc" }
               ]
             ]
           }
