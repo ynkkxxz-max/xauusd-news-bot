@@ -152,6 +152,30 @@ This repository is governed by the 5 Golden Principles established by the system
   - សរសេរត្រូវតាមក្បួនវចនានុក្រមផ្លូវការ (ដូចជា `សេដ្ឋកិច្ច` មិនមែន `សេដ្ធកិច្ច`, `អាមេរិក` មិនមែន `អាមេរិច`, `រុស្ស៊ី` មិនមែន `រុស្សី`)។
   - ប្រយោគត្រូវរៀបចំឱ្យរលូន ពិរោះ ស្តាប់បានច្បាស់ គ្មានពាក្យកាត់ខ្វះន័យ។
 
+### 15. 🦆 ស្តង់ដារតុក្កតាកូនទា Mascot (Mascot Duck Interaction & Animation Standard)
+- **ចលនាដោះវែនតាប្រព្រិចភ្នែក (Wink & Lowering Sunglasses Animation)**:
+  - តុក្កតាកូនទានៅជ្រុងខាងក្រោមស្តាំ ត្រូវតែជាចលនា WebP Animated Sticker ដែលកូនទាលើកដៃដោះវែនតាខ្មៅចុះក្រោមបន្តិច រួចប្រព្រិចភ្នែកម្ខាង (Wink) ព្រមទាំងមានពន្លឺផ្កាយផ្លេកៗ (Sparkle Glint)។
+  - រូបភាពត្រូវ Encode ជា Base64 Data URI ក្នុង `index.html` ដើម្បីកុំឱ្យមាន Latency ឬបញ្ហា Cache លើ Telegram Webview។
+- **មុខងារ Interactive ពេលចុច (Haptic, Sound & Blessing Toast)**:
+  - ពេលអ្នកប្រើប្រាស់ចុច/Tap លើតុក្កតា ត្រូវមាន Bounce Effect, បន្លឺសំឡេង Cyber Sound, រំញ័រ Haptic Feedback (`tg.HapticFeedback`), និងបង្ហាញសារជូនពរលើកទឹកចិត្តជួញដូរ។
+
+### 16. 🌟 ស្តង់ដាររបាររត់ជូនពរខាងក្រោម (Cyber Gold Blessing Marquee Bar Standard)
+- **លុបចោលចំណុចអុចទាំងស្រុង (Strict No Dots / No Bullets Rule)**:
+  - ហាមមិនឱ្យមានចំណុចអុចមូលខ្មៅនៅខាងឆ្វេង (`cyber-badge-dot`) ឬសញ្ញាអុច `•` នៅចន្លោះអក្សរឡើយ។ ត្រូវប្រើប្រាស់គម្លាត Space ធម្មតា ដើម្បីកុំឱ្យទើសភ្នែក និងរក្សាភាពទាក់ទាញស្អាត។
+- **ទំហំអក្សរធំច្បាស់ & កម្ពស់របារសមរម្យ (Large Typography & Safe Height)**:
+  - ទំហំ Font ត្រូវរក្សាត្រឹមកម្រិតធំច្បាស់ (អប្បបរមា `16px - 16.5px`, Bold 800+), កម្ពស់របារយ៉ាងតិច `54px` ដើម្បីធានាថាមិនដាច់ ឬទើសជើងអក្សរខ្មែរ (ដូចជាពាក្យ `ជួញដូរ`) នៅលើគ្រប់ទូរស័ព្ទដៃ។
+- **រចនាបថទំនើបបែប Cyber Gold Glassmorphism**:
+  - ត្រូវមានរាងកោងទន់ភ្លន់ (`16px border-radius`), ពន្លឺភ្លើងឡាស៊ែររត់កាត់រលោង (`cyberSheen`), និង 3D glass highlight។
+
+### 17. 📈 ស្តង់ដារផ្ទៃខាងក្រោយដើរទៀន (Sequential Candlestick Motion Background Standard)
+- **រក្សាទម្រង់ដើរទៀនម្ដងមួយៗដូចចាស់ (Strict Sequential Walking Motion)**:
+  - ចលនាទៀនផ្ទៃខាងក្រោយ (`#candlestickBgCanvas`) ត្រូវតែជាទម្រង់ **ដើរទៀនម្ដងមួយៗ (Sequential Candle Walking / Growth)** ដោយទៀននីមួយៗដុះកម្ពស់ពី Open ទៅកាន់ Close/High/Low ម្ដងមួយដើមៗតាមលំដាប់លំដោយ មិនមែនជាបន្ទះរត់ផ្ដេកស្មើគ្នា (Ticker stream) ឡើយ។
+- **គាំទ្រអេក្រង់កុំព្យូទ័រគ្រប់ទំហំ (Full Screen 100% Width on Large Monitors)**:
+  - ត្រូវគណនាចំនួនទៀនស្វ័យប្រវត្តិតាមទទឹងជាក់ស្តែងនៃអេក្រង់ (`Math.ceil(width / candleSpacing) + 4`) ដើម្បីឱ្យទៀនដើរលាតសន្ធឹងពេញផ្ទៃពីឆ្វេងរហូតដល់ផុតគែមស្តាំ មិនថានៅលើទូរស័ព្ទដៃ ឬអេក្រង់កុំព្យូទ័រធំៗ (1080p, 2K, 4K Ultrawide) ឡើយ។
+- **ដំណើរការវិលជុំមិនចេះចប់ (Infinite Full-Width Loop)**:
+  - ពេលទៀនដើរពេញអេក្រង់ដល់គែមស្តាំ ត្រូវផ្អាក ២ វិនាទី រួចកំណត់ឡើងវិញ (`activeIndex = 0`) ដើម្បីចាប់ផ្តើមដើររៀបក្បួនជាថ្មីជានិច្ច ឥតចេះចប់ឡើយ។
+
+
 
 
 
