@@ -3448,11 +3448,12 @@
         </div>
       </div>
 
-      <!-- 🎯 SINGLE PROMINENT AI SIGNAL ACTION BUTTON (អាចប្រើប្រាស់ Signal នេះបាន / រង់ចាំ Signal ថ្មី) -->
+      <!-- 🎯 SINGLE PROMINENT AI SIGNAL ACTION BUTTON (អាចប្រើប្រាស់ Signal នេះបាន / មិនអាចប្រើប្រាស់ Signal នេះបានទេ) -->
       <div id="signalActionBtn" class="signal-action-btn waiting" onclick="handleSignalActionClick()">
-        <span class="btn-pulse-dot" id="signalActionBeacon"></span>
-        <span id="signalActionIcon" style="font-size: 15px; display: none;"></span>
-        <span id="signalActionText">រង់ចាំ SIGNAL ថ្មី</span>
+        <span class="btn-pulse-dot" id="signalActionBeacon" style="display: none;"></span>
+        <span id="signalActionIcon" style="font-size: 15px; display: inline-block;">🔒</span>
+        <span id="signalActionText">🔒 មិនអាចប្រើប្រាស់ Signal នេះបានទេ (រង់ចាំ Signal ថ្មី)</span>
+        <span id="signalActionTag" class="cyber-btn-tag">CLOSED</span>
       </div>
 
       <!-- 🧠 AI CONFLUENCE MATRIX METER (Ultra-Sleek Institutional HUD) -->
@@ -5315,29 +5316,23 @@
       const eH = Number(display.entryHigh || display.entryLow);
       const eL = Number(display.entryLow || display.entryHigh);
       if (display.action === 'SELL') {
-        // For SELL: SL MUST strictly be ABOVE entry (eH + 8 ~ 10). TP MUST strictly be BELOW entry!
-        if (display.sl <= eH || display.sl > eH + 12.0 || display.sl < eH + 7.0) {
+        const minSL = Number((eH + 8.0).toFixed(2));
+        const maxSL = Number((eH + 12.0).toFixed(2));
+        if (display.sl <= eH || display.sl > maxSL || display.sl < minSL) {
           display.sl = Number((eH + 10.0).toFixed(2));
-          display.tp1 = Number((eL - 15.0).toFixed(2));
-          display.tp2 = Number((eL - 25.0).toFixed(2));
-          display.tp3 = Number((eL - 37.0).toFixed(2));
-        } else {
-          if (!display.tp1 || display.tp1 >= eL) display.tp1 = Number((eL - 15.0).toFixed(2));
-          if (!display.tp2 || display.tp2 >= display.tp1) display.tp2 = Number((eL - 25.0).toFixed(2));
-          if (!display.tp3 || display.tp3 >= display.tp2) display.tp3 = Number((eL - 37.0).toFixed(2));
         }
+        if (!display.tp1 || display.tp1 >= eL) display.tp1 = Number((eL - 15.0).toFixed(2));
+        if (!display.tp2 || display.tp2 >= display.tp1) display.tp2 = Number((eL - 25.0).toFixed(2));
+        if (!display.tp3 || display.tp3 >= display.tp2) display.tp3 = Number((eL - 37.0).toFixed(2));
       } else if (display.action === 'BUY') {
-        // For BUY: SL MUST strictly be BELOW entry (eL - 8 ~ 10). TP MUST strictly be ABOVE entry!
-        if (display.sl >= eL || display.sl < eL - 12.0 || display.sl > eL - 7.0) {
+        const minSL = Number((eL - 12.0).toFixed(2));
+        const maxSL = Number((eL - 8.0).toFixed(2));
+        if (display.sl >= eL || display.sl < minSL || display.sl > maxSL) {
           display.sl = Number((eL - 10.0).toFixed(2));
-          display.tp1 = Number((eH + 15.0).toFixed(2));
-          display.tp2 = Number((eH + 25.0).toFixed(2));
-          display.tp3 = Number((eH + 37.0).toFixed(2));
-        } else {
-          if (!display.tp1 || display.tp1 <= eH) display.tp1 = Number((eH + 15.0).toFixed(2));
-          if (!display.tp2 || display.tp2 <= display.tp1) display.tp2 = Number((eH + 25.0).toFixed(2));
-          if (!display.tp3 || display.tp3 <= display.tp2) display.tp3 = Number((eH + 37.0).toFixed(2));
         }
+        if (!display.tp1 || display.tp1 <= eH) display.tp1 = Number((eH + 15.0).toFixed(2));
+        if (!display.tp2 || display.tp2 <= display.tp1) display.tp2 = Number((eH + 25.0).toFixed(2));
+        if (!display.tp3 || display.tp3 <= display.tp2) display.tp3 = Number((eH + 37.0).toFixed(2));
       }
     }
 
@@ -5976,9 +5971,8 @@
         const sl = staticSignalSetup.sl.toFixed(2);
         const tp1 = staticSignalSetup.tp1.toFixed(2);
         const tp2 = staticSignalSetup.tp2.toFixed(2);
-        const tp3 = (staticSignalSetup.tp3 || Number((Number(entryHigh) + 35.0).toFixed(2))).toFixed(2);
-        const elTP3 = document.getElementById('smcTP3');
-        if (elTP3) elTP3.innerText = `$${Number(tp3).toFixed(2)}`;
+        const tp3 = (staticSignalSetup.tp3 && Number(staticSignalSetup.tp3) > Number(entryHigh) ? staticSignalSetup.tp3 : Number((Number(entryHigh) + 35.0).toFixed(2))).toFixed(2);
+        // Note: Box values are rendered exclusively by renderInstitutionalSignalBoxes to ensure frozen state
         const inZone = (price >= Number(entryLow) && price <= Number(entryHigh));
         const execBadge = document.getElementById('smcExecBadge');
         const execDot = document.getElementById('smcExecDot');
@@ -6251,8 +6245,7 @@
         const tp1 = staticSignalSetup.tp1.toFixed(2);
         const tp2 = staticSignalSetup.tp2.toFixed(2);
         const tp3 = (staticSignalSetup.tp3 && Number(staticSignalSetup.tp3) < Number(entryLow) ? staticSignalSetup.tp3 : Number((Number(entryLow) - 35.0).toFixed(2))).toFixed(2);
-        const elTP3 = document.getElementById('smcTP3');
-        if (elTP3) elTP3.innerText = `$${Number(tp3).toFixed(2)}`;
+        // Note: Box values are rendered exclusively by renderInstitutionalSignalBoxes to ensure frozen state
         const inZone = (price >= Number(entryLow) && price <= Number(entryHigh));
 
         // ======================================================================
@@ -7632,6 +7625,18 @@
     initHighImpactNewsCountdown();
     initCandlestickMotionBackground();
     renderInstitutionalSignalBoxes();
+
+    // Instant Startup UI Lock: Ensure button shows CLOSED / NOT USABLE state immediately on startup
+    const initActionBtn = document.getElementById('signalActionBtn');
+    const initActionText = document.getElementById('signalActionText');
+    const initActionTag = document.getElementById('signalActionTag');
+    const initActionBeacon = document.getElementById('signalActionBeacon');
+    const initActionIcon = document.getElementById('signalActionIcon');
+    if (initActionBtn) initActionBtn.className = 'signal-action-btn waiting';
+    if (initActionBeacon) initActionBeacon.style.display = 'none';
+    if (initActionIcon) { initActionIcon.innerText = '🔒'; initActionIcon.style.display = 'inline-block'; }
+    if (initActionText) initActionText.innerText = '🔒 មិនអាចប្រើប្រាស់ Signal នេះបានទេ (រង់ចាំ Signal ថ្មី)';
+    if (initActionTag) { initActionTag.innerText = 'CLOSED'; initActionTag.className = 'cyber-btn-tag'; }
   </script>
 </body>
 </html>
