@@ -30,7 +30,9 @@ This repository is governed by the 5 Golden Principles established by the system
 - Only Grade A+ setups with Institutional Safety Index >= 70% are approved for execution.
 
 ### 4. 🛡️ គោរពតាមគោលការណ៍ (Strict Protocol Compliance)
-- Daily signal limit: Maximum 3 to 5 signals per day; strict trading cutoff at 10:00 PM Cambodia Time (UTC+7).
+- **កាលវិភាគបញ្ចេញ Signal និងកម្រិតកំណត់ (Signal Operating Hours & Daily Limit):**
+  - ម៉ោងដំណើរការ Signal: **ចាប់ពីម៉ោង ៧:០០ ព្រឹក ដល់ម៉ោង ១១:០០ យប់** (Strict 07:00 AM – 11:00 PM Cambodia Time / UTC+7)។ ក្រៅពីម៉ោងនេះ (១១:០០ យប់ ដល់ ៧:០០ ព្រឹក) ហាមបញ្ចេញ Signal ថ្មីជាដាច់ខាត ដើម្បីការពារពី Spread រីកធំ និងទីផ្សារគ្មាន Volume។
+  - កម្រិត Signal ប្រចាំថ្ងៃ: **មិនឱ្យលើសពី ៥ Signal ក្នុងមួយថ្ងៃជាដាច់ខាត (Strictly Maximum 5 Signals Per Day, NEVER exceed 5)** ដើម្បីការពារទុន និងទប់ស្កាត់ Overtrading។
 - Action button waiting text must strictly remain concise: `រង់ចាំ Signal ថ្មី` (no verbose calculations or cluttered descriptions).
 - Channel broadcast: Only dispatch the unified single-bubble package (Interactive Poll + Mini App CTA Button) into the Telegram channel. Raw signal levels are never exposed in plain text on the channel, ensuring users engage via the Mini App.
 
