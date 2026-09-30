@@ -222,7 +222,7 @@ class KhmerFormatter:
     def format_breaking_event_alert(news_item: dict, analysis: dict) -> str:
         """Formats breaking news / major geopolitical or unexpected central bank event alert."""
         source_name = (news_item.get("source") or "ForexLive News").strip()
-        source_line = f'🔗 <i>ប្រភពព័ត៌មាន: {source_name}</i>'
+        source_line = f"ប្រភពព័ត៌មាន: {source_name}"
 
         # Extract comprehensive narrative
         key_event = ""
@@ -265,7 +265,8 @@ class KhmerFormatter:
         msg = (
             f"🚨 <b>BREAKING EVENT — ព្រឹត្តិការណ៍ទីផ្សារប្រចាំថ្ងៃ!</b>\n\n"
             f"🔹 <b>ព្រឹត្តិការណ៍សំខាន់:</b>\n"
-            f"{key_event}"
+            f"{key_event}\n\n"
+            f"{source_line}"
         )
         return msg.strip()
 
