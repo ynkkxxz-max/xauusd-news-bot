@@ -1039,11 +1039,13 @@
     }
 
     .mtf-khmer-box .expl-item {
-      margin-bottom: 6px;
-      display: flex;
-      align-items: baseline;
-      gap: 6px;
+      display: block;
+      position: relative;
+      padding-left: 16px;
+      margin-bottom: 9px;
       font-size: 12.5px;
+      line-height: 1.7;
+      text-align: left;
     }
 
     .mtf-khmer-box .expl-item:last-child {
@@ -1051,11 +1053,13 @@
     }
 
     .mtf-khmer-box .expl-dot {
+      position: absolute;
+      left: 0;
+      top: -1px;
       color: #00F0FF;
-      font-size: 14px;
-      line-height: 1;
+      font-size: 15px;
       text-shadow: 0 0 8px #00F0FF;
-      flex-shrink: 0;
+      user-select: none;
     }
 
     .mtf-khmer-box .expl-tag {
@@ -1065,8 +1069,8 @@
       color: #00F0FF;
       text-shadow: 0 0 8px rgba(0, 240, 255, 0.65);
       letter-spacing: 0.3px;
-      white-space: nowrap;
-      flex-shrink: 0;
+      margin-right: 6px;
+      display: inline;
     }
 
     .mtf-khmer-box .expl-price {
@@ -1074,13 +1078,16 @@
       color: #FFD700;
       font-weight: 800;
       text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+      display: inline;
     }
 
     .mtf-khmer-box .expl-text {
       color: #F1F5F9;
       font-size: 12.5px;
       letter-spacing: 0.1px;
-      text-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+      text-shadow: 0 0 6px rgba(255, 255, 255, 0.15);
+      font-family: 'Kantumruy Pro', sans-serif;
+      display: inline;
     }
 
     /* Futuristic AI SMC Quantum Execution Protocol Header */
@@ -2855,50 +2862,6 @@
         </div>
       </div>
 
-      <!-- 🧠 AI CONFLUENCE MATRIX METER (Ultra-Sleek Institutional HUD) -->
-      <div class="matrix-card">
-        <div class="matrix-header">
-          <div class="matrix-title">
-            <span class="matrix-radar-pulse"></span>
-            <span>AI SAFETY MATRIX</span>
-          </div>
-          <div class="matrix-score-badge" id="matrixScoreBadge">70%</div>
-        </div>
-
-        <!-- Sleek Laser Meter Track -->
-        <div class="matrix-meter-track">
-          <div class="matrix-meter-fill" id="matrixMeterFill" style="width: 70%;"></div>
-        </div>
-
-        <!-- 6 Institutional Factors Breakdown (Zero Overflow) -->
-        <div class="matrix-checklist-grid">
-          <div class="matrix-check-item passed" id="matrixCheckSMC">
-            <div class="matrix-item-left"><span class="matrix-dot active"></span><span>SMC Structure</span></div>
-            <span class="matrix-pts active">+20%</span>
-          </div>
-          <div class="matrix-check-item" id="matrixCheckOTE">
-            <div class="matrix-item-left"><span class="matrix-dot"></span><span>OTE Fib 0.618</span></div>
-            <span class="matrix-pts">0%</span>
-          </div>
-          <div class="matrix-check-item passed" id="matrixCheckCVD">
-            <div class="matrix-item-left"><span class="matrix-dot active"></span><span>CVD Whale Flow</span></div>
-            <span class="matrix-pts active">+20%</span>
-          </div>
-          <div class="matrix-check-item passed" id="matrixCheckDepth">
-            <div class="matrix-item-left"><span class="matrix-dot active"></span><span>Iceberg Wall</span></div>
-            <span class="matrix-pts active">+15%</span>
-          </div>
-          <div class="matrix-check-item passed" id="matrixCheckDXY">
-            <div class="matrix-item-left"><span class="matrix-dot active"></span><span>Sweep / FVG</span></div>
-            <span class="matrix-pts active">+15%</span>
-          </div>
-          <div class="matrix-check-item" id="matrixCheckKillzone">
-            <div class="matrix-item-left"><span class="matrix-dot"></span><span>Session Killzone</span></div>
-            <span class="matrix-pts">0%</span>
-          </div>
-        </div>
-      </div>
-
       <!-- Ultra-Modern Metallic Cyber Steel Header with Glowing Neon Light -->
       <div class="smc-protocol-divider">
         <span class="smc-divider-line"></span>
@@ -2951,6 +2914,50 @@
         <span id="signalActionText">រង់ចាំ SIGNAL ថ្មី</span>
       </div>
 
+      <!-- 🧠 AI CONFLUENCE MATRIX METER (Ultra-Sleek Institutional HUD) -->
+      <div class="matrix-card">
+        <div class="matrix-header">
+          <div class="matrix-title">
+            <span class="matrix-radar-pulse"></span>
+            <span>AI SAFETY MATRIX</span>
+          </div>
+          <div class="matrix-score-badge" id="matrixScoreBadge">70%</div>
+        </div>
+
+        <!-- Sleek Laser Meter Track -->
+        <div class="matrix-meter-track">
+          <div class="matrix-meter-fill" id="matrixMeterFill" style="width: 70%;"></div>
+        </div>
+
+        <!-- 6 Institutional Factors Breakdown (Zero Overflow) -->
+        <div class="matrix-checklist-grid">
+          <div class="matrix-check-item passed" id="matrixCheckSMC">
+            <div class="matrix-item-left"><span class="matrix-dot active"></span><span>SMC Structure</span></div>
+            <span class="matrix-pts active">+20%</span>
+          </div>
+          <div class="matrix-check-item" id="matrixCheckOTE">
+            <div class="matrix-item-left"><span class="matrix-dot"></span><span>OTE Fib 0.618</span></div>
+            <span class="matrix-pts">0%</span>
+          </div>
+          <div class="matrix-check-item passed" id="matrixCheckCVD">
+            <div class="matrix-item-left"><span class="matrix-dot active"></span><span>CVD Whale Flow</span></div>
+            <span class="matrix-pts active">+20%</span>
+          </div>
+          <div class="matrix-check-item passed" id="matrixCheckDepth">
+            <div class="matrix-item-left"><span class="matrix-dot active"></span><span>Iceberg Wall</span></div>
+            <span class="matrix-pts active">+15%</span>
+          </div>
+          <div class="matrix-check-item passed" id="matrixCheckDXY">
+            <div class="matrix-item-left"><span class="matrix-dot active"></span><span>Sweep / FVG</span></div>
+            <span class="matrix-pts active">+15%</span>
+          </div>
+          <div class="matrix-check-item" id="matrixCheckKillzone">
+            <div class="matrix-item-left"><span class="matrix-dot"></span><span>Session Killzone</span></div>
+            <span class="matrix-pts">0%</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Advanced Institutional Confluence Engine (Positioned Elegantly Below Levels) -->
       <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
         <div style="font-size: 11px; font-weight: 800; color: var(--gold); margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
@@ -2969,10 +2976,10 @@
         <!-- Easy Khmer Explanations of Confluences (Enlarged & Glowing) -->
         <div class="mtf-khmer-box" id="mtfKhmerExpl">
           <div class="expl-title">💡 <span>ការពន្យល់បច្ចេកទេស AI SMC:</span></div>
-          <div class="expl-item"><span class="expl-dot">•</span> <b class="expl-tag">Trend H1 & M15:</b> <span class="expl-text">ផ្ទៀងផ្ទាត់ទិសដៅចរន្តសាច់ប្រាក់ធំ កុំឱ្យវាយបញ្ច្រាសរថភ្លើង។</span></div>
-          <div class="expl-item"><span class="expl-dot">•</span> <b class="expl-tag">Sweep:</b> <span class="expl-text">ស្ថាប័នធំៗបានបោកបញ្ឆោតស៊ី SL Trader រួចហើយ ធានាសុវត្ថិភាពខ្ពស់។</span></div>
-          <div class="expl-item"><span class="expl-dot">•</span> <b class="expl-tag">FVG:</b> <span class="expl-text">តំបន់ចន្លោះតម្លៃគ្មានតុល្យភាព ដែលស្ថាប័នចូលប្រមូល Order បន្ថែម។</span></div>
-          <div class="expl-item"><span class="expl-dot">•</span> <b class="expl-tag">Killzone:</b> <span class="expl-text">ស្ថិតក្នុងម៉ោងស្ថាប័នធំៗជួញដូរ មាន Volume ខ្លាំង ងាយរត់ដល់ TP1/TP2 ឆាប់រហ័ស!</span></div>
+          <div class="expl-item"><span class="expl-dot">•</span><span class="expl-tag">Trend H1 & M15:</span><span class="expl-text">ផ្ទៀងផ្ទាត់ទិសដៅចរន្តសាច់ប្រាក់ស្ថាប័នធំ ដើម្បីជៀសវាងការចូលបញ្ច្រាសទិសដៅទីផ្សារ។</span></div>
+          <div class="expl-item"><span class="expl-dot">•</span><span class="expl-tag">Sweep:</span><span class="expl-text">ស្ថាប័នធំបានជម្រះ Stop Loss (Liquidity Hunt) រួចរាល់ ធានាសុវត្ថិភាពខ្ពស់ក្នុងការចូលទីផ្សារ។</span></div>
+          <div class="expl-item"><span class="expl-dot">•</span><span class="expl-tag">FVG:</span><span class="expl-text">តំបន់ចន្លោះតម្លៃអតុល្យភាព (Fair Value Gap) ជាទីតាំងស្ថាប័នចូលប្រមូល Order បន្ថែម។</span></div>
+          <div class="expl-item"><span class="expl-dot">•</span><span class="expl-tag">Killzone:</span><span class="expl-text">ស្ថិតក្នុងម៉ោងជួញដូរស្ថាប័នធំ (High Volume) ងាយស្រួលសម្រេចគោលដៅ TP ឆាប់រហ័ស។</span></div>
         </div>
       </div>
     </div>
@@ -4979,10 +4986,10 @@
       if (mtfExplEl) {
         mtfExplEl.innerHTML = `
           <div class="expl-title">💡 <span>ការពន្យល់បច្ចេកទេស AI SMC:</span></div>
-          <div class="expl-item"><span class="expl-dot">•</span> <b class="expl-tag">Trend H1 & M15:</b> <span class="expl-text">ផ្ទៀងផ្ទាត់ទិសដៅចរន្តសាច់ប្រាក់ធំ កុំឱ្យវាយបញ្ច្រាសរថភ្លើង។</span></div>
-          <div class="expl-item"><span class="expl-dot">•</span> <b class="expl-tag">Sweep (<span class="expl-price">$${sweepTargetPrice.toFixed(2)}</span>):</b> <span class="expl-text">ស្ថាប័នធំៗបានបោកបញ្ឆោតស៊ី SL Trader រួចហើយ ធានាសុវត្ថិភាពខ្ពស់។</span></div>
-          <div class="expl-item"><span class="expl-dot">•</span> <b class="expl-tag">FVG (<span class="expl-price">$${fvgLowPrice.toFixed(2)} - $${fvgHighPrice.toFixed(2)}</span>):</b> <span class="expl-text">តំបន់ចន្លោះតម្លៃគ្មានតុល្យភាព ដែលស្ថាប័នចូលប្រមូល Order បន្ថែម។</span></div>
-          <div class="expl-item"><span class="expl-dot">•</span> <b class="expl-tag">Killzone:</b> <span class="expl-text">${isKillzone ? 'ស្ថិតក្នុងម៉ោងមាសស្ថាប័នធំៗកំពុងប្រតិបត្តិការ (Volume ខ្លាំង)' : 'ក្រៅម៉ោង Killzone ទីផ្សារអាចដើរយឺត ឬ Sideway បន្តិច'}។</span></div>
+          <div class="expl-item"><span class="expl-dot">•</span><span class="expl-tag">Trend H1 & M15:</span><span class="expl-text">ផ្ទៀងផ្ទាត់ទិសដៅចរន្តសាច់ប្រាក់ស្ថាប័នធំ ដើម្បីជៀសវាងការចូលបញ្ច្រាសទិសដៅទីផ្សារ។</span></div>
+          <div class="expl-item"><span class="expl-dot">•</span><span class="expl-tag">Sweep (<span class="expl-price">$${sweepTargetPrice.toFixed(2)}</span>):</span><span class="expl-text">ស្ថាប័នធំបានជម្រះ Stop Loss (Liquidity Hunt) រួចរាល់ ធានាសុវត្ថិភាពខ្ពស់ក្នុងការចូលទីផ្សារ។</span></div>
+          <div class="expl-item"><span class="expl-dot">•</span><span class="expl-tag">FVG (<span class="expl-price">$${fvgLowPrice.toFixed(2)} - $${fvgHighPrice.toFixed(2)}</span>):</span><span class="expl-text">តំបន់ចន្លោះតម្លៃអតុល្យភាព (Fair Value Gap) ជាទីតាំងស្ថាប័នចូលប្រមូល Order បន្ថែម។</span></div>
+          <div class="expl-item"><span class="expl-dot">•</span><span class="expl-tag">Killzone:</span><span class="expl-text">${isKillzone ? 'ស្ថិតក្នុងម៉ោងជួញដូរស្ថាប័នធំ (High Volume) ងាយស្រួលសម្រេចគោលដៅ TP ឆាប់រហ័ស។' : 'ស្ថិតក្រៅម៉ោង Killzone ចលនាទីផ្សារអាចមានសភាពយឺត ឬ Sideway។'}</span></div>
         `;
       }
 
