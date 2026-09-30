@@ -91,6 +91,17 @@ class GoldNewsFilter:
         Determines whether a piece of news directly or indirectly influences XAUUSD / Financial Markets
         across the 7 Core News Pillars (Geopolitics, Macroeconomics, Fed/Monetary, Energy/Oil, Tech, Policies).
         """
+        clean_title = (title or "").strip()
+        # Strictly reject speculative questions and opinion pieces (e.g. "Is Iran losing leverage... ?")
+        if clean_title.endswith("?"):
+            return False
+        
+        t_low = clean_title.lower()
+        if any(t_low.startswith(p) for p in [
+            "opinion:", "opinion |", "analysis:", "analysis |", "why ", "why is ", "why did ", "could ", "what if ", "here is why "
+        ]):
+            return False
+
         text = f"{title} {description}".lower()
         
         # 1. Explicit Gold mention
