@@ -221,4 +221,23 @@ class TelegramNotifier:
             logger.error(f"[TelegramNotifier] Exception downloading file: {e}")
         return b""
 
+    def is_user_member_of_channel(self, user_id: int, channel_id: str = None) -> bool:
+        """Check if user_id is a member/admin/creator of the official channel."""
+        if not self.is_configured() or not user_id:
+            return True
+        target_channel = str(channel_id or self.chat_id)
+        url = f"{self.base_url}/getChatMember"
+        try:
+            resp = requests.get(url, params={"chat_id": target_channel, "user_id": user_id}, timeout=8)
+            data = resp.json()
+            if data.get("ok"):
+                status = data.get("result", {}).get("status", "")
+                return status in ("creator", "administrator", "member", "restricted")
+            logger.warning(f"[TelegramNotifier] User {user_id} not a member of {target_channel}: {data}")
+            return False
+        except Exception as e:
+            logger.error(f"[TelegramNotifier] Error checking member status: {e}")
+            return True # Fail-open on network error to not block legitimate users
+
+
 
