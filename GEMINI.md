@@ -42,8 +42,9 @@ This repository is governed by the 5 Golden Principles established by the system
 - Built for 24/7 uninterrupted high-reliability operation.
 
 ### 6. 📌 អាទិភាពការងារបច្ចុប្បន្ន (Current Development Priority Directive)
-- **Mini App Update Active**: បន្តការ Update និងកែលម្អលើ Telegram Mini App (`index.html`) ឡើងវិញតាមការណែនាំរបស់អ្នកប្រើប្រាស់។
-- **Bot & Channel Continuous Monitoring**: រក្សាដំណើរការ Bot Engine (`main.py`) ឱ្យដើរស្វ័យប្រវត្តិក្នង Background ដើម្បីបន្តត្រួតពិនិត្យ និងផ្សាយព័ត៌មានលើ Channel ២៤/៧ ដោយរលូន។
+- **Mini App Update Concluded & Stable (បញ្ចប់ការ Update ផ្ទាំង Mini App ជាស្ថាពរ)**: ផ្ទាំង Telegram Mini App (`index.html`) ត្រូវបានចាក់សោរ និងដំណើរការយ៉ាងរលូន ១០០% លើ GitHub Pages (ប៊ូតុង `🔒 CLOSED`, ក្រឡា ២x២, ឈ្មោះពេញ Full Names, និង TP3 គណនាត្រឹមត្រូវ)។ ផ្អាកការកែសម្រួល Mini App ជាបណ្តោះអាសន្ន។
+- **Bot & Channel Development Active (អាទិភាពចម្បងផ្តោតលើ Bot Channel ទាំងស្រុង)**: បង្វែរការយកចិត្តទុកដាក់ និងការងារទាំងអស់មកផ្តោតលើ Bot Engine (`main.py`) សម្រាប់ការផ្សាយព័ត៌មានទាន់ហេតុការណ៍ (៧ វិស័យស្នូល), ហាងឆេងមាស ៧ ព្រឹក, ការបញ្ជូន Poll និងសារចូល Channel ឱ្យដើរស្វ័យប្រវត្តិកម្រិតកំពូល ២៤/៧។
+
 
 ### 7. 🥇 ស្តង់ដារផ្សាយហាងឆេងមាសប្រចាំថ្ងៃ (Daily Gold Price Broadcast Standard)
 - **កាលវិភាគម៉ោង ៧:០០ ព្រឹក (Strict 07:00 AM, Once Per Day)**:
