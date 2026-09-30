@@ -1434,25 +1434,15 @@ class XAUUSDNewsAssistantBot:
             return
         msg = KhmerFormatter.format_breaking_event_alert(item, analysis)
 
-        article_url = (item.get("link") or item.get("url") or "").strip()
-        source_name = (item.get("source") or "ForexLive").strip()
-        news_button = None
-        if article_url:
-            news_button = {
-                "inline_keyboard": [
-                    [{"text": f"🔗 អានព័ត៌មានលម្អិត ({source_name})", "url": article_url}]
-                ]
-            }
-
         photo = self._fetch_news_image(item)
         if photo:
             # If caption exceeds Telegram's 1024 char limit, trim safely keeping HTML tags valid
             caption_text = self._truncate_html_caption(msg, max_visible_chars=950)
-            res = self.notifier.send_photo(photo, caption=caption_text, reply_markup=news_button)
+            res = self.notifier.send_photo(photo, caption=caption_text)
             sent_ok = bool(res.get("ok"))
         else:
             # If no genuine photo is available, send as clean text message (Strictly NEVER send random images)
-            res = self.notifier.send_message(msg, reply_markup=news_button)
+            res = self.notifier.send_message(msg)
             sent_ok = bool(res.get("ok"))
 
         if sent_ok:
