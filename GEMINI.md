@@ -91,7 +91,10 @@ This repository is governed by the 5 Golden Principles established by the system
 - **រូបភាពពិតប្រាកដ ១០០% ពីអត្ថបទ (Genuine Article Image Only — Zero Mismatch)**:
   - រូបភាពដែលត្រូវភ្ជាប់មកជាមួយ ត្រូវតែជារូបភាពពិតប្រាកដដែលទាញចេញផ្ទាល់ពី Article នៃសារព័ត៌មាននោះ (`og:image` / `twitter:image`) តែប៉ុណ្ណោះ។
   - **ហាមដាច់ខាត** ការទាញយករូបភាពពី Link ប្រភេទ Category/Section Pages (ដូចជា `/world`, `/news`, `/politics`, `/markets`) ឬរូប Logo (Google News logo, វេបសាយ icon) ឬរូបភាពដែលមិនត្រូវនឹងសាច់រឿង (ដូចជារូបឡើងភ្នំព្រិលលើរឿង Trump/Iran)។
-  - ប្រសិនបើព័ត៌មាននោះគ្មានរូបភាពពិត ឬមិនប្រាកដថាទាក់ទងនឹងសាច់រឿង ១០០% ទេ ត្រូវផ្ញើជា **Plain Text Message ស្អាតជានិច្ច** ជាមួយ Link និង Button អានបន្ថែម ដោយមិនយករូបភាពបន្លំ ឬរូបភាពដែលមិនត្រូវសាច់រឿងមកបង្ហោះឡើយ។
+  - ប្រសិនបើព័ត៌មាននោះគ្មានរូបភាពពិត ឬមិនប្រាកដថាទាក់ទងនឹងសាច់រឿង ១០០% ទេ ត្រូវផ្ញើជា **Plain Text Message ស្អាតជានិច្ច** ដោយមិនយករូបភាពបន្លំ ឬរូបភាពដែលមិនត្រូវសាច់រឿងមកបង្ហោះឡើយ។
+- **ឈប់ប្រើប្រាស់ប៊ូតុង Link ខាងក្រោមជាអចិន្ត្រៃយ៍ (Permanently Disable Bottom Link Button & Inline URL)**:
+  - ហាមដាច់ខាតមិនឱ្យភ្ជាប់ប៊ូតុង Inline Keyboard `[🔗 អានព័ត៌មានលម្អិត...]` នៅខាងក្រោមកាតព័ត៌មានឡើយ (`reply_markup=None`)។
+  - ជួរប្រភពព័ត៌មាន ត្រូវដាក់ត្រឹមតែ `🔗 <i>ប្រភពព័ត៌មាន: {source_name}</i>` ជាអក្សរធម្មតា គ្មាន Hyperlink និងគ្មានពាក្យ (ចុចដើម្បីអានបន្ថែម) ឡើយ ដើម្បីរក្សាទម្រង់ស្អាត មិនរញ៉េរញ៉ៃ។
 
 ### 9. 🚫 លុបចោលសាររំញ័រតម្លៃមាស (Disable Volatility Spike Alerts Permanently)
 - មិនត្រូវផ្ញើសារប្រភេទ `🚨 XAUUSD VOLATILITY ALERT — បម្រែបម្រួលតម្លៃមាសខុសប្រក្រតី` (Bullish Spike / Flash Dump) ចូល Channel/Group ឡើយ។
