@@ -1246,7 +1246,7 @@
     /* Hollywood Sci-Fi Tactical Metrics Grid (Clean, Larger Fonts, Zero Cut-off) */
     .smc-metrics-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 8px;
       margin-top: 6px;
       position: relative;
@@ -1257,7 +1257,7 @@
       background: linear-gradient(145deg, rgba(14, 22, 36, 0.88) 0%, rgba(7, 12, 22, 0.96) 100%);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 12px;
-      padding: 10px 10px;
+      padding: 10px 12px;
       text-align: left;
       box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
       position: relative;
@@ -1269,7 +1269,7 @@
     }
 
     .smc-metric-pill.full-width {
-      grid-column: span 3;
+      grid-column: span 2;
       display: flex;
       flex-direction: row;
       align-items: center;
@@ -1284,6 +1284,7 @@
     .smc-metric-pill.sl-card { border-left: 3px solid #FF3366; }
     .smc-metric-pill.tp1-card { border-left: 3px solid #00E676; }
     .smc-metric-pill.tp2-card { border-left: 3px solid #FFD700; }
+    .smc-metric-pill.tp3-card { border-left: 3px solid #A855F7; }
 
     .smc-pill-label {
       font-size: 9px;
@@ -1335,6 +1336,7 @@
     .smc-pill-value.ruby { color: #FF3366; text-shadow: 0 0 12px rgba(255, 51, 102, 0.6); }
     .smc-pill-value.emerald { color: #00E676; text-shadow: 0 0 12px rgba(0, 230, 118, 0.6); }
     .smc-pill-value.gold { color: #FFD700; text-shadow: 0 0 12px rgba(255, 215, 0, 0.6); }
+    .smc-pill-value.purple { color: #C084FC; text-shadow: 0 0 12px rgba(168, 85, 247, 0.6); }
 
     /* Clean Luxury AI Signal Decision Button */
     .signal-action-btn {
@@ -3415,7 +3417,7 @@
           <div class="smc-pill-value cyan" id="smcEntry">$4132.94 - $4135.94</div>
         </div>
 
-        <!-- 3 Tactical Protection & Profit Pillars (Orbitron Digital Font, Clean & Spaced Out) -->
+        <!-- 4 Tactical Protection & Profit Pillars (2x2 Balanced Grid: SL, TP 1, TP 2, TP 3) -->
         <div class="smc-metric-pill sl-card">
           <div class="smc-pill-label">
             <span class="smc-card-dot" style="background: #FF3366; box-shadow: 0 0 8px #FF3366;"></span>
@@ -3436,6 +3438,13 @@
             <span>TP 2</span>
           </div>
           <div class="smc-pill-value gold" id="smcTP2">$4107.94</div>
+        </div>
+        <div class="smc-metric-pill tp3-card">
+          <div class="smc-pill-label">
+            <span class="smc-card-dot" style="background: #A855F7; box-shadow: 0 0 8px #A855F7;"></span>
+            <span>TP 3</span>
+          </div>
+          <div class="smc-pill-value purple" id="smcTP3">$4095.94</div>
         </div>
       </div>
 
@@ -4795,8 +4804,9 @@
       const sl = document.getElementById('smcSL') ? document.getElementById('smcSL').innerText : '--';
       const tp1 = document.getElementById('smcTP1') ? document.getElementById('smcTP1').innerText : '--';
       const tp2 = document.getElementById('smcTP2') ? document.getElementById('smcTP2').innerText : '--';
+      const tp3 = document.getElementById('smcTP3') ? document.getElementById('smcTP3').innerText : '--';
 
-      const signalText = `⚡ XAU/USD INSTITUTIONAL SMC SETUP ⚡\n🎯 Entry: ${entry}\n🛑 SL: ${sl}\n🎯 TP1: ${tp1}\n🏆 TP2: ${tp2}`;
+      const signalText = `⚡ XAU/USD INSTITUTIONAL SMC SETUP ⚡\n🎯 Entry: ${entry}\n🛑 SL: ${sl}\n🎯 TP1: ${tp1}\n🏆 TP2: ${tp2}\n🚀 TP3: ${tp3}`;
       
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(signalText).then(() => {
@@ -4914,6 +4924,7 @@
       sl: 0,
       tp1: 0,
       tp2: 0,
+      tp3: 0,
       lastCalculated: 0,
       anchorWaveHigh: 0,
       anchorWaveLow: 0
@@ -5272,7 +5283,8 @@
           entryHigh: staticSignalSetup.entryHigh,
           sl: staticSignalSetup.sl,
           tp1: staticSignalSetup.tp1,
-          tp2: staticSignalSetup.tp2
+          tp2: staticSignalSetup.tp2,
+          tp3: staticSignalSetup.tp3
         };
       } else if (expAct === 'BUY') {
         display = {
@@ -5281,7 +5293,8 @@
           entryHigh: 4129.18,
           sl: 4118.18,
           tp1: 4141.18,
-          tp2: 4149.18
+          tp2: 4149.18,
+          tp3: 4158.18
         };
       } else {
         display = {
@@ -5290,7 +5303,8 @@
           entryHigh: 4135.94,
           sl: 4145.94,
           tp1: 4117.94,
-          tp2: 4107.94
+          tp2: 4107.94,
+          tp3: 4095.94
         };
       }
       try { localStorage.setItem('ai_confirmed_display_signal', JSON.stringify(display)); } catch(e){}
@@ -5306,6 +5320,9 @@
           display.sl = Number((eH + 10.0).toFixed(2));
           display.tp1 = Number((eL - 15.0).toFixed(2));
           display.tp2 = Number((eL - 25.0).toFixed(2));
+          display.tp3 = Number((eL - 37.0).toFixed(2));
+        } else if (!display.tp3) {
+          display.tp3 = Number((eL - 37.0).toFixed(2));
         }
       } else if (display.action === 'BUY') {
         // For BUY: SL MUST strictly be BELOW entry (eL - 8 ~ 10). TP MUST strictly be ABOVE entry!
@@ -5313,6 +5330,9 @@
           display.sl = Number((eL - 10.0).toFixed(2));
           display.tp1 = Number((eH + 15.0).toFixed(2));
           display.tp2 = Number((eH + 25.0).toFixed(2));
+          display.tp3 = Number((eH + 37.0).toFixed(2));
+        } else if (!display.tp3) {
+          display.tp3 = Number((eH + 37.0).toFixed(2));
         }
       }
     }
@@ -5322,12 +5342,14 @@
     const elSL = document.getElementById('smcSL');
     const elTP1 = document.getElementById('smcTP1');
     const elTP2 = document.getElementById('smcTP2');
+    const elTP3 = document.getElementById('smcTP3');
 
     // Strict No-Comma Rule per user instruction: Only use dot (.) without commas (,)
     if (elEntry) elEntry.innerText = `$${Number(display.entryLow).toFixed(2)} - $${Number(display.entryHigh).toFixed(2)}`;
     if (elSL) elSL.innerText = `$${Number(display.sl).toFixed(2)}`;
     if (elTP1) elTP1.innerText = `$${Number(display.tp1).toFixed(2)} BE`;
     if (elTP2) elTP2.innerText = `$${Number(display.tp2).toFixed(2)}`;
+    if (elTP3 && display.tp3) elTP3.innerText = `$${Number(display.tp3).toFixed(2)}`;
 
     // Sync Glassmorphic TradingView Overlay lines
     const tvEntryEl = document.getElementById('tvChartEntry');
@@ -5929,6 +5951,7 @@
           const risk = slDist;
           const tp1Val = Number((eHigh + (risk * 1.5)).toFixed(2));
           const tp2Val = Number((eHigh + (risk * 2.5)).toFixed(2));
+          const tp3Val = Number((eHigh + (risk * 3.8)).toFixed(2));
 
           staticSignalSetup = {
             direction: 'BULLISH',
@@ -5937,6 +5960,7 @@
             sl: slVal,
             tp1: tp1Val,
             tp2: tp2Val,
+            tp3: tp3Val,
             lastCalculated: nowTs,
             anchorWaveHigh: waveHigh,
             anchorWaveLow: waveLow
@@ -5948,6 +5972,9 @@
         const sl = staticSignalSetup.sl.toFixed(2);
         const tp1 = staticSignalSetup.tp1.toFixed(2);
         const tp2 = staticSignalSetup.tp2.toFixed(2);
+        const tp3 = (staticSignalSetup.tp3 || Number((Number(entryHigh) + 35.0).toFixed(2))).toFixed(2);
+        const elTP3 = document.getElementById('smcTP3');
+        if (elTP3) elTP3.innerText = `$${Number(tp3).toFixed(2)}`;
         const inZone = (price >= Number(entryLow) && price <= Number(entryHigh));
         const execBadge = document.getElementById('smcExecBadge');
         const execDot = document.getElementById('smcExecDot');
@@ -6150,7 +6177,7 @@
             tvHeroStatusEl.innerText = '🟢 DISCOUNT BUY';
           }
         }
-        updateSignalActionButton(true, inZone, matrixScore, entryLow, entryHigh, sl, tp1, tp2, price, h1Bias, m15Structure, m5Trigger);
+        updateSignalActionButton(true, inZone, matrixScore, entryLow, entryHigh, sl, tp1, tp2, tp3, price, h1Bias, m15Structure, m5Trigger);
       } else {
         // SELL MODE (BEARISH)
         if (hero) hero.classList.remove('bullish');
@@ -6198,6 +6225,7 @@
           const risk = slDist;
           const tp1Val = Number((eLow - (risk * 1.5)).toFixed(2));
           const tp2Val = Number((eLow - (risk * 2.5)).toFixed(2));
+          const tp3Val = Number((eLow - (risk * 3.8)).toFixed(2));
 
           staticSignalSetup = {
             direction: 'BEARISH',
@@ -6206,6 +6234,7 @@
             sl: slVal,
             tp1: tp1Val,
             tp2: tp2Val,
+            tp3: tp3Val,
             lastCalculated: nowTs,
             anchorWaveHigh: waveHigh,
             anchorWaveLow: waveLow
@@ -6217,6 +6246,9 @@
         const sl = staticSignalSetup.sl.toFixed(2);
         const tp1 = staticSignalSetup.tp1.toFixed(2);
         const tp2 = staticSignalSetup.tp2.toFixed(2);
+        const tp3 = (staticSignalSetup.tp3 || Number((Number(entryLow) - 35.0).toFixed(2))).toFixed(2);
+        const elTP3 = document.getElementById('smcTP3');
+        if (elTP3) elTP3.innerText = `$${Number(tp3).toFixed(2)}`;
         const inZone = (price >= Number(entryLow) && price <= Number(entryHigh));
 
         // ======================================================================
@@ -6415,7 +6447,7 @@
             tvHeroStatusEl.innerText = '🔴 PREMIUM SELL';
           }
         }
-        updateSignalActionButton(false, inZone, matrixScore, entryLow, entryHigh, sl, tp1, tp2, price, h1Bias, m15Structure, m5Trigger);
+        updateSignalActionButton(false, inZone, matrixScore, entryLow, entryHigh, sl, tp1, tp2, tp3, price, h1Bias, m15Structure, m5Trigger);
       }
 
       // Sync Multi-AI Direction Consensus Strip (Clean Minimalist 🟢🔴 HUD)
@@ -6443,7 +6475,7 @@
   // 🛡️ DECISIVE SIGNAL STATE MANAGER (LOCKED SIGNAL PERSISTENCE)
   // "ដាក់ Signal មួយអោយដឹងមួយ — មិនរលាក់រង់ចាំ Signal ថ្មីពេល Signal កំពុងដំណើរការ"
   // ========================================================
-  function updateSignalActionButton(isBuy, inZone, matrixScore, entryLow, entryHigh, sl, tp1, tp2, price, h1Bias = '', m15Structure = '', m5Trigger = '') {
+  function updateSignalActionButton(isBuy, inZone, matrixScore, entryLow, entryHigh, sl, tp1, tp2, tp3, price, h1Bias = '', m15Structure = '', m5Trigger = '') {
     try {
       const now = new Date();
       const todayStr = now.toISOString().slice(0, 10);
@@ -6509,18 +6541,17 @@
 
       // ======================================================================
       // 1. IF ACTIVE SIGNAL IS RUNNING (ACTIVE or HIT_TP1) -> TRACK TO EXACT TP/SL!
-      // Constitutional Rule: "តម្លៃ signal អោយវានៅតម្លៃដដែលមិនផ្លាស់ប្ដូរបន្ទាប់ពីចេញ signal
-      // ដើម្បីកុំអោយអ្នកប្រើប្រាស់ច្រឡំតើខ្ញុំបានប្រើប្រាស់តម្លៃនេះពិតមែនក្នុងការចូលផ្សារពិតជាបានTp or Sl"
       // ======================================================================
-      if (activeSig && (activeSig.status === 'ACTIVE' || activeSig.status === 'HIT_TP1')) {
+      if (activeSig && (activeSig.status === 'ACTIVE' || activeSig.status === 'HIT_TP1' || activeSig.status === 'HIT_TP2')) {
         const isSigBuy = (activeSig.action === 'BUY');
         const isHitSL = isSigBuy ? (price <= activeSig.sl) : (price >= activeSig.sl);
+        const isHitTP3 = activeSig.tp3 ? (isSigBuy ? (price >= activeSig.tp3) : (price <= activeSig.tp3)) : false;
         const isHitTP2 = isSigBuy ? (price >= activeSig.tp2) : (price <= activeSig.tp2);
         const isHitTP1 = isSigBuy ? (price >= activeSig.tp1) : (price <= activeSig.tp1);
 
-        if (isHitTP2) {
-          // Trade hit TP2 -> Max Profit Win!
-          activeSig.status = 'HIT_TP2';
+        if (isHitTP3) {
+          // Trade hit TP3 -> Institutional Runner Target Hit!
+          activeSig.status = 'HIT_TP3';
           activeSig.closedAt = Date.now();
           activeSig.closePrice = price;
           localStorage.setItem('ai_official_signal', JSON.stringify(activeSig));
@@ -6531,7 +6562,32 @@
             icon.innerText = '🏆';
             icon.style.display = 'inline-block';
           }
-          if (text) text.innerText = '🎯 ឈ្នះ HIT TP2 (MAX PROFIT) ✓';
+          if (text) text.innerText = '🎯 ឈ្នះ HIT TP3 (MEGA PROFIT) ✓';
+          btn.dataset.status = 'hit_tp3';
+          renderInstitutionalSignalBoxes(activeSig);
+
+          const execBadge = document.getElementById('smcExecBadge');
+          const execDot = document.getElementById('smcExecDot');
+          const execText = document.getElementById('smcExecText');
+          if (execBadge) execBadge.className = 'smc-exec-badge ready';
+          if (execDot) execDot.innerText = '🏆';
+          if (execText) execText.innerText = `SIGNAL ${activeSig.action} ឈ្នះ HIT TP3 ($${activeSig.tp3})!`;
+          return;
+
+        } else if (isHitTP2) {
+          // Trade hit TP2 -> Max Profit Win!
+          activeSig.status = 'HIT_TP2';
+          activeSig.tp2Reached = true;
+          activeSig.closePrice = price;
+          localStorage.setItem('ai_official_signal', JSON.stringify(activeSig));
+          localStorage.setItem('ai_locked_active_signal', JSON.stringify(activeSig));
+
+          btn.className = 'signal-action-btn ready';
+          if (icon) {
+            icon.innerText = '🎯';
+            icon.style.display = 'inline-block';
+          }
+          if (text) text.innerText = '🎯 ឈ្នះ HIT TP2 (RUNNER ទៅ TP3)';
           btn.dataset.status = 'hit_tp2';
           renderInstitutionalSignalBoxes(activeSig);
 
@@ -6540,7 +6596,7 @@
           const execDot = document.getElementById('smcExecDot');
           const execText = document.getElementById('smcExecText');
           if (execBadge) execBadge.className = 'smc-exec-badge ready';
-          if (execDot) execDot.innerText = '🏆';
+          if (execDot) execDot.innerText = '🎯';
           if (execText) execText.innerText = `SIGNAL ${activeSig.action} ឈ្នះ HIT TP2 ($${activeSig.tp2})!`;
           return;
 
@@ -6727,9 +6783,11 @@
           sl: Number(validSL.toFixed(2)),
           tp1: Number(tp1),
           tp2: Number(tp2),
+          tp3: Number(tp3),
           timestamp: Date.now(),
           status: 'ACTIVE',
           tp1Reached: false,
+          tp2Reached: false,
           safetyScore: matrixScore
         };
 
