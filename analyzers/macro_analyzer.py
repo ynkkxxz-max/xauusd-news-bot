@@ -100,8 +100,23 @@ class MacroAnalyzer:
     @classmethod
     def analyze_breaking_news(cls, title: str, description: str = "") -> dict:
         """Analyzes breaking geopolitical, tech/AI or central bank event for gold impact with full narrative context."""
-        text = f"{title} {description}".lower()
-        full_story = f"{title} — {description}".strip(" —")
+        import re
+        import html
+
+        clean_title = re.sub(r'<[^>]+>', ' ', title or '')
+        clean_title = html.unescape(clean_title)
+        clean_title = re.sub(r'\s+', ' ', clean_title).strip()
+
+        clean_desc = re.sub(r'<[^>]+>', ' ', description or '')
+        clean_desc = html.unescape(clean_desc)
+        clean_desc = re.sub(r'\s+', ' ', clean_desc).strip()
+
+        if clean_desc and clean_desc.lower() != clean_title.lower() and not clean_desc.lower().startswith(clean_title.lower()[:30]):
+            full_story = f"{clean_title} — {clean_desc}"
+        else:
+            full_story = clean_title
+
+        text = f"{clean_title} {clean_desc}".lower()
         
         # 1. Geopolitical Conflict / War / Military Attacks (Strict matching, NOT general economic news)
         geopolitical_words = ["war", "missile", "airstrike", "invasion", "military attack", "strait of hormuz", "red sea attack", "iran strike"]
@@ -123,25 +138,25 @@ class MacroAnalyzer:
             what = f"របាយការណ៍សេដ្ឋកិច្ច និងអតិផរណាអាស៊ី/ចិន៖ {full_story}"
             why = "📊 ការព្យាករណ៍ពីកំណើនសេដ្ឋកិច្ច និងអតិផរណាទាបនៅអាស៊ី/ចិន បង្ហាញពីតម្រូវការទំនិញប្រើប្រាស់ទន់ខ្សោយ ដែលអាចជំរុញឱ្យធនាគារកណ្តាល (PBOC) បន្តបន្ធូរបន្ថយរូបិយវត្ថុ ឬបញ្ចុះអត្រាការប្រាក់បន្ថែម។"
             return {
-                "key_event": f"{what}\n\n{why}\n\n• <b>សម្ពាធលើទីផ្សារមាស (XAUUSD):</b> 🟡 Possible Mixed / Consolidation (ទីផ្សារថ្លឹងថ្លែងរវាងតម្រូវការ Physical Gold និងការបន្ធូរបន្ថយការប្រាក់)",
+                "key_event": f"{what}\n\n{why}",
                 "what_happened": what,
                 "why_it_matters": why,
                 "usd_impact": "កម្លាំងរូបិយប័ណ្ណអាស៊ីអាចទន់ខ្សោយ គាំទ្រឱ្យ USD រក្សាស្ថិរភាព ឬរឹងមាំបន្តិច។",
                 "rate_yield_impact": "ទិន្នផលសញ្ញាបណ្ណសកលអាចប្រឈមសម្ពាធធ្លាក់ចុះដោយសារការធ្លាក់ចុះនៃសម្ពាធអតិផរណា (Disinflationary pressures)។",
-                "xau_pressure": "🟡 Possible Mixed / Consolidation (ទីផ្សារថ្លឹងថ្លែងរវាងតម្រូវការ Physical Gold និងការបន្ធូរបន្ថយការប្រាក់)",
-                "bias": "🟡 Mixed / Unclear"
+                "xau_pressure": "🟡 Neutral / គ្មានផលប៉ះពាល់ផ្ទាល់",
+                "bias": "🟡 Neutral"
             }
         elif any(w in text for w in ["artificial intelligence", "ai", "tech", "nvidia", "super intelligence"]):
             what = f"ការវិវត្តន៍វិស័យបច្ចេកវិទ្យា និង AI៖ {full_story}"
             why = "🟢 នេះជាព័ត៌មានវិជ្ជមាន ដែលបង្ហាញពីការផ្តល់តម្លៃកាន់តែខ្ពស់ទៅលើការអភិវឌ្ឍ សក្តានុពលនៃបច្ចេកវិទ្យាអនាគត និងការជំរុញសន្ទស្សន៍ទីផ្សារហ៊ុន (Tech Rally)។"
             return {
-                "key_event": f"{what}\n\n{why}\n\n• <b>សម្ពាធលើទីផ្សារមាស (XAUUSD):</b> 🟡 Possible Mixed / Consolidation (ទីផ្សារបង្វែរសាច់ប្រាក់មួយចំណែកទៅកាន់វិស័យបច្ចេកវិទ្យា)",
+                "key_event": f"{what}\n\n{why}",
                 "what_happened": what,
                 "why_it_matters": why,
                 "usd_impact": "USD អាចរក្សាស្ថិរភាព ឬរឹងមាំតាមចរន្តវិនិយោគលើភាគហ៊ុនបច្ចេកវិទ្យាអាមេរិក។",
                 "rate_yield_impact": "ជំរុញអារម្មណ៍វិនិយោគិន Risk-On នៅក្នុងទីផ្សារហិរញ្ញវត្ថុ។",
-                "xau_pressure": "🟡 Possible Mixed / Consolidation (ទីផ្សារបង្វែរសាច់ប្រាក់មួយចំណែកទៅកាន់វិស័យបច្ចេកវិទ្យា)",
-                "bias": "🟡 Mixed / Unclear"
+                "xau_pressure": "🟡 Neutral / គ្មានផលប៉ះពាល់ផ្ទាល់",
+                "bias": "🟡 Neutral"
             }
         elif any(w in text for w in ["rate cut", "dovish", "easing"]):
             what = f"សញ្ញានៃការបន្ធូរបន្ថយនយោបាយរូបិយវត្ថុ (Rate Cut/Dovish)៖ {full_story}"
@@ -169,15 +184,15 @@ class MacroAnalyzer:
             }
         else:
             what = f"ព័ត៌មានទីផ្សារទើបទទួលបាន៖ {full_story}"
-            why = "ព័ត៌មាននេះមានសារៈសំខាន់ក្នុងការកំណត់ទិសដៅ និងអារម្មណ៍វិនិយោគិនក្នុងទីផ្សាររយៈពេលខ្លី។"
+            why = "ព័ត៌មាននេះមានសារៈសំខាន់ក្នុងការកំណត់ទិសដៅ និងអារម្មណ៍វិនិយោគិនក្នុងទីផ្សារពិភពលោក។"
             return {
-                "key_event": f"{what}\n\n{why}\n\n• <b>សម្ពាធលើទីផ្សារមាស (XAUUSD):</b> 🟡 Possible Mixed Pressure (រង់ចាំទីផ្សារឆ្លើយតប)",
+                "key_event": f"{what}\n\n{why}",
                 "what_happened": what,
                 "why_it_matters": why,
-                "usd_impact": "កំពុងតាមដានប្រតិកម្មលើសន្ទស្សន៍ DXY។",
-                "rate_yield_impact": "តាមដានទិន្នផល US 10-Year Treasury Yields។",
-                "xau_pressure": "🟡 Possible Mixed Pressure (រង់ចាំទីផ្សារឆ្លើយតប)",
-                "bias": "🟡 Mixed / Unclear"
+                "usd_impact": "កំពុងតាមដានប្រតិកម្មលើទីផ្សារ។",
+                "rate_yield_impact": "តាមដានទិន្នផលសញ្ញាបណ្ណរដ្ឋាភិបាល។",
+                "xau_pressure": "🟡 Neutral / គ្មានផលប៉ះពាល់ផ្ទាល់",
+                "bias": "🟡 Neutral"
             }
 
     @classmethod
