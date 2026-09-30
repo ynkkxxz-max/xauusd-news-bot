@@ -5321,9 +5321,11 @@
         if (display.sl <= eH || display.sl > maxSL || display.sl < minSL) {
           display.sl = Number((eH + 10.0).toFixed(2));
         }
-        if (!display.tp1 || display.tp1 >= eL) display.tp1 = Number((eL - 15.0).toFixed(2));
-        if (!display.tp2 || display.tp2 >= display.tp1) display.tp2 = Number((eL - 25.0).toFixed(2));
-        if (!display.tp3 || display.tp3 >= display.tp2) display.tp3 = Number((eL - 37.0).toFixed(2));
+        if (!display.tp1 || Number(display.tp1) >= eL) display.tp1 = Number((eL - 15.0).toFixed(2));
+        if (!display.tp2 || Number(display.tp2) >= Number(display.tp1)) display.tp2 = Number((eL - 25.0).toFixed(2));
+        if (!display.tp3 || Number(display.tp3) >= Number(display.tp2) || Number(display.tp3) >= eL) {
+          display.tp3 = Number((eL - 37.0).toFixed(2));
+        }
       } else if (display.action === 'BUY') {
         const minSL = Number((eL - 12.0).toFixed(2));
         const maxSL = Number((eL - 8.0).toFixed(2));
@@ -6688,9 +6690,16 @@
           // If Safety Matrix has decayed below 75%, DO NOT ALLOW ENTRY:
           if (matrixScore < 75) {
             btn.className = 'signal-action-btn waiting';
-            if (icon) icon.style.display = 'none';
-            if (text) text.innerText = 'រង់ចាំ Signal ថ្មី (Safety < 75%)';
+            if (icon) {
+              icon.innerText = '🔒';
+              icon.style.display = 'inline-block';
+            }
+            const beacon = document.getElementById('signalActionBeacon');
+            if (beacon) beacon.style.display = 'none';
+            if (text) text.innerText = '🔒 មិនអាចប្រើប្រាស់ Signal នេះបានទេ (រង់ចាំ Signal ថ្មី)';
             btn.dataset.status = 'waiting';
+            const actionTag = document.getElementById('signalActionTag');
+            if (actionTag) { actionTag.innerText = 'CLOSED'; actionTag.className = 'cyber-btn-tag'; }
             renderInstitutionalSignalBoxes(activeSig);
             return;
           }
@@ -6836,10 +6845,12 @@
         icon.innerText = '🔒';
         icon.style.display = 'inline-block';
       }
+      const beacon = document.getElementById('signalActionBeacon');
+      if (beacon) beacon.style.display = 'none';
       if (!isWithinTradingHours) {
-        if (text) text.innerText = '🔒 បិទ SIGNAL — ម៉ោងសម្រាក (បើក 7:00 ព្រឹក - 11:00 យប់)';
+        if (text) text.innerText = '🔒 បិទ SIGNAL (មិនអាចប្រើប្រាស់បានទេ — ម៉ោងសម្រាក)';
       } else if (currentDailyCount >= maxDaily) {
-        if (text) text.innerText = '🔒 បិទ SIGNAL — គ្រប់ចំនួន 5/5 ថ្ងៃនេះហើយ';
+        if (text) text.innerText = '🔒 បិទ SIGNAL (មិនអាចប្រើប្រាស់បានទេ — គ្រប់ 5/5 ថ្ងៃនេះ)';
       } else {
         if (text) text.innerText = '🔒 មិនអាចប្រើប្រាស់ Signal នេះបានទេ (រង់ចាំ Signal ថ្មី)';
       }
@@ -6897,7 +6908,7 @@
           reply_markup: {
             inline_keyboard: [
               [
-                { text: "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", url: "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=132&tab=smc" }
+                { text: "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", url: "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=145&tab=smc" }
               ]
             ]
           }
@@ -7627,6 +7638,14 @@
     renderInstitutionalSignalBoxes();
 
     // Instant Startup UI Lock: Ensure button shows CLOSED / NOT USABLE state immediately on startup
+    try {
+      const savedSignal = JSON.parse(localStorage.getItem('ai_confirmed_display_signal') || 'null');
+      if (savedSignal && savedSignal.action === 'SELL' && (Number(savedSignal.tp3) >= Number(savedSignal.entryLow) || Number(savedSignal.tp3) >= Number(savedSignal.tp2))) {
+        savedSignal.tp3 = Number((Number(savedSignal.entryLow) - 37.0).toFixed(2));
+        localStorage.setItem('ai_confirmed_display_signal', JSON.stringify(savedSignal));
+      }
+    } catch(e) {}
+
     const initActionBtn = document.getElementById('signalActionBtn');
     const initActionText = document.getElementById('signalActionText');
     const initActionTag = document.getElementById('signalActionTag');
