@@ -3,8 +3,14 @@ import datetime
 from pathlib import Path
 from config import DB_PATH
 
+def get_db_connection():
+    conn = sqlite3.connect(str(DB_PATH), timeout=30.0)
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA busy_timeout=30000;")
+    return conn
+
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     # Table for tracking sent events (Economic calendar)
@@ -68,7 +74,7 @@ def init_db():
 def is_event_stage_sent(event_id: str, stage: str, actual_val: str = None) -> bool:
     """Check if specific stage of an event was already sent.
     If stage is 'actual', checks if the actual value has already been recorded."""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     composite_id = f"{event_id}_{stage}"
     
@@ -93,7 +99,7 @@ def is_event_stage_sent(event_id: str, stage: str, actual_val: str = None) -> bo
         return exists
 
 def record_event_stage(event_id: str, event_name: str, currency: str, release_time: str, stage: str, actual_val: str = None, forecast_val: str = None):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     # Use insert or replace keyed by composite identifier
     composite_id = f"{event_id}_{stage}"
@@ -105,7 +111,7 @@ def record_event_stage(event_id: str, event_name: str, currency: str, release_ti
     conn.close()
 
 def is_news_sent(news_id: str) -> bool:
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT 1 FROM sent_news WHERE news_id = ?", (news_id,))
     exists = cursor.fetchone() is not None
@@ -113,7 +119,7 @@ def is_news_sent(news_id: str) -> bool:
     return exists
 
 def record_news_sent(news_id: str, title: str, source: str):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
     INSERT OR IGNORE INTO sent_news (news_id, title, source, sent_at)
@@ -124,7 +130,7 @@ def record_news_sent(news_id: str, title: str, source: str):
 
 def get_recent_news_titles(hours: int = 4) -> list:
     """Returns a list of titles sent in the last N hours for similarity/duplicate checking."""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
     SELECT title FROM sent_news 
@@ -135,7 +141,7 @@ def get_recent_news_titles(hours: int = 4) -> list:
     return [r[0] for r in rows if r[0]]
 
 def is_daily_price_sent(date_str: str) -> bool:
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT 1 FROM daily_price_logs WHERE date_str = ?", (date_str,))
     exists = cursor.fetchone() is not None
@@ -143,7 +149,7 @@ def is_daily_price_sent(date_str: str) -> bool:
     return exists
 
 def record_daily_price_sent(date_str: str, message_id: int = None):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
     INSERT OR REPLACE INTO daily_price_logs (date_str, message_id, sent_at)
@@ -153,7 +159,7 @@ def record_daily_price_sent(date_str: str, message_id: int = None):
     conn.close()
 
 def get_state(key: str):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT value FROM bot_state WHERE key = ?", (key,))
     row = cursor.fetchone()
@@ -161,7 +167,7 @@ def get_state(key: str):
     return row[0] if row else None
 
 def set_state(key: str, value: str):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
     INSERT OR REPLACE INTO bot_state (key, value, updated_at)
@@ -170,12 +176,47 @@ def set_state(key: str, value: str):
     conn.commit()
     conn.close()
 
+def get_daily_signal_count(date_str: str = None) -> int:
+    """
+    Returns the total number of trade signal positions issued for the given date (Cambodia Time, UTC+7).
+    """
+    if not date_str:
+        import pytz
+        cambodia_tz = pytz.timezone("Asia/Phnom_Penh")
+        date_str = datetime.datetime.now(cambodia_tz).strftime("%Y-%m-%d")
+    val = get_state(f"daily_signal_positions_{date_str}")
+    if val is None:
+        val = get_state(f"sniper_signal_count_{date_str}")
+    return int(val or 0)
+
+def increment_daily_signal_count(date_str: str = None) -> int:
+    """
+    Increments and returns the daily signal position count for the date.
+    Strictly synchronizes across all signal modules.
+    """
+    if not date_str:
+        import pytz
+        cambodia_tz = pytz.timezone("Asia/Phnom_Penh")
+        date_str = datetime.datetime.now(cambodia_tz).strftime("%Y-%m-%d")
+    curr = get_daily_signal_count(date_str)
+    new_count = curr + 1
+    set_state(f"daily_signal_positions_{date_str}", str(new_count))
+    set_state(f"sniper_signal_count_{date_str}", str(new_count))
+    return new_count
+
+def can_issue_signal_today(max_signals: int = 5, date_str: str = None) -> bool:
+    """
+    Checks if a new trade signal position can be issued without exceeding max_signals (default: 5).
+    """
+    return get_daily_signal_count(date_str) < max_signals
+
+
 def record_signal_vote(signal_id: str, user_id: int, user_name: str, vote_type: str) -> dict:
     """
     Records or updates user feedback on a signal ('TP' or 'SL').
     Returns dict: {'success': bool, 'is_new': bool, 'tp_count': int, 'sl_count': int}
     """
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     # Check if user already voted
@@ -203,7 +244,7 @@ def record_signal_vote(signal_id: str, user_id: int, user_name: str, vote_type: 
 
 def get_overall_signal_vote_stats() -> dict:
     """Returns all-time win/loss stats voted by users."""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT vote_type, COUNT(*) FROM signal_votes GROUP BY vote_type")
     counts = dict(cursor.fetchall())
@@ -228,7 +269,7 @@ def cleanup_old_records(days: int = 30) -> int:
     Cleans up logs and history older than `days` to keep data.db lightweight and fast.
     Executes SQLite VACUUM to reclaim storage.
     """
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
     DELETE FROM sent_news 
