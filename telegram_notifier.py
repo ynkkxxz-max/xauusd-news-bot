@@ -35,6 +35,24 @@ class TelegramNotifier:
             data = resp.json()
             if not data.get("ok"):
                 logger.error(f"[TelegramNotifier] Error sending message: {data}")
+                # Fallback: If Telegram rejected unsupported HTML tags (e.g. <font>, <div> from RSS feeds)
+                desc = str(data.get("description", "")).lower()
+                if "can't parse entities" in desc or "entity" in desc:
+                    logger.info("[TelegramNotifier] Retrying message with sanitized HTML tags...")
+                    import re
+                    # Strip all tags except supported Telegram tags
+                    clean_text = re.sub(r'<(?!(?:b|strong|i|em|u|ins|s|strike|del|a|code|pre|blockquote)\b)[^>]+>', '', text)
+                    clean_text = re.sub(r'</(?!(?:b|strong|i|em|u|ins|s|strike|del|a|code|pre|blockquote)\b)[^>]+>', '', clean_text)
+                    payload["text"] = clean_text
+                    retry_resp = requests.post(url, json=payload, timeout=15)
+                    data = retry_resp.json()
+                    if not data.get("ok"):
+                        # Ultimate fallback: Plain text without parse_mode
+                        payload.pop("parse_mode", None)
+                        plain_resp = requests.post(url, json=payload, timeout=15)
+                        data = plain_resp.json()
+
+            if not data.get("ok"):
                 return data
             
             message_id = data.get("result", {}).get("message_id")
