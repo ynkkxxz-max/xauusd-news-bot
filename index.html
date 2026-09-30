@@ -2619,13 +2619,101 @@
 
     .tv-container.fullscreen .tv-chart-wrapper {
       flex: 1 1 auto !important;
-      height: calc(100vh - 46px) !important;
-      height: calc(100dvh - 46px) !important;
+      height: calc(100vh - 84px) !important;
+      height: calc(100dvh - 84px) !important;
     }
 
     .tv-container.fullscreen .tv-chart-frame {
       width: 100% !important;
       height: 100% !important;
+    }
+
+    /* Multi-AI Direction Consensus Strip (Clean Minimalist 🟢🔴 HUD) */
+    .tv-ai-consensus-strip {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 14px;
+      background: linear-gradient(90deg, rgba(8, 14, 26, 0.96) 0%, rgba(5, 10, 20, 0.98) 100%);
+      border-bottom: 1px solid rgba(0, 240, 255, 0.16);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      gap: 8px;
+      overflow-x: auto;
+      white-space: nowrap;
+      scrollbar-width: none;
+    }
+    .tv-ai-consensus-strip::-webkit-scrollbar {
+      display: none;
+    }
+    .consensus-master-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .consensus-bot-icon {
+      font-size: 13px;
+    }
+    .consensus-label {
+      font-size: 9.5px;
+      font-weight: 800;
+      color: #7E92A9;
+      letter-spacing: 0.8px;
+      font-family: 'Orbitron', 'Share Tech Mono', monospace;
+    }
+    .consensus-badge {
+      font-family: 'Orbitron', 'Share Tech Mono', monospace;
+      font-size: 11px;
+      font-weight: 900;
+      padding: 2px 9px;
+      border-radius: 6px;
+      letter-spacing: 0.8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.25s ease;
+    }
+    .consensus-badge.buy {
+      background: rgba(0, 230, 118, 0.16);
+      border: 1px solid rgba(0, 230, 118, 0.5);
+      color: #00E676;
+      box-shadow: 0 0 12px rgba(0, 230, 118, 0.35);
+      text-shadow: 0 0 8px rgba(0, 230, 118, 0.8);
+    }
+    .consensus-badge.sell {
+      background: rgba(255, 51, 102, 0.16);
+      border: 1px solid rgba(255, 51, 102, 0.5);
+      color: #FF3366;
+      box-shadow: 0 0 12px rgba(255, 51, 102, 0.35);
+      text-shadow: 0 0 8px rgba(255, 51, 102, 0.8);
+    }
+    .consensus-nodes-grid {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .ai-node-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 7px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      font-family: 'Orbitron', 'Share Tech Mono', monospace;
+      font-size: 9.5px;
+      font-weight: 800;
+      color: #94A3B8;
+      transition: all 0.2s ease;
+    }
+    .ai-node-pill:hover {
+      border-color: rgba(0, 240, 255, 0.3);
+      background: rgba(0, 240, 255, 0.05);
+    }
+    .ai-node-dot {
+      font-size: 9.5px;
+      line-height: 1;
     }
 
     .tv-chart-wrapper {
@@ -3175,6 +3263,34 @@
         </div>
       </div>
       
+      <!-- 🤖 ULTRA-SLEEK MULTI-AI DIRECTION CONSENSUS STRIP (🟢🔴 HUD) -->
+      <div class="tv-ai-consensus-strip" id="tvAiConsensusStrip">
+        <div class="consensus-master-wrap">
+          <span class="consensus-bot-icon">🤖</span>
+          <span class="consensus-label">AI DIRECTION:</span>
+          <span class="consensus-badge buy" id="tvAiMasterDecision">🟢 BUY</span>
+        </div>
+        
+        <div class="consensus-nodes-grid">
+          <div class="ai-node-pill" id="nodeAiSMC" title="SMC Structure AI">
+            <span class="ai-node-name">SMC</span>
+            <span class="ai-node-dot" id="dotAiSMC">🟢</span>
+          </div>
+          <div class="ai-node-pill" id="nodeAiTrend" title="Trend & Momentum AI">
+            <span class="ai-node-name">Trend</span>
+            <span class="ai-node-dot" id="dotAiTrend">🟢</span>
+          </div>
+          <div class="ai-node-pill" id="nodeAiFlow" title="Whale Order Flow CVD AI">
+            <span class="ai-node-name">Whale</span>
+            <span class="ai-node-dot" id="dotAiFlow">🟢</span>
+          </div>
+          <div class="ai-node-pill" id="nodeAiMacro" title="Macro DXY Correlation AI">
+            <span class="ai-node-name">Macro</span>
+            <span class="ai-node-dot" id="dotAiMacro">🟢</span>
+          </div>
+        </div>
+      </div>
+
       <div class="tv-chart-wrapper">
         <!-- AI SMC Live Chart Overlay (Hidden by default to keep chart crystal clear) -->
         <div class="smc-visual-overlay" id="smcVisualOverlay" style="display: none;">
@@ -4688,6 +4804,37 @@
     if (valEntry) valEntry.innerText = `$${Number(display.entryLow).toFixed(2)} - $${Number(display.entryHigh).toFixed(2)}`;
     if (valTP1) valTP1.innerText = `$${Number(display.tp1).toFixed(2)}`;
     if (valTP2) valTP2.innerText = `$${Number(display.tp2).toFixed(2)}`;
+
+    // Sync Multi-AI Direction Consensus Strip (🟢🔴 HUD)
+    updateTvAiConsensus(display.action === 'BUY');
+  }
+
+  // 🤖 Multi-AI Direction Consensus Engine (Clean Minimalist 🟢🔴 HUD)
+  function updateTvAiConsensus(isBuy, h1Bias, cvdFlowBullish, macroBullish) {
+    const masterEl = document.getElementById('tvAiMasterDecision');
+    const dotSMC = document.getElementById('dotAiSMC');
+    const dotTrend = document.getElementById('dotAiTrend');
+    const dotFlow = document.getElementById('dotAiFlow');
+    const dotMacro = document.getElementById('dotAiMacro');
+
+    const isTrendBull = (h1Bias === 'BULLISH' || (h1Bias === undefined && isBuy));
+    const isFlowBull = (cvdFlowBullish !== undefined ? cvdFlowBullish : isBuy);
+    const isMacroBull = (macroBullish !== undefined ? macroBullish : isBuy);
+
+    if (masterEl) {
+      if (isBuy) {
+        masterEl.className = 'consensus-badge buy';
+        masterEl.innerText = '🟢 BUY';
+      } else {
+        masterEl.className = 'consensus-badge sell';
+        masterEl.innerText = '🔴 SELL';
+      }
+    }
+
+    if (dotSMC) dotSMC.innerText = isBuy ? '🟢' : '🔴';
+    if (dotTrend) dotTrend.innerText = isTrendBull ? '🟢' : '🔴';
+    if (dotFlow) dotFlow.innerText = isFlowBull ? '🟢' : '🔴';
+    if (dotMacro) dotMacro.innerText = isMacroBull ? '🟢' : '🔴';
   }
 
   async function updateDynamicSMC(price) {
@@ -5679,6 +5826,14 @@
         updateSignalActionButton(false, inZone, matrixScore, entryLow, entryHigh, sl, tp1, tp2, price);
       }
 
+      // Sync Multi-AI Direction Consensus Strip (Clean Minimalist 🟢🔴 HUD)
+      updateTvAiConsensus(
+        isBuy,
+        h1Bias,
+        isBuy ? (obFlow ? obFlow.bidPct >= 50.0 : true) : (obFlow ? obFlow.bidPct < 50.0 : false),
+        isBuy
+      );
+
       // Update current dynamic SL distance for Auto-Lot Calculator
       const entryRef = isBuy ? Number(entryLow) : Number(entryHigh);
       const dynamicSLVal = Math.abs(entryRef - Number(sl));
@@ -6012,7 +6167,7 @@
           reply_markup: {
             inline_keyboard: [
               [
-                { text: "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", url: "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=124&tab=smc" }
+                { text: "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", url: "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=125&tab=smc" }
               ]
             ]
           }
