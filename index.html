@@ -3217,16 +3217,15 @@
       <div class="gate-channel-box" onclick="openOfficialChannel()" style="cursor: pointer;">
         <div class="gate-ch-info">
           <div class="gate-ch-name">GOLD FX — Official Channel</div>
-          <div class="gate-ch-handle">@GoldMarketKH8888</div>
         </div>
       </div>
 
       <div class="gate-actions">
         <button onclick="openOfficialChannel()" class="gate-btn gate-btn-primary">
-          ចូលរួម Telegram Channel (Join Now)
+          Join Telegram Channel
         </button>
         <button onclick="recheckMembership()" class="gate-btn gate-btn-secondary" id="btnVerifyMembership">
-          🔄 ខ្ញុំបាន Join រួចហើយ (Verify & Open)
+          🔄 ខ្ញុំបាន Join រួចហើយ
         </button>
       </div>
     </div>
@@ -4269,7 +4268,7 @@
               if (window.Telegram.WebApp.HapticFeedback) {
                 window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
               }
-              if (btn) btn.innerText = '🔄 ខ្ញុំបាន Join រួចហើយ (Verify & Open)';
+              if (btn) btn.innerText = '🔄 ខ្ញុំបាន Join រួចហើយ';
               return;
             }
           }
@@ -4280,9 +4279,9 @@
 
       // Still not a member:
       showSecurityGate();
-      if (btn) btn.innerText = '🔄 ខ្ញុំបាន Join រួចហើយ (Verify & Open)';
+      if (btn) btn.innerText = '🔄 ខ្ញុំបាន Join រួចហើយ';
       if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.showAlert) {
-        window.Telegram.WebApp.showAlert('⚠️ លោកអ្នកមិនទាន់បាន Join Channel នៅឡើយទេ! សូមចុចប៊ូតុង [ចូលរួម Telegram Channel] ខាងលើជាមុនសិន។');
+        window.Telegram.WebApp.showAlert('⚠️ លោកអ្នកមិនទាន់បាន Join Channel នៅឡើយទេ! សូមចុចប៊ូតុង [Join Telegram Channel] ខាងលើជាមុនសិន។');
       } else {
         alert('⚠️ លោកអ្នកមិនទាន់បាន Join Channel នៅឡើយទេ! សូមចុច Join ជាមុនសិន។');
       }
