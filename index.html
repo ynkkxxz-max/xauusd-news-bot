@@ -3055,16 +3055,15 @@
       left: 0;
       right: 0;
       bottom: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(4, 8, 16, 0.96);
-      backdrop-filter: blur(25px);
-      -webkit-backdrop-filter: blur(25px);
+      width: 100vw;
+      height: 100vh;
+      min-height: 100vh;
+      background: #06090F;
       z-index: 9999999;
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 14px;
+      padding: 16px;
       overflow-y: auto;
       box-sizing: border-box;
     }
@@ -3233,11 +3232,14 @@
     </div>
   </div>
 
-  <!-- Ambient Cyber Candlestick Chart Motion Canvas -->
-  <canvas id="candlestickBgCanvas"></canvas>
+  <!-- 🌐 Main Terminal Application Content (Unlocked strictly after verification) -->
+  <div id="mainAppContent" style="display: none;">
 
-  <!-- Hollywood Sci-Fi Cyber Control Bar: [News Pill] & [SFX / Update] -->
-  <div class="cyber-top-bar">
+    <!-- Ambient Cyber Candlestick Chart Motion Canvas -->
+    <canvas id="candlestickBgCanvas"></canvas>
+
+    <!-- Hollywood Sci-Fi Cyber Control Bar: [News Pill] & [SFX / Update] -->
+    <div class="cyber-top-bar">
     <!-- ⏳ 1. Next High-Impact News / Market Open Countdown Badge -->
     <div class="cyber-top-pill" id="topNewsCountdownPill" onclick="scrollToNewsDanger()" title="High-Impact USD News Countdown">
       <div class="hud-radar-target">
@@ -4154,6 +4156,7 @@
       </div>
     </div>
   </div>
+  </div><!-- /#mainAppContent -->
 
   <script>
     // Initialize Telegram WebApp
@@ -4177,17 +4180,30 @@
       }
     }
 
-    async function checkChannelSecurityGate() {
+    function showSecurityGate() {
       const gateModal = document.getElementById('channelGateModal');
+      const mainApp = document.getElementById('mainAppContent');
+      if (gateModal) gateModal.style.display = 'flex';
+      if (mainApp) mainApp.style.display = 'none';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function hideSecurityGate() {
+      const gateModal = document.getElementById('channelGateModal');
+      const mainApp = document.getElementById('mainAppContent');
+      if (gateModal) gateModal.style.display = 'none';
+      if (mainApp) mainApp.style.display = 'block';
+      document.body.style.overflow = '';
+      window.dispatchEvent(new Event('resize'));
+    }
+
+    async function checkChannelSecurityGate() {
       const isTg = !!(window.Telegram && window.Telegram.WebApp);
       const user = isTg && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user;
 
-      if (!gateModal) return;
-
       // 1. If running outside of Telegram WebApp (e.g. Chrome, Safari, Edge):
       if (!isTg || !window.Telegram.WebApp.initData) {
-        gateModal.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
+        showSecurityGate();
         return;
       }
 
@@ -4206,8 +4222,7 @@
             
             if (!isMember) {
               // 🚨 User has NOT joined the channel! Trigger Alert & Show Gate Modal!
-              gateModal.style.display = 'flex';
-              document.body.style.overflow = 'hidden';
+              showSecurityGate();
               if (window.Telegram.WebApp.showAlert) {
                 window.Telegram.WebApp.showAlert('⚠️ លោកអ្នកមិនទាន់បាន Join Channel នៅឡើយទេ!\n\nសូមចុច Join Channel @GoldMarketKH8888 ជាមុនសិន ទើបអាចបើកមើល Signal & Mini App បាន!');
               }
@@ -4223,8 +4238,7 @@
       }
 
       // User is verified member
-      gateModal.style.display = 'none';
-      document.body.style.overflow = '';
+      hideSecurityGate();
     }
 
     async function recheckMembership() {
@@ -4234,7 +4248,6 @@
 
       const isTg = !!(window.Telegram && window.Telegram.WebApp);
       const user = isTg && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user;
-      const gateModal = document.getElementById('channelGateModal');
 
       if (user && user.id) {
         try {
@@ -4249,8 +4262,7 @@
             const isMember = ['creator', 'administrator', 'member', 'restricted'].includes(status);
             
             if (isMember) {
-              if (gateModal) gateModal.style.display = 'none';
-              document.body.style.overflow = '';
+              hideSecurityGate();
               if (window.Telegram.WebApp.showAlert) {
                 window.Telegram.WebApp.showAlert('🎉 ផ្ទៀងផ្ទាត់ជោគជ័យ! សូមស្វាគមន៍មកកាន់ XAUUSD AI SMC Terminal!');
               }
@@ -4267,6 +4279,7 @@
       }
 
       // Still not a member:
+      showSecurityGate();
       if (btn) btn.innerText = '🔄 ខ្ញុំបាន Join រួចហើយ (Verify & Open)';
       if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.showAlert) {
         window.Telegram.WebApp.showAlert('⚠️ លោកអ្នកមិនទាន់បាន Join Channel នៅឡើយទេ! សូមចុចប៊ូតុង [ចូលរួម Telegram Channel] ខាងលើជាមុនសិន។');
