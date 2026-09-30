@@ -88,7 +88,10 @@ class BreakingNewsCollector:
                                 else:
                                     clean_desc = remainder
 
-                            if not title:
+                            if not title or title.endswith("?"):
+                                continue
+
+                            if any(title.lower().startswith(p) for p in ["opinion:", "opinion |", "analysis:", "analysis |"]):
                                 continue
 
                             # Extract true publisher source (e.g. CNN, Reuters, AP News, Bloomberg)
