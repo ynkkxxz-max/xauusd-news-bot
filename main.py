@@ -372,13 +372,13 @@ class XAUUSDNewsAssistantBot:
             logger.info(f"[SNIPER SIGNAL BLOCKED] Danger zone active for {danger_info.get('title')}. Capital protection active.")
             return
 
-        # Safety Gate 2: Trading Sessions Filter (London 14:00 - 18:00 & NY 19:00 - 22:00 / 10:00 PM Cut-off)
+        # Safety Gate 2: Trading Sessions Filter (Strictly 07:00 AM to 23:00 / 11:00 PM Cambodia Time)
         now_kh = datetime.now(CAMBODIA_TZ)
         hour_kh = now_kh.hour
-        # Signals strictly cut off at 22:00 (10:00 PM) Cambodia Time to protect capital from late-night chop and rollover spreads.
-        is_active_session = (14 <= hour_kh < 18) or (19 <= hour_kh < 22)
+        # Signals strictly allowed from 07:00 AM to 23:00 (11:00 PM) Cambodia Time (7:00 - 23:00)
+        is_active_session = (7 <= hour_kh < 23)
         if not is_active_session:
-            # Outside active trading windows (after 22:00 / 10:00 PM or Asian morning session)
+            # Outside active trading window (between 23:00 / 11:00 PM and 07:00 AM)
             return
 
         # Safety Gate 3: Strict Daily Signal Limit (Strictly maximum 5 position signals per day)
