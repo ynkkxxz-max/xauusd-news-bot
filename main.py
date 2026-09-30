@@ -327,7 +327,7 @@ class XAUUSDNewsAssistantBot:
             app_cta_markup = {
                 "inline_keyboard": [
                     [
-                        {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=148&tab=smc"}
+                        {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=150&tab=smc"}
                     ]
                 ]
             }
@@ -461,7 +461,7 @@ class XAUUSDNewsAssistantBot:
             app_cta_markup = {
                 "inline_keyboard": [
                     [
-                        {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=148&tab=smc"}
+                        {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=150&tab=smc"}
                     ]
                 ]
             }
@@ -657,7 +657,7 @@ class XAUUSDNewsAssistantBot:
                 "keyboard": [
                     [
                         {"text": "Price"},
-                        {"text": "SMC", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=148&tab=smc"}}
+                        {"text": "SMC", "web_app": {"url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=150&tab=smc"}}
                     ]
                 ],
                 "resize_keyboard": True,
@@ -716,11 +716,11 @@ class XAUUSDNewsAssistantBot:
                         unlocked_markup = {
                             "inline_keyboard": [
                                 [
-                                    {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=148&tab=smc"}
+                                    {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=150&tab=smc"}
                                 ],
                                 [
-                                    {"text": "📊 មើល TradingView Live Chart", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=148&tab=chart"},
-                                    {"text": "🧮 គិត Lot Size", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=148&tab=lot"}
+                                    {"text": "📊 មើល TradingView Live Chart", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=150&tab=chart"},
+                                    {"text": "🧮 គិត Lot Size", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=150&tab=lot"}
                                 ]
                             ]
                         }
@@ -825,11 +825,11 @@ class XAUUSDNewsAssistantBot:
                 smc_inline_buttons = {
                     "inline_keyboard": [
                         [
-                            {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=148&tab=smc"}
+                            {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=150&tab=smc"}
                         ],
                         [
-                            {"text": "📊 មើល TradingView Live Chart", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=148&tab=chart"},
-                            {"text": "🧮 គិត Lot Size", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=148&tab=lot"}
+                            {"text": "📊 មើល TradingView Live Chart", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=150&tab=chart"},
+                            {"text": "🧮 គិត Lot Size", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=150&tab=lot"}
                         ]
                     ]
                 }
@@ -1076,7 +1076,7 @@ class XAUUSDNewsAssistantBot:
                     smc_inline_buttons = {
                         "inline_keyboard": [
                             [
-                                {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=148&tab=smc"}
+                                {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=150&tab=smc"}
                             ],
                             [
                                 {"text": "🧮 គិត Lot Size តាមដើមទុន", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?tab=lot"}
