@@ -3137,18 +3137,15 @@
 
     .gate-channel-box {
       display: flex;
+      justify-content: center;
       align-items: center;
       gap: 12px;
       background: rgba(0, 240, 255, 0.06);
       border: 1px solid rgba(0, 240, 255, 0.3);
       border-radius: 14px;
       padding: 12px 16px;
-      text-align: left;
+      text-align: center;
       margin-bottom: 22px;
-    }
-
-    .gate-ch-icon {
-      font-size: 26px;
     }
 
     .gate-ch-name {
@@ -3210,11 +3207,10 @@
       <div class="gate-title">ACCESS RESTRICTED</div>
       <div class="gate-badge">CHANNEL VERIFICATION REQUIRED</div>
       <p class="gate-desc">
-        ដើម្បីសុវត្ថិភាព និងទប់ស្កាត់ការលួចចម្លង Signal លោកអ្នកត្រូវតែ <b>Join Telegram Channel</b> ផ្លូវការរបស់យើងខ្ញុំ (@GoldMarketKH8888) ទើបអាចបើកមើល Signal & Mini App នេះបាន!
+        ដើម្បីសុវត្ថិភាព លោកអ្នកត្រូវតែ <b>Join Telegram Channel</b> ផ្លូវការរបស់យើងខ្ញុំ (@GoldMarketKH8888) ទើបអាចបើកមើល Signal & Mini App នេះបាន!
       </p>
       
       <div class="gate-channel-box" onclick="openOfficialChannel()" style="cursor: pointer;">
-        <div class="gate-ch-icon">📢</div>
         <div class="gate-ch-info">
           <div class="gate-ch-name">GOLD FX — Official Channel</div>
           <div class="gate-ch-handle">@GoldMarketKH8888</div>
@@ -3223,7 +3219,7 @@
 
       <div class="gate-actions">
         <button onclick="openOfficialChannel()" class="gate-btn gate-btn-primary">
-          📢 ចូលរួម Telegram Channel (Join Now)
+          ចូលរួម Telegram Channel (Join Now)
         </button>
         <button onclick="recheckMembership()" class="gate-btn gate-btn-secondary" id="btnVerifyMembership">
           🔄 ខ្ញុំបាន Join រួចហើយ (Verify & Open)
@@ -3341,15 +3337,12 @@
 
   <!-- AI INSTITUTIONAL FAKEOUT / LIQUIDITY TRAP ALERT BANNER -->
   <div id="trapAlertBanner" style="display: none; margin-bottom: 14px; padding: 12px 14px; border-radius: 12px; background: linear-gradient(135deg, rgba(255, 179, 0, 0.25) 0%, rgba(20, 15, 5, 0.95) 100%); border: 1.5px solid #FFB300; box-shadow: 0 0 20px rgba(255, 179, 0, 0.4); animation: pulseDanger 2.5s infinite;">
-    <div style="display: flex; align-items: center; justify-content: space-between;">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="font-size: 20px;" id="trapIcon">🪤</span>
-        <div>
-          <div style="font-size: 13px; font-weight: 800; color: #FFB300; letter-spacing: 0.5px;" id="trapTitle">⚠️ AI FAKEOUT / TRAP DETECTED!</div>
-          <div style="font-size: 11px; color: #FFF; margin-top: 2px;" id="trapDesc">ស្ថាប័នធំៗដាក់នុយបញ្ឆោត (Liquidity Trap) កុំចាញ់បោកទីផ្សារ!</div>
-        </div>
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+      <div style="flex: 1;">
+        <div style="font-size: 13px; font-weight: 800; color: #FFB300; letter-spacing: 0.5px;" id="trapTitle">⚠️ AI FAKEOUT / TRAP DETECTED!</div>
+        <div style="font-size: 11px; color: #FFF; margin-top: 2px; line-height: 1.4;" id="trapDesc">ស្ថាប័នធំៗដាក់នុយបញ្ឆោត (Liquidity Trap) កុំចាញ់បោកទីផ្សារ!</div>
       </div>
-      <span style="font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: #FFB300; color: #000;" id="trapBadge">TRAP</span>
+      <span style="font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: #FFB300; color: #000; flex-shrink: 0;" id="trapBadge">TRAP</span>
     </div>
   </div>
 
