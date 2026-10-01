@@ -201,12 +201,14 @@ class XAUUSDNewsAssistantBot:
             for item in items:
                 news_id = item.get("id")
                 title = (item.get("title") or "").strip()
+                link = item.get("link", "")
                 if title:
                     self._broadcasted_titles_cache.add(title.lower())
+                self.news_collector.clear_item(news_id=news_id, link=link, title=title)
                 if news_id and not database.is_news_sent(news_id):
                     database.record_news_sent(news_id, title, item.get("source", ""), is_broadcasted=0)
                     bootstrapped_count += 1
-            logger.info(f"[Startup News Sync] Connected to global feeds. Seeded {bootstrapped_count} historical headlines into seen cache.")
+            logger.info(f"[Startup News Sync] Seeded and cleared {bootstrapped_count} historical headlines from data.")
         except Exception as e:
             logger.warning(f"[Startup News Sync] Warning: {e}")
 
@@ -1587,12 +1589,14 @@ class XAUUSDNewsAssistantBot:
         for it in pending:
             title = it["title"]
             if GoldNewsFilter.is_duplicate_or_similar(title, recent_sent_titles):
+                self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                 continue
 
             # TRIPLE SHIELD: Check if ALREADY in Telegram channel @GoldMarketKH8888 live feed
             if self._is_already_in_telegram_channel(title, it.get("link", "")):
-                logger.info(f"[CHANNEL DEDUPLICATION] '{title}' already in channel feed. Dropping!")
-                database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=1)
+                logger.info(f"[CHANNEL DEDUPLICATION] '{title}' already in channel feed. Purging from data!")
+                self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
+                database.clear_news_from_data(it["id"], title, it.get("source", ""))
                 self._broadcasted_titles_cache.add(title.lower())
                 continue
 
@@ -1607,6 +1611,7 @@ class XAUUSDNewsAssistantBot:
                 continue
 
             if isinstance(analysis, dict) and analysis.get("is_clear") is False:
+                self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                 database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
                 continue
 
@@ -1617,6 +1622,7 @@ class XAUUSDNewsAssistantBot:
             is_positive = "វិជ្ជមាន" in impact and "អវិជ្ជមាន" not in impact
             is_negative = "អវិជ្ជមាន" in impact
             if not (is_positive or is_negative) or "អព្យាក្រឹត" in impact:
+                self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                 database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
                 continue
 
@@ -1624,12 +1630,13 @@ class XAUUSDNewsAssistantBot:
 
             # Re-verify channel feed right before dispatch (with full Khmer text + link check)
             if self._is_already_in_telegram_channel(title, it.get("link", ""), khmer_text=msg):
-                database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=1)
+                self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
+                database.clear_news_from_data(it["id"], title, it.get("source", ""))
                 self._broadcasted_titles_cache.add(title.lower())
                 continue
 
             # Lock in-memory and database atomically BEFORE dispatching
-            database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=1)
+            database.clear_news_from_data(it["id"], title, it.get("source", ""))
             self._broadcasted_titles_cache.add(title.lower())
             database.set_state("last_breaking_alert_ts", str(time.time()))
             self._last_breaking_sent_ts = time.time()
@@ -1640,7 +1647,13 @@ class XAUUSDNewsAssistantBot:
             else:
                 self.notifier.send_message(msg, reply_markup=None)
 
-            logger.info(f"[BREAKING NEWS APPROVED & BROADCASTED] '{title}' sent. Next alert locked for 5 minutes.")
+            # 💥 USER DIRECTIVE: CLEAR FROM DATA IMMEDIATELY AFTER SENDING
+            self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
+            database.clear_news_from_data(it["id"], title, it.get("source", ""))
+            self._broadcasted_titles_cache.add(title.lower())
+            pending.clear()
+
+            logger.info(f"[BREAKING NEWS APPROVED & BROADCASTED] '{title}' sent. Data purged immediately. Next alert locked for 5 minutes.")
             break
 
     def run_cycle(self) -> int:
