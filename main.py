@@ -1158,7 +1158,7 @@ class XAUUSDNewsAssistantBot:
 
     @staticmethod
     def _truncate_html_caption(text: str, max_visible_chars: int = 900) -> str:
-        """Safely trims text to keep visible length <= 1024 while ensuring open HTML tags are closed."""
+        """Safely trims narrative text while strictly preserving header, impact line, and clickable source link."""
         if XAUUSDNewsAssistantBot._caption_fits(text, limit=1000):
             return text
 
@@ -1168,11 +1168,26 @@ class XAUUSDNewsAssistantBot:
             return clean[:max_visible_chars] + "..."
 
         header = blocks[0]
-        footer = blocks[-1] if len(blocks) >= 3 else ""
-        body_blocks = blocks[1:-1] if len(blocks) >= 3 else blocks[1:]
+        source_line = blocks[-1]
+
+        # Check if second to last block is impact_line
+        impact_line = ""
+        body_blocks = []
+        if len(blocks) >= 4 and blocks[-2].strip().startswith("វាផល"):
+            impact_line = blocks[-2].strip()
+            body_blocks = blocks[1:-2]
+        elif len(blocks) >= 3:
+            if blocks[-2].strip().startswith("វាផល"):
+                impact_line = blocks[-2].strip()
+                body_blocks = blocks[1:-2]
+            else:
+                body_blocks = blocks[1:-1]
+        else:
+            body_blocks = blocks[1:]
+
         body = "\n\n".join(body_blocks)
 
-        reserved = len(re.sub(r"<[^>]+>", "", header)) + len(re.sub(r"<[^>]+>", "", footer)) + 10
+        reserved = len(re.sub(r"<[^>]+>", "", header)) + len(re.sub(r"<[^>]+>", "", source_line)) + len(impact_line) + 25
         avail = max(100, max_visible_chars - reserved)
 
         clean_body = re.sub(r"<[^>]+>", "", body)
@@ -1181,7 +1196,7 @@ class XAUUSDNewsAssistantBot:
         else:
             trimmed_body = clean_body
 
-        parts = [p for p in [header, trimmed_body, footer] if p]
+        parts = [p for p in [header, trimmed_body, impact_line, source_line] if p]
         res = "\n\n".join(parts)
 
         # Auto-close open tags
