@@ -565,8 +565,12 @@ class KhmerFormatter:
         tone_raw = interp.get("tone_kh") or interp.get("tone") or "Neutral"
         tone_clean = re.sub(r"^[^\w\s\u1780-\u17FF]+", "", tone_raw).strip()
 
-        # Clean quotes
-        quotes = (interp.get("key_quotes") or "").strip()
+        # Clean quotes (handle string or list)
+        quotes_raw = interp.get("key_quotes") or ""
+        if isinstance(quotes_raw, list):
+            quotes = " \n".join(str(q).strip() for q in quotes_raw if q)
+        else:
+            quotes = str(quotes_raw).strip()
         quote_section = ""
         if quotes:
             quote_section = (
@@ -574,8 +578,12 @@ class KhmerFormatter:
                 f"«<i>{quotes}</i>»\n\n"
             )
 
-        # Clean gold impact: remove bullet points and keep clean regular narrative text
-        gold_impact = (interp.get("gold_pressure") or "").strip()
+        # Clean gold impact: handle gold_pressure or gold_impact, remove bullet points
+        gold_impact_raw = interp.get("gold_pressure") or interp.get("gold_impact") or ""
+        if isinstance(gold_impact_raw, list):
+            gold_impact = " ".join(str(g).strip() for g in gold_impact_raw if g)
+        else:
+            gold_impact = str(gold_impact_raw).strip()
         if gold_impact.startswith("•") or gold_impact.startswith("-"):
             gold_impact = gold_impact.lstrip("•- ").strip()
 
