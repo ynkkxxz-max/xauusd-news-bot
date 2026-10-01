@@ -152,7 +152,13 @@ class XAUUSDNewsAssistantBot:
         self._session_alert_locks = set()
         self._daily_price_locks = set()
         self._broadcasted_titles_cache = set()
-        self._last_breaking_sent_ts = 0.0
+        # Enforce 5-minute startup grace period to guarantee zero reboot-loop spam
+        now_ts = time.time()
+        self._last_breaking_sent_ts = now_ts
+        try:
+            database.set_state("last_breaking_alert_ts", str(now_ts))
+        except Exception:
+            pass
 
         # Bind HTTP health check port if running on Render / Railway
         port_env = os.getenv("PORT")
@@ -1490,30 +1496,47 @@ class XAUUSDNewsAssistantBot:
         else:
             return INTERVAL_NORMAL
 
-    def _is_already_in_telegram_channel(self, title: str, link: str = "") -> bool:
+    def _is_already_in_telegram_channel(self, title: str, link: str = "", khmer_text: str = "") -> bool:
         """Inspects the public Telegram channel feed to prevent duplicate broadcasts across distributed containers."""
         try:
             import urllib.request
+            import urllib.parse
             req = urllib.request.Request(
                 "https://t.me/s/GoldMarketKH8888",
                 headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
             )
-            with urllib.request.urlopen(req, timeout=3.5) as resp:
+            with urllib.request.urlopen(req, timeout=4.0) as resp:
                 channel_html = resp.read().decode("utf-8", errors="ignore")
 
-            # 1. Match specific link domain or article slug if present
-            if link and len(link) > 20:
-                slug = link.split("/")[-1].split("?")[0].replace("-", " ")[:30]
-                if len(slug) >= 12 and slug.lower() in channel_html.lower():
+            # 1. Exact Link & Article Slug Verification (Bulletproof Match)
+            if link:
+                clean_link = link.split("?")[0].rstrip("/")
+                if clean_link and (clean_link in channel_html or urllib.parse.unquote(clean_link) in channel_html):
                     return True
+                slug = clean_link.split("/")[-1]
+                if len(slug) >= 8:
+                    if slug.lower() in channel_html.lower():
+                        return True
+                    if slug.replace("-", " ").lower() in channel_html.lower():
+                        return True
+                    if slug.replace("_", " ").lower() in channel_html.lower():
+                        return True
 
             # 2. Extract salient English/Khmer keyword tokens (min length 4)
             words = [w for w in re.findall(r'\b[A-Za-z0-9\u1780-\u17FF]{4,}\b', title) 
-                     if w.lower() not in ("news", "today", "live", "world", "market", "report", "the")]
-            if len(words) >= 3:
+                     if w.lower() not in ("news", "today", "live", "world", "market", "report", "the", "says", "with", "from", "after")]
+            if len(words) >= 2:
                 matches = sum(1 for w in words if w.lower() in channel_html.lower())
-                if matches >= 3:
+                if matches >= 2:
                     return True
+
+            # 3. Khmer Translated Content Deduplication
+            if khmer_text:
+                kh_words = [w for w in re.findall(r'[\u1780-\u17FF]{6,}', khmer_text)]
+                if len(kh_words) >= 3:
+                    kh_matches = sum(1 for w in kh_words if w in channel_html)
+                    if kh_matches >= 3:
+                        return True
         except Exception as e:
             logger.debug(f"[Channel Feed Check] {e}")
         return False
@@ -1597,8 +1620,10 @@ class XAUUSDNewsAssistantBot:
                 database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
                 continue
 
-            # Re-verify channel feed right before dispatch
-            if self._is_already_in_telegram_channel(title, it.get("link", "")):
+            msg = KhmerFormatter.format_breaking_event_alert(it, analysis)
+
+            # Re-verify channel feed right before dispatch (with full Khmer text + link check)
+            if self._is_already_in_telegram_channel(title, it.get("link", ""), khmer_text=msg):
                 database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=1)
                 self._broadcasted_titles_cache.add(title.lower())
                 continue
@@ -1608,8 +1633,6 @@ class XAUUSDNewsAssistantBot:
             self._broadcasted_titles_cache.add(title.lower())
             database.set_state("last_breaking_alert_ts", str(time.time()))
             self._last_breaking_sent_ts = time.time()
-
-            msg = KhmerFormatter.format_breaking_event_alert(it, analysis)
             photo = self._fetch_news_image(it)
             if photo:
                 caption_text = self._truncate_html_caption(msg, max_visible_chars=950)
