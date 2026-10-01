@@ -24,7 +24,7 @@
 
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-  <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&family=Orbitron:wght@600;700;800;900&family=Outfit:wght@400;500;600;700;800&family=Rajdhani:wght@600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Kantumruy+Pro:wght@300;400;500;600;700&family=Orbitron:wght@600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&family=Rajdhani:wght@600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 
   
 
@@ -648,11 +648,11 @@
 
     .live-price {
 
-      font-family: 'Orbitron', 'Share Tech Mono', monospace;
+      font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
-      font-size: 20px;
+      font-size: 21px;
 
-      font-weight: 900;
+      font-weight: 800;
 
       color: #FFF;
 
@@ -1504,11 +1504,11 @@
 
     .smc-direction {
 
-      font-family: 'Orbitron', 'Share Tech Mono', sans-serif;
+      font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
 
       font-size: 22px;
 
-      font-weight: 900;
+      font-weight: 800;
 
       letter-spacing: 0.8px;
 
@@ -1554,7 +1554,7 @@
 
     .smc-winrate-tag, .smc-exec-badge {
 
-      font-family: 'Orbitron', 'Share Tech Mono', 'Kantumruy Pro', sans-serif;
+      font-family: 'Outfit', 'Kantumruy Pro', sans-serif;
 
       display: inline-flex;
 
@@ -1698,7 +1698,7 @@
 
     .matrix-title {
 
-      font-family: 'Orbitron', 'Share Tech Mono', monospace;
+      font-family: 'Outfit', 'Inter', sans-serif;
 
       font-size: 11px;
 
@@ -1742,15 +1742,15 @@
 
     .matrix-score-badge {
 
-      font-size: 17px;
+      font-size: 18px;
 
-      font-weight: 900;
+      font-weight: 800;
 
       color: #00F0FF;
 
-      text-shadow: 0 0 14px rgba(0, 240, 255, 0.85);
+      text-shadow: 0 0 14px rgba(0, 240, 255, 0.7);
 
-      font-family: 'Orbitron', 'Share Tech Mono', monospace !important;
+      font-family: 'Outfit', 'Inter', sans-serif !important;
 
       font-variant-numeric: tabular-nums;
 
@@ -1814,7 +1814,7 @@
 
     .matrix-check-item {
 
-      font-family: 'Orbitron', 'Share Tech Mono', monospace;
+      font-family: 'Outfit', 'Inter', sans-serif;
 
       display: flex;
 
@@ -1846,7 +1846,7 @@
 
     .matrix-item-left {
 
-      font-family: 'Orbitron', 'Share Tech Mono', monospace;
+      font-family: 'Outfit', 'Inter', sans-serif;
 
       display: flex;
 
@@ -1894,9 +1894,9 @@
 
     .matrix-pts {
 
-      font-family: 'Orbitron', 'Share Tech Mono', monospace;
+      font-family: 'Outfit', 'Inter', sans-serif;
 
-      font-size: 10px;
+      font-size: 11px;
 
       font-weight: 700;
 
@@ -2182,7 +2182,7 @@
 
     .mtf-khmer-box .expl-price {
 
-      font-family: 'Orbitron', 'Share Tech Mono', monospace;
+      font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
 
       color: #FFD700;
 
@@ -2464,15 +2464,15 @@
 
     .smc-metallic-title {
 
-      font-size: 10px;
+      font-size: 10.5px;
 
-      font-weight: 900;
+      font-weight: 800;
 
-      letter-spacing: 0.9px;
+      letter-spacing: 1.2px;
 
       text-transform: uppercase;
 
-      font-family: 'Orbitron', 'Share Tech Mono', monospace;
+      font-family: 'Outfit', 'Inter', sans-serif;
 
       background: linear-gradient(180deg, #FFFFFF 0%, #E2E8F0 28%, #8E9BAE 65%, #DCE5F2 100%);
 
@@ -2557,42 +2557,57 @@
 
 
     .smc-metric-pill.entry-card {
-
-      border-left: 3.5px solid #00F0FF;
-
-      background: linear-gradient(135deg, rgba(0, 240, 255, 0.07) 0%, rgba(8, 14, 28, 0.95) 100%);
-
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      border-left: 4px solid #00F0FF;
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.08) 0%, rgba(8, 14, 28, 0.96) 100%);
+      box-shadow: 0 6px 22px rgba(0, 240, 255, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
 
-    .smc-metric-pill.sl-card { border-left: 3px solid #FF3366; }
+    .smc-metric-pill.sl-card {
+      border: 1px solid rgba(255, 51, 102, 0.22);
+      border-left: 3.5px solid #FF3366;
+      box-shadow: 0 4px 18px rgba(255, 51, 102, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
 
-    .smc-metric-pill.tp1-card { border-left: 3px solid #00E676; }
+    .smc-metric-pill.tp1-card {
+      border: 1px solid rgba(0, 230, 118, 0.22);
+      border-left: 3.5px solid #00E676;
+      box-shadow: 0 4px 18px rgba(0, 230, 118, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
 
-    .smc-metric-pill.tp2-card { border-left: 3px solid #FFD700; }
+    .smc-metric-pill.tp2-card {
+      border: 1px solid rgba(255, 215, 0, 0.22);
+      border-left: 3.5px solid #FFD700;
+      box-shadow: 0 4px 18px rgba(255, 215, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
 
-    .smc-metric-pill.tp3-card { border-left: 3px solid #A855F7; }
+    .smc-metric-pill.tp3-card {
+      border: 1px solid rgba(192, 132, 252, 0.22);
+      border-left: 3.5px solid #A855F7;
+      box-shadow: 0 4px 18px rgba(168, 85, 247, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
 
 
 
     .smc-pill-label {
 
-      font-size: 8px;
+      font-size: 9px;
 
-      font-weight: 800;
+      font-weight: 700;
 
       color: #94A3B8;
 
       text-transform: uppercase;
 
-      letter-spacing: 0.35px;
+      letter-spacing: 0.8px;
 
       display: flex;
 
       align-items: center;
 
-      gap: 5px;
+      gap: 6px;
 
-      font-family: 'Orbitron', 'Share Tech Mono', monospace;
+      font-family: 'Outfit', 'Inter', sans-serif;
 
       margin-bottom: 4px;
 
@@ -2628,9 +2643,9 @@
 
     .smc-pill-value {
 
-      font-family: 'Orbitron', 'Share Tech Mono', monospace !important;
+      font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
 
-      font-size: 12.5px;
+      font-size: 13.5px;
 
       font-weight: 800;
 
@@ -2638,11 +2653,13 @@
 
       font-variant-numeric: tabular-nums;
 
-      letter-spacing: 0.3px;
+      font-feature-settings: "tnum" 1;
+
+      letter-spacing: 0.4px;
 
       white-space: nowrap;
 
-      text-shadow: 0 0 10px currentColor;
+      text-shadow: 0 0 12px currentColor;
 
       filter: drop-shadow(0 0 4px currentColor);
 
@@ -2650,17 +2667,17 @@
 
 
 
-    /* Entry card value: Distinct, Spaced-out Orbitron Numbers */
+    /* Entry card value: Distinct, Spaced-out Modern Numbers */
 
     .smc-metric-pill.entry-card .smc-pill-value {
 
-      font-size: 13.5px;
+      font-size: 14.5px;
 
-      letter-spacing: 0.4px;
+      letter-spacing: 0.5px;
 
-      font-weight: 900;
+      font-weight: 800;
 
-      font-family: 'Orbitron', 'Share Tech Mono', monospace !important;
+      font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
 
     }
 
@@ -2692,7 +2709,7 @@
 
       padding: 13px 18px;
 
-      border-radius: 12px;
+      border-radius: 14px;
 
       display: flex;
 
@@ -2700,9 +2717,9 @@
 
       justify-content: center;
 
-      gap: 9px;
+      gap: 10px;
 
-      font-family: 'Orbitron', 'Inter', sans-serif;
+      font-family: 'Outfit', 'Inter', sans-serif;
 
       font-size: 15px;
 
@@ -2852,7 +2869,7 @@
 
     .zone-val {
 
-      font-family: 'Orbitron', 'Share Tech Mono', monospace;
+      font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
 
       font-size: 13px;
 
@@ -3114,7 +3131,7 @@
 
     .result-lot {
 
-      font-family: 'Orbitron', 'Share Tech Mono', monospace;
+      font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
 
       font-size: 40px;
 
@@ -3170,7 +3187,7 @@
 
     .metric-val {
 
-      font-family: 'Orbitron', 'Share Tech Mono', monospace;
+      font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
 
       font-size: 14px;
 
@@ -3242,7 +3259,7 @@
 
     .section-value {
 
-      font-family: 'Orbitron', 'Share Tech Mono', monospace;
+      font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
 
       font-size: 14.5px;
 
@@ -6904,9 +6921,9 @@
 
       <div id="signalActionBtn" class="signal-action-btn waiting" onclick="handleSignalActionClick()">
 
-        <span id="signalActionIcon" style="font-size: 15px; display: inline-block;">🔒</span>
+        <span id="signalActionIcon" style="display: inline-flex; align-items: center; justify-content: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.6));"><rect x="3" y="11" width="18" height="11" rx="3" ry="3" fill="rgba(255, 215, 0, 0.15)" stroke="currentColor"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path><circle cx="12" cy="16" r="1.5" fill="currentColor"></circle></svg></span>
 
-        <span id="signalActionText" style="letter-spacing: 2px; font-weight: 800; font-family: 'Orbitron', 'Inter', sans-serif;">CLOSED</span>
+        <span id="signalActionText" style="letter-spacing: 2px; font-weight: 800; font-family: 'Outfit', 'Inter', sans-serif;">CLOSED</span>
 
       </div>
 
@@ -8220,11 +8237,11 @@
 
       <div style="background: rgba(0, 0, 0, 0.4); border: 1.5px solid rgba(255, 215, 0, 0.35); border-radius: 10px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);">
 
-        <span style="font-family: 'Orbitron', 'Share Tech Mono', monospace; font-size: 18px; font-weight: 900; color: var(--gold);">$</span>
+        <span style="font-family: 'Outfit', 'Inter', sans-serif; font-size: 18px; font-weight: 800; color: var(--gold);">$</span>
 
-        <input type="number" id="inputBalManual" class="auto-balance-input" value="1000" min="10" max="10000000" step="10" placeholder="1000" oninput="onManualBalInput(this.value)" style="font-family: 'Orbitron', 'Share Tech Mono', monospace; font-size: 20px; font-weight: 800; width: 100%; color: #FFF; background: transparent; border: none; outline: none; letter-spacing: 1px;">
+        <input type="number" id="inputBalManual" class="auto-balance-input" value="1000" min="10" max="10000000" step="10" placeholder="1000" oninput="onManualBalInput(this.value)" style="font-family: 'Outfit', 'Inter', sans-serif; font-size: 20px; font-weight: 800; width: 100%; color: #FFF; background: transparent; border: none; outline: none; letter-spacing: 1px;">
 
-        <span style="font-family: 'Orbitron', 'Share Tech Mono', monospace; font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">USD</span>
+        <span style="font-family: 'Outfit', 'Inter', sans-serif; font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">USD</span>
 
       </div>
 
@@ -13632,9 +13649,9 @@
 
         if (icon) {
 
-          icon.innerText = '🟢';
+          icon.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 8px rgba(0, 230, 118, 0.8));"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="rgba(0, 230, 118, 0.25)"></polygon></svg>';
 
-          icon.style.display = 'inline-block';
+          icon.style.display = 'inline-flex';
 
         }
 
@@ -13676,9 +13693,9 @@
 
       if (icon) {
 
-        icon.innerText = '🔒';
+        icon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.6));"><rect x="3" y="11" width="18" height="11" rx="3" ry="3" fill="rgba(255, 215, 0, 0.15)" stroke="currentColor"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path><circle cx="12" cy="16" r="1.5" fill="currentColor"></circle></svg>';
 
-        icon.style.display = 'inline-block';
+        icon.style.display = 'inline-flex';
 
       }
 
@@ -15298,7 +15315,7 @@
 
     if (initActionBeacon) initActionBeacon.style.display = 'none';
 
-    if (initActionIcon) { initActionIcon.innerText = '🔒'; initActionIcon.style.display = 'inline-block'; }
+    if (initActionIcon) { initActionIcon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.6));"><rect x="3" y="11" width="18" height="11" rx="3" ry="3" fill="rgba(255, 215, 0, 0.15)" stroke="currentColor"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path><circle cx="12" cy="16" r="1.5" fill="currentColor"></circle></svg>'; initActionIcon.style.display = 'inline-flex'; }
 
     if (initActionText) initActionText.innerText = 'CLOSED';
 
