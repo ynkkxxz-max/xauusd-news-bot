@@ -63,6 +63,19 @@ def sanitize_khmer_spelling(text: str) -> str:
         (r"ប៊ែរីស", "Bearish"),
         (r"សាយវ៉េ", "Sideway"),
         (r"សេហ្វហេវិន", "Safe-Haven"),
+        (r"\(ទ្រព្យសកម្មសុវត្ថិភាព\s*\(Safe-Haven\)\)|ទ្រព្យសកម្មសុវត្ថិភាព\s*\(Safe-Haven\)", "ទ្រព្យសុវត្ថិភាព (Safe-Haven)"),
+        (r"សម្ពាធអតិផរណា និងប្រាក់រូពីផ្ដល់បន្ទប់សម្រាប់ការរឹតបន្តឹងអត្រាការប្រាក់បន្ថែមទៀត", "សម្ពាធអតិផរណា និងប្រាក់រូពីផ្ដល់លទ្ធភាព និងបើកផ្លូវឱ្យមានការរឹតបន្តឹងអត្រាការប្រាក់បន្ថែមទៀត"),
+        (r"ផ្ដល់បន្ទប់សម្រាប់ការរឹតបន្តឹង(?:អត្រាការប្រាក់)?", "ផ្ដល់លទ្ធភាព និងបើកផ្លូវឱ្យមានការរឹតបន្តឹងអត្រាការប្រាក់"),
+        (r"ផ្ដល់បន្ទប់", "ផ្ដល់លទ្ធភាព និងបើកផ្លូវ"),
+        (r"ទ្រង់សង្គ្រាម", "យន្តការសឹក ឬកងកម្លាំងយោធារបស់វិមានក្រឹមឡាំង"),
+        (r"តម្លៃថាមពលខាំ|ថាមពលខាំ", "ថ្លៃដើមថាមពលកើនឡើងខ្ពស់"),
+        (r"បាន?ថ្លឹងថ្លែងយ៉ាងខ្លាំងទៅលើ", "បានដាក់សម្ពាធយ៉ាងធ្ងន់ធ្ងរលើ"),
+        (r"ទិន្នន័យការផលិត PMI|ការផលិត PMI", "សន្ទស្សន៍អ្នកគ្រប់គ្រងការបញ្ជាទិញ (PMI)"),
+        (r"\bSEC\b(?!\s*\(គណៈកម្មការមូលបត្រអាមេរិក\))", "គណៈកម្មការមូលបត្រអាមេរិក (SEC)"),
+
+        # Corporate, Company & Brand Names (Strict No Literal Translation)
+        (r"សំបកកង់កាណាដា|កាណាដា\s*ថាយអឺ|ថាយអឺ\s*កាណាដា", "ក្រុមហ៊ុនសាជីវកម្មលក់រាយ Canadian Tire"),
+        (r"\bCanadian Tire\b", "Canadian Tire"),
 
         # Typography & spacing cleanup (preserve newlines \n)
         (r"\([ \t]+", "("),
@@ -221,17 +234,29 @@ class KhmerFormatter:
     @staticmethod
     def format_breaking_event_alert(news_item: dict, analysis: dict) -> str:
         """Formats breaking news / major geopolitical or unexpected central bank event alert."""
+        import re
+        import html
+
         source_name = (news_item.get("source") or "ForexLive News").strip()
         article_url = (news_item.get("link") or news_item.get("url") or "").strip()
         if article_url:
-            source_line = f'ប្រភពព័ត៌មាន: <a href="{article_url}">{source_name}</a>'
+            source_line = f'ប្រភពព័ត៌មាន | <a href="{article_url}">{source_name}</a>'
         else:
-            source_line = f"ប្រភពព័ត៌មាន: {source_name}"
+            source_line = f"ប្រភពព័ត៌មាន | {source_name}"
 
         # Extract comprehensive narrative
         key_event = ""
+        impact_line = ""
         if isinstance(analysis, dict):
             key_event = (analysis.get("key_event") or "").strip()
+            impact_raw = (analysis.get("impact") or "").strip()
+            if impact_raw:
+                imp_clean = re.sub(r'^[💡🔴🟢🟡:\s]+', '', impact_raw)
+                imp_clean = re.sub(r'[()]+', '', imp_clean).strip()
+                if not imp_clean.startswith("វាផល"):
+                    imp_clean = f"វាផល{imp_clean}"
+                impact_line = imp_clean
+
             if not key_event:
                 what = (analysis.get("what_happened") or "").strip()
                 why = (analysis.get("why_it_matters") or "").strip()
@@ -244,13 +269,37 @@ class KhmerFormatter:
         if not key_event:
             key_event = (news_item.get("description") or news_item.get("title") or "").strip()
 
-        import re
-        import html
+        # Flag mapping per user directive (Header only)
+        full_search = f"{news_item.get('title', '')} {key_event}".lower()
+        country_flags = []
+        flag_rules = [
+            (r"\b(us|usa|united states|america|fed|biden|trump|powell)\b|អាមេរិក|សហរដ្ឋអាមេរិក", "🇺🇸"),
+            (r"\b(uk|britain|british|london|england|boe|starmer)\b|អង់គ្លេស|ចក្រភពអង់គ្លេស", "🇬🇧"),
+            (r"\b(iran|tehran|persian)\b|អ៊ីរ៉ង់|អ៊ីរ៉ាន", "🇮🇷"),
+            (r"\b(israel|tel aviv|gaza|netanyahu)\b|អ៊ីស្រាអែល", "🇮🇱"),
+            (r"\b(russia|moscow|kremlin|putin)\b|រុស្ស៊ី|រុស្សី", "🇷🇺"),
+            (r"\b(ukraine|kyiv|zelenskyy|zelensky)\b|អ៊ុយក្រែន", "🇺🇦"),
+            (r"\b(china|beijing|pboc|xi jinping)\b|ចិន", "🇨🇳"),
+            (r"\b(japan|tokyo|boj|yen)\b|ជប៉ុន", "🇯🇵"),
+            (r"\b(eu|europe|european|ecb|germany|france)\b|អឺរ៉ុប|អាល្លឺម៉ង់|បារាំង", "🇪🇺"),
+            (r"\b(saudi|opec|riyadh)\b|អារ៉ាប៊ីសាអ៊ូឌីត", "🇸🇦"),
+            (r"\b(canada|canadian|boc|toronto|canadian tire)\b|កាណាដា", "🇨🇦"),
+        ]
+        for pattern, flag in flag_rules:
+            if re.search(pattern, full_search, re.IGNORECASE) and flag not in country_flags:
+                country_flags.append(flag)
+
+        flag_str = (" " + " ".join(country_flags[:2])) if country_flags else ""
+        header = f"🔹 <b>ព្រឹត្តិការណ៍សំខាន់</b>{flag_str}".strip()
+
+        # Strip any country flag emojis from body key_event
+        for _, fl in flag_rules:
+            key_event = key_event.replace(fl, "")
 
         # Decode HTML entities (&nbsp;, &amp;, etc.)
         key_event = html.unescape(key_event)
 
-        # Remove any embedded anchor tags entirely from narrative text (links belong only in footer / CTA button)
+        # Remove any embedded anchor tags entirely from narrative text
         key_event = re.sub(r'<a\b[^>]*>(.*?)</a>', r'\1', key_event, flags=re.DOTALL | re.IGNORECASE)
 
         # Remove any lingering raw http/https links dumped into the middle of text
@@ -263,16 +312,15 @@ class KhmerFormatter:
         key_event = re.sub(r'[ \t]+', ' ', key_event)
         key_event = re.sub(r'\n{3,}', '\n\n', key_event).strip()
 
-        # Sanitize Khmer spelling to guarantee 100% accurate spelling (Hormuz -> ហ័រមូស, etc.)
+        # Sanitize Khmer spelling to guarantee 100% accurate spelling
         key_event = sanitize_khmer_spelling(key_event)
 
-        msg = (
-            f"🚨 <b>BREAKING EVENT — ព្រឹត្តិការណ៍ទីផ្សារប្រចាំថ្ងៃ!</b>\n\n"
-            f"🔹 <b>ព្រឹត្តិការណ៍សំខាន់:</b>\n"
-            f"{key_event}\n\n"
-            f"{source_line}"
-        )
-        return msg.strip()
+        parts = [header, key_event]
+        if impact_line:
+            parts.append(impact_line)
+        parts.append(source_line)
+
+        return "\n\n".join(parts).strip()
 
     @staticmethod
     def format_whale_alert(whale_data: dict) -> str:
