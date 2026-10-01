@@ -53,7 +53,18 @@ class DailyGoldPriceCardBuilder:
                     logger.debug(f"Failed to load background image {f}: {e}")
 
     def _find_browser(self) -> Optional[str]:
-        for p in self.edge_paths:
+        import shutil
+        for cmd in ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "msedge"]:
+            found = shutil.which(cmd)
+            if found:
+                return found
+        for p in self.edge_paths + [
+            "/usr/bin/google-chrome",
+            "/usr/bin/google-chrome-stable",
+            "/usr/bin/chromium",
+            "/usr/bin/chromium-browser",
+            "/snap/bin/chromium"
+        ]:
             if os.path.exists(p):
                 return p
         return None
@@ -292,11 +303,11 @@ class DailyGoldPriceCardBuilder:
 </html>
 """
 
-            # 4. Render with headless browser
+            # 4. Render with headless browser if available, or fallback to Pillow
             browser_bin = self._find_browser()
             if not browser_bin:
-                logger.error("[DailyGoldPriceCardBuilder] Neither Edge nor Chrome found on system.")
-                return None
+                logger.info("[DailyGoldPriceCardBuilder] Browser not found — using high-performance Pillow 1080x1080 renderer.")
+                return self._render_with_pillow(damlung_str, chi_str, oz_str, footer_str)
 
             with tempfile.NamedTemporaryFile(suffix=".html", delete=False, mode="w", encoding="utf-8") as tf:
                 tf.write(html_content)
@@ -323,8 +334,11 @@ class DailyGoldPriceCardBuilder:
                     logger.info(f"[DailyGoldPriceCardBuilder] Rendered card ({len(png_bytes)} bytes) successfully.")
                     return png_bytes
                 else:
-                    logger.error("[DailyGoldPriceCardBuilder] Output PNG file not generated or too small.")
-                    return None
+                    logger.warning("[DailyGoldPriceCardBuilder] Browser render output empty, falling back to Pillow.")
+                    return self._render_with_pillow(damlung_str, chi_str, oz_str, footer_str)
+            except Exception as render_err:
+                logger.warning(f"[DailyGoldPriceCardBuilder] Browser render failed ({render_err}), using Pillow fallback.")
+                return self._render_with_pillow(damlung_str, chi_str, oz_str, footer_str)
             finally:
                 if os.path.exists(temp_html):
                     try: os.remove(temp_html)
@@ -335,4 +349,74 @@ class DailyGoldPriceCardBuilder:
 
         except Exception as e:
             logger.error(f"[DailyGoldPriceCardBuilder] Exception generating card: {e}")
+            return self._render_with_pillow(damlung_str, chi_str, oz_str, footer_str)
+
+    def _render_with_pillow(self, damlung_str: str, chi_str: str, oz_str: str, footer_str: str) -> Optional[bytes]:
+        """Pillow-based Ultra-HD 1080x1080 Graphic Card Renderer for Zero-Dependency Linux Cloud environments."""
+        try:
+            import io
+            from PIL import Image, ImageDraw, ImageFont
+
+            bg_path = BASE_DIR / "gold_bars_raw.jpg"
+            if bg_path.exists():
+                img = Image.open(bg_path).convert("RGBA")
+                w, h = img.size
+                min_dim = min(w, h)
+                left = (w - min_dim) // 2
+                top = (h - min_dim) // 2
+                img = img.crop((left, top, left + min_dim, top + min_dim))
+                img = img.resize((1080, 1080), Image.Resampling.LANCZOS)
+            else:
+                img = Image.new("RGBA", (1080, 1080), (8, 12, 20, 255))
+
+            # Dark Glassmorphic Card Overlay
+            overlay = Image.new("RGBA", (1080, 1080), (0, 0, 0, 0))
+            draw_ov = ImageDraw.Draw(overlay)
+            draw_ov.rectangle([(0, 0), (1080, 1080)], fill=(8, 12, 20, 185))
+
+            # Glass card in center
+            draw_ov.rounded_rectangle([(90, 80), (990, 1000)], radius=36, fill=(15, 23, 42, 220), outline=(212, 175, 55, 140), width=3)
+            img = Image.alpha_composite(img, overlay)
+            draw = ImageDraw.Draw(img)
+
+            # Fonts
+            f_bold = BASE_DIR / "assets" / "DejaVuSans-Bold.ttf"
+            if f_bold.exists():
+                font_title = ImageFont.truetype(str(f_bold), 56)
+                font_date = ImageFont.truetype(str(f_bold), 26)
+                font_pill_label = ImageFont.truetype(str(f_bold), 34)
+                font_pill_price = ImageFont.truetype(str(f_bold), 42)
+            else:
+                font_title = ImageFont.load_default()
+                font_date = font_title
+                font_pill_label = font_title
+                font_pill_price = font_title
+
+            # Title & Date
+            draw.text((540, 160), "ហាងឆេងមាស", fill=(255, 215, 0), font=font_title, anchor="mm")
+            draw.text((540, 235), footer_str, fill=(226, 232, 240), font=font_date, anchor="mm")
+
+            # 3 White Rounded Pill Cards
+            pills = [
+                ("1 តម្លឹង", damlung_str),
+                ("1 ជី", chi_str),
+                ("1 អោន", oz_str)
+            ]
+            start_y = 330
+            pill_h = 145
+            gap = 45
+
+            for i, (label, val) in enumerate(pills):
+                cy = start_y + i * (pill_h + gap)
+                cx1, cx2 = 160, 920
+                draw.rounded_rectangle([(cx1, cy), (cx2, cy + pill_h)], radius=30, fill=(255, 255, 255, 255), outline=(212, 175, 55, 180), width=2)
+                draw.text((cx1 + 60, cy + pill_h // 2), label, fill=(15, 23, 42), font=font_pill_label, anchor="lm")
+                draw.text((cx2 - 60, cy + pill_h // 2), val, fill=(180, 83, 9), font=font_pill_price, anchor="rm")
+
+            out = io.BytesIO()
+            img.convert("RGB").save(out, format="PNG", quality=95)
+            logger.info("[DailyGoldPriceCardBuilder] Rendered 1080x1080 card via Pillow successfully.")
+            return out.getvalue()
+        except Exception as pe:
+            logger.error(f"[DailyGoldPriceCardBuilder] Pillow rendering error: {pe}")
             return None
