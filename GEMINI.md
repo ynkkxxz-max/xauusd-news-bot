@@ -59,11 +59,26 @@ This repository is governed by the 5 Golden Principles established by the system
     3. `1 អោន`      `$X,XXX`
   - គ្មានប៊ូតុង Inline Buttons រញ៉េរញ៉ៃឡើយ។
 
-### 8. 🚫 បិទការផ្សាយព័ត៌មានទាន់ហេតុការណ៍ RSS Breaking News ជាអចិន្ត្រៃយ៍ (Breaking News RSS Alerts Permanently Disabled)
-- **បញ្ជាផ្ទាល់ដាច់ខាតពីអ្នកប្រើប្រាស់ (Direct Absolute User Directive — Zero Channel Spam)**:
-  - មុខងារ `check_breaking_news` និងការទាញយក RSS Breaking News ទាំងអស់ត្រូវ **បិទចោលទាំងស្រុងជាអចិន្ត្រៃយ៍ (Permanently Disabled)**។
-  - ហាមដាច់ខាតមិនឱ្យប្រព័ន្ធស្កេន RSS ឬផ្សាយព័ត៌មានទាន់ហេតុការណ៍ចូលទៅកាន់ Telegram Channel ទៀតជាដាច់ខាត ដើម្បីការពារកុំឱ្យមានការផ្ញើសារជាន់គ្នាក្នុង Channel។
-  - Channel ត្រូវរក្សាទុកសម្រាប់តែ៖ ហាងឆេងមាស ៧ ព្រឹក (`check_daily_gold_price`), ដំណឹងបើកផ្សារ London/NY (`check_session_open_alerts`), សេចក្តីថ្លែងការណ៍សំខាន់របស់ Fed/Powell/Warsh (`fomc_interpreter`), និងការវិភាគម៉ាក្រូផ្លូវការប៉ុណ្ណោះ។
+### 8. 🚨 ស្តង់ដារផ្សាយព័ត៌មានទាន់ហេតុការណ៍ (Breaking News Standard — វិស័យស្នូលទាំង ៧)
+- **ប្រព័ន្ធការពារការផ្ញើសារជាន់គ្នា ៣ ជាន់ដាច់ខាត (Triple Anti-Duplicate Shield — Zero Spam Guarantee)**:
+  1. **ត្រួតពិនិត្យ Telegram Channel Feed ជាក់ស្តែង (`_is_already_in_telegram_channel`)**: មុននឹងចេញផ្សាយ ត្រូវ Scan មើលសារក្នុង Channel `@GoldMarketKH8888` ជាមុនសិន។ ប្រសិនបើមានព័ត៌មាននេះរួចហើយ ទោះបី Server restart ឬមាន Instance ច្រើនប៉ុនណាក៏ដោយ ក៏ **ហាមដាច់ខាតមិនឱ្យផ្សាយជាន់គ្នាជាលើកទី ២ ឡើយ**។
+  2. **In-Memory Process Cache & SQLite Deduplication**: កត់ត្រាចំណងជើង និង ID ក្នុង Memory និង Database SQLite ភ្លាមៗមុនពេលផ្ញើ។
+  3. **ចន្លោះពេលផ្សាយយ៉ាងតិច ៥ នាទីម្តង (`BREAKING_ALERT_MIN_GAP = 300s`)**: រាល់ការចេញផ្សាយព័ត៌មានទាន់ហេតុការណ៍មួយ ត្រូវមានគម្លាតយ៉ាងតិច ៥ នាទីទើបអាចផ្សាយព័ត៌មានបន្ទាប់បាន ដើម្បីការពារកុំឱ្យមានការផ្ញើសារញាប់ពេក។
+- **វិស័យស្នូលទាំង ៧ នៃព័ត៌មាន (The 7 Core News Pillars)**:
+  1. 🌐 **សេដ្ឋកិច្ច (Economy)**: GDP, CPI, អតិផរណា, NFP, ការងារ, Retail Sales, PMI, កំណើនសេដ្ឋកិច្ច។
+  2. ⚔️ **នយោបាយភូមិសាស្ត្រ (Geopolitics)**: សង្គ្រាម, ជម្លោះ, មជ្ឈិមបូព៌ា, អ៊ុយក្រែន, ច្រកសមុទ្រយុទ្ធសាស្ត្រ។
+  3. 💻 **បច្ចេកវិទ្យា (Technology)**: AI, Semiconductor, បន្ទះឈីប Chips, Big Tech, សន្តិសុខ Cyber។
+  4. 🏦 **គោលនយោបាយរូបិយវត្ថុ និងធនាគារកណ្តាល (Monetary Policy & Central Banks)**: Fed, Powell, FOMC, អត្រាការប្រាក់, ECB, BOJ, PBOC, ទុនបម្រុងមាស។
+  5. 🛢️ **បរិស្ថាន និងធនធានធម្មជាតិ (Environment & Natural Resources)**: ប្រេងកាត OPEC, ថាមពល, រ៉ែមាស, ធនធានធម្មជាតិ។
+  6. 👥 **កត្តាសង្គម និងប្រជាសាស្ត្រ (Social & Demographic Factors)**: កូដកម្មការងារ, ប្រាក់ឈ្នួល, ចិត្តសាស្ត្រអ្នកប្រើប្រាស់។
+  7. ⚖️ **ច្បាប់ បទប្បញ្ញត្តិ និងគោលនយោបាយរដ្ឋាភិបាល (Laws, Regulations & Government Policies)**: ពន្ធគយ Tariffs, ទណ្ឌកម្ម, បំណុលរដ្ឋ, ច្បាប់ហិរញ្ញវត្ថុ/Crypto។
+- **ទម្រង់ និងខ្លឹមសាររៀបរាប់ក្បោះក្បាយត្រឹមត្រូវ (Clean & Professional Standard)**:
+  - Header ចាប់ផ្ដើមផ្ទាល់ពី `🔹 <b>ព្រឹត្តិការណ៍សំខាន់</b> {ទង់ជាតិ}` (ដកឃ្លា ២ បន្ទាត់ទៅអត្ថបទ)។
+  - សាច់រឿងព័ត៌មានក្បោះក្បាយ ត្រឹមត្រូវតាមដំណើររឿងពិតជាភាសាខ្មែរសុទ្ធសាធ (គ្មានចំណងជើងភាសាអង់គ្លេសនៅខាងមុខឡើយ)។
+  - **ហាមដាច់ខាតកុំបង្ខំភ្ជាប់រឿងមាស ឬប្រាក់ដុល្លារ ($) បើមិនពាក់ព័ន្ធ**។
+  - **ការបញ្ជាក់ផលប៉ះពាល់ (ធម្មជាតិ គ្មានវង់ក្រចក គ្មានសញ្ញាចុចពីរ និងគ្មាន Emoji)**៖ `វាផលអវិជ្ជមាន...` ឬ `វាផលវិជ្ជមាន...` (ព័ត៌មានអព្យាក្រឹតត្រូវ Drop ចោល)។
+  - ជួរប្រភពព័ត៌មានខាងក្រោមស្អាត៖ `ប្រភពព័ត៌មាន | <a href="{link}">{source_name}</a>`។
+  - គ្មានប៊ូតុង Inline Buttons ខាងក្រោមឡើយ (`reply_markup=None`)។
 
 ### 9. 🚫 លុបចោលសាររំញ័រតម្លៃមាស (Disable Volatility Spike Alerts Permanently)
 - មិនត្រូវផ្ញើសារប្រភេទ `🚨 XAUUSD VOLATILITY ALERT — បម្រែបម្រួលតម្លៃមាសខុសប្រក្រតី` (Bullish Spike / Flash Dump) ចូល Channel/Group ឡើយ។
