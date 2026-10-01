@@ -75,6 +75,42 @@ class BreakingNewsCollector:
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
+        # In-memory cleared sets for immediate data purging after sending
+        self._cleared_ids = set()
+        self._cleared_links = set()
+        self._cleared_titles = set()
+
+    def clear_item(self, news_id: str = "", link: str = "", title: str = ""):
+        """
+        Immediately purges and blacklists a news item from data pool right after sending
+        so it can NEVER be fetched, processed, or sent again.
+        """
+        if news_id:
+            self._cleared_ids.add(str(news_id).strip())
+        if link:
+            clean_l = link.split("?")[0].rstrip("/").lower()
+            self._cleared_links.add(clean_l)
+            slug = clean_l.split("/")[-1]
+            if len(slug) >= 8:
+                self._cleared_links.add(slug)
+        if title:
+            self._cleared_titles.add(title.strip().lower())
+        logger.info(f"[DATA CLEARED] News item '{title[:50]}' purged from data pool immediately.")
+
+    def is_cleared(self, item_id: str, link: str = "", title: str = "") -> bool:
+        """Checks if item was already sent and cleared from data."""
+        if item_id in self._cleared_ids:
+            return True
+        if title and title.strip().lower() in self._cleared_titles:
+            return True
+        if link:
+            clean_l = link.split("?")[0].rstrip("/").lower()
+            if clean_l in self._cleared_links:
+                return True
+            slug = clean_l.split("/")[-1]
+            if slug and slug in self._cleared_links:
+                return True
+        return False
 
     def _extract_image(self, entry) -> str:
         """Pulls the article image URL from RSS enclosure / media:* / description img tags."""
@@ -219,6 +255,9 @@ class BreakingNewsCollector:
                 try:
                     feed_items = future.result()
                     for it in feed_items:
+                        # Strictly purge any item that has been cleared or already processed
+                        if self.is_cleared(it["id"], it.get("link", ""), it.get("title", "")):
+                            continue
                         if it["id"] not in seen_ids:
                             seen_ids.add(it["id"])
                             items.append(it)
