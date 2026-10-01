@@ -163,12 +163,9 @@ class XAUUSDNewsAssistantBot:
             bootstrapped_count = 0
             for item in items:
                 news_id = item.get("id")
-                item_ts = self._news_ts(item)
-                # Only seed items older than 2 hours so very fresh news (<2h) can still be analyzed and broadcasted
-                if item_ts > 0 and (time.time() - item_ts) > 2 * 3600:
-                    if news_id and not database.is_news_sent(news_id):
-                        database.record_news_sent(news_id, item.get("title", ""), item.get("source", ""))
-                        bootstrapped_count += 1
+                if news_id and not database.is_news_sent(news_id):
+                    database.record_news_sent(news_id, item.get("title", ""), item.get("source", ""), is_broadcasted=0)
+                    bootstrapped_count += 1
             logger.info(f"[Startup News Sync] Connected to global feeds. Seeded {bootstrapped_count} historical headlines into seen cache.")
         except Exception as e:
             logger.warning(f"[Startup News Sync] Warning: {e}")
@@ -1459,6 +1456,34 @@ class XAUUSDNewsAssistantBot:
         else:
             return INTERVAL_NORMAL
 
+    def _is_already_in_telegram_channel(self, title: str, link: str = "") -> bool:
+        """Inspects the public Telegram channel feed to prevent duplicate broadcasts across distributed containers."""
+        try:
+            import urllib.request
+            req = urllib.request.Request(
+                "https://t.me/s/GoldMarketKH8888",
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            )
+            with urllib.request.urlopen(req, timeout=3.5) as resp:
+                channel_html = resp.read().decode("utf-8", errors="ignore")
+
+            # 1. Match specific link domain or article slug if present
+            if link and len(link) > 20:
+                slug = link.split("/")[-1].split("?")[0].replace("-", " ")[:30]
+                if len(slug) >= 12 and slug.lower() in channel_html.lower():
+                    return True
+
+            # 2. Extract salient English/Khmer keyword tokens (min length 4)
+            words = [w for w in re.findall(r'\b[A-Za-z0-9\u1780-\u17FF]{4,}\b', title) 
+                     if w.lower() not in ("news", "today", "live", "world", "market", "report", "the")]
+            if len(words) >= 3:
+                matches = sum(1 for w in words if w.lower() in channel_html.lower())
+                if matches >= 3:
+                    return True
+        except Exception as e:
+            logger.debug(f"[Channel Feed Check] {e}")
+        return False
+
     def check_breaking_news(self):
         """
         Monitors RSS feeds for gold-relevant breaking news (Mode 1 / Mode 4).
@@ -1569,6 +1594,12 @@ class XAUUSDNewsAssistantBot:
             if not (is_positive or is_negative) or "អព្យាក្រឹត" in impact:
                 logger.info(f"[NEUTRAL NEWS DROPPED PER USER MANDATE] '{title}' impact: '{impact}'. Dropped.")
                 database.record_news_sent(item["id"], title, item.get("source", ""), is_broadcasted=0)
+                continue
+
+            # Multi-Instance Distributed Protection: Check if already broadcasted to channel
+            if self._is_already_in_telegram_channel(title, item.get("link", "")):
+                logger.info(f"[CHANNEL DEDUPLICATION] '{title}' already exists in @GoldMarketKH8888 channel feed. Skipping duplicate!")
+                database.record_news_sent(item["id"], title, item.get("source", ""), is_broadcasted=1)
                 continue
 
             # Found high-impact news with clear positive or negative impact!
