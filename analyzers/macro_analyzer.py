@@ -98,10 +98,14 @@ class MacroAnalyzer:
         }
 
     @classmethod
-    def analyze_breaking_news(cls, title: str, description: str = "") -> dict:
-        """Analyzes breaking geopolitical, tech/AI or central bank event for gold impact with full narrative context."""
+    def analyze_breaking_news(cls, title, description: str = "") -> dict:
+        """Analyzes breaking geopolitical, tech/AI, economic or central bank event for gold impact with full narrative context."""
         import re
         import html
+
+        if isinstance(title, dict):
+            description = title.get("description", "") or ""
+            title = title.get("title", "") or ""
 
         clean_title = re.sub(r'<[^>]+>', ' ', title or '')
         clean_title = html.unescape(clean_title)
@@ -117,83 +121,145 @@ class MacroAnalyzer:
             full_story = clean_title
 
         text = f"{clean_title} {clean_desc}".lower()
-        
-        # 1. Geopolitical Conflict / War / Military Attacks (Strict matching, NOT general economic news)
-        geopolitical_words = ["war", "missile", "airstrike", "invasion", "military attack", "strait of hormuz", "red sea attack", "iran strike"]
-        is_military_conflict = any(w in text for w in geopolitical_words) or ("escalat" in text and any(k in text for k in ["tension", "conflict", "threat", "military"]))
 
-        if is_military_conflict:
-            what = f"ភាពតានតឹងភូមិសាស្ត្រនយោបាយកើនឡើង៖ {full_story}"
-            why = "🔴 នេះជាព័ត៌មានអវិជ្ជមានផ្នែកសន្តិសុខ ដែលជំរុញឱ្យវិនិយោគិនស្វែងរកទ្រព្យសកម្មសុវត្ថិភាព (Safe-Haven Assets) និងធ្វើឱ្យមានការព្រួយបារម្ភពីការរំខានដល់សន្តិសុខពិភពលោក។"
+        # Gate 0: Entertainment, Streaming, Movies, Sports, Celebrity, Satire (Strict Drop)
+        ent_words = ["streaming", "netflix", "movie", "cinema", "box office", "actor", "actress", "hollywood", "album", "comedy", "parody", "satire"]
+        if any(re.search(rf"\b{w}\b", text) for w in ent_words):
             return {
-                "key_event": f"{what}\n\n{why}\n\n• <b>សម្ពាធលើទីផ្សារមាស (XAUUSD):</b> 🟢 Possible Bullish Pressure (កម្លាំងទិញមាស Safe-Haven កើនឡើងខ្ពស់)",
+                "key_event": f"ព័ត៌មានកម្សាន្ត៖ {full_story}",
+                "impact": "វាផលអព្យាក្រឹត ព័ត៌មានកម្សាន្តគ្មានផលប៉ះពាល់លើទីផ្សារ",
+                "is_clear": False,
+                "bias": "🟡 Neutral"
+            }
+
+        # Gate 1: Geopolitical Conflict, War, Military Attacks, Drone, Strikes (Absolute Top Priority - 100% Negative Risk)
+        war_words = [
+            "war", "drone", "missile", "airstrike", "air strike", "invasion", "military attack",
+            "strait of hormuz", "red sea attack", "iran strike", "bomb", "bombing", "attack",
+            "shelling", "casualties", "killed", "dead", "school", "troops", "conflict",
+            "escalat", "hostilities", "frontline", "combat", "weapon", "fighter jet"
+        ]
+        is_military = any(re.search(rf"\b{w}\b", text) for w in war_words) or ("strike" in text and any(k in text for k in ["israel", "gaza", "russia", "ukraine", "iran", "yemen", "kyiv", "beirut", "tel aviv"]))
+
+        if is_military:
+            what = f"ភាពតានតឹងភូមិសាស្ត្រនយោបាយ និងជម្លោះយោធាកើនឡើង៖ {full_story}"
+            why = "នេះជាព័ត៌មានអវិជ្ជមានផ្នែកសន្តិសុខ ដែលជំរុញឱ្យវិនិយោគិនស្វែងរកទ្រព្យសុវត្ថិភាព (Safe-Haven Assets) ដូចជាមាស និងបង្កើតការព្រួយបារម្ភពីអស្ថិរភាពសន្តិសុខសកល។"
+            return {
+                "key_event": f"{what}\n\n{why}",
                 "what_happened": what,
                 "why_it_matters": why,
+                "impact": "វាផលអវិជ្ជមាន បង្កើនហានិភ័យភូមិសាស្ត្រនយោបាយ និងអស្ថិរភាពសន្តិសុខសកល",
                 "usd_impact": "USD អាចឡើងថ្លៃក្នុងនាមជា Safe Haven ប៉ុន្តែមាស (Gold) ទទួលបានអត្ថប្រយោជន៍ និងទំហំទិញខ្លាំងជាង។",
                 "rate_yield_impact": "វិនិយោគិនសម្រុកទិញសញ្ញាប័ណ្ណរដ្ឋាភិបាល (Bonds) ធ្វើឱ្យ Bond Yields ធ្លាក់ចុះ។",
-                "xau_pressure": "🟢 Possible Bullish Pressure (កម្លាំងទិញមាស Safe-Haven កើនឡើងខ្ពស់)",
-                "bias": "🟢 Bullish"
+                "xau_pressure": "🟢 Bullish (តម្រូវការទិញមាស Safe-Haven កើនឡើងខ្ពស់)",
+                "bias": "🟢 Bullish",
+                "is_clear": True
             }
-        elif any(w in text for w in ["china", "adb", "growth forecast", "asian development bank", "deflation", "soft demand", "pboc"]):
-            what = f"របាយការណ៍សេដ្ឋកិច្ច និងអតិផរណាអាស៊ី/ចិន៖ {full_story}"
-            why = "📊 ការព្យាករណ៍ពីកំណើនសេដ្ឋកិច្ច និងអតិផរណាទាបនៅអាស៊ី/ចិន បង្ហាញពីតម្រូវការទំនិញប្រើប្រាស់ទន់ខ្សោយ ដែលអាចជំរុញឱ្យធនាគារកណ្តាល (PBOC) បន្តបន្ធូរបន្ថយរូបិយវត្ថុ ឬបញ្ចុះអត្រាការប្រាក់បន្ថែម។"
+
+        # Gate 2: Laws, Sanctions, Tariffs & Trade Restrictions
+        sanction_words = ["tariff", "tariffs", "sanction", "sanctions", "trade war", "export curb", "export curbs", "debt ceiling", "embargo", "curbs"]
+        if any(re.search(rf"\b{w}\b", text) for w in sanction_words):
+            what = f"គោលនយោបាយពន្ធគយ និងទណ្ឌកម្មអន្តរជាតិ៖ {full_story}"
+            why = "វិធានការពន្ធគយ និងទណ្ឌកម្មបង្កើនហានិភ័យដល់ខ្សែច្រវាក់ផ្គត់ផ្គង់ និងការដោះដូរពាណិជ្ជកម្មអន្តរជាតិ។"
             return {
                 "key_event": f"{what}\n\n{why}",
                 "what_happened": what,
                 "why_it_matters": why,
-                "usd_impact": "កម្លាំងរូបិយប័ណ្ណអាស៊ីអាចទន់ខ្សោយ គាំទ្រឱ្យ USD រក្សាស្ថិរភាព ឬរឹងមាំបន្តិច។",
-                "rate_yield_impact": "ទិន្នផលសញ្ញាបណ្ណសកលអាចប្រឈមសម្ពាធធ្លាក់ចុះដោយសារការធ្លាក់ចុះនៃសម្ពាធអតិផរណា (Disinflationary pressures)។",
-                "xau_pressure": "🟡 Neutral / គ្មានផលប៉ះពាល់ផ្ទាល់",
-                "bias": "🟡 Neutral"
+                "impact": "វាផលអវិជ្ជមាន បង្កើនហានិភ័យសង្គ្រាមពាណិជ្ជកម្ម និងបន្ទុកពន្ធគយ",
+                "usd_impact": "USD អាចប្រែប្រួលតាមទំហំពាណិជ្ជកម្ម។",
+                "rate_yield_impact": "ហានិភ័យអតិផរណាពីពន្ធគយអាចរុញ Bond Yields ឡើង។",
+                "xau_pressure": "🟢 Bullish (គាំទ្រតម្រូវការមាសការពារហានិភ័យ)",
+                "bias": "🟢 Bullish",
+                "is_clear": True
             }
-        elif any(w in text for w in ["artificial intelligence", "ai", "tech", "nvidia", "super intelligence"]):
-            what = f"ការវិវត្តន៍វិស័យបច្ចេកវិទ្យា និង AI៖ {full_story}"
-            why = "🟢 នេះជាព័ត៌មានវិជ្ជមាន ដែលបង្ហាញពីការផ្តល់តម្លៃកាន់តែខ្ពស់ទៅលើការអភិវឌ្ឍ សក្តានុពលនៃបច្ចេកវិទ្យាអនាគត និងការជំរុញសន្ទស្សន៍ទីផ្សារហ៊ុន (Tech Rally)។"
+
+        # Gate 3: Economy & Inflation (CPI, PCE, GDP, Retail Sales, Labor, Jobs)
+        if any(re.search(rf"\b{w}\b", text) for w in ["cpi", "inflation", "pce", "producer price"]):
+            if any(re.search(rf"\b{w}\b", text) for w in ["accelerat", "surge", "higher", "rise", "jump", "hot", "beat"]):
+                impact = "វាផលអវិជ្ជមាន សម្ពាធអតិផរណាខ្ពស់រុញច្រានការបញ្ចុះអត្រាការប្រាក់ឱ្យពន្យារពេល"
+                bias = "🔴 Bearish"
+            else:
+                impact = "វាផលវិជ្ជមាន អតិផរណាធ្លាក់ចុះគាំទ្រដល់លទ្ធភាពនៃការបន្ធូរបន្ថយអត្រាការប្រាក់"
+                bias = "🟢 Bullish"
             return {
-                "key_event": f"{what}\n\n{why}",
-                "what_happened": what,
-                "why_it_matters": why,
-                "usd_impact": "USD អាចរក្សាស្ថិរភាព ឬរឹងមាំតាមចរន្តវិនិយោគលើភាគហ៊ុនបច្ចេកវិទ្យាអាមេរិក។",
-                "rate_yield_impact": "ជំរុញអារម្មណ៍វិនិយោគិន Risk-On នៅក្នុងទីផ្សារហិរញ្ញវត្ថុ។",
-                "xau_pressure": "🟡 Neutral / គ្មានផលប៉ះពាល់ផ្ទាល់",
-                "bias": "🟡 Neutral"
+                "key_event": f"របាយការណ៍អតិផរណា និងទិន្នន័យតម្លៃទំនិញ៖ {full_story}",
+                "impact": impact,
+                "bias": bias,
+                "is_clear": True
             }
-        elif any(w in text for w in ["rate cut", "dovish", "easing"]):
-            what = f"សញ្ញានៃការបន្ធូរបន្ថយនយោបាយរូបិយវត្ថុ (Rate Cut/Dovish)៖ {full_story}"
-            why = "ការបញ្ចុះអត្រាការប្រាក់កាត់បន្ថយថ្លៃដើមនៃការកាន់កាប់មាស និងធ្វើឱ្យ USD ចុះខ្សោយ។"
+
+        # Gate 4: Social, Demographics & Labor (Strikes, Layoffs, Unemployment)
+        if any(re.search(rf"\b{w}\b", text) for w in ["strike", "strikes", "layoff", "layoffs", "unemployment", "job cuts"]):
             return {
-                "key_event": f"{what}\n\n{why}\n\n• <b>សម្ពាធលើទីផ្សារមាស (XAUUSD):</b> 🟢 Possible Bullish Pressure (សម្ពាធវិជ្ជមានជំរុញតម្លៃមាស)",
-                "what_happened": what,
-                "why_it_matters": why,
-                "usd_impact": "USD ចុះខ្សោយ (Bearish USD)។",
-                "rate_yield_impact": "Bond Yields ធ្លាក់ចុះ គាំទ្រដល់លោហៈធាតុមានតម្លៃ។",
-                "xau_pressure": "🟢 Possible Bullish Pressure (សម្ពាធវិជ្ជមានជំរុញតម្លៃមាស)",
-                "bias": "🟢 Bullish"
+                "key_event": f"វិបត្តិការងារ និងកូដកម្មកម្មករ៖ {full_story}",
+                "impact": "វាផលអវិជ្ជមាន ការកកស្ទះដឹកជញ្ជូនទំនិញ និងបន្ទុកថ្លៃដើមពាណិជ្ជកម្ម",
+                "bias": "🔴 Bearish",
+                "is_clear": True
             }
-        elif any(w in text for w in ["rate hike", "hawkish", "higher for longer"]):
-            what = f"សញ្ញារក្សាអត្រាការប្រាក់ខ្ពស់ ឬដំឡើងការប្រាក់ (Hawkish)៖ {full_story}"
-            why = "ការប្រាក់ខ្ពស់ផ្តល់ទិន្នផលលើសាច់ប្រាក់ និងសញ្ញាប័ណ្ណ ធ្វើឱ្យមាសបាត់បង់ភាពទាក់ទាញ។"
+
+        # Gate 5: Environment & Natural Resources (OPEC, Crude Oil, Gas)
+        if any(re.search(rf"\b{w}\b", text) for w in ["opec", "crude", "oil production", "crude oil", "fuel exports", "gas pipeline"]):
             return {
-                "key_event": f"{what}\n\n{why}\n\n• <b>សម្ពាធលើទីផ្សារមាស (XAUUSD):</b> 🔴 Possible Bearish Pressure (សម្ពាធអវិជ្ជមានលើមាស)",
-                "what_happened": what,
-                "why_it_matters": why,
-                "usd_impact": "USD រឹងមាំឡើង (Bullish USD)។",
-                "rate_yield_impact": "Treasury Yields កើនឡើង បង្កើតសម្ពាធលើទ្រព្យសកម្មគ្មានការប្រាក់ដូចជាមាស។",
-                "xau_pressure": "🔴 Possible Bearish Pressure (សម្ពាធអវិជ្ជមានលើមាស)",
-                "bias": "🔴 Bearish"
+                "key_event": f"ការផ្គត់ផ្គង់ថាមពល និងប្រេងកាតសកល៖ {full_story}",
+                "impact": "វាផលអវិជ្ជមាន ថ្លៃដើមថាមពលកើនឡើងខ្ពស់បង្កហានិភ័យអតិផរណា",
+                "bias": "🔴 Bearish",
+                "is_clear": True
             }
-        else:
-            what = f"ព័ត៌មានទីផ្សារទើបទទួលបាន៖ {full_story}"
-            why = "ព័ត៌មាននេះមានសារៈសំខាន់ក្នុងការកំណត់ទិសដៅ និងអារម្មណ៍វិនិយោគិនក្នុងទីផ្សារពិភពលោក។"
+
+        # Gate 6: Digital Assets & Cryptocurrency (SEC, ETF, Bitcoin, Crypto)
+        if any(re.search(rf"\b{w}\b", text) for w in ["bitcoin", "crypto", "etf", "sec", "xrp", "ethereum", "digital assets", "solana"]):
+            negative_crypto = ["hack", "stole", "ban", "crackdown", "fraud", "lawsuit", "crash", "plunge", "downside"]
+            if any(re.search(rf"\b{w}\b", text) for w in negative_crypto):
+                impact = "វាផលអវិជ្ជមាន បង្កើតភាពមិនប្រាកដប្រជា និងសម្ពាធលក់ក្នុងទីផ្សារឌីជីថល"
+                bias = "🔴 Bearish"
+            else:
+                impact = "វាផលវិជ្ជមាន ជំរុញលំហូរសាច់ប្រាក់ស្ថាប័ន និងពង្រឹងទំនុកចិត្តលើទីផ្សាររូបិយប័ណ្ណឌីជីថល"
+                bias = "🟢 Bullish"
             return {
-                "key_event": f"{what}\n\n{why}",
-                "what_happened": what,
-                "why_it_matters": why,
-                "usd_impact": "កំពុងតាមដានប្រតិកម្មលើទីផ្សារ។",
-                "rate_yield_impact": "តាមដានទិន្នផលសញ្ញាបណ្ណរដ្ឋាភិបាល។",
-                "xau_pressure": "🟡 Neutral / គ្មានផលប៉ះពាល់ផ្ទាល់",
-                "bias": "🟡 Neutral"
+                "key_event": f"ទីផ្សាររូបិយប័ណ្ណឌីជីថល និងទ្រព្យសកម្មគ្រីបតូ៖ {full_story}",
+                "impact": impact,
+                "bias": bias,
+                "is_clear": True
             }
+
+        # Gate 7: Technology / AI / Semiconductors
+        if any(re.search(rf"\b{w}\b", text) for w in ["artificial intelligence", "ai", "semiconductor", "chips", "nvidia", "tsmc", "tech"]):
+            negative_tech = ["curb", "curbs", "ban", "restriction", "sanction", "export", "downside", "investigation", "fall", "drop", "warning"]
+            if any(re.search(rf"\b{w}\b", text) for w in negative_tech):
+                impact = "វាផលអវិជ្ជមាន បង្កផលរំខានដល់ខ្សែច្រវាក់ផ្គត់ផ្គង់បន្ទះឈីបសកល"
+                bias = "🔴 Bearish"
+            else:
+                impact = "វាផលវិជ្ជមាន ជំរុញនវានុវត្តន៍បច្ចេកវិទ្យា និងទាក់ទាញលំហូរសាច់ប្រាក់វិនិយោគ"
+                bias = "🟢 Bullish"
+            return {
+                "key_event": f"ការវិវត្តន៍បច្ចេកវិទ្យា និងឧស្សាហកម្មបន្ទះឈីប AI៖ {full_story}",
+                "impact": impact,
+                "bias": bias,
+                "is_clear": True
+            }
+
+        # Gate 8: Monetary Policy & Central Banks (Fed, Powell, Rates)
+        if any(re.search(rf"\b{w}\b", text) for w in ["fed", "powell", "fomc", "rate cut", "rate hike", "central bank", "ecb", "boe", "boj", "pboc"]):
+            if any(re.search(rf"\b{w}\b", text) for w in ["cut", "cuts", "dovish", "easing", "lower"]):
+                impact = "វាផលវិជ្ជមាន កាត់បន្ថយថ្លៃដើមខ្ចីប្រាក់ និងជំរុញសន្ទុះសេដ្ឋកិច្ច"
+                bias = "🟢 Bullish"
+            else:
+                impact = "វាផលអវិជ្ជមាន អត្រាការប្រាក់រក្សាកម្រិតខ្ពស់យូរជាងការរំពឹងទុក"
+                bias = "🔴 Bearish"
+            return {
+                "key_event": f"គោលនយោបាយរូបិយវត្ថុ និងធនាគារកណ្តាល៖ {full_story}",
+                "impact": impact,
+                "bias": bias,
+                "is_clear": True
+            }
+
+        # Final Fallback: Neutral
+        return {
+            "key_event": f"ព័ត៌មានទីផ្សារទើបទទួលបាន៖ {full_story}",
+            "impact": "វាផលអព្យាក្រឹត ទីផ្សារកំពុងរង់ចាំទិន្នន័យបន្ថែម",
+            "is_clear": False,
+            "bias": "🟡 Neutral"
+        }
 
     @classmethod
     def generate_smart_smc_setup(cls, current_price: float, key_levels: dict, macro_data: dict = None, order_book: dict = None) -> dict:
