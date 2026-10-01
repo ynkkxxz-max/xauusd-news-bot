@@ -42,7 +42,6 @@ description: "Core rules and design standards for Telegram Channel Broadcasts (D
   - ភ្ជាប់តែរូបភាពពិតដែលទាញចេញពី Article ដើមប៉ុណ្ណោះ។ ប្រសិនបើគ្មានរូបភាពពិត ត្រូវផ្ញើជា Plain Text ស្អាត (ហាមដាច់ខាតយករូបភាពមិនត្រូវសាច់រឿងមកបង្ហោះ)។
 
 ### 3. 🚫 មុខងារដែលត្រូវបានបិទជាអចិន្ត្រៃយ៍ (Strictly Permanently Disabled)
-- ❌ **Breaking News Alerts** (`check_breaking_news`): ហាមផ្សាយព័ត៌មានទាន់ហេតុការណ៍ RSS ចូល Channel ជាដាច់ខាត (បិទជាអចិន្ត្រៃយ៍ ១០០%)។
 - ❌ **Daily Market Wrap-Up** (`check_night_wrap_up`): ហាមផ្ញើសារសង្ខេបពេលយប់ចូល Channel ជាដាច់ខាត។
 - ❌ **Volatility Spike Alerts** (`check_price_volatility_spike`): ហាមផ្ញើសារបម្រែបម្រួលតម្លៃមាស Flash Dump/Spike ចូល Channel ជាដាច់ខាត។
 - ❌ **Whale Order Book Alerts** (`check_iceberg_orders`): ហាមផ្ញើសារ Whale Wall ចូល Channel ជាដាច់ខាត។
