@@ -92,14 +92,18 @@ class GoldNewsFilter:
         across the 7 Core News Pillars (Geopolitics, Macroeconomics, Fed/Monetary, Energy/Oil, Tech, Policies).
         """
         clean_title = (title or "").strip()
-        # Strictly reject speculative questions and opinion pieces (e.g. "Is Iran losing leverage... ?")
-        if clean_title.endswith("?"):
+        # Strictly reject speculative questions and opinion pieces (e.g. "Trump the environmentalist? ...")
+        if "?" in clean_title:
             return False
         
         t_low = clean_title.lower()
-        if any(t_low.startswith(p) for p in [
-            "opinion:", "opinion |", "analysis:", "analysis |", "why ", "why is ", "why did ", "could ", "what if ", "here is why "
-        ]):
+        opinion_markers = [
+            "opinion:", "opinion |", "analysis:", "analysis |", "why ", "why is ", "why did ", 
+            "could ", "what if ", "here is why ", "how his ", "how her ", "how a ", "how the ",
+            "environmentalist", "fragility of", "op-ed", "editorial", "columnist", "essay",
+            "viewpoint", "perspective:"
+        ]
+        if any(marker in t_low for marker in opinion_markers):
             return False
 
         text = f"{title} {description}".lower()
