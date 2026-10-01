@@ -2,27 +2,75 @@ import html
 import re
 import logging
 import hashlib
+import concurrent.futures
 import xml.etree.ElementTree as ET
 import requests
 
 logger = logging.getLogger(__name__)
 
+# -------------------------------------------------------------------------
+# The 7 Core Pillars High-Speed Feed Matrix (Sub-Second Global Wire Feeds)
+# 1. 🌐 សេដ្ឋកិច្ច (Economy: GDP, CPI, Inflation, NFP, Retail Sales, PMI)
+# 2. ⚔️ នយោបាយភូមិសាស្ត្រ (Geopolitics: War, Middle East, Iran, Ukraine, Hormuz)
+# 3. 💻 បច្ចេកវិទ្យា (Technology / AI / Chips / Big Tech / Cybersecurity)
+# 4. 🏦 គោលនយោបាយរូបិយវត្ថុ និងធនាគារកណ្តាល (Monetary Policy & Central Banks)
+# 5. 🛢️ បរិស្ថាន និងធនធានធម្មជាតិ (Environment, OPEC, Crude Oil, Gold, Energy)
+# 6. 👥 កត្តាសង្គម និងប្រជាសាស្ត្រ (Social, Demographics, Labor, Strikes, Wages)
+# 7. ⚖️ ច្បាប់ បទប្បញ្ញត្តិ និងគោលនយោបាយរដ្ឋាភិបាល (Laws, Tariffs, Debt, Sanctions)
+# -------------------------------------------------------------------------
 RSS_FEEDS = [
-    # 1. Real-time Global Geopolitics & Middle East / Iran / World News (Google News Verified)
-    ("Google News Geopolitics", "https://news.google.com/rss/search?q=(iran+OR+israel+OR+war+OR+trump+OR+middle+east+OR+sanctions+OR+hormuz+OR+rial)+when:1d&hl=en-US&gl=US&ceid=US:en"),
-    ("Google News Gold & Macro", "https://news.google.com/rss/search?q=(xauusd+OR+gold+price+OR+federal+reserve+OR+powell+OR+fomc)+when:1d&hl=en-US&gl=US&ceid=US:en"),
-    ("Google News Global Economy", "https://news.google.com/rss/search?q=(inflation+OR+cpi+OR+gdp+OR+tariffs+OR+opec+OR+crude+oil)+when:1d&hl=en-US&gl=US&ceid=US:en"),
-    
-    # 2. Institutional Media Feeds
-    ("Al Jazeera World", "https://www.aljazeera.com/xml/rss/all.xml"),
-    ("CNBC US Politics", "https://www.cnbc.com/id/10000113/device/rss/rss.html"),
-    ("CNBC World News", "https://www.cnbc.com/id/100727362/device/rss/rss.html"),
-    ("ForexLive News", "https://www.forexlive.com/feed/news"),
+    # --- Pillar 1: Economy ---
+    ("Google News Economy 1h", "https://news.google.com/rss/search?q=(inflation+OR+cpi+OR+gdp+OR+pmi+OR+retail+sales+OR+recession)+when:1h&hl=en-US&gl=US&ceid=US:en"),
+    ("CNBC Economy", "https://www.cnbc.com/id/20910258/device/rss/rss.html"),
     ("MarketWatch Real-time", "https://feeds.content.dowjones.io/public/rss/mw_realtimeheadlines"),
-    ("Federal Reserve Official", "https://www.federalreserve.gov/feeds/press_monetary.xml"),
+    ("Yahoo Finance Global", "https://finance.yahoo.com/news/rssindex"),
+    ("ForexLive News", "https://www.forexlive.com/feed/news"),
+
+    # --- Pillar 2: Geopolitics ---
+    ("Google News Geopolitics 1h", "https://news.google.com/rss/search?q=(iran+OR+israel+OR+war+OR+trump+OR+middle+east+OR+sanctions+OR+hormuz+OR+russia+OR+ukraine)+when:1h&hl=en-US&gl=US&ceid=US:en"),
+    ("Al Jazeera World", "https://www.aljazeera.com/xml/rss/all.xml"),
+    ("BBC World News", "https://feeds.bbci.co.uk/news/world/rss.xml"),
+    ("CNBC World News", "https://www.cnbc.com/id/100727362/device/rss/rss.html"),
+
+    # --- Pillar 3: Technology / AI / Semiconductor ---
+    ("Google News Tech 1h", "https://news.google.com/rss/search?q=(ai+OR+semiconductor+OR+chips+OR+nvidia+OR+openai+OR+cyberattack+OR+big+tech)+when:1h&hl=en-US&gl=US&ceid=US:en"),
+    ("CNBC Tech", "https://www.cnbc.com/id/19854910/device/rss/rss.html"),
+    ("TechCrunch", "https://techcrunch.com/feed/"),
+    ("Ars Technica", "https://feeds.arstechnica.com/arstechnica/index"),
+
+    # --- Pillar 4: Monetary Policy & Central Banks ---
+    ("Google News Central Banks 1h", "https://news.google.com/rss/search?q=(federal+reserve+OR+powell+OR+fomc+OR+interest+rate+OR+ecb+OR+boj+OR+central+bank)+when:1h&hl=en-US&gl=US&ceid=US:en"),
+    ("Federal Reserve Press", "https://www.federalreserve.gov/feeds/press_monetary.xml"),
+    ("ECB Press Releases", "https://www.ecb.europa.eu/rss/press.html"),
+
+    # --- Pillar 5: Environment & Natural Resources (OPEC / Oil / Gold) ---
+    ("Google News Energy 1h", "https://news.google.com/rss/search?q=(crude+oil+OR+opec+OR+gold+price+OR+xauusd+OR+energy+crisis+OR+natural+gas)+when:1h&hl=en-US&gl=US&ceid=US:en"),
+    ("OilPrice Real-time", "https://oilprice.com/rss/main"),
+    ("CNBC Energy", "https://www.cnbc.com/id/19836768/device/rss/rss.html"),
+
+    # --- Pillar 6: Social & Demographics (Labor, Employment, Strikes) ---
+    ("Google News Labor & Jobs 1h", "https://news.google.com/rss/search?q=(strike+OR+layoffs+OR+unemployment+claims+OR+consumer+sentiment+OR+wages)+when:1h&hl=en-US&gl=US&ceid=US:en"),
+    ("CNBC Jobs & Economy", "https://www.cnbc.com/id/10000115/device/rss/rss.html"),
+
+    # --- Pillar 7: Laws, Regulations & Government Policies (Tariffs, Sanctions, Debt) ---
+    ("Google News Policies & Tariffs 1h", "https://news.google.com/rss/search?q=(tariffs+OR+trade+war+OR+debt+ceiling+OR+sanctions+OR+crypto+regulation)+when:1h&hl=en-US&gl=US&ceid=US:en"),
+    ("CNBC US Politics", "https://www.cnbc.com/id/10000113/device/rss/rss.html"),
+
+    # --- Pillar 8: Digital Assets, Bitcoin & Cryptocurrency (ប្រាក់ឌីជីថល) ---
+    ("Google News Crypto 1h", "https://news.google.com/rss/search?q=(bitcoin+OR+crypto+OR+cbdc+OR+stablecoin+OR+ethereum+OR+sec+crypto)+when:1h&hl=en-US&gl=US&ceid=US:en"),
+    ("CoinDesk Top News", "https://www.coindesk.com/arc/outboundfeeds/rss/"),
+    ("CoinTelegraph Top", "https://cointelegraph.com/rss"),
 ]
 
+
 class BreakingNewsCollector:
+    DISALLOWED_SOURCES = [
+        "united24", "moscow times", "france24", "ua.news", "tnglobal", "morningstar",
+        "middle east eye", "blogger", "substack", "medium", "dailystar", "the sun", 
+        "daily mail", "mirror", "pr newswire", "globenewswire", "business wire", "press release",
+        "biggo", "hawaii", "tz", "vietnam", "tribune", "kalkine"
+    ]
+
     def __init__(self):
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -30,7 +78,6 @@ class BreakingNewsCollector:
 
     def _extract_image(self, entry) -> str:
         """Pulls the article image URL from RSS enclosure / media:* / description img tags."""
-        import re
         enc = entry.find("enclosure")
         if enc is not None and "image" in (enc.get("type") or ""):
             url = (enc.get("url") or "").strip()
@@ -55,72 +102,127 @@ class BreakingNewsCollector:
                         return u
         return ""
 
-    def fetch_latest_news(self) -> list:
-        """Fetches news items from established RSS market feeds."""
+    def _fetch_single_feed(self, source_name: str, feed_url: str) -> list:
+        """Fetches and parses a single RSS feed."""
         items = []
-        for source_name, feed_url in RSS_FEEDS:
-            try:
-                resp = requests.get(feed_url, headers=self.headers, timeout=8)
-                if resp.status_code == 200:
-                    root = ET.fromstring(resp.content)
-                    channel = root.find("channel")
-                    if channel is not None:
-                        for entry in channel.findall("item")[:10]:
-                            title = entry.findtext("title", "").strip()
-                            link = entry.findtext("link", "").strip()
-                            pub_date = entry.findtext("pubDate", "").strip()
-                            desc = entry.findtext("description", "").strip()
-                            
-                            # Clean title and description of raw HTML and HTML entities
-                            title = re.sub(r'<[^>]+>', ' ', title)
-                            title = html.unescape(title)
-                            title = re.sub(r'\s+', ' ', title).strip()
+        try:
+            resp = requests.get(feed_url, headers=self.headers, timeout=6)
+            if resp.status_code == 200:
+                root = ET.fromstring(resp.content)
+                channel = root.find("channel")
+                if channel is not None:
+                    for entry in channel.findall("item")[:10]:
+                        title = entry.findtext("title", "").strip()
+                        link = entry.findtext("link", "").strip()
+                        pub_date = entry.findtext("pubDate", "").strip()
+                        desc = entry.findtext("description", "").strip()
 
-                            clean_desc = re.sub(r'<[^>]+>', ' ', desc)
-                            clean_desc = html.unescape(clean_desc)
-                            clean_desc = re.sub(r'\s+', ' ', clean_desc).strip()
+                        # Clean title and description of raw HTML and HTML entities
+                        title = re.sub(r'<[^>]+>', ' ', title)
+                        title = html.unescape(title)
+                        title = re.sub(r'\s+', ' ', title).strip()
 
-                            # If clean_desc is identical to title or repeats title prefix, remove repetition
-                            if clean_desc.lower() == title.lower() or clean_desc.lower().startswith(title.lower()):
-                                remainder = clean_desc[len(title):].strip(" -–—:| ")
-                                if len(remainder) < 15:
-                                    clean_desc = ""
-                                else:
-                                    clean_desc = remainder
+                        # Clean publisher brand suffixes & website taglines from title
+                        PUBLISHER_SUFFIX_REGEX = r'\s*[-–—|]\s*(?:ABC(?:\s*News)?|BBC(?:\s*News)?|CNBC|Reuters|The Jerusalem Post|Fox Business|Fox News|Bloomberg|The Wall Street Journal|WSJ|AP(?:\s*News)?|MarketWatch|Yahoo Finance|FXStreet|ForexLive|Al Jazeera|Ars Technica|TechCrunch)(?:\b[^\n]*)?$'
+                        title = re.sub(PUBLISHER_SUFFIX_REGEX, '', title, flags=re.IGNORECASE).strip()
+                        title = re.sub(r'\s*[-–—|:]\s*[\w\.-]+\.(?:com|org|net|id|uk|kh|gov|io|edu|vn|th)\b.*$', '', title, flags=re.IGNORECASE).strip()
+                        title = re.sub(r'\s*[-–—|:]\s*(?:Breaking News|Latest News|Videos|Top Stories|World News|Live Updates).*$', '', title, flags=re.IGNORECASE).strip()
 
-                            if not title or title.endswith("?"):
-                                continue
+                        clean_desc = re.sub(r'<[^>]+>', ' ', desc)
+                        clean_desc = html.unescape(clean_desc)
+                        clean_desc = re.sub(r'\s+', ' ', clean_desc).strip()
 
-                            if any(title.lower().startswith(p) for p in ["opinion:", "opinion |", "analysis:", "analysis |"]):
-                                continue
+                        # If clean_desc is identical to title or repeats title prefix, remove repetition
+                        if clean_desc.lower() == title.lower() or clean_desc.lower().startswith(title.lower()):
+                            remainder = clean_desc[len(title):].strip(" -–—:| ")
+                            if len(remainder) < 15:
+                                clean_desc = ""
+                            else:
+                                clean_desc = remainder
 
-                            # Extract true publisher source (e.g. CNN, Reuters, AP News, Bloomberg)
-                            actual_source = source_name
-                            src_elem = entry.find("source")
-                            if src_elem is not None and src_elem.text and src_elem.text.strip():
-                                actual_source = src_elem.text.strip()
-                            elif " - " in title:
-                                parts = title.rsplit(" - ", 1)
-                                if len(parts) == 2 and 2 <= len(parts[1].strip()) <= 30:
+                        # Strictly reject questions anywhere in title (speculative / clickbait)
+                        if not title or "?" in title:
+                            continue
+
+                        # Strictly reject reviews, opinions, podcasts, entertainment, streaming, movies, sports, satire, and memecoin/airdrop spam
+                        t_low = title.lower()
+                        NON_NEWS_PATTERNS = [
+                            "press review", "review:", "opinion:", "opinion |", "analysis:", "analysis |", "podcast", "roundup", "editorial",
+                            "new to streaming", "streaming:", "streaming on", "netflix", "hollywood", "box office", "tv series", "movie", "movies",
+                            "film", "films", "trailer", "actor", "actress", "celebrity", "album", "concert", "recipe", "horoscope",
+                            "hilarious", "satire", "parody", "comedy", "anti-enshittification", "funny",
+                            "nfl", "nba", "premier league", "champions league", "super bowl", "world cup",
+                            "airdrop", "presale", "giveaway", "memecoin", "meme coin", "pepe", "shiba inu", "dogecoin", "100x", "pump and dump"
+                        ]
+                        if any(p in t_low for p in NON_NEWS_PATTERNS):
+                            continue
+
+                        # Extract true publisher source (e.g. CNN, Reuters, AP News, Bloomberg)
+                        actual_source = source_name
+                        src_elem = entry.find("source")
+                        if src_elem is not None and src_elem.text and src_elem.text.strip():
+                            actual_source = src_elem.text.strip()
+
+                        # Always strip trailing publisher suffix from title (e.g. " - CNBC", " - West Hawaii Today", " - PR Newswire")
+                        if " - " in title:
+                            parts = title.rsplit(" - ", 1)
+                            if len(parts) == 2 and 2 <= len(parts[1].strip()) <= 45:
+                                if actual_source == source_name:
                                     actual_source = parts[1].strip()
-                                    title = parts[0].strip()
+                                title = parts[0].strip()
+                        elif " | " in title:
+                            parts = title.rsplit(" | ", 1)
+                            if len(parts) == 2 and 2 <= len(parts[1].strip()) <= 45:
+                                if actual_source == source_name:
+                                    actual_source = parts[1].strip()
+                                title = parts[0].strip()
 
-                            img_url = self._extract_image(entry)
-                            # Reject any google logo or generic icons in RSS
-                            if img_url and any(bad in img_url.lower() for bad in ["googleusercontent", "gstatic", "google", "logo", "icon", "avatar", "1x1"]):
-                                img_url = ""
+                        # Clean source name of verbose trailers
+                        actual_source = re.sub(r'\s*[-–—|:]\s*(?:Breaking News|Latest News|Videos|Top Stories|World News|Live).*$', '', actual_source, flags=re.IGNORECASE).strip()
 
-                            item_id = hashlib.md5((title + link).encode("utf-8")).hexdigest()
-                            items.append({
-                                "id": item_id,
-                                "title": title,
-                                "link": link,
-                                "pub_date": pub_date,
-                                "description": clean_desc,
-                                "source": actual_source,
-                                "image_url": img_url
-                            })
-            except Exception as e:
-                logger.debug(f"[BreakingNewsCollector] Fetch failed for {source_name}: {e}")
-                continue
+                        if any(bad in actual_source.lower() for bad in self.DISALLOWED_SOURCES):
+                            continue
+                        if any(ord(c) > 0x0600 and ord(c) < 0x06FF for c in actual_source):  # Arabic
+                            continue
+
+                        img_url = self._extract_image(entry)
+                        # Reject any google logo or generic icons in RSS
+                        if img_url and any(bad in img_url.lower() for bad in ["googleusercontent", "gstatic", "google", "logo", "icon", "avatar", "1x1"]):
+                            img_url = ""
+
+                        item_id = hashlib.md5((title + link).encode("utf-8")).hexdigest()
+                        items.append({
+                            "id": item_id,
+                            "title": title,
+                            "link": link,
+                            "pub_date": pub_date,
+                            "description": clean_desc,
+                            "source": actual_source,
+                            "image_url": img_url
+                        })
+        except Exception as e:
+            logger.debug(f"[BreakingNewsCollector] Fetch failed for {source_name}: {e}")
+        return items
+
+    def fetch_latest_news(self) -> list:
+        """Fetches news items from established 7-pillar market feeds simultaneously in parallel."""
+        items = []
+        seen_ids = set()
+
+        # Concurrent parallel fetch across all 21 feeds for sub-second delivery
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+            futures = [
+                executor.submit(self._fetch_single_feed, s_name, f_url)
+                for s_name, f_url in RSS_FEEDS
+            ]
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    feed_items = future.result()
+                    for it in feed_items:
+                        if it["id"] not in seen_ids:
+                            seen_ids.add(it["id"])
+                            items.append(it)
+                except Exception as err:
+                    logger.debug(f"[BreakingNewsCollector] Thread pool worker error: {err}")
+
         return items
