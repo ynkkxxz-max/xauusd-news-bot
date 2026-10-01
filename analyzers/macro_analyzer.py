@@ -98,6 +98,41 @@ class MacroAnalyzer:
         }
 
     @classmethod
+    def translate_to_khmer(cls, text: str, max_chars: int = 700) -> str:
+        """Translates English wire/RSS text to fluent, natural Khmer narrative."""
+        if not text:
+            return ""
+        import re
+        import html
+        import json
+        import urllib.request
+        import urllib.parse
+
+        clean = re.sub(r'<[^>]+>', ' ', text)
+        clean = html.unescape(clean)
+        clean = re.sub(r'\s+', ' ', clean).strip()
+        if not clean:
+            return ""
+
+        khmer_chars = len(re.findall(r'[\u1780-\u17FF]', clean))
+        if khmer_chars > len(clean) * 0.4:
+            return clean[:max_chars]
+
+        chunk = clean[:max_chars]
+        try:
+            url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=km&dt=t&q=' + urllib.parse.quote(chunk)
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+            with urllib.request.urlopen(req, timeout=6) as resp:
+                data = json.loads(resp.read().decode('utf-8'))
+                translated = ''.join([part[0] for part in data[0] if part and part[0]])
+                if translated and translated.strip():
+                    return translated.strip()
+        except Exception as e:
+            logger.warning(f"[MacroAnalyzer] translation error: {e}")
+
+        return clean[:max_chars]
+
+    @classmethod
     def analyze_breaking_news(cls, title, description: str = "") -> dict:
         """Analyzes breaking geopolitical, tech/AI, economic or central bank event for gold impact with full narrative context."""
         import re
@@ -120,13 +155,17 @@ class MacroAnalyzer:
         else:
             full_story = clean_title
 
+        km_story = cls.translate_to_khmer(full_story)
+        if not km_story or len(km_story) < 15:
+            km_story = cls.translate_to_khmer(clean_title)
+
         text = f"{clean_title} {clean_desc}".lower()
 
         # Gate 0: Entertainment, Streaming, Movies, Sports, Celebrity, Satire (Strict Drop)
         ent_words = ["streaming", "netflix", "movie", "cinema", "box office", "actor", "actress", "hollywood", "album", "comedy", "parody", "satire"]
         if any(re.search(rf"\b{w}\b", text) for w in ent_words):
             return {
-                "key_event": f"ព័ត៌មានកម្សាន្ត៖ {full_story}",
+                "key_event": km_story,
                 "impact": "វាផលអព្យាក្រឹត ព័ត៌មានកម្សាន្តគ្មានផលប៉ះពាល់លើទីផ្សារ",
                 "is_clear": False,
                 "bias": "🟡 Neutral"
@@ -142,12 +181,10 @@ class MacroAnalyzer:
         is_military = any(re.search(rf"\b{w}\b", text) for w in war_words) or ("strike" in text and any(k in text for k in ["israel", "gaza", "russia", "ukraine", "iran", "yemen", "kyiv", "beirut", "tel aviv"]))
 
         if is_military:
-            what = f"ភាពតានតឹងភូមិសាស្ត្រនយោបាយ និងជម្លោះយោធាកើនឡើង៖ {full_story}"
-            why = "នេះជាព័ត៌មានអវិជ្ជមានផ្នែកសន្តិសុខ ដែលជំរុញឱ្យវិនិយោគិនស្វែងរកទ្រព្យសុវត្ថិភាព (Safe-Haven Assets) ដូចជាមាស និងបង្កើតការព្រួយបារម្ភពីអស្ថិរភាពសន្តិសុខសកល។"
             return {
-                "key_event": f"{what}\n\n{why}",
-                "what_happened": what,
-                "why_it_matters": why,
+                "key_event": km_story,
+                "what_happened": km_story,
+                "why_it_matters": "បង្កើនហានិភ័យភូមិសាស្ត្រនយោបាយ និងអស្ថិរភាពសន្តិសុខសកល",
                 "impact": "វាផលអវិជ្ជមាន បង្កើនហានិភ័យភូមិសាស្ត្រនយោបាយ និងអស្ថិរភាពសន្តិសុខសកល",
                 "usd_impact": "USD អាចឡើងថ្លៃក្នុងនាមជា Safe Haven ប៉ុន្តែមាស (Gold) ទទួលបានអត្ថប្រយោជន៍ និងទំហំទិញខ្លាំងជាង។",
                 "rate_yield_impact": "វិនិយោគិនសម្រុកទិញសញ្ញាប័ណ្ណរដ្ឋាភិបាល (Bonds) ធ្វើឱ្យ Bond Yields ធ្លាក់ចុះ។",
@@ -159,12 +196,10 @@ class MacroAnalyzer:
         # Gate 2: Laws, Sanctions, Tariffs & Trade Restrictions
         sanction_words = ["tariff", "tariffs", "sanction", "sanctions", "trade war", "export curb", "export curbs", "debt ceiling", "embargo", "curbs"]
         if any(re.search(rf"\b{w}\b", text) for w in sanction_words):
-            what = f"គោលនយោបាយពន្ធគយ និងទណ្ឌកម្មអន្តរជាតិ៖ {full_story}"
-            why = "វិធានការពន្ធគយ និងទណ្ឌកម្មបង្កើនហានិភ័យដល់ខ្សែច្រវាក់ផ្គត់ផ្គង់ និងការដោះដូរពាណិជ្ជកម្មអន្តរជាតិ។"
             return {
-                "key_event": f"{what}\n\n{why}",
-                "what_happened": what,
-                "why_it_matters": why,
+                "key_event": km_story,
+                "what_happened": km_story,
+                "why_it_matters": "បង្កើនហានិភ័យសង្គ្រាមពាណិជ្ជកម្ម និងបន្ទុកពន្ធគយ",
                 "impact": "វាផលអវិជ្ជមាន បង្កើនហានិភ័យសង្គ្រាមពាណិជ្ជកម្ម និងបន្ទុកពន្ធគយ",
                 "usd_impact": "USD អាចប្រែប្រួលតាមទំហំពាណិជ្ជកម្ម។",
                 "rate_yield_impact": "ហានិភ័យអតិផរណាពីពន្ធគយអាចរុញ Bond Yields ឡើង។",
@@ -182,7 +217,7 @@ class MacroAnalyzer:
                 impact = "វាផលវិជ្ជមាន អតិផរណាធ្លាក់ចុះគាំទ្រដល់លទ្ធភាពនៃការបន្ធូរបន្ថយអត្រាការប្រាក់"
                 bias = "🟢 Bullish"
             return {
-                "key_event": f"របាយការណ៍អតិផរណា និងទិន្នន័យតម្លៃទំនិញ៖ {full_story}",
+                "key_event": km_story,
                 "impact": impact,
                 "bias": bias,
                 "is_clear": True
@@ -191,7 +226,7 @@ class MacroAnalyzer:
         # Gate 4: Social, Demographics & Labor (Strikes, Layoffs, Unemployment)
         if any(re.search(rf"\b{w}\b", text) for w in ["strike", "strikes", "layoff", "layoffs", "unemployment", "job cuts"]):
             return {
-                "key_event": f"វិបត្តិការងារ និងកូដកម្មកម្មករ៖ {full_story}",
+                "key_event": km_story,
                 "impact": "វាផលអវិជ្ជមាន ការកកស្ទះដឹកជញ្ជូនទំនិញ និងបន្ទុកថ្លៃដើមពាណិជ្ជកម្ម",
                 "bias": "🔴 Bearish",
                 "is_clear": True
@@ -200,7 +235,7 @@ class MacroAnalyzer:
         # Gate 5: Environment & Natural Resources (OPEC, Crude Oil, Gas)
         if any(re.search(rf"\b{w}\b", text) for w in ["opec", "crude", "oil production", "crude oil", "fuel exports", "gas pipeline"]):
             return {
-                "key_event": f"ការផ្គត់ផ្គង់ថាមពល និងប្រេងកាតសកល៖ {full_story}",
+                "key_event": km_story,
                 "impact": "វាផលអវិជ្ជមាន ថ្លៃដើមថាមពលកើនឡើងខ្ពស់បង្កហានិភ័យអតិផរណា",
                 "bias": "🔴 Bearish",
                 "is_clear": True
@@ -216,7 +251,7 @@ class MacroAnalyzer:
                 impact = "វាផលវិជ្ជមាន ជំរុញលំហូរសាច់ប្រាក់ស្ថាប័ន និងពង្រឹងទំនុកចិត្តលើទីផ្សាររូបិយប័ណ្ណឌីជីថល"
                 bias = "🟢 Bullish"
             return {
-                "key_event": f"ទីផ្សាររូបិយប័ណ្ណឌីជីថល និងទ្រព្យសកម្មគ្រីបតូ៖ {full_story}",
+                "key_event": km_story,
                 "impact": impact,
                 "bias": bias,
                 "is_clear": True
@@ -232,7 +267,7 @@ class MacroAnalyzer:
                 impact = "វាផលវិជ្ជមាន ជំរុញនវានុវត្តន៍បច្ចេកវិទ្យា និងទាក់ទាញលំហូរសាច់ប្រាក់វិនិយោគ"
                 bias = "🟢 Bullish"
             return {
-                "key_event": f"ការវិវត្តន៍បច្ចេកវិទ្យា និងឧស្សាហកម្មបន្ទះឈីប AI៖ {full_story}",
+                "key_event": km_story,
                 "impact": impact,
                 "bias": bias,
                 "is_clear": True
@@ -247,7 +282,7 @@ class MacroAnalyzer:
                 impact = "វាផលអវិជ្ជមាន អត្រាការប្រាក់រក្សាកម្រិតខ្ពស់យូរជាងការរំពឹងទុក"
                 bias = "🔴 Bearish"
             return {
-                "key_event": f"គោលនយោបាយរូបិយវត្ថុ និងធនាគារកណ្តាល៖ {full_story}",
+                "key_event": km_story,
                 "impact": impact,
                 "bias": bias,
                 "is_clear": True
@@ -255,7 +290,7 @@ class MacroAnalyzer:
 
         # Final Fallback: Neutral
         return {
-            "key_event": f"ព័ត៌មានទីផ្សារទើបទទួលបាន៖ {full_story}",
+            "key_event": km_story,
             "impact": "វាផលអព្យាក្រឹត ទីផ្សារកំពុងរង់ចាំទិន្នន័យបន្ថែម",
             "is_clear": False,
             "bias": "🟡 Neutral"
