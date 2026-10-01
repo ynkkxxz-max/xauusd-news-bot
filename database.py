@@ -33,9 +33,14 @@ def init_db():
         news_id TEXT PRIMARY KEY,
         title TEXT,
         source TEXT,
+        is_broadcasted INTEGER DEFAULT 0,
         sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
+    try:
+        cursor.execute("ALTER TABLE sent_news ADD COLUMN is_broadcasted INTEGER DEFAULT 0")
+    except Exception:
+        pass
 
     # Table for tracking daily price broadcasts to ensure once-per-day execution
     cursor.execute("""
@@ -118,23 +123,28 @@ def is_news_sent(news_id: str) -> bool:
     conn.close()
     return exists
 
-def record_news_sent(news_id: str, title: str, source: str):
+def record_news_sent(news_id: str, title: str, source: str, is_broadcasted: int = 0):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
-    INSERT OR IGNORE INTO sent_news (news_id, title, source, sent_at)
-    VALUES (?, ?, ?, datetime('now'))
-    """, (news_id, title, source))
+    INSERT INTO sent_news (news_id, title, source, is_broadcasted, sent_at)
+    VALUES (?, ?, ?, ?, datetime('now'))
+    ON CONFLICT(news_id) DO UPDATE SET 
+        title = excluded.title,
+        source = excluded.source,
+        is_broadcasted = CASE WHEN excluded.is_broadcasted = 1 THEN 1 ELSE sent_news.is_broadcasted END,
+        sent_at = datetime('now')
+    """, (news_id, title, source, is_broadcasted))
     conn.commit()
     conn.close()
 
-def get_recent_news_titles(hours: int = 4) -> list:
-    """Returns a list of titles sent in the last N hours for similarity/duplicate checking."""
+def get_recent_news_titles(hours: int = 24) -> list:
+    """Returns a list of titles actually broadcasted in the last N hours for similarity/duplicate checking."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
     SELECT title FROM sent_news 
-    WHERE sent_at >= datetime('now', ?)
+    WHERE is_broadcasted = 1 AND sent_at >= datetime('now', ?)
     """, (f"-{hours} hours",))
     rows = cursor.fetchall()
     conn.close()
@@ -264,10 +274,10 @@ def get_overall_signal_vote_stats() -> dict:
         "win_rate": win_rate,
         "total_traders": total_traders
     }
-def cleanup_old_records(days: int = 30) -> int:
+def cleanup_old_records(days: int = 2) -> int:
     """
-    Cleans up logs and history older than `days` to keep data.db lightweight and fast.
-    Executes SQLite VACUUM to reclaim storage.
+    Cleans up logs and history older than `days` (default 2 days / 48 hours) to keep data.db ultra-lightweight and fast.
+    Executes SQLite VACUUM to reclaim storage and optimize performance.
     """
     conn = get_db_connection()
     cursor = conn.cursor()
