@@ -1486,142 +1486,10 @@ class XAUUSDNewsAssistantBot:
 
     def check_breaking_news(self):
         """
-        Monitors RSS feeds for gold-relevant breaking news (Mode 1 / Mode 4).
-        Deduplicated per item, and rate-limited to at most one alert per
-        BREAKING_ALERT_MIN_GAP seconds (user spec: 1 alert per 2 hours).
-        Items arriving inside a closed window are held and sent in a later one.
+        PERMANENTLY DISABLED PER USER DIRECTIVE.
+        Breaking news RSS broadcast is completely turned off to guarantee zero spam.
         """
-        pending = []
-        for item in self.news_collector.fetch_latest_news():
-            news_id = item["id"]
-            if database.is_news_sent(news_id):
-                continue
-
-            title = item["title"]
-            desc = item.get("description", "")
-
-            # Freshness Gate: strictly reject stale items older than 6 hours
-            item_ts = self._news_ts(item)
-            if item_ts > 0 and (time.time() - item_ts) > 6 * 3600:
-                database.record_news_sent(news_id, title, item.get("source", ""), is_broadcasted=0)
-                continue
-
-            # Relevance Filter: Is this related to Gold/USD/Fed/Rates/7 Core Pillars?
-            if not GoldNewsFilter.is_gold_relevant(title, desc):
-                continue
-            pending.append(item)
-
-        if not pending:
-            return
-
-        # Fetch titles broadcasted in the last 24 hours for cross-source semantic deduplication
-        recent_sent_titles = database.get_recent_news_titles(hours=24)
-
-        # Filter out items that discuss the exact same event as already broadcasted
-        unique_pending = []
-        for it in pending:
-            if GoldNewsFilter.is_duplicate_or_similar(it["title"], recent_sent_titles):
-                logger.info(f"[SEMANTIC DUPLICATE SKIPPED] News '{it['title']}' is duplicate of a recent alert.")
-                # Note: DO NOT record skipped item as sent, otherwise future new articles get false duplicates!
-            else:
-                unique_pending.append(it)
-
-        if not unique_pending:
-            return
-
-        # Sort candidate news by urgency score and freshness
-        candidates = sorted(
-            unique_pending,
-            key=lambda it: (GoldNewsFilter.urgency_score(it["title"]), self._news_ts(it)),
-            reverse=True
-        )
-
-        top_candidate = candidates[0] if candidates else None
-        is_urgent_catalyst = top_candidate and (
-            GoldNewsFilter.is_immediate_alert(top_candidate["title"], top_candidate.get("description", ""))
-            or GoldNewsFilter.urgency_score(top_candidate["title"]) >= 2
-        )
-
-        # Check rate-limiting gap (Strict 5 minutes between breaking alerts; 3 minutes minimum for urgent catalysts to prevent spamming)
-        last_alert_ts = float(database.get_state("last_breaking_alert_ts") or "0")
-        min_gap = 180.0 if is_urgent_catalyst else BREAKING_ALERT_MIN_GAP
-        if time.time() - last_alert_ts < min_gap:
-            return
-
-        for item in candidates:
-            title = item["title"]
-            desc = item.get("description", "")
-            if len(desc) < 120:
-                desc = self._enrich_article_description(item)
-                item["description"] = desc
-            analysis = self.analyzer.analyze_breaking_news(title, desc)
-            if not analysis:
-                continue
-
-            # Strict Quality & Freshness Gate
-            if isinstance(analysis, dict) and analysis.get("is_clear") is False:
-                logger.info(f"[UNCLEAR/STALE NEWS SKIPPED] AI evaluated '{title}' as unclear or insignificant.")
-                database.record_news_sent(item["id"], title, item.get("source", ""), is_broadcasted=0)
-                continue
-
-            # Strict User Rule: ONLY broadcast if there is a distinct positive or negative impact!
-            # If it is neutral (វាផលអព្យាក្រឹត) or has no clear positive/negative impact, DROP IT!
-            impact = ""
-            if isinstance(analysis, dict):
-                impact = (analysis.get("impact") or "").strip()
-
-            # Strict Contradiction Prevention Gate (Zero Logical Contradiction Rule)
-            negative_indicators = [
-                "war", "drone", "attack", "missile", "airstrike", "bomb", "casualt", "death", 
-                "kill", "school", "military", "strike", "crisis", "threat", "sanction", "tariff",
-                "invasion", "shelling", "hit", "plunge", "slump", "crash", "collapse", "layoff",
-                "សង្គ្រាម", "វាយប្រហារ", "ដ្រូន", "មីស៊ីល", "គ្រាប់បែក", "ស្លាប់", "ទណ្ឌកម្ម", "ពន្ធគយ"
-            ]
-            full_text_low = f"{title} {item.get('description', '')}".lower()
-            is_negative_event = any(
-                re.search(rf"\b{w}(?:s|es|ed|ing)?\b", full_text_low) if w.isascii() else (w in full_text_low)
-                for w in negative_indicators
-            )
-
-            if is_negative_event and "វិជ្ជមាន" in impact and "អវិជ្ជមាន" not in impact:
-                logger.warning(f"[CONTRADICTION OVERRIDDEN] '{title}' was incorrectly labeled positive '{impact}'. Overriding to Negative!")
-                impact = "វាផលអវិជ្ជមាន បង្កើនហានិភ័យភូមិសាស្ត្រនយោបាយ និងអស្ថិរភាពសន្តិសុខសកល"
-                if isinstance(analysis, dict):
-                    analysis["impact"] = impact
-
-            is_positive = "វិជ្ជមាន" in impact and "អវិជ្ជមាន" not in impact
-            is_negative = "អវិជ្ជមាន" in impact
-            if not (is_positive or is_negative) or "អព្យាក្រឹត" in impact:
-                logger.info(f"[NEUTRAL NEWS DROPPED PER USER MANDATE] '{title}' impact: '{impact}'. Dropped.")
-                database.record_news_sent(item["id"], title, item.get("source", ""), is_broadcasted=0)
-                continue
-
-            # Multi-Instance Distributed Protection: Check if already broadcasted to channel
-            if self._is_already_in_telegram_channel(title, item.get("link", "")):
-                logger.info(f"[CHANNEL DEDUPLICATION] '{title}' already exists in @GoldMarketKH8888 channel feed. Skipping duplicate!")
-                database.record_news_sent(item["id"], title, item.get("source", ""), is_broadcasted=1)
-                continue
-
-            # Found high-impact news with clear positive or negative impact!
-            logger.info(f"[HIGH-IMPACT NEWS APPROVED] Broadcasting '{title}' (Impact: {impact})")
-            msg = KhmerFormatter.format_breaking_event_alert(item, analysis)
-
-            photo = self._fetch_news_image(item)
-            if photo:
-                caption_text = self._truncate_html_caption(msg, max_visible_chars=950)
-                res = self.notifier.send_photo(photo, caption=caption_text, reply_markup=None)
-                sent_ok = bool(res.get("ok"))
-            else:
-                res = self.notifier.send_message(msg, reply_markup=None)
-                sent_ok = bool(res.get("ok"))
-
-            if sent_ok:
-                database.record_news_sent(item["id"], title, item.get("source", ""), is_broadcasted=1)
-                database.set_state("last_breaking_alert_ts", str(time.time()))
-                break
-            else:
-                logger.error("Breaking alert send failed; item kept for retry next cycle.")
-                break
+        return
 
     def run_cycle(self) -> int:
         """Executes a single monitoring cycle for scheduled/background tasks and returns next sleep duration."""
@@ -1650,9 +1518,6 @@ class XAUUSDNewsAssistantBot:
             self.check_candlestick_confirmation()
             self.check_liquidity_sweep()
             self.check_macro_divergence()
-
-            # 6. Breaking News Alert (Strictly filtered: Only sends if 100% clear and high-impact)
-            self.check_breaking_news()
 
             # 7. Economic Calendar & Upcoming/Actual News Check
             recommended_interval = self.check_economic_events()
@@ -1738,13 +1603,7 @@ class XAUUSDNewsAssistantBot:
                 self.process_incoming_commands()
 
                 now = time.time()
-                # 2. Real-Time Breaking News Check (Dedicated 30-second cadence)
-                if now - last_breaking_check >= breaking_interval:
-                    last_breaking_check = now
-                    try:
-                        self.check_breaking_news()
-                    except Exception as err:
-                        logger.error(f"Error checking breaking news: {err}", exc_info=True)
+                # 2. Real-Time Breaking News Check - PERMANENTLY DISABLED PER USER DIRECTIVE
 
                 # 3. Real-Time Sniper Signals & Trade Trailing Check (Dedicated 30-second cadence)
                 if now - last_signal_check >= signal_interval:
