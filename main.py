@@ -151,7 +151,38 @@ class XAUUSDNewsAssistantBot:
         self._calendar_attached = False
         self._session_alert_locks = set()
         self._daily_price_locks = set()
+        self._broadcasted_titles_cache = set()
+        self._last_breaking_sent_ts = 0.0
+
+        # Bind HTTP health check port if running on Render / Railway
+        port_env = os.getenv("PORT")
+        if port_env:
+            try:
+                self._start_http_health_server(int(port_env))
+            except Exception as e:
+                logger.warning(f"Could not start HTTP health server on port {port_env}: {e}")
+
         self._bootstrap_news_cache()
+
+    def _start_http_health_server(self, port: int = 10000):
+        """Starts a lightweight HTTP server so Cloud platforms (Render, Railway) know the app is alive and never restart it."""
+        try:
+            from http.server import HTTPServer, BaseHTTPRequestHandler
+            import threading
+            class HealthHandler(BaseHTTPRequestHandler):
+                def do_GET(self):
+                    self.send_response(200)
+                    self.send_header("Content-type", "application/json; charset=utf-8")
+                    self.end_headers()
+                    self.wfile.write(b'{"status":"online","service":"XAUUSD News Assistant","mode":"autonomous_24_7"}')
+                def log_message(self, format, *args):
+                    pass
+            server = HTTPServer(("0.0.0.0", port), HealthHandler)
+            t = threading.Thread(target=server.serve_forever, daemon=True, name="HTTP-Health")
+            t.start()
+            logger.info(f"[Cloud Health Server] Successfully listening on port {port} (Zero-Restart Shield).")
+        except Exception as e:
+            logger.warning(f"[Cloud Health Server] Warning on port {port}: {e}")
 
     def _bootstrap_news_cache(self):
         """
@@ -163,8 +194,11 @@ class XAUUSDNewsAssistantBot:
             bootstrapped_count = 0
             for item in items:
                 news_id = item.get("id")
+                title = (item.get("title") or "").strip()
+                if title:
+                    self._broadcasted_titles_cache.add(title.lower())
                 if news_id and not database.is_news_sent(news_id):
-                    database.record_news_sent(news_id, item.get("title", ""), item.get("source", ""), is_broadcasted=0)
+                    database.record_news_sent(news_id, title, item.get("source", ""), is_broadcasted=0)
                     bootstrapped_count += 1
             logger.info(f"[Startup News Sync] Connected to global feeds. Seeded {bootstrapped_count} historical headlines into seen cache.")
         except Exception as e:
@@ -1486,10 +1520,105 @@ class XAUUSDNewsAssistantBot:
 
     def check_breaking_news(self):
         """
-        PERMANENTLY DISABLED PER USER DIRECTIVE.
-        Breaking news RSS broadcast is completely turned off to guarantee zero spam.
+        Monitors RSS feeds for high-impact breaking news across the 7 Core Pillars.
+        Protected by Triple Anti-Duplicate Shield:
+        1. Channel Live Feed Verification: Checks @GoldMarketKH8888 live messages so NO duplicate can ever be sent.
+        2. In-Memory Process Set & SQLite Deduplication: Records each item_id and title as seen.
+        3. Strict 5-Minute Gap Enforcement: Minimum 300 seconds between any breaking alerts.
         """
-        return
+        now = time.time()
+        last_alert_ts = float(database.get_state("last_breaking_alert_ts") or "0")
+        if (now - last_alert_ts < BREAKING_ALERT_MIN_GAP) or (now - self._last_breaking_sent_ts < BREAKING_ALERT_MIN_GAP):
+            return
+
+        pending = []
+        for item in self.news_collector.fetch_latest_news():
+            news_id = item["id"]
+            title = (item.get("title") or "").strip()
+            desc = item.get("description", "")
+
+            # Strict relevance & question/opinion rejection
+            if not title or "?" in title or not GoldNewsFilter.is_gold_relevant(title, desc):
+                continue
+
+            # SQLite check
+            if database.is_news_sent(news_id):
+                continue
+
+            # In-memory process check
+            if title.lower() in self._broadcasted_titles_cache:
+                continue
+
+            # Freshness Gate: strictly reject stale items older than 4 hours
+            item_ts = self._news_ts(item)
+            if item_ts > 0 and (now - item_ts) > 4 * 3600:
+                database.record_news_sent(news_id, title, item.get("source", ""), is_broadcasted=0)
+                continue
+
+            pending.append(item)
+
+        if not pending:
+            return
+
+        recent_sent_titles = database.get_recent_news_titles(hours=24)
+        for it in pending:
+            title = it["title"]
+            if GoldNewsFilter.is_duplicate_or_similar(title, recent_sent_titles):
+                continue
+
+            # TRIPLE SHIELD: Check if ALREADY in Telegram channel @GoldMarketKH8888 live feed
+            if self._is_already_in_telegram_channel(title, it.get("link", "")):
+                logger.info(f"[CHANNEL DEDUPLICATION] '{title}' already in channel feed. Dropping!")
+                database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=1)
+                self._broadcasted_titles_cache.add(title.lower())
+                continue
+
+            # Enrich short description if needed
+            desc = it.get("description", "")
+            if len(desc) < 120:
+                desc = self._enrich_article_description(it)
+                it["description"] = desc
+
+            analysis = self.analyzer.analyze_breaking_news(title, desc)
+            if not analysis:
+                continue
+
+            if isinstance(analysis, dict) and analysis.get("is_clear") is False:
+                database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
+                continue
+
+            impact = ""
+            if isinstance(analysis, dict):
+                impact = (analysis.get("impact") or "").strip()
+
+            is_positive = "វិជ្ជមាន" in impact and "អវិជ្ជមាន" not in impact
+            is_negative = "អវិជ្ជមាន" in impact
+            if not (is_positive or is_negative) or "អព្យាក្រឹត" in impact:
+                database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
+                continue
+
+            # Re-verify channel feed right before dispatch
+            if self._is_already_in_telegram_channel(title, it.get("link", "")):
+                database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=1)
+                self._broadcasted_titles_cache.add(title.lower())
+                continue
+
+            # Lock in-memory and database atomically BEFORE dispatching
+            database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=1)
+            self._broadcasted_titles_cache.add(title.lower())
+            database.set_state("last_breaking_alert_ts", str(time.time()))
+            self._last_breaking_sent_ts = time.time()
+
+            msg = KhmerFormatter.format_breaking_event_alert(it, analysis)
+            photo = self._fetch_news_image(it)
+            if photo:
+                caption_text = self._truncate_html_caption(msg, max_visible_chars=950)
+                self.notifier.send_photo(photo, caption=caption_text, reply_markup=None)
+            else:
+                self.notifier.send_message(msg, reply_markup=None)
+
+            logger.info(f"[BREAKING NEWS APPROVED & BROADCASTED] '{title}' sent. Next alert locked for 5 minutes.")
+            break
 
     def run_cycle(self) -> int:
         """Executes a single monitoring cycle for scheduled/background tasks and returns next sleep duration."""
@@ -1518,6 +1647,9 @@ class XAUUSDNewsAssistantBot:
             self.check_candlestick_confirmation()
             self.check_liquidity_sweep()
             self.check_macro_divergence()
+
+            # 6. Breaking News Alert (Triple Anti-Duplicate Shield)
+            self.check_breaking_news()
 
             # 7. Economic Calendar & Upcoming/Actual News Check
             recommended_interval = self.check_economic_events()
@@ -1603,7 +1735,13 @@ class XAUUSDNewsAssistantBot:
                 self.process_incoming_commands()
 
                 now = time.time()
-                # 2. Real-Time Breaking News Check - PERMANENTLY DISABLED PER USER DIRECTIVE
+                # 2. Real-Time Breaking News Check (Dedicated cadence with Triple Anti-Duplicate Shield)
+                if now - last_breaking_check >= breaking_interval:
+                    last_breaking_check = now
+                    try:
+                        self.check_breaking_news()
+                    except Exception as err:
+                        logger.error(f"Error checking breaking news: {err}", exc_info=True)
 
                 # 3. Real-Time Sniper Signals & Trade Trailing Check (Dedicated 30-second cadence)
                 if now - last_signal_check >= signal_interval:
