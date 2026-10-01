@@ -5,6 +5,7 @@ import requests
 
 from analyzers.gemini_analyzer import (
     _SYSTEM_RULES, actual_prompt, breaking_prompt, normalize_analysis, summary_prompt, smc_setup_prompt,
+    signal_validation_prompt,
 )
 from analyzers.macro_analyzer import MacroAnalyzer
 
@@ -32,11 +33,14 @@ class OpenAICompatAnalyzer:
         self.base_url = base_url.rstrip("/")
         self.api_key = (api_key or "").strip()
         self.model = model
+        self.cooldown_until = 0.0
 
     def is_available(self) -> bool:
-        return bool(self.api_key)
+        import time
+        return bool(self.api_key) and time.time() > self.cooldown_until
 
     def _chat(self, prompt: str, json_mode: bool) -> str:
+        import time
         payload = {
             "model": self.model,
             "temperature": 0.3,
@@ -47,14 +51,20 @@ class OpenAICompatAnalyzer:
         }
         if json_mode:
             payload["response_format"] = {"type": "json_object"}
-        resp = requests.post(
-            f"{self.base_url}/chat/completions",
-            headers={"Authorization": f"Bearer {self.api_key}"},
-            json=payload,
-            timeout=15,
-        )
-        resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"] or ""
+        try:
+            resp = requests.post(
+                f"{self.base_url}/chat/completions",
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                json=payload,
+                timeout=4.0,
+            )
+            if resp.status_code in (400, 401, 402, 403, 404, 429):
+                self.cooldown_until = time.time() + 600.0  # 10m cooldown
+            resp.raise_for_status()
+            return resp.json()["choices"][0]["message"]["content"] or ""
+        except Exception:
+            self.cooldown_until = time.time() + 300.0
+            raise
 
     def analyze_breaking_news(self, title: str, description: str = "") -> dict:
         raw = json.loads(self._chat(breaking_prompt(title, description), True))
@@ -75,6 +85,14 @@ class OpenAICompatAnalyzer:
             logger.warning(f"[{self.name}] generate_smart_smc_setup failed: {e}")
             return None
 
+    def analyze_and_validate_sniper_signal(self, raw_signal: dict, current_price: float, key_levels: dict, macro_data: dict = None, order_book: dict = None) -> dict:
+        try:
+            content = self._chat(signal_validation_prompt(raw_signal, current_price, key_levels, macro_data, order_book), True)
+            return json.loads(content)
+        except Exception as e:
+            logger.warning(f"[{self.name}] analyze_and_validate_sniper_signal failed: {e}")
+            return None
+
 
 class ClaudeAnalyzer:
     """Talks to the Anthropic Messages API."""
@@ -83,27 +101,36 @@ class ClaudeAnalyzer:
         self.name = "claude"
         self.api_key = (api_key or "").strip()
         self.model = model
+        self.cooldown_until = 0.0
 
     def is_available(self) -> bool:
-        return bool(self.api_key)
+        import time
+        return bool(self.api_key) and time.time() > self.cooldown_until
 
     def _chat(self, prompt: str) -> str:
-        resp = requests.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={
-                "x-api-key": self.api_key,
-                "anthropic-version": "2023-06-01",
-            },
-            json={
-                "model": self.model,
-                "max_tokens": 1024,
-                "system": _SYSTEM_RULES,
-                "messages": [{"role": "user", "content": prompt}],
-            },
-            timeout=40,
-        )
-        resp.raise_for_status()
-        return "".join(b.get("text", "") for b in resp.json().get("content", []))
+        import time
+        try:
+            resp = requests.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": self.api_key,
+                    "anthropic-version": "2023-06-01",
+                },
+                json={
+                    "model": self.model,
+                    "max_tokens": 1024,
+                    "system": _SYSTEM_RULES,
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+                timeout=4.0,
+            )
+            if resp.status_code in (400, 401, 402, 403, 404, 429):
+                self.cooldown_until = time.time() + 600.0
+            resp.raise_for_status()
+            return "".join(b.get("text", "") for b in resp.json().get("content", []))
+        except Exception:
+            self.cooldown_until = time.time() + 300.0
+            raise
 
     def analyze_breaking_news(self, title: str, description: str = "") -> dict:
         return normalize_analysis(json.loads(self._chat(breaking_prompt(title, description))))
@@ -127,6 +154,21 @@ class ClaudeAnalyzer:
             return json.loads(content.strip())
         except Exception as e:
             logger.warning(f"[claude] generate_smart_smc_setup failed: {e}")
+            return None
+
+    def analyze_and_validate_sniper_signal(self, raw_signal: dict, current_price: float, key_levels: dict, macro_data: dict = None, order_book: dict = None) -> dict:
+        try:
+            prompt = signal_validation_prompt(raw_signal, current_price, key_levels, macro_data, order_book) + "\n\nOutput strictly valid JSON with no markdown wrapping."
+            content = self._chat(prompt).strip()
+            if content.startswith("```json"):
+                content = content[7:]
+            if content.startswith("```"):
+                content = content[3:]
+            if content.endswith("```"):
+                content = content[:-3]
+            return json.loads(content.strip())
+        except Exception as e:
+            logger.warning(f"[claude] analyze_and_validate_sniper_signal failed: {e}")
             return None
 
 
@@ -189,6 +231,10 @@ class AnalyzerChain:
 
     def analyze_chart_image(self, image_bytes: bytes, current_price: float, key_levels: dict = None) -> dict:
         return self._first_result("analyze_chart_image", image_bytes, current_price, key_levels)
+
+    def analyze_and_validate_sniper_signal(self, raw_signal: dict, current_price: float, key_levels: dict, macro_data: dict = None, order_book: dict = None) -> dict:
+        return self._first_result("analyze_and_validate_sniper_signal", raw_signal, current_price, key_levels, macro_data, order_book) \
+            or MacroAnalyzer.analyze_and_validate_sniper_signal(raw_signal, current_price, key_levels, macro_data, order_book)
 
 
 def build_fallback_analyzers() -> list:
