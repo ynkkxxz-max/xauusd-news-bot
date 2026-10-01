@@ -167,27 +167,37 @@ class GoldNewsFilter:
         import re
 
         def _stem(w: str) -> str:
-            # Simple, fast suffix stripping for English news
             w = w.lower()
+            demonyms = {
+                "israeli": "israel", "british": "britain", "russian": "russia",
+                "lebanese": "lebanon", "mexican": "mexico", "canadian": "canada",
+                "ukrainian": "ukraine", "iranian": "iran", "chinese": "china"
+            }
+            if w in demonyms:
+                return demonyms[w]
+            if "strike" in w:
+                return "strike"
             for suffix in ("ing", "tion", "ions", "ment", "ments", "ies", "es", "ed", "s"):
                 if w.endswith(suffix) and len(w) > len(suffix) + 3:
                     return w[:-len(suffix)]
             return w
 
         def _tokenize(text: str) -> set:
-            # Clean punctuation, lower-case, and extract meaningful words (> 2 chars)
-            words = re.findall(r"\b[a-zA-Z0-9%]{3,}\b", text.lower())
+            words = re.findall(r"\b[a-zA-Z0-9%]{2,}\b", text.lower())
             stop_words = {
                 "news", "says", "said", "today", "market", "markets", "price", "prices",
                 "update", "live", "report", "breaking", "after", "amid", "with", "from",
                 "over", "more", "into", "their", "will", "than", "some", "what", "could",
-                "and", "the", "for"
+                "and", "the", "for", "boss", "poses", "threat", "fresh", "hit", "regional"
             }
             return {_stem(w) for w in words if w not in stop_words}
 
         new_tokens = _tokenize(new_title)
         if not new_tokens:
             return False
+
+        entities_list = ["israel", "lebanon", "russia", "ukraine", "iran", "trump", "biden", "opec", "china", "boe", "fed", "england"]
+        topics_list = ["ai", "strike", "tariff", "sanction", "war", "rate", "inflation", "blackwell", "chip"]
 
         for past_title in existing_titles:
             past_tokens = _tokenize(past_title)
@@ -197,10 +207,16 @@ class GoldNewsFilter:
             intersection = new_tokens.intersection(past_tokens)
             union = new_tokens.union(past_tokens)
             similarity = len(intersection) / len(union) if union else 0.0
+            overlap_ratio = len(intersection) / min(len(new_tokens), len(past_tokens)) if min(len(new_tokens), len(past_tokens)) else 0.0
 
-            # Strict deduplication: Only true duplicates with >= 60% token overlap
-            # or when at least 5 meaningful non-generic words match
-            if similarity >= 0.60 or (len(intersection) >= 5 and similarity >= 0.40):
+            # 1. Exact or High token overlap
+            if similarity >= 0.50 or (overlap_ratio >= 0.40 and len(intersection) >= 3):
+                return True
+
+            # 2. Entity + Topic co-occurrence
+            has_common_entity = any(e in intersection for e in entities_list) or ("england" in new_tokens and "england" in past_tokens)
+            has_common_topic = any(t in intersection for t in topics_list)
+            if has_common_entity and has_common_topic and len(intersection) >= 2:
                 return True
 
         return False
