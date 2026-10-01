@@ -109,7 +109,10 @@ except ImportError:
 try:
     from collectors.gold_price_card import DailyGoldPriceCardBuilder
 except ImportError:
-    from gold_price_card import DailyGoldPriceCardBuilder
+    try:
+        from gold_price_card import DailyGoldPriceCardBuilder
+    except ImportError:
+        DailyGoldPriceCardBuilder = None
 
 from telegram_notifier import TelegramNotifier
 
@@ -134,7 +137,7 @@ class XAUUSDNewsAssistantBot:
         self.order_book_tracker = OrderBookDepthTracker()
         self.fomc_interpreter = FomcSpeechInterpreter()
         self.heatmap_builder = LiquidityHeatmapBuilder()
-        self.gold_card_builder = DailyGoldPriceCardBuilder()
+        self.gold_card_builder = DailyGoldPriceCardBuilder() if DailyGoldPriceCardBuilder else None
         self.notifier = TelegramNotifier()
 
         self.analyzer = AnalyzerChain([GeminiAnalyzer()] + build_fallback_analyzers())
@@ -185,7 +188,7 @@ class XAUUSDNewsAssistantBot:
             price_data = self.gold_collector.fetch_price(force_refresh=True)
             
             # Render Ultra-HD Graphic Card per user design specification
-            card_png = self.gold_card_builder.build_card_png(price_data)
+            card_png = self.gold_card_builder.build_card_png(price_data) if self.gold_card_builder else None
             if card_png:
                 res = self.notifier.send_photo(card_png, caption="", reply_markup=None)
             else:
