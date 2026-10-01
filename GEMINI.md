@@ -64,6 +64,7 @@ This repository is governed by the 5 Golden Principles established by the system
   1. **ត្រួតពិនិត្យ Telegram Channel Feed ជាក់ស្តែង (`_is_already_in_telegram_channel`)**: មុននឹងចេញផ្សាយ ត្រូវ Scan មើលសារក្នុង Channel `@GoldMarketKH8888` ជាមុនសិន។ ប្រសិនបើមានព័ត៌មាននេះរួចហើយ ទោះបី Server restart ឬមាន Instance ច្រើនប៉ុនណាក៏ដោយ ក៏ **ហាមដាច់ខាតមិនឱ្យផ្សាយជាន់គ្នាជាលើកទី ២ ឡើយ**។
   2. **In-Memory Process Cache & SQLite Deduplication**: កត់ត្រាចំណងជើង និង ID ក្នុង Memory និង Database SQLite ភ្លាមៗមុនពេលផ្ញើ។
   3. **ចន្លោះពេលផ្សាយយ៉ាងតិច ៥ នាទីម្តង (`BREAKING_ALERT_MIN_GAP = 300s`)**: រាល់ការចេញផ្សាយព័ត៌មានទាន់ហេតុការណ៍មួយ ត្រូវមានគម្លាតយ៉ាងតិច ៥ នាទីទើបអាចផ្សាយព័ត៌មានបន្ទាប់បាន ដើម្បីការពារកុំឱ្យមានការផ្ញើសារញាប់ពេក។
+  4. **ឃ្លាចេញពី Data ភ្លាមៗបន្ទាប់ពីផ្ញើសាររួច (Mandatory Post-Broadcast Data Eviction)**: ភ្លាមៗបន្ទាប់ពីសារមួយត្រូវបានផ្ញើចេញ ឬត្រូវបានច្រានចោល (Drop) ប្រព័ន្ធត្រូវតែហៅ `news_collector.clear_item(...)` ដើម្បីកម្ចាត់ និង Blacklist ចោលភ្លាមៗចេញពី Data Pool, ហៅ `database.clear_news_from_data(...)` ដើម្បីចាក់សោក្នុង SQLite និង `pending.clear()` សម្អាត Queue ចោលភ្លាម ដើម្បីកុំឱ្យមានទិន្នន័យចាស់សេសសល់ក្នុង Loop ឡើយ។
 - **វិស័យស្នូលទាំង ៧ នៃព័ត៌មាន (The 7 Core News Pillars)**:
   1. 🌐 **សេដ្ឋកិច្ច (Economy)**: GDP, CPI, អតិផរណា, NFP, ការងារ, Retail Sales, PMI, កំណើនសេដ្ឋកិច្ច។
   2. ⚔️ **នយោបាយភូមិសាស្ត្រ (Geopolitics)**: សង្គ្រាម, ជម្លោះ, មជ្ឈិមបូព៌ា, អ៊ុយក្រែន, ច្រកសមុទ្រយុទ្ធសាស្ត្រ។
