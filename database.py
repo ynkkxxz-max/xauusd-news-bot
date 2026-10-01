@@ -138,6 +138,13 @@ def record_news_sent(news_id: str, title: str, source: str, is_broadcasted: int 
     conn.commit()
     conn.close()
 
+def clear_news_from_data(news_id: str, title: str = "", source: str = ""):
+    """
+    Explicitly clears a news item from data pool right after broadcast.
+    Marks it as broadcasted (is_broadcasted=1) and permanently records it so it can never be processed again.
+    """
+    record_news_sent(news_id, title, source, is_broadcasted=1)
+
 def get_recent_news_titles(hours: int = 24) -> list:
     """Returns a list of titles actually broadcasted in the last N hours for similarity/duplicate checking."""
     conn = get_db_connection()
