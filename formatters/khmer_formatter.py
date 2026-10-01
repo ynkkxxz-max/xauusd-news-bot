@@ -296,6 +296,20 @@ class KhmerFormatter:
         for _, fl in flag_rules:
             key_event = key_event.replace(fl, "")
 
+        # Strip robotic category prefix with colon (e.g. "ភាពតានតឹង...៖ ")
+        key_event = re.sub(r'^[^\n៖]+៖\s*', '', key_event).strip()
+
+        # Double Safety: If key_event is still in English (> 35% Latin characters), translate to fluent Khmer
+        latin_chars = len(re.findall(r'[a-zA-Z]', key_event))
+        if latin_chars > len(key_event) * 0.35 and len(key_event) > 25:
+            try:
+                from analyzers.macro_analyzer import MacroAnalyzer
+                km_trans = MacroAnalyzer.translate_to_khmer(key_event)
+                if km_trans and len(km_trans) > 15:
+                    key_event = km_trans
+            except Exception:
+                pass
+
         # Decode HTML entities (&nbsp;, &amp;, etc.)
         key_event = html.unescape(key_event)
 
