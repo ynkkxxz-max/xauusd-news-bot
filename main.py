@@ -1,4 +1,5 @@
 import re
+import html
 import time
 import logging
 from datetime import datetime
@@ -106,9 +107,9 @@ except ImportError:
     from collectors.risk_calculator import RiskLotCalculator
 
 try:
-    from candlestick_chart_builder import CandlestickChartRenderer
+    from collectors.gold_price_card import DailyGoldPriceCardBuilder
 except ImportError:
-    from collectors.candlestick_chart_builder import CandlestickChartRenderer
+    from gold_price_card import DailyGoldPriceCardBuilder
 
 from telegram_notifier import TelegramNotifier
 
@@ -133,7 +134,7 @@ class XAUUSDNewsAssistantBot:
         self.order_book_tracker = OrderBookDepthTracker()
         self.fomc_interpreter = FomcSpeechInterpreter()
         self.heatmap_builder = LiquidityHeatmapBuilder()
-        self.chart_renderer = CandlestickChartRenderer()
+        self.gold_card_builder = DailyGoldPriceCardBuilder()
         self.notifier = TelegramNotifier()
 
         self.analyzer = AnalyzerChain([GeminiAnalyzer()] + build_fallback_analyzers())
@@ -151,12 +152,21 @@ class XAUUSDNewsAssistantBot:
 
     def _bootstrap_news_cache(self):
         """
-        On startup, verifies feed connectivity without blindly discarding fresh breaking news.
-        Items that were already broadcasted in the last 24h are already tracked in SQLite database.
+        On startup, records all existing RSS headlines as seen so old historical articles
+        are never broadcasted as fresh breaking alerts upon launch.
         """
         try:
             items = self.news_collector.fetch_latest_news()
-            logger.info(f"[Startup News Sync] Successfully connected to global news feeds ({len(items)} active headlines).")
+            bootstrapped_count = 0
+            for item in items:
+                news_id = item.get("id")
+                item_ts = self._news_ts(item)
+                # Only seed items older than 2 hours so very fresh news (<2h) can still be analyzed and broadcasted
+                if item_ts > 0 and (time.time() - item_ts) > 2 * 3600:
+                    if news_id and not database.is_news_sent(news_id):
+                        database.record_news_sent(news_id, item.get("title", ""), item.get("source", ""))
+                        bootstrapped_count += 1
+            logger.info(f"[Startup News Sync] Connected to global feeds. Seeded {bootstrapped_count} historical headlines into seen cache.")
         except Exception as e:
             logger.warning(f"[Startup News Sync] Warning: {e}")
 
@@ -172,11 +182,16 @@ class XAUUSDNewsAssistantBot:
         # Trigger strictly at 07:00 AM Cambodia Time (7:00 AM - 7:59 AM)
         if now_kh.hour == DAILY_PRICE_ALERT_HOUR and now_kh.minute >= DAILY_PRICE_ALERT_MINUTE:
             logger.info(f"Triggering 07:00 AM Daily Gold Price broadcast for {today_str}...")
-            price_data = self.gold_collector.fetch_price()
-            msg = KhmerFormatter.format_daily_gold_price(price_data)
+            price_data = self.gold_collector.fetch_price(force_refresh=True)
             
-            # Send clean daily gold price report without cluttered buttons per user design
-            res = self.notifier.send_message(msg, auto_pin=False, reply_markup=None)
+            # Render Ultra-HD Graphic Card per user design specification
+            card_png = self.gold_card_builder.build_card_png(price_data)
+            if card_png:
+                res = self.notifier.send_photo(card_png, caption="", reply_markup=None)
+            else:
+                msg = KhmerFormatter.format_daily_gold_price(price_data)
+                res = self.notifier.send_message(msg, auto_pin=False, reply_markup=None)
+
             msg_id = res.get("result", {}).get("message_id")
             database.record_daily_price_sent(today_str, msg_id)
 
@@ -251,21 +266,6 @@ class XAUUSDNewsAssistantBot:
             except Exception as e:
                 logger.error(f"Error broadcasting New York Session Open alert: {e}")
 
-
-    def check_night_wrap_up(self):
-        """
-        [PERMANENTLY DISABLED PER USER DIRECTIVE]
-        Daily Market Wrap-Up (សេចក្តីសង្ខេបទីផ្សារពេលយប់) is permanently disabled.
-        """
-        return
-
-
-    def check_price_volatility_spike(self):
-        """
-        [PERMANENTLY DISABLED PER USER DIRECTIVE]
-        Volatility Spike / Flash Dump alerts are completely deactivated.
-        """
-        return
 
 
     def check_candlestick_confirmation(self):
@@ -603,12 +603,6 @@ class XAUUSDNewsAssistantBot:
             self.notifier.send_message(msg)
             database.set_state("last_macro_divergence_ts", str(now))
 
-    def check_iceberg_orders(self):
-        """
-        [PERMANENTLY DISABLED PER USER DIRECTIVE]
-        Whale Order Book / Iceberg Wall alerts are completely deactivated.
-        """
-        return
 
 
     def check_weekly_sunday_outlook(self):
@@ -637,16 +631,27 @@ class XAUUSDNewsAssistantBot:
             logger.info("Weekly Sunday Outlook broadcasted successfully.")
 
     def check_database_maintenance(self):
-        """Performs automatic database cleanup (Point 3) keeping data.db fast and lightweight."""
+        """Performs automatic database cleanup keeping data.db fast and lightweight (1-2 days retention)."""
         now_kh = datetime.now(CAMBODIA_TZ)
         today_str = now_kh.strftime("%Y-%m-%d")
         key = f"db_maintenance_{today_str}"
 
-        # Run once a day around midnight or Sunday
+        # Run once a day around midnight
         if now_kh.hour == 0 and not database.get_state(key):
-            cleaned = database.cleanup_old_records(days=30)
+            cleaned = database.cleanup_old_records(days=2)
+            # Auto-clear scratch directory files older than 2 days
+            try:
+                scratch_dir = BASE_DIR / "scratch"
+                if scratch_dir.exists():
+                    cutoff = time.time() - (2 * 86400)
+                    for item in scratch_dir.iterdir():
+                        if item.is_file() and item.stat().st_mtime < cutoff:
+                            item.unlink()
+            except Exception as e:
+                logger.debug(f"Scratch cleanup notice: {e}")
+
             database.set_state(key, "done")
-            logger.info(f"[DB Auto-Maintenance] Cleaned {cleaned} old records and executed VACUUM successfully.")
+            logger.info(f"[DB Auto-Maintenance] Cleaned {cleaned} old records (retention: 2 days) and executed VACUUM successfully.")
 
     def process_incoming_commands(self):
         """Listens and responds to Telegram user commands (/price, /levels, /calendar, /help)."""
@@ -1030,10 +1035,10 @@ class XAUUSDNewsAssistantBot:
                 resp = KhmerFormatter.format_order_book_depth(depth)
                 self.notifier.send_message(resp, chat_id=chat_id, reply_markup=bottom_keyboard)
 
-            elif clean_cmd in ("/fomc", "/powell") or "fed" in text.lower():
+            elif clean_cmd in ("/fomc", "/fed", "/chair") or "fed" in text.lower():
                 self.notifier.send_message("⚡ <i>AI កំពុងទាញយកសេចក្តីថ្លែងការណ៍ FOMC និងសុន្ទរកថា Fed ចុងក្រោយបង្អស់មកវិភាគបកប្រែ...</i>", chat_id=chat_id)
                 # Fetch latest Fed official press releases
-                fed_items = [it for it in self.news_collector.fetch_latest_news() if any(k in it['title'].lower() for k in ['fed', 'fomc', 'federal reserve', 'powell', 'monetary policy'])]
+                fed_items = [it for it in self.news_collector.fetch_latest_news() if any(k in it['title'].lower() for k in ['fed', 'fomc', 'federal reserve', 'fed chair', 'monetary policy'])]
                 if fed_items:
                     target = fed_items[0]
                     interp = self.fomc_interpreter.interpret_powell_speech(f"{target['title']}\n{target.get('description', '')}", event_title=target['title'])
@@ -1154,18 +1159,28 @@ class XAUUSDNewsAssistantBot:
         if XAUUSDNewsAssistantBot._caption_fits(text, limit=1000):
             return text
 
-        # Split into blocks and keep essential alerts
         blocks = text.split("\n\n")
-        trimmed_blocks = []
-        curr_len = 0
-        for b in blocks:
-            vis = len(re.sub(r"<[^>]+>", "", b))
-            if curr_len + vis > max_visible_chars:
-                break
-            trimmed_blocks.append(b)
-            curr_len += vis
+        if len(blocks) <= 1:
+            clean = re.sub(r"<[^>]+>", "", text)
+            return clean[:max_visible_chars] + "..."
 
-        res = "\n\n".join(trimmed_blocks)
+        header = blocks[0]
+        footer = blocks[-1] if len(blocks) >= 3 else ""
+        body_blocks = blocks[1:-1] if len(blocks) >= 3 else blocks[1:]
+        body = "\n\n".join(body_blocks)
+
+        reserved = len(re.sub(r"<[^>]+>", "", header)) + len(re.sub(r"<[^>]+>", "", footer)) + 10
+        avail = max(100, max_visible_chars - reserved)
+
+        clean_body = re.sub(r"<[^>]+>", "", body)
+        if len(clean_body) > avail:
+            trimmed_body = clean_body[:avail].rsplit(" ", 1)[0] + "..."
+        else:
+            trimmed_body = clean_body
+
+        parts = [p for p in [header, trimmed_body, footer] if p]
+        res = "\n\n".join(parts)
+
         # Auto-close open tags
         for tag in ["i", "b", "code", "a"]:
             open_count = len(re.findall(rf"<{tag}(?:\s+[^>]*)?>", res))
@@ -1180,6 +1195,58 @@ class XAUUSDNewsAssistantBot:
             return parsedate_to_datetime(item.get("pub_date", "")).timestamp()
         except Exception:
             return 0.0
+
+    @staticmethod
+    def _enrich_article_description(item: dict) -> str:
+        """Enriches sparse RSS descriptions (< 100 chars) with rich og:description directly from article web page."""
+        desc = (item.get("description") or "").strip()
+        link = (item.get("link") or item.get("url") or "").strip()
+        if len(desc) >= 120 or not link or not link.startswith("http") or "news.google.com" in link:
+            return desc
+
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        }
+        try:
+            resp = requests.get(link, headers=headers, timeout=6)
+            if resp.status_code == 200:
+                html_text = resp.text
+                patterns = [
+                    r'<meta[^>]+property=[\'"]og:description[\'"][^>]+content=[\'"]([^\'"]+)[\'"]',
+                    r'<meta[^>]+content=[\'"]([^\'"]+)[\'"][^>]+property=[\'"]og:description[\'"]',
+                    r'<meta[^>]+name=[\'"]description[\'"][^>]+content=[\'"]([^\'"]+)[\'"]',
+                    r'<meta[^>]+content=[\'"]([^\'"]+)[\'"][^>]+name=[\'"]description[\'"]',
+                ]
+                for p in patterns:
+                    m = re.search(p, html_text, re.IGNORECASE)
+                    if m:
+                        og_desc = html.unescape(m.group(1)).strip()
+                        og_desc = re.sub(r'<[^>]+>', ' ', og_desc)
+                        og_desc = re.sub(r'\s+', ' ', og_desc).strip()
+                        if len(og_desc) > len(desc) and len(og_desc) >= 30:
+                            logger.info(f"[ARTICLE CONTEXT ENRICHED] Added {len(og_desc)} chars of journalistic background for '{item.get('title')}'")
+                            desc = og_desc
+                            break
+
+                # Also extract genuine article image if not already present
+                if not item.get("image_url"):
+                    img_patterns = [
+                        r'<meta[^>]+property=[\'"]og:image[\'"][^>]+content=[\'"]([^\'"]+)[\'"]',
+                        r'<meta[^>]+content=[\'"]([^\'"]+)[\'"][^>]+property=[\'"]og:image[\'"]',
+                        r'<meta[^>]+name=[\'"]twitter:image[\'"][^>]+content=[\'"]([^\'"]+)[\'"]',
+                    ]
+                    for ip in img_patterns:
+                        im = re.search(ip, html_text, re.IGNORECASE)
+                        if im:
+                            img_u = html.unescape(im.group(1)).strip()
+                            if img_u.startswith("http") and not any(bad in img_u.lower() for bad in ["logo", "icon", "placeholder", "google"]):
+                                item["image_url"] = img_u
+                                logger.info(f"[ARTICLE IMAGE ENRICHED] Found genuine photo: {img_u[:60]}...")
+                                break
+        except Exception as e:
+            logger.warning(f"[_enrich_article_description error] {e}")
+        return desc
 
     @staticmethod
     def _fetch_news_image(item: dict) -> bytes:
@@ -1390,7 +1457,13 @@ class XAUUSDNewsAssistantBot:
             title = item["title"]
             desc = item.get("description", "")
 
-            # Relevance Filter: Is this related to Gold/USD/Fed/Rates?
+            # Freshness Gate: strictly reject stale items older than 6 hours
+            item_ts = self._news_ts(item)
+            if item_ts > 0 and (time.time() - item_ts) > 6 * 3600:
+                database.record_news_sent(news_id, title, item.get("source", ""), is_broadcasted=0)
+                continue
+
+            # Relevance Filter: Is this related to Gold/USD/Fed/Rates/7 Core Pillars?
             if not GoldNewsFilter.is_gold_relevant(title, desc):
                 continue
             pending.append(item)
@@ -1413,43 +1486,93 @@ class XAUUSDNewsAssistantBot:
         if not unique_pending:
             return
 
-        # Select the most urgent & fresh news among the unique items
-        item = max(
+        # Sort candidate news by urgency score and freshness
+        candidates = sorted(
             unique_pending,
             key=lambda it: (GoldNewsFilter.urgency_score(it["title"]), self._news_ts(it)),
+            reverse=True
         )
-        logger.info(f"[ZERO-DELAY IMMEDIATE ALERT] News/Anomaly detected: {item['title']}")
-        title = item["title"]
-        desc = item.get("description", "")
-        logger.info(f"Processing breaking alert: {title}")
 
-        analysis = self.analyzer.analyze_breaking_news(title, desc)
-        if not analysis:
+        top_candidate = candidates[0] if candidates else None
+        is_urgent_catalyst = top_candidate and (
+            GoldNewsFilter.is_immediate_alert(top_candidate["title"], top_candidate.get("description", ""))
+            or GoldNewsFilter.urgency_score(top_candidate["title"]) >= 2
+        )
+
+        # Check rate-limiting gap (Strict 5 minutes between breaking alerts; 3 minutes minimum for urgent catalysts to prevent spamming)
+        last_alert_ts = float(database.get_state("last_breaking_alert_ts") or "0")
+        min_gap = 180.0 if is_urgent_catalyst else BREAKING_ALERT_MIN_GAP
+        if time.time() - last_alert_ts < min_gap:
             return
 
-        # Strict Quality & Freshness Gate: If AI flagged the story as unclear, stale, or insignificant, skip
-        if isinstance(analysis, dict) and analysis.get("is_clear") is False:
-            logger.info(f"[UNCLEAR/STALE NEWS SKIPPED] AI evaluated '{title}' as unclear or insignificant (is_clear=False).")
-            database.record_news_sent(item["id"], title, item.get("source", ""))
-            return
-        msg = KhmerFormatter.format_breaking_event_alert(item, analysis)
+        for item in candidates:
+            title = item["title"]
+            desc = item.get("description", "")
+            if len(desc) < 120:
+                desc = self._enrich_article_description(item)
+                item["description"] = desc
+            analysis = self.analyzer.analyze_breaking_news(title, desc)
+            if not analysis:
+                continue
 
-        photo = self._fetch_news_image(item)
-        if photo:
-            # If caption exceeds Telegram's 1024 char limit, trim safely keeping HTML tags valid
-            caption_text = self._truncate_html_caption(msg, max_visible_chars=950)
-            res = self.notifier.send_photo(photo, caption=caption_text)
-            sent_ok = bool(res.get("ok"))
-        else:
-            # If no genuine photo is available, send as clean text message (Strictly NEVER send random images)
-            res = self.notifier.send_message(msg)
-            sent_ok = bool(res.get("ok"))
+            # Strict Quality & Freshness Gate
+            if isinstance(analysis, dict) and analysis.get("is_clear") is False:
+                logger.info(f"[UNCLEAR/STALE NEWS SKIPPED] AI evaluated '{title}' as unclear or insignificant.")
+                database.record_news_sent(item["id"], title, item.get("source", ""), is_broadcasted=0)
+                continue
 
-        if sent_ok:
-            database.record_news_sent(item["id"], title, item.get("source", ""))
-            database.set_state("last_breaking_alert_ts", str(time.time()))
-        else:
-            logger.error("Breaking alert send failed; item kept for retry next cycle.")
+            # Strict User Rule: ONLY broadcast if there is a distinct positive or negative impact!
+            # If it is neutral (វាផលអព្យាក្រឹត) or has no clear positive/negative impact, DROP IT!
+            impact = ""
+            if isinstance(analysis, dict):
+                impact = (analysis.get("impact") or "").strip()
+
+            # Strict Contradiction Prevention Gate (Zero Logical Contradiction Rule)
+            negative_indicators = [
+                "war", "drone", "attack", "missile", "airstrike", "bomb", "casualt", "death", 
+                "kill", "school", "military", "strike", "crisis", "threat", "sanction", "tariff",
+                "invasion", "shelling", "hit", "plunge", "slump", "crash", "collapse", "layoff",
+                "សង្គ្រាម", "វាយប្រហារ", "ដ្រូន", "មីស៊ីល", "គ្រាប់បែក", "ស្លាប់", "ទណ្ឌកម្ម", "ពន្ធគយ"
+            ]
+            full_text_low = f"{title} {item.get('description', '')}".lower()
+            is_negative_event = any(
+                re.search(rf"\b{w}(?:s|es|ed|ing)?\b", full_text_low) if w.isascii() else (w in full_text_low)
+                for w in negative_indicators
+            )
+
+            if is_negative_event and "វិជ្ជមាន" in impact and "អវិជ្ជមាន" not in impact:
+                logger.warning(f"[CONTRADICTION OVERRIDDEN] '{title}' was incorrectly labeled positive '{impact}'. Overriding to Negative!")
+                impact = "វាផលអវិជ្ជមាន បង្កើនហានិភ័យភូមិសាស្ត្រនយោបាយ និងអស្ថិរភាពសន្តិសុខសកល"
+                if isinstance(analysis, dict):
+                    analysis["impact"] = impact
+
+            is_positive = "វិជ្ជមាន" in impact and "អវិជ្ជមាន" not in impact
+            is_negative = "អវិជ្ជមាន" in impact
+            if not (is_positive or is_negative) or "អព្យាក្រឹត" in impact:
+                logger.info(f"[NEUTRAL NEWS DROPPED PER USER MANDATE] '{title}' impact: '{impact}'. Dropped.")
+                database.record_news_sent(item["id"], title, item.get("source", ""), is_broadcasted=0)
+                continue
+
+            # Found high-impact news with clear positive or negative impact!
+            logger.info(f"[HIGH-IMPACT NEWS APPROVED] Broadcasting '{title}' (Impact: {impact})")
+            msg = KhmerFormatter.format_breaking_event_alert(item, analysis)
+
+            photo = self._fetch_news_image(item)
+            if photo:
+                caption_text = self._truncate_html_caption(msg, max_visible_chars=950)
+                res = self.notifier.send_photo(photo, caption=caption_text, reply_markup=None)
+                sent_ok = bool(res.get("ok"))
+            else:
+                res = self.notifier.send_message(msg, reply_markup=None)
+                sent_ok = bool(res.get("ok"))
+
+            if sent_ok:
+                database.record_news_sent(item["id"], title, item.get("source", ""), is_broadcasted=1)
+                database.set_state("last_breaking_alert_ts", str(time.time()))
+                break
+            else:
+                logger.error("Breaking alert send failed; item kept for retry next cycle.")
+                break
 
     def run_cycle(self) -> int:
         """Executes a single monitoring cycle for scheduled/background tasks and returns next sleep duration."""
@@ -1468,26 +1591,16 @@ class XAUUSDNewsAssistantBot:
             # 4. Market Sessions Open Alerts (London 14:00 & NY 19:00 Cambodia Time)
             self.check_session_open_alerts()
 
-            # 5. Daily Market Wrap-Up (10:00 PM Cambodia Time) - Disabled per user directive
-            # self.check_night_wrap_up()
-
             # 5.1 Weekly Sunday Outlook (Every Sunday 19:00 Cambodia Time)
             self.check_weekly_sunday_outlook()
 
-            # 5.12 AI High-Impact News Danger Zone Check (NO TRADE Filter)
+            # 5.2 Real-Time Signals & Trade Trailing
             self.check_news_danger_zone()
-
-            # 5.15 Real-Time AI Sniper Instant Signals (BUY DIP / SELL TOP with SL/TP)
             self.check_sniper_instant_signals()
-
-            # 5.2 Real-Time Liquidity Sweep Alert (Hunt Stop Loss)
+            self.check_dynamic_breakeven_trailing()
+            self.check_candlestick_confirmation()
             self.check_liquidity_sweep()
-
-            # 5.3 Macro Divergence Alert (DXY vs Gold)
             self.check_macro_divergence()
-
-            # 5.4 Whale Order Book Depth & Iceberg Orders Tracker - Disabled per user directive
-            # self.check_iceberg_orders()
 
             # 6. Breaking News Alert (Strictly filtered: Only sends if 100% clear and high-impact)
             self.check_breaking_news()
@@ -1530,20 +1643,13 @@ class XAUUSDNewsAssistantBot:
                     macro_data = self.macro_collector.fetch_macro_correlations()
                     order_book = self.order_book_tracker.fetch_order_book_depth()
 
-                    # 3. Pre-compute AI SMC Setup in RAM
-                    setup = self.analyzer.generate_smart_smc_setup(
+                    # 3. Pre-compute Fast Institutional SMC Setup in RAM (Instant < 1ms, zero API quota use)
+                    setup = MacroAnalyzer.generate_smart_smc_setup(
                         current_price=oz,
                         key_levels=levels,
                         macro_data=macro_data,
                         order_book=order_book
                     )
-                    if not setup:
-                        setup = MacroAnalyzer.generate_smart_smc_setup(
-                            current_price=oz,
-                            key_levels=levels,
-                            macro_data=macro_data,
-                            order_book=order_book
-                        )
                     if setup:
                         market_cache.set_smc_setup(setup)
                         smc_msg = KhmerFormatter.format_single_smc_setup(setup, key_levels=levels, current_price=oz)
@@ -1572,31 +1678,46 @@ class XAUUSDNewsAssistantBot:
 
         last_background_check = 0.0
         background_interval = 60  # Initial background check interval
+        last_breaking_check = 0.0
+        breaking_interval = 15.0  # Ultra-fast real-time breaking news monitor (every 15s)
+        last_signal_check = 0.0
+        signal_interval = 30.0    # Real-time high-speed signals & trade trailing monitor (every 30s)
 
         while True:
             try:
                 # 1. Real-time Telegram Command Listener (Instant response < 1s)
                 self.process_incoming_commands()
 
-                # 2. Periodic Tasks Checker (Non-blocking)
                 now = time.time()
-                if now - last_background_check >= background_interval:
-                    last_background_check = now
+                # 2. Real-Time Breaking News Check (Dedicated 30-second cadence)
+                if now - last_breaking_check >= breaking_interval:
+                    last_breaking_check = now
                     try:
-                        self.check_database_maintenance()
-                        self.check_daily_gold_price()
-                        self.check_session_open_alerts()
-                        # self.check_night_wrap_up()  # Disabled per user directive
-                        self.check_weekly_sunday_outlook()
-                        # self.check_price_volatility_spike()  # Disabled per user directive
+                        self.check_breaking_news()
+                    except Exception as err:
+                        logger.error(f"Error checking breaking news: {err}", exc_info=True)
+
+                # 3. Real-Time Sniper Signals & Trade Trailing Check (Dedicated 30-second cadence)
+                if now - last_signal_check >= signal_interval:
+                    last_signal_check = now
+                    try:
                         self.check_news_danger_zone()
                         self.check_sniper_instant_signals()
                         self.check_dynamic_breakeven_trailing()
                         self.check_candlestick_confirmation()
                         self.check_liquidity_sweep()
                         self.check_macro_divergence()
-                        # self.check_iceberg_orders()  # Disabled per user directive
-                        self.check_breaking_news()
+                    except Exception as err:
+                        logger.error(f"Error checking signals or trade trailing: {err}", exc_info=True)
+
+                # 4. Scheduled & Periodic Tasks Checker (Non-blocking)
+                if now - last_background_check >= background_interval:
+                    last_background_check = now
+                    try:
+                        self.check_database_maintenance()
+                        self.check_daily_gold_price()
+                        self.check_session_open_alerts()
+                        self.check_weekly_sunday_outlook()
                         background_interval = self.check_economic_events()
                     except Exception as err:
                         logger.error(f"Error during background task check: {err}", exc_info=True)
