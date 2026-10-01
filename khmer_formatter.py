@@ -296,12 +296,18 @@ class KhmerFormatter:
         for _, fl in flag_rules:
             key_event = key_event.replace(fl, "")
 
-        # Strip robotic category prefix with colon (e.g. "ភាពតានតឹង...៖ ")
-        key_event = re.sub(r'^[^\n៖]+៖\s*', '', key_event).strip()
+        # Strip robotic category prefix with colon (e.g. "ភាពតានតឹង...៖ " or "...កើនឡើង: ")
+        key_event = re.sub(r'^[^\n៖:]+[៖:]\s*', '', key_event).strip()
 
-        # Double Safety: If key_event is still in English (> 35% Latin characters), translate to fluent Khmer
+        # Remove parenthetical English phrases like (Safe-Haven Assets )
+        key_event = re.sub(r'\(\s*[A-Za-z\s-]+\s*\)', '', key_event).strip()
+
+        # Remove trailing wire source name in body (e.g. "- The Guardian")
+        key_event = re.sub(r'\s*-\s*(?:The Guardian|Reuters|Bloomberg|CNBC|BBC News|BBC|Al Jazeera|MarketWatch|Yahoo Finance|ForexLive)[^\n]*', '', key_event, flags=re.IGNORECASE).strip()
+
+        # Double Safety: If key_event has significant English (> 25% Latin characters), translate to fluent Khmer
         latin_chars = len(re.findall(r'[a-zA-Z]', key_event))
-        if latin_chars > len(key_event) * 0.35 and len(key_event) > 25:
+        if latin_chars > len(key_event) * 0.25 and len(key_event) > 20:
             try:
                 from analyzers.macro_analyzer import MacroAnalyzer
                 km_trans = MacroAnalyzer.translate_to_khmer(key_event)
