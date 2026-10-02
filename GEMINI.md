@@ -63,7 +63,9 @@ This repository is governed by the 5 Golden Principles established by the system
 - **ប្រព័ន្ធការពារការផ្ញើសារជាន់គ្នា ៣ ជាន់ដាច់ខាត (Triple Anti-Duplicate Shield — Zero Spam Guarantee)**:
   1. **ត្រួតពិនិត្យ Telegram Channel Feed ជាក់ស្តែង (`_is_already_in_telegram_channel`)**: មុននឹងចេញផ្សាយ ត្រូវ Scan មើលសារក្នុង Channel `@GoldMarketKH8888` ជាមុនសិន។ ប្រសិនបើមានព័ត៌មាននេះរួចហើយ ទោះបី Server restart ឬមាន Instance ច្រើនប៉ុនណាក៏ដោយ ក៏ **ហាមដាច់ខាតមិនឱ្យផ្សាយជាន់គ្នាជាលើកទី ២ ឡើយ**។
   2. **In-Memory Process Cache & SQLite Deduplication**: កត់ត្រាចំណងជើង និង ID ក្នុង Memory និង Database SQLite ភ្លាមៗមុនពេលផ្ញើ។
-  3. **ចន្លោះពេលផ្សាយយ៉ាងតិច ៥ នាទីម្តង (`BREAKING_ALERT_MIN_GAP = 300s`)**: រាល់ការចេញផ្សាយព័ត៌មានទាន់ហេតុការណ៍មួយ ត្រូវមានគម្លាតយ៉ាងតិច ៥ នាទីទើបអាចផ្សាយព័ត៌មានបន្ទាប់បាន ដើម្បីការពារកុំឱ្យមានការផ្ញើសារញាប់ពេក។
+  3. **ចន្លោះពេលផ្សាយទាន់ហេតុការណ៍ល្បឿនលឿន (`BREAKING_ALERT_MIN_GAP = 60s`, VIP Critical = 20s — បញ្ជាផ្ទាល់)**:
+     - ផ្សាយព័ត៌មានទាន់ហេតុការណ៍បានលឿនបំផុតក្នុងរង្វង់ ៦០ វិនាទី (១ នាទី) តាមការចង់បានរបស់អ្នកប្រើប្រាស់។
+     - សម្រាប់ព័ត៌មានបន្ទាន់កម្រិតខ្ពស់ (VIP Critical: សង្គ្រាម War, អត្រាការប្រាក់ Fed/FOMC, សុន្ទរកថា Fed Chair Powell/Warsh, CPI, NFP, គ្រោះអាសន្ន) គឺដំណើរការ និងផ្សាយចេញលឿនបំផុតត្រឹមតែ ២០ វិនាទីប៉ុណ្ណោះ (Instant Fast-Track Zero-Delay)។
   4. **ឃ្លាចេញពី Data ភ្លាមៗបន្ទាប់ពីផ្ញើសាររួច (Mandatory Post-Broadcast Data Eviction)**: ភ្លាមៗបន្ទាប់ពីសារមួយត្រូវបានផ្ញើចេញ ឬត្រូវបានច្រានចោល (Drop) ប្រព័ន្ធត្រូវតែហៅ `news_collector.clear_item(...)` ដើម្បីកម្ចាត់ និង Blacklist ចោលភ្លាមៗចេញពី Data Pool, ហៅ `database.clear_news_from_data(...)` ដើម្បីចាក់សោក្នុង SQLite និង `pending.clear()` សម្អាត Queue ចោលភ្លាម ដើម្បីកុំឱ្យមានទិន្នន័យចាស់សេសសល់ក្នុង Loop ឡើយ។
 - **វិស័យស្នូលទាំង ៧ នៃព័ត៌មាន (The 7 Core News Pillars)**:
   1. 🌐 **សេដ្ឋកិច្ច (Economy)**: GDP, CPI, អតិផរណា, NFP, ការងារ, Retail Sales, PMI, កំណើនសេដ្ឋកិច្ច។
