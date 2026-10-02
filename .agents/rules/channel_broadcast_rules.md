@@ -41,8 +41,13 @@ description: "Core rules and design standards for Telegram Channel Broadcasts (D
 - **រូបភាពពិតប្រាកដ ឬ Plain Text**:
   - ភ្ជាប់តែរូបភាពពិតដែលទាញចេញពី Article ដើមប៉ុណ្ណោះ។ ប្រសិនបើគ្មានរូបភាពពិត ត្រូវផ្ញើជា Plain Text ស្អាត (ហាមដាច់ខាតយករូបភាពមិនត្រូវសាច់រឿងមកបង្ហោះ)។
 
-### 3. 🚫 មុខងារដែលត្រូវបានបិទជាអចិន្ត្រៃយ៍ (Strictly Permanently Disabled)
-- ❌ **Daily Market Wrap-Up** (`check_night_wrap_up`): ហាមផ្ញើសារសង្ខេបពេលយប់ចូល Channel ជាដាច់ខាត។
-- ❌ **Volatility Spike Alerts** (`check_price_volatility_spike`): ហាមផ្ញើសារបម្រែបម្រួលតម្លៃមាស Flash Dump/Spike ចូល Channel ជាដាច់ខាត។
-- ❌ **Whale Order Book Alerts** (`check_iceberg_orders`): ហាមផ្ញើសារ Whale Wall ចូល Channel ជាដាច់ខាត។
-- ❌ **Live Test Broadcasts Prohibition**: ហាមដំណើរការ Script តេស្តណាដែលបាញ់សារសាកល្បងចូលក្នុង Live Telegram Channel ផ្ទាល់ជាដាច់ខាត។
+### 4. 📊 ស្តង់ដារ Interactive Poll & Mini App Button (Strict Single-Bubble Standard)
+- **សំណួរ Poll សាមញ្ញ ស្អាត គ្មានបញ្ជាក់ទិសដៅ**:
+  - `📊 លទ្ធផល Signal XAUUSD — សូមបញ្ជាក់លទ្ធផលរបស់អ្នក:` (ហាមដាច់ខាតមិនដាក់ `(Buy Dip) —` ឬ `(Sell Top) —` ឡើយ)។
+- **ជម្រើស Options បែប Trader អាជីព (Strict No Gambling Terms)**:
+  - ជម្រើសទី ១: `🎯 Hit TP` (ហាមដាច់ខាតមិនប្រើពាក្យ `ឈ្នះ`)
+  - ជម្រើសទី ២: `🛑 Hit SL` (ហាមដាច់ខាតមិនប្រើពាក្យ `ចាញ់`)
+- **កញ្ចប់តែមួយគត់ (Single Unified Bubble — Zero Separate Message)**:
+  - ប៊ូតុង `📱 បើក Mini App ដើម្បីទទួលបាន Signal Live` ត្រូវតែភ្ជាប់ផ្ទាល់ជាមួយ Poll តែម្ដង (`sendPoll(..., reply_markup=app_cta_markup)`)។
+  - **ហាមដាច់ខាតមិនឱ្យផ្ញើសារទី ២** ប្រភេទ `👇 ចុចប៊ូតុងខាងក្រោមដើម្បីចូលមើល Signal បន្តផ្ទាល់លើ Mini App:` ឡើយ (ត្រូវលុបចោលទាំងស្រុងជាអចិន្ត្រៃយ៍)។
+
