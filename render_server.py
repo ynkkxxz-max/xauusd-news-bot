@@ -6,14 +6,18 @@ from main import XAUUSDNewsAssistantBot
 # Simple HTTP health check server so free cloud platforms (Render, Railway) know the app is alive
 # and can be pinged by cron-job.org every 5-10 minutes.
 class HealthHandler(BaseHTTPRequestHandler):
+    def do_HEAD(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain")
+        self.send_header("Content-length", "2")
+        self.end_headers()
+
     def do_GET(self):
         self.send_response(200)
-        self.send_header("Content-type", "application/json; charset=utf-8")
+        self.send_header("Content-type", "text/plain; charset=utf-8")
+        self.send_header("Content-length", "2")
         self.end_headers()
-        status_json = (
-            '{"status":"online","service":"XAUUSD News Assistant","mode":"autonomous_24_7"}'
-        )
-        self.wfile.write(status_json.encode("utf-8"))
+        self.wfile.write(b"OK")
 
     def log_message(self, format, *args):
         pass # Suppress HTTP access log noise
@@ -31,7 +35,7 @@ def run_self_pinger():
     """
     import time
     import urllib.request
-    url = os.getenv("RENDER_EXTERNAL_URL", "https://xauusd-news-bot-dl60.onrender.com")
+    url = os.getenv("RENDER_EXTERNAL_URL", "https://xauusd-news-bot-kh.onrender.com")
     time.sleep(30) # Initial delay after startup
     while True:
         try:
