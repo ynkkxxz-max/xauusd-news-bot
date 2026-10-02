@@ -1638,7 +1638,9 @@ class XAUUSDNewsAssistantBot:
         """
         now = time.time()
         last_alert_ts = float(database.get_state("last_breaking_alert_ts") or "0")
-        if (now - last_alert_ts < BREAKING_ALERT_MIN_GAP) or (now - self._last_breaking_sent_ts < BREAKING_ALERT_MIN_GAP):
+        time_since_last = min(now - last_alert_ts, now - self._last_breaking_sent_ts)
+        # Fast-track gate: if less than 20s passed, wait to protect against Telegram flood
+        if time_since_last < 20.0:
             return
 
         pending = []
@@ -1673,6 +1675,17 @@ class XAUUSDNewsAssistantBot:
         recent_sent_titles = database.get_recent_news_titles(hours=24)
         for it in pending:
             title = it["title"]
+            desc = it.get("description", "")
+
+            # Fast-track priority check: critical news gets 20s gap, regular gets BREAKING_ALERT_MIN_GAP (60s)
+            is_critical = any(k in (title + " " + desc).lower() for k in [
+                "war", "attack", "missile", "airstrike", "fomc", "rate cut", "rate hike",
+                "interest rate", "powell", "kevin warsh", "cpi", "nfp", "emergency", "nuclear"
+            ])
+            required_gap = 20.0 if is_critical else BREAKING_ALERT_MIN_GAP
+            if time_since_last < required_gap:
+                continue
+
             if GoldNewsFilter.is_duplicate_or_similar(title, recent_sent_titles):
                 self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                 continue
@@ -1738,7 +1751,7 @@ class XAUUSDNewsAssistantBot:
             self._broadcasted_titles_cache.add(title.lower())
             pending.clear()
 
-            logger.info(f"[BREAKING NEWS APPROVED & BROADCASTED] '{title}' sent. Data purged immediately. Next alert locked for 5 minutes.")
+            logger.info(f"[BREAKING NEWS APPROVED & BROADCASTED] '{title}' sent. Data purged immediately. Real-time cadence active.")
             break
 
     def run_cycle(self) -> int:
@@ -1846,7 +1859,7 @@ class XAUUSDNewsAssistantBot:
         last_background_check = 0.0
         background_interval = 60  # Initial background check interval
         last_breaking_check = 0.0
-        breaking_interval = 15.0  # Ultra-fast real-time breaking news monitor (every 15s)
+        breaking_interval = 10.0  # Ultra-fast real-time breaking news monitor (every 10s)
         last_signal_check = 0.0
         signal_interval = 30.0    # Real-time high-speed signals & trade trailing monitor (every 30s)
 
