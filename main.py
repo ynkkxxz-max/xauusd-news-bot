@@ -1,3 +1,4 @@
+import os
 import re
 import html
 import time
@@ -160,15 +161,38 @@ class XAUUSDNewsAssistantBot:
         except Exception:
             pass
 
-        # Bind HTTP health check port if running on Render / Railway
+        # Bind HTTP health check port & self-pinger if running on Render / Railway
         port_env = os.getenv("PORT")
         if port_env:
             try:
                 self._start_http_health_server(int(port_env))
+                self._start_self_pinger()
             except Exception as e:
                 logger.warning(f"Could not start HTTP health server on port {port_env}: {e}")
 
         self._bootstrap_news_cache()
+
+    def _start_self_pinger(self):
+        """Pings public URL every 8 minutes to prevent Render Free Tier from idling or sleeping."""
+        try:
+            import threading
+            import urllib.request
+            def pinger_worker():
+                url = os.getenv("RENDER_EXTERNAL_URL", "https://xauusd-news-bot-dl60.onrender.com")
+                time.sleep(30)
+                while True:
+                    try:
+                        req = urllib.request.Request(url, headers={"User-Agent": "Render-Internal-KeepAlive/1.0"})
+                        with urllib.request.urlopen(req, timeout=25) as resp:
+                            pass
+                    except Exception:
+                        pass
+                    time.sleep(480)
+            t = threading.Thread(target=pinger_worker, daemon=True, name="Keep-Alive-Pinger")
+            t.start()
+            logger.info("[Cloud Self-Pinger] Started background keep-alive loop (8-min cadence).")
+        except Exception as e:
+            logger.warning(f"[Cloud Self-Pinger] Could not start: {e}")
 
     def _start_http_health_server(self, port: int = 10000):
         """Starts a lightweight HTTP server so Cloud platforms (Render, Railway) know the app is alive and never restart it."""
@@ -221,9 +245,9 @@ class XAUUSDNewsAssistantBot:
         if database.is_daily_price_sent(today_str):
             return
 
-        # Trigger strictly at 07:00 AM Cambodia Time (7:00 AM - 7:59 AM)
-        if now_kh.hour == DAILY_PRICE_ALERT_HOUR and now_kh.minute >= DAILY_PRICE_ALERT_MINUTE:
-            logger.info(f"Triggering 07:00 AM Daily Gold Price broadcast for {today_str}...")
+        # Trigger at 07:00 AM Cambodia Time (with morning catch-up window 07:00 - 11:59 if rebooted/delayed)
+        if now_kh.hour >= DAILY_PRICE_ALERT_HOUR and now_kh.hour < 12:
+            logger.info(f"Triggering Daily Gold Price broadcast for {today_str} (time: {now_kh.strftime('%H:%M')})...")
             price_data = self.gold_collector.fetch_price(force_refresh=True)
             
             # Render Ultra-HD Graphic Card per user design specification
