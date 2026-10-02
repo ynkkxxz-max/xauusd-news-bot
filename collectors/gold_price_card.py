@@ -363,23 +363,28 @@ class DailyGoldPriceCardBuilder:
                 img = Image.open(tmpl_path).convert("RGB")
                 draw = ImageDraw.Draw(img)
 
+                f_outfit_black = BASE_DIR / "assets" / "Outfit-Black.ttf"
                 f_outfit = BASE_DIR / "assets" / "Outfit.ttf"
                 f_dejavu = BASE_DIR / "assets" / "DejaVuSans-Bold.ttf"
-                font_price = ImageFont.truetype(str(f_outfit), 62) if f_outfit.exists() else (ImageFont.truetype(str(f_dejavu), 56) if f_dejavu.exists() else ImageFont.load_default())
-                font_date = ImageFont.truetype(str(f_outfit), 28) if f_outfit.exists() else (ImageFont.truetype(str(f_dejavu), 24) if f_dejavu.exists() else ImageFont.load_default())
+                
+                font_file_price = f_outfit_black if f_outfit_black.exists() else (f_outfit if f_outfit.exists() else f_dejavu)
+                font_file_date = f_outfit_black if f_outfit_black.exists() else (f_outfit if f_outfit.exists() else f_dejavu)
+                
+                font_price = ImageFont.truetype(str(font_file_price), 88) if font_file_price.exists() else ImageFont.load_default()
+                font_date = ImageFont.truetype(str(font_file_date), 32) if font_file_date.exists() else ImageFont.load_default()
 
                 # Extract date dd/mm/yyyy from footer_str
                 import re
                 d_match = re.search(r'\d{2}/\d{2}/\d{4}', footer_str)
                 date_num = d_match.group(0) if d_match else datetime.now(CAMBODIA_TZ).strftime("%d/%m/%Y")
 
-                # Date overlay inside badge
-                draw.text((435, 308), date_num, fill=(255, 224, 130), font=font_date, anchor="mm")
+                # Date overlay inside badge slot (between 'ថ្ងៃ' and 'ម៉ោង 07:00 ព្រឹក')
+                draw.text((434, 309), date_num, fill=(255, 224, 130), font=font_date, anchor="mm")
 
-                # Prices aligned to the right inside the 3 white rounded pills
-                draw.text((890, 447), damlung_str, fill=(10, 14, 23), font=font_price, anchor="rm")
-                draw.text((890, 615), chi_str, fill=(10, 14, 23), font=font_price, anchor="rm")
-                draw.text((890, 783), oz_str, fill=(10, 14, 23), font=font_price, anchor="rm")
+                # Prices aligned to the right inside the 3 white rounded pills (size 88, bold pitch-black #0b132b)
+                draw.text((885, 475), damlung_str, fill=(11, 19, 43), font=font_price, anchor="rm")
+                draw.text((885, 657), chi_str, fill=(11, 19, 43), font=font_price, anchor="rm")
+                draw.text((885, 839), oz_str, fill=(11, 19, 43), font=font_price, anchor="rm")
 
                 out = io.BytesIO()
                 img.save(out, format="PNG", quality=95)
