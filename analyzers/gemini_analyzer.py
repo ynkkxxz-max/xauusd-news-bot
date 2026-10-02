@@ -95,6 +95,7 @@ def breaking_prompt(title: str, description: str) -> str:
         f"២. ហាមខុសអក្ខរាវិរុទ្ធ និងហាមលាយអក្សរបរទេសចម្លែកជាដាច់ខាត (Strict Khmer Orthography - No Broken Typos):\n"
         f"   - ឈ្មោះមេដឹកនាំពិភពលោកអាចប្រើអក្សរខ្មែរផ្លូវការ (ដូចជា លោក Donald Trump, លោក Jerome Powell, លោក Vladimir Putin)។\n"
         f"   - ប្រយោគ និងពាក្យពេចន៍ទាំងអស់ត្រូវតែត្រឹមត្រូវ ១០០% តាមក្បួនវេយ្យាករណ៍ខ្មែរ ដោយរៀបពាក្យពិរោះ រលូន និងងាយយល់បំផុត។\n"
+        f"   - ហាមដាច់ខាតមិនឱ្យមានអក្សរថៃ (Thai Script ដូចជា พันธบัตร), អក្សរក្រិក (Greek ដូចជា Πρόβλημα), អក្សររុស្ស៊ី (Cyrillic) ឬភាសាដទៃឡើយ! ត្រូវប្រើប្រាស់តែអក្សរខ្មែរសុទ្ធសាធ ១០០%។ ឧទាហរណ៍ ពាក្យ Bonds ត្រូវសរសេរ «មូលបត្របំណុល» ឬ «ប័ណ្ណបំណុល» (ហាមដាច់ខាតកុំប្រើពាក្យថៃ «พันธบัตร») និងពាក្យ Problem ត្រូវសរសេរ «បញ្ហា» ឬ «ការព្រួយបារម្ភ» (ហាមប្រើ «Πρόβλημα»)។\n"
         f"៣. ការច្រោះព័ត៌មានមតិយោបល់ និងសំនួរ (Strict Opinion / Clickbait Gate):\n"
         f"   - ប្រសិនបើព័ត៌មាននេះជាប្រភេទអត្ថបទមតិយោបល់ផ្ទាល់ខ្លួន (Opinion, Editorial, Op-Ed, Essay, Column), សំណួរ ឬពុំមែនជាព្រឹត្តិការណ៍ជាក់ស្ដែង ត្រូវតែកំណត់ is_clear = false ជាដាច់ខាត។\n"
         f"   - ឱ្យតែ AI វាយតម្លៃថាជាព័ត៌មានពិតជាក់ស្ដែង ថ្មី ធំ សំខាន់ ទាក់ទងនឹងពិភពលោក និងទីផ្សារក្នុងវិស័យទាំង ៧ ត្រូវកំណត់ is_clear = true ជានិច្ច ដើម្បីឱ្យប្រព័ន្ធចេញផ្សាយភ្លាមៗមុនគេជាដាច់ខាត។\n\n"
@@ -241,6 +242,11 @@ def signal_validation_prompt(raw_signal: dict, current_price: float, key_levels:
 
 
 def normalize_analysis(raw: dict) -> dict:
+    try:
+        from formatters.khmer_formatter import sanitize_khmer_spelling
+    except Exception:
+        from khmer_formatter import sanitize_khmer_spelling
+
     out = {}
     for k in _ANALYSIS_KEYS:
         if k == "is_clear":
@@ -253,12 +259,13 @@ def normalize_analysis(raw: dict) -> dict:
                 out["is_clear"] = True
             continue
         val = str(raw.get(k, "")).strip()
+        val = sanitize_khmer_spelling(val)
         out[k] = val if val else "កំពុងតាមដាន។"
     if not raw.get("key_event") or out["key_event"] == "កំពុងតាមដាន។":
         what = str(raw.get("what_happened", "")).strip()
         why = str(raw.get("why_it_matters", "")).strip()
         parts = [p for p in [what, why] if p]
-        out["key_event"] = "\n\n".join(parts) if parts else out.get("what_happened", "កំពុងតាមដាន។")
+        out["key_event"] = sanitize_khmer_spelling("\n\n".join(parts)) if parts else out.get("what_happened", "កំពុងតាមដាន។")
     # Guarantee impact line is valid Khmer per user directive
     imp = out.get("impact", "")
     if not imp or imp == "កំពុងតាមដាន។" or ("វិជ្ជមាន" not in imp and "អវិជ្ជមាន" not in imp):
@@ -268,6 +275,7 @@ def normalize_analysis(raw: dict) -> dict:
             out["impact"] = "វាផលវិជ្ជមាន ជំរុញសន្ទុះកំណើនទីផ្សារ"
         elif "bearish" in b or "bearish" in xp or "អវិជ្ជមាន" in b:
             out["impact"] = "វាផលអវិជ្ជមាន បង្កើនសម្ពាធលើទីផ្សារ"
+    out["impact"] = sanitize_khmer_spelling(out["impact"])
     return out
 
 
