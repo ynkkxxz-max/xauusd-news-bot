@@ -244,6 +244,8 @@ class BreakingNewsCollector:
         """Fetches news items from established 7-pillar market feeds simultaneously in parallel."""
         items = []
         seen_ids = set()
+        seen_titles_norm = set()
+        seen_slugs = set()
 
         # Concurrent parallel fetch across all 21 feeds for sub-second delivery
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
@@ -255,12 +257,36 @@ class BreakingNewsCollector:
                 try:
                     feed_items = future.result()
                     for it in feed_items:
+                        t = (it.get("title") or "").strip()
+                        l = (it.get("link") or "").strip()
+                        nid = it["id"]
+
                         # Strictly purge any item that has been cleared or already processed
-                        if self.is_cleared(it["id"], it.get("link", ""), it.get("title", "")):
+                        if self.is_cleared(nid, l, t):
                             continue
-                        if it["id"] not in seen_ids:
-                            seen_ids.add(it["id"])
-                            items.append(it)
+
+                        # Check ID
+                        if nid in seen_ids:
+                            continue
+
+                        # Check Normalized Title (strip punctuation/spaces/lowercase)
+                        norm_t = re.sub(r'[^a-zA-Z0-9\u1780-\u17FF]', '', t).lower()
+                        if norm_t and len(norm_t) >= 15:
+                            t_sig = norm_t[:45]
+                            if t_sig in seen_titles_norm:
+                                continue
+                            seen_titles_norm.add(t_sig)
+
+                        # Check Link Slug (last path segment)
+                        clean_link = l.split("?")[0].rstrip("/").lower()
+                        slug = clean_link.split("/")[-1]
+                        if len(slug) >= 12:
+                            if slug in seen_slugs:
+                                continue
+                            seen_slugs.add(slug)
+
+                        seen_ids.add(nid)
+                        items.append(it)
                 except Exception as err:
                     logger.debug(f"[BreakingNewsCollector] Thread pool worker error: {err}")
 
