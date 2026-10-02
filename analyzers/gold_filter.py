@@ -1,3 +1,13 @@
+# Keywords directly relevant to Digital Currency / Crypto / Blockchain / Financial Innovation
+CRYPTO_KEYWORDS = [
+    "bitcoin", "btc", "ethereum", "eth", "crypto", "cryptocurrency", "cryptocurrencies",
+    "digital currency", "digital currencies", "cbdc", "stablecoin", "stablecoins",
+    "tether", "usdt", "usdc", "sec crypto", "crypto etf", "spot btc", "spot bitcoin",
+    "crypto regulation", "crypto ban", "crypto reserve", "strategic bitcoin reserve",
+    "binance", "coinbase", "solana", "digital assets", "tokenization", "tokenized",
+    "blockchain", "defi", "crypto market", "crypto crash", "crypto rally", "crypto hack", "halving"
+]
+
 # Keywords directly relevant to XAUUSD / Gold / USD / Rates / Macroeconomics
 GOLD_KEYWORDS = [
     "gold", "xau", "bullion", "yellow metal", "xauusd", "precious metals"
@@ -98,12 +108,10 @@ class GoldNewsFilter:
         
         t_low = clean_title.lower()
         opinion_markers = [
-            "opinion:", "opinion |", "analysis:", "analysis |", "why ", "why is ", "why did ", 
-            "could ", "what if ", "here is why ", "how his ", "how her ", "how a ", "how the ",
-            "environmentalist", "fragility of", "op-ed", "editorial", "columnist", "essay",
-            "viewpoint", "perspective:"
+            "opinion:", "opinion |", "analysis:", "analysis |", "op-ed:", "op-ed |",
+            "editorial:", "editorial |", "column:", "columnist:", "essay:", "viewpoint:", "perspective:"
         ]
-        if any(marker in t_low for marker in opinion_markers):
+        if any(t_low.startswith(marker) or f" {marker}" in t_low for marker in opinion_markers):
             return False
 
         text = f"{title} {description}".lower()
@@ -157,6 +165,10 @@ class GoldNewsFilter:
         # 8. USD / Currency shocks (Pillar 1)
         has_usd = any(kw in text for kw in USD_KEYWORDS)
         if has_usd:
+            return True
+
+        # 9. Digital Currency, Bitcoin & Crypto (Digital Assets & Financial Innovation)
+        if any(kw in text for kw in CRYPTO_KEYWORDS):
             return True
 
         return False
