@@ -72,7 +72,8 @@ This repository is governed by the 5 Golden Principles established by the system
   4. 🏦 **គោលនយោបាយរូបិយវត្ថុ និងធនាគារកណ្តាល (Monetary Policy & Central Banks)**: Fed, Powell, FOMC, អត្រាការប្រាក់, ECB, BOJ, PBOC, ទុនបម្រុងមាស។
   5. 🛢️ **បរិស្ថាន និងធនធានធម្មជាតិ (Environment & Natural Resources)**: ប្រេងកាត OPEC, ថាមពល, រ៉ែមាស, ធនធានធម្មជាតិ។
   6. 👥 **កត្តាសង្គម និងប្រជាសាស្ត្រ (Social & Demographic Factors)**: កូដកម្មការងារ, ប្រាក់ឈ្នួល, ចិត្តសាស្ត្រអ្នកប្រើប្រាស់។
-  7. ⚖️ **ច្បាប់ បទប្បញ្ញត្តិ និងគោលនយោបាយរដ្ឋាភិបាល (Laws, Regulations & Government Policies)**: ពន្ធគយ Tariffs, ទណ្ឌកម្ម, បំណុលរដ្ឋ, ច្បាប់ហិរញ្ញវត្ថុ/Crypto។
+  7. ⚖️ **ច្បាប់ បទប្បញ្ញត្តិ និងគោលនយោបាយរដ្ឋាភិបាល (Laws, Regulations & Government Policies)**: ពន្ធគយ Tariffs, ទណ្ឌកម្ម, បំណុលរដ្ឋ, ច្បាប់ហិរញ្ញវត្ថុ។
+  8. 🪙 **ប្រាក់ឌីជីថល និងទ្រព្យសកម្មគ្រីបតូ (Digital Assets & Cryptocurrency — បញ្ជាផ្ទាល់)**: Bitcoin (BTC), Ethereum (ETH), Stablecoins (USDT/USDC), CBDC, ច្បាប់ SEC, Spot Crypto ETFs, ស្ថាប័នទិញស្តុកទុក (Strategic Crypto Reserves)។ ហាមមិនឱ្យច្រឡំទម្លាក់ព័ត៌មានប្រាក់ឌីជីថលចោលឡើយ។
 - **ទម្រង់ និងខ្លឹមសាររៀបរាប់ក្បោះក្បាយត្រឹមត្រូវ (Clean & Professional Standard)**:
   - Header ចាប់ផ្ដើមផ្ទាល់ពី `🔹 <b>ព្រឹត្តិការណ៍សំខាន់</b> {ទង់ជាតិ}` (ដកឃ្លា ២ បន្ទាត់ទៅអត្ថបទ)។
   - សាច់រឿងព័ត៌មានក្បោះក្បាយ ត្រឹមត្រូវតាមដំណើររឿងពិតជាភាសាខ្មែរសុទ្ធសាធ (គ្មានចំណងជើងភាសាអង់គ្លេសនៅខាងមុខឡើយ)។
