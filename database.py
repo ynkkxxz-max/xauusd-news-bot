@@ -118,7 +118,7 @@ def record_event_stage(event_id: str, event_name: str, currency: str, release_ti
 def is_news_sent(news_id: str) -> bool:
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT 1 FROM sent_news WHERE news_id = ?", (news_id,))
+    cursor.execute("SELECT 1 FROM sent_news WHERE news_id = ? AND is_broadcasted = 1", (news_id,))
     exists = cursor.fetchone() is not None
     conn.close()
     return exists
