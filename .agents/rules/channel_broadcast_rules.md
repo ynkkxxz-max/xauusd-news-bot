@@ -41,6 +41,9 @@ description: "Core rules and design standards for Telegram Channel Broadcasts (D
   - គ្មានប៊ូតុង Inline Buttons ខាងក្រោមឡើយ (`reply_markup=None`)។
 - **រូបភាពពិតប្រាកដ ឬ Plain Text**:
   - ភ្ជាប់តែរូបភាពពិតដែលទាញចេញពី Article ដើមប៉ុណ្ណោះ។ ប្រសិនបើគ្មានរូបភាពពិត ត្រូវផ្ញើជា Plain Text ស្អាត (ហាមដាច់ខាតយករូបភាពមិនត្រូវសាច់រឿងមកបង្ហោះ)។
+- **ចន្លោះពេលផ្សាយសមរម្យ និងទប់ស្កាត់ការផ្សាយជាន់គ្នាដាច់ខាត (Cadence & Cluster Cooldown)**:
+  - គម្លាតផ្សាយទូទៅ: ៣ នាទី (១៨០ វិនាទី) យ៉ាងតិចរវាងសារនីមួយៗ (VIP Critical: ៩០ វិនាទី) ការពារការបាញ់សារ Spam ជាន់ៗគ្នា ៥ សារក្នុង ១ នាទី។
+  - Cooldown តាមប្រធានបទ: Jobs/NFP (៤ ម៉ោង), អតិផរណា CPI (៤ ម៉ោង), Fed (២ ម៉ោង), ប្រេងកាត Energy/Oil (១ ម៉ោង), Tech/AI (១ ម៉ោង), Crypto (១ ម៉ោង) មិនឱ្យចេញព័ត៌មានពីប្រធានបទដដែលៗពី Feed ផ្សេងទៀតឡើយ។
 
 ### 4. 📊 ស្តង់ដារ Interactive Poll & Mini App Button (Strict Single-Bubble Standard)
 - **សំណួរ Poll សាមញ្ញ ស្អាត គ្មានបញ្ជាក់ទិសដៅ**:
