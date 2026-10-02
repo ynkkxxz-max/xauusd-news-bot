@@ -79,6 +79,7 @@ This repository is governed by the 5 Golden Principles established by the system
 - **ទម្រង់ និងខ្លឹមសាររៀបរាប់ក្បោះក្បាយត្រឹមត្រូវ (Clean & Professional Standard)**:
   - Header ចាប់ផ្ដើមផ្ទាល់ពី `🔹 <b>ព្រឹត្តិការណ៍សំខាន់</b> {ទង់ជាតិ}` (ដកឃ្លា ២ បន្ទាត់ទៅអត្ថបទ)។
   - សាច់រឿងព័ត៌មានក្បោះក្បាយ ត្រឹមត្រូវតាមដំណើររឿងពិតជាភាសាខ្មែរសុទ្ធសាធ (គ្មានចំណងជើងភាសាអង់គ្លេសនៅខាងមុខឡើយ)។
+  - **ឈ្មោះក្រុមហ៊ុន និងឈ្មោះមនុស្ស/មេដឹកនាំ (Original English/Latin Names — បញ្ជាផ្ទាល់)**: ត្រូវរក្សាទុកជាភាសាដើមអង់គ្លេស/ឡាតាំងជានិច្ច ហាមដាច់ខាតកុំបកប្រែ ឬសរសេរកាឡៃជាភាសាខ្មែរឡើយ (ឧ. Apple, Microsoft, NVIDIA, Tesla, Google, Amazon, Tether, BlackRock, TSMC, Boeing, Intel, Elon Musk, Donald Trump, Kevin Warsh, Jerome Powell, Xi Jinping, Scott Bessent, Warren Buffett ជាដើម)។
   - **ហាមដាច់ខាតកុំបង្ខំភ្ជាប់រឿងមាស ឬប្រាក់ដុល្លារ ($) បើមិនពាក់ព័ន្ធ**។
   - **ការបញ្ជាក់ផលប៉ះពាល់ (ធម្មជាតិ គ្មានវង់ក្រចក គ្មានសញ្ញាចុចពីរ និងគ្មាន Emoji)**៖ `វាផលអវិជ្ជមាន...` ឬ `វាផលវិជ្ជមាន...` (ព័ត៌មានអព្យាក្រឹតត្រូវ Drop ចោល)។
   - ជួរប្រភពព័ត៌មានខាងក្រោមស្អាត៖ `ប្រភពព័ត៌មាន | <a href="{link}">{source_name}</a>`។
@@ -135,8 +136,8 @@ This repository is governed by the 5 Golden Principles established by the system
   - នៅចុងបញ្ចប់នៃសំឡេងនិយាយ Voice Note ត្រូវតែមានការសន្និដ្ឋាន និងបញ្ជាក់ពីទិសដៅទីផ្សារមាស (Bullish / Bearish / Sideway) និងយុទ្ធសាស្ត្រជួញដូរ (Buy / Sell Priority) ឱ្យបានច្បាស់លាស់ជានិច្ច ដើម្បីឱ្យ Trader ងាយស្រួលសម្រេចចិត្តភ្លាមៗ។
 
 ### 14. ✍️ ស្តង់ដារភាសាខ្មែរ-អង់គ្លេសចម្រុះ និងការពារកំហុសអក្ខរាវិរុទ្ធ (Khmer-English Hybrid & Zero-Typo Orthography Standard)
-- **លាយភាសាអង់គ្លេសសម្រាប់ឈ្មោះពិបាក (Mandatory English for Foreign Leaders & Places)**:
-  - ឈ្មោះមេដឹកនាំពិភពលោក និងបុគ្គលសំខាន់ៗ ត្រូវសរសេរជាអក្សរអង់គ្លេសស្អាត មិនកាឡៃ ឬបំប្លែងសូរសព្ទជាខ្មែរដែលនាំឱ្យបាក់ជើង/បែក Font ឡើយ៖ `លោក Donald Trump`, `លោក Vladimir Putin`, `លោក Volodymyr Zelenskyy`, `លោក Jerome Powell`, `លោក Kevin Warsh`, `លោក Joe Biden`។
+- **លាយភាសាអង់គ្លេសសម្រាប់ឈ្មោះពិបាក (Mandatory English for Foreign Leaders, Companies & Places)**:
+  - ឈ្មោះមេដឹកនាំពិភពលោក បុគ្គលសំខាន់ៗ និងឈ្មោះក្រុមហ៊ុន ត្រូវសរសេរជាអក្សរអង់គ្លេសដើមស្អាត មិនកាឡៃ ឬបំប្លែងសូរសព្ទជាខ្មែរឡើយ (ឧ. Apple, Microsoft, NVIDIA, Tesla, Google, Meta, Tether, BlackRock, TSMC, Intel, លោក Donald Trump, លោក Vladimir Putin, លោក Volodymyr Zelenskyy, លោក Jerome Powell, លោក Kevin Warsh, លោក Elon Musk, លោក Joe Biden, លោក Scott Bessent)។
   - ទីតាំង និងស្ថាប័នសំខាន់ៗ៖ `ច្រកសមុទ្រ Strait of Hormuz`, `សមុទ្រ Red Sea`, `Yemen`, `Ukraine (អ៊ុយក្រែន)`, `Iran (អ៊ីរ៉ង់)`, `Israel (អ៊ីស្រាអែល)`, `ធនាគារកណ្តាល Fed`, `អង្គការ OPEC`។
   - បច្ចេកទេសទីផ្សារ៖ `Bullish`, `Bearish`, `Sideway`, `Safe-Haven`, `DXY`, `Bond Yields`។
 - **ទប់ស្កាត់ការជ្រៀតចូលនៃអក្សរបរទេសចម្លែកជាដាច់ខាត (Zero Foreign Script Contamination)**:
