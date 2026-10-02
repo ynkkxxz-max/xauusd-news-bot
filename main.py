@@ -236,18 +236,49 @@ class XAUUSDNewsAssistantBot:
         except Exception as e:
             logger.warning(f"[Startup News Sync] Warning: {e}")
 
+    def _is_daily_price_already_in_channel(self, date_str: str) -> bool:
+        """Inspects live channel feed to verify if today's daily gold price was already broadcasted."""
+        try:
+            import urllib.request
+            req = urllib.request.Request(
+                "https://t.me/s/GoldMarketKH8888",
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            )
+            with urllib.request.urlopen(req, timeout=4.0) as resp:
+                channel_html = resp.read().decode("utf-8", errors="ignore")
+            # If today's date formatted (e.g. 02/10/2026) is already in channel, return True
+            if date_str in channel_html:
+                return True
+        except Exception as e:
+            logger.debug(f"[Channel Gold Price Check] {e}")
+        return False
+
     def check_daily_gold_price(self):
         """Checks if daily gold price message needs to be sent at 07:00 AM Cambodia Time (strictly once per day)."""
         now_kh = datetime.now(CAMBODIA_TZ)
         today_str = now_kh.strftime("%Y-%m-%d")
+        date_display_str = now_kh.strftime("%d/%m/%Y")
 
-        # Check if already sent today (strictly once per day)
-        if database.is_daily_price_sent(today_str):
+        # 1. In-memory lock guard
+        if today_str in self._daily_price_locks:
             return
 
-        # Trigger at 07:00 AM Cambodia Time (with morning catch-up window 07:00 - 11:59 if rebooted/delayed)
-        if now_kh.hour >= DAILY_PRICE_ALERT_HOUR and now_kh.hour < 12:
-            logger.info(f"Triggering Daily Gold Price broadcast for {today_str} (time: {now_kh.strftime('%H:%M')})...")
+        # 2. Database SQLite persistence guard
+        if database.is_daily_price_sent(today_str):
+            self._daily_price_locks.add(today_str)
+            return
+
+        # 3. Live Telegram Channel Feed Verification Guard (survives zero-database cloud reboots)
+        if self._is_daily_price_already_in_channel(date_display_str):
+            logger.info(f"[Daily Gold Price] Already verified in channel feed for {today_str}. Locking today.")
+            database.record_daily_price_sent(today_str, 0)
+            self._daily_price_locks.add(today_str)
+            return
+
+        # Trigger STRICTLY at 07:00 AM Cambodia Time (07:00 - 07:15 AM only)
+        if now_kh.hour == DAILY_PRICE_ALERT_HOUR and now_kh.minute <= 15 and now_kh.minute >= DAILY_PRICE_ALERT_MINUTE:
+            self._daily_price_locks.add(today_str)
+            logger.info(f"Triggering 07:00 AM Daily Gold Price broadcast for {today_str}...")
             price_data = self.gold_collector.fetch_price(force_refresh=True)
             
             # Render Ultra-HD Graphic Card per user design specification
@@ -260,6 +291,7 @@ class XAUUSDNewsAssistantBot:
 
             msg_id = res.get("result", {}).get("message_id")
             database.record_daily_price_sent(today_str, msg_id)
+            logger.info(f"Daily Gold Price broadcast completed for {today_str} (msg_id: {msg_id}).")
 
     def _is_session_alert_sent(self, key: str) -> bool:
         if key in self._session_alert_locks:
