@@ -379,22 +379,24 @@ class DailyGoldPriceCardBuilder:
             img = Image.alpha_composite(img, overlay)
             draw = ImageDraw.Draw(img)
 
-            # Fonts
-            f_bold = BASE_DIR / "assets" / "DejaVuSans-Bold.ttf"
-            if f_bold.exists():
-                font_title = ImageFont.truetype(str(f_bold), 56)
-                font_date = ImageFont.truetype(str(f_bold), 26)
-                font_pill_label = ImageFont.truetype(str(f_bold), 34)
-                font_pill_price = ImageFont.truetype(str(f_bold), 42)
-            else:
-                font_title = ImageFont.load_default()
-                font_date = font_title
-                font_pill_label = font_title
-                font_pill_price = font_title
+            # Khmer & Latin Fonts
+            f_koulen = BASE_DIR / "assets" / "Koulen-Regular.ttf"
+            f_kantumruy = BASE_DIR / "assets" / "KantumruyPro.ttf"
+            f_outfit = BASE_DIR / "assets" / "Outfit.ttf"
+            f_dejavu = BASE_DIR / "assets" / "DejaVuSans-Bold.ttf"
 
-            # Title & Date
-            draw.text((540, 160), "ហាងឆេងមាស", fill=(255, 215, 0), font=font_title, anchor="mm")
-            draw.text((540, 235), footer_str, fill=(226, 232, 240), font=font_date, anchor="mm")
+            font_title = ImageFont.truetype(str(f_koulen), 92) if f_koulen.exists() else (ImageFont.truetype(str(f_dejavu), 56) if f_dejavu.exists() else ImageFont.load_default())
+            font_date = ImageFont.truetype(str(f_kantumruy), 28) if f_kantumruy.exists() else (ImageFont.truetype(str(f_dejavu), 24) if f_dejavu.exists() else ImageFont.load_default())
+            font_pill_label = ImageFont.truetype(str(f_kantumruy), 42) if f_kantumruy.exists() else (ImageFont.truetype(str(f_dejavu), 34) if f_dejavu.exists() else ImageFont.load_default())
+            font_pill_price = ImageFont.truetype(str(f_outfit), 54) if f_outfit.exists() else (ImageFont.truetype(str(f_kantumruy), 46) if f_kantumruy.exists() else ImageFont.load_default())
+
+            # 3D Gold Title with drop-shadow
+            draw.text((540, 154), "ហាងឆេងមាស", fill=(0, 0, 0), font=font_title, anchor="mm")
+            draw.text((540, 150), "ហាងឆេងមាស", fill=(255, 215, 0), font=font_title, anchor="mm")
+
+            # Date Badge
+            draw.rounded_rectangle([(300, 218), (780, 272)], radius=27, fill=(255, 215, 0, 25), outline=(212, 175, 55, 140), width=2)
+            draw.text((540, 244), footer_str, fill=(255, 224, 130), font=font_date, anchor="mm")
 
             # 3 White Rounded Pill Cards
             pills = [
@@ -403,15 +405,19 @@ class DailyGoldPriceCardBuilder:
                 ("1 អោន", oz_str)
             ]
             start_y = 330
-            pill_h = 145
-            gap = 45
+            pill_h = 155
+            gap = 50
 
             for i, (label, val) in enumerate(pills):
                 cy = start_y + i * (pill_h + gap)
-                cx1, cx2 = 160, 920
-                draw.rounded_rectangle([(cx1, cy), (cx2, cy + pill_h)], radius=30, fill=(255, 255, 255, 255), outline=(212, 175, 55, 180), width=2)
-                draw.text((cx1 + 60, cy + pill_h // 2), label, fill=(15, 23, 42), font=font_pill_label, anchor="lm")
-                draw.text((cx2 - 60, cy + pill_h // 2), val, fill=(180, 83, 9), font=font_pill_price, anchor="rm")
+                cx1, cx2 = 130, 950
+                # White Rounded Pill Card
+                draw.rounded_rectangle([(cx1, cy), (cx2, cy + pill_h)], radius=32, fill=(255, 255, 255, 255), outline=(212, 175, 55, 190), width=3)
+                # Left Gold Accent Pill
+                draw.rounded_rectangle([(cx1, cy), (cx1 + 18, cy + pill_h)], radius=16, fill=(212, 175, 55, 255))
+                # Label & Price
+                draw.text((cx1 + 55, cy + pill_h // 2 - 2), label, fill=(15, 23, 42), font=font_pill_label, anchor="lm")
+                draw.text((cx2 - 50, cy + pill_h // 2), val, fill=(15, 23, 42), font=font_pill_price, anchor="rm")
 
             out = io.BytesIO()
             img.convert("RGB").save(out, format="PNG", quality=95)
