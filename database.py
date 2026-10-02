@@ -157,6 +157,33 @@ def get_recent_news_titles(hours: int = 24) -> list:
     conn.close()
     return [r[0] for r in rows if r[0]]
 
+def is_title_already_broadcasted(title: str, hours: int = 48) -> bool:
+    """Checks whether the exact title or stem-identical title was already broadcasted in the last N hours."""
+    if not title:
+        return False
+    import re
+    norm_input = re.sub(r'[^a-zA-Z0-9\u1780-\u17FF]', '', title).lower()
+    if len(norm_input) < 15:
+        return False
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+    SELECT title FROM sent_news 
+    WHERE is_broadcasted = 1 AND sent_at >= datetime('now', ?)
+    """, (f"-{hours} hours",))
+    rows = cursor.fetchall()
+    conn.close()
+
+    sig = norm_input[:45]
+    for (past_t,) in rows:
+        if not past_t:
+            continue
+        past_norm = re.sub(r'[^a-zA-Z0-9\u1780-\u17FF]', '', past_t).lower()
+        if sig in past_norm or (len(past_norm) >= 45 and past_norm[:45] in norm_input):
+            return True
+    return False
+
 def is_daily_price_sent(date_str: str) -> bool:
     conn = get_db_connection()
     cursor = conn.cursor()
