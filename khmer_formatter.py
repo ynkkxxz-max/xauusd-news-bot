@@ -144,7 +144,9 @@ def sanitize_khmer_spelling(text: str) -> str:
         (r"តម្លៃថាមពលខាំ|ថាមពលខាំ", "ថ្លៃដើមថាមពលកើនឡើងខ្ពស់"),
         (r"បាន?ថ្លឹងថ្លែងយ៉ាងខ្លាំងទៅលើ", "បានដាក់សម្ពាធយ៉ាងធ្ងន់ធ្ងរលើ"),
         (r"ទិន្នន័យការផលិត PMI|ការផលិត PMI", "សន្ទស្សន៍អ្នកគ្រប់គ្រងការបញ្ជាទិញ (PMI)"),
-        (r"\bSEC\b(?!\s*\(គណៈកម្មការមូលបត្រអាមេរិក\))", "គណៈកម្មការមូលបត្រអាមេរិក (SEC)"),
+        # SEC and regulatory authorities (Strict idempotent replacement & collapse)
+        (r"(?:(?:គណៈកម្មការ\s*)?គណៈកម្មការមូលបត្រអាមេរិក\s*[\(\)]*\s*)+SEC[\s\)]*", "គណៈកម្មការមូលបត្រអាមេរិក (SEC) "),
+        (r"(?<!គណៈកម្មការមូលបត្រអាមេរិក \()(?<!\()\bSEC\b(?!\))", "គណៈកម្មការមូលបត្រអាមេរិក (SEC)"),
 
         # Corporate, Company & Brand Names (Strict Original Language - Zero Khmer Literal Translation per user directive)
         (r"សំបកកង់កាណាដា|កាណាដា\s*ថាយអឺ|ថាយអឺ\s*កាណាដា", "Canadian Tire"),
