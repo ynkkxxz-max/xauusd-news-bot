@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 # OpenAI-compatible chat-completions endpoints. Any provider exposing this
 # API can be enabled by setting <NAME>_API_KEY (and optionally <NAME>_MODEL).
 OPENAI_COMPAT_PROVIDERS = {
+    "deepseek": (os.getenv("DEEPSEEK_BASE_URL", "https://api-cdn.thehive.ai/api/v3"), os.getenv("DEEPSEEK_MODEL", "deepseek-ai/deepseek-v4.1-flash")),
     "openrouter": ("https://openrouter.ai/api/v1", "deepseek/deepseek-chat"),
-    "deepseek": ("https://api.deepseek.com", "deepseek-chat"),
     "groq": ("https://api.groq.com/openai/v1", "llama-3.3-70b-versatile"),
     "openai": ("https://api.openai.com/v1", "gpt-4o-mini"),
     "qwen": ("https://dashscope-intl.aliyuncs.com/compatible-mode/v1", "qwen-plus"),
@@ -49,29 +49,77 @@ class OpenAICompatAnalyzer:
                 {"role": "user", "content": prompt},
             ],
         }
-        if json_mode:
+        if json_mode and not ("thehive.ai" in self.base_url):
             payload["response_format"] = {"type": "json_object"}
+        headers = {"Authorization": f"Bearer {self.api_key}"}
+        is_hive = "thehive.ai" in self.base_url
+        if is_hive:
+            headers["Accept"] = "text/event-stream"
+            payload["stream"] = True
+            payload["reasoning_effort"] = "none"
+
         try:
             resp = requests.post(
                 f"{self.base_url}/chat/completions",
-                headers={"Authorization": f"Bearer {self.api_key}"},
+                headers=headers,
                 json=payload,
-                timeout=4.0,
+                stream=is_hive,
+                timeout=30.0,
             )
             if resp.status_code in (400, 401, 402, 403, 404, 429):
                 self.cooldown_until = time.time() + 600.0  # 10m cooldown
             resp.raise_for_status()
+
+            if is_hive:
+                full_text = ""
+                for line in resp.iter_lines():
+                    if line:
+                        s = line.decode("utf-8")
+                        if s.startswith("data: ") and s[6:].strip() != "[DONE]":
+                            try:
+                                c = json.loads(s[6:])
+                                if c.get("choices"):
+                                    full_text += c["choices"][0]["delta"].get("content", "")
+                            except Exception:
+                                pass
+                return full_text or ""
+
             return resp.json()["choices"][0]["message"]["content"] or ""
         except Exception:
             self.cooldown_until = time.time() + 300.0
             raise
 
+    @staticmethod
+    def _clean_json(text: str) -> dict:
+        if not text:
+            return {}
+        clean = text.strip()
+        if "```" in clean:
+            import re
+            m = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", clean)
+            if m:
+                clean = m.group(1).strip()
+            else:
+                clean = re.sub(r"^```(?:json)?\s*", "", clean)
+                clean = re.sub(r"\s*```$", "", clean).strip()
+        try:
+            return json.loads(clean)
+        except Exception:
+            import re
+            m = re.search(r"\{[\s\S]*\}", clean)
+            if m:
+                try:
+                    return json.loads(m.group(0))
+                except Exception:
+                    pass
+            return {}
+
     def analyze_breaking_news(self, title: str, description: str = "") -> dict:
-        raw = json.loads(self._chat(breaking_prompt(title, description), True))
+        raw = self._clean_json(self._chat(breaking_prompt(title, description), True))
         return normalize_analysis(raw)
 
     def analyze_actual_vs_forecast(self, event_name: str, actual: str, forecast: str, previous: str) -> dict:
-        raw = json.loads(self._chat(actual_prompt(event_name, actual, forecast, previous), True))
+        raw = self._clean_json(self._chat(actual_prompt(event_name, actual, forecast, previous), True))
         return normalize_analysis(raw)
 
     def summarize_daily_price(self, price_data: dict) -> str:
@@ -79,16 +127,14 @@ class OpenAICompatAnalyzer:
 
     def generate_smart_smc_setup(self, current_price: float, key_levels: dict, macro_data: dict = None, order_book: dict = None) -> dict:
         try:
-            content = self._chat(smc_setup_prompt(current_price, key_levels, macro_data, order_book), True)
-            return json.loads(content)
+            return self._clean_json(self._chat(smc_setup_prompt(current_price, key_levels, macro_data, order_book), True))
         except Exception as e:
             logger.warning(f"[{self.name}] generate_smart_smc_setup failed: {e}")
             return None
 
     def analyze_and_validate_sniper_signal(self, raw_signal: dict, current_price: float, key_levels: dict, macro_data: dict = None, order_book: dict = None) -> dict:
         try:
-            content = self._chat(signal_validation_prompt(raw_signal, current_price, key_levels, macro_data, order_book), True)
-            return json.loads(content)
+            return self._clean_json(self._chat(signal_validation_prompt(raw_signal, current_price, key_levels, macro_data, order_book), True))
         except Exception as e:
             logger.warning(f"[{self.name}] analyze_and_validate_sniper_signal failed: {e}")
             return None
@@ -109,13 +155,17 @@ class ClaudeAnalyzer:
 
     def _chat(self, prompt: str) -> str:
         import time
+        headers = {
+            "x-api-key": self.api_key,
+            "anthropic-version": "2023-06-01",
+        }
+        ws_id = os.getenv("ANTHROPIC_WORKSPACE_ID", "").strip()
+        if ws_id:
+            headers["anthropic-workspace-id"] = ws_id
         try:
             resp = requests.post(
                 "https://api.anthropic.com/v1/messages",
-                headers={
-                    "x-api-key": self.api_key,
-                    "anthropic-version": "2023-06-01",
-                },
+                headers=headers,
                 json={
                     "model": self.model,
                     "max_tokens": 1024,
