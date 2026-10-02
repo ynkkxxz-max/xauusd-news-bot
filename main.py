@@ -447,15 +447,8 @@ class XAUUSDNewsAssistantBot:
             else:
                 self.notifier.send_message(msg)
 
-            # Send native interactive Telegram Poll
-            poll_title = f"📊 លទ្ធផល Signal XAUUSD ({conf.get('pattern', 'SMC Setup')}) — សូមបញ្ជាក់លទ្ធផលរបស់អ្នក:"
-            self.notifier.send_poll(
-                question=poll_title,
-                options=["🎯 ឈ្នះ (Hit TP)", "🛑 ចាញ់ (Hit SL)"],
-                is_anonymous=True
-            )
-
-            # Clean prominent Mini App button directly below the Poll
+            # Send unified native interactive Telegram Poll with direct Mini App CTA button
+            poll_title = "📊 លទ្ធផល Signal XAUUSD — សូមបញ្ជាក់លទ្ធផលរបស់អ្នក:"
             app_cta_markup = {
                 "inline_keyboard": [
                     [
@@ -463,8 +456,12 @@ class XAUUSDNewsAssistantBot:
                     ]
                 ]
             }
-            app_cta_text = "👇 <b>ចុចប៊ូតុងខាងក្រោមដើម្បីចូលមើល Signal បន្តផ្ទាល់លើ Mini App:</b>"
-            self.notifier.send_message(app_cta_text, reply_markup=app_cta_markup)
+            self.notifier.send_poll(
+                question=poll_title,
+                options=["🎯 Hit TP", "🛑 Hit SL"],
+                is_anonymous=True,
+                reply_markup=app_cta_markup
+            )
 
             database.set_state("last_candle_conf_ts", str(now))
 
@@ -580,16 +577,8 @@ class XAUUSDNewsAssistantBot:
             # Send clean signal message
             self.notifier.send_message(msg)
 
-            # Send native interactive Telegram Poll immediately below the signal
-            poll_action = "Buy Dip" if sig.get("action") == "BUY" else "Sell Top"
-            poll_title = f"📊 លទ្ធផល Signal XAUUSD ({poll_action}) — សូមបញ្ជាក់លទ្ធផលរបស់អ្នក:"
-            self.notifier.send_poll(
-                question=poll_title,
-                options=["🎯 ឈ្នះ (Hit TP)", "🛑 ចាញ់ (Hit SL)"],
-                is_anonymous=True
-            )
-
-            # Clean prominent Mini App button directly below the Poll
+            # Send unified native interactive Telegram Poll with direct Mini App CTA button
+            poll_title = "📊 លទ្ធផល Signal XAUUSD — សូមបញ្ជាក់លទ្ធផលរបស់អ្នក:"
             app_cta_markup = {
                 "inline_keyboard": [
                     [
@@ -597,8 +586,12 @@ class XAUUSDNewsAssistantBot:
                     ]
                 ]
             }
-            app_cta_text = "👇 <b>ចុចប៊ូតុងខាងក្រោមដើម្បីចូលមើល Signal បន្តផ្ទាល់លើ Mini App:</b>"
-            self.notifier.send_message(app_cta_text, reply_markup=app_cta_markup)
+            self.notifier.send_poll(
+                question=poll_title,
+                options=["🎯 Hit TP", "🛑 Hit SL"],
+                is_anonymous=True,
+                reply_markup=app_cta_markup
+            )
 
             database.set_state("last_sniper_signal_ts", str(now))
             database.set_state("last_sniper_action", sig.get("action", ""))
