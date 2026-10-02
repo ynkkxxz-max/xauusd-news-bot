@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 # Keys must match what KhmerFormatter expects from an analysis dict.
 _ANALYSIS_KEYS = [
-    "key_event", "what_happened", "why_it_matters", "usd_impact",
+    "key_event", "what_happened", "why_it_matters", "impact", "usd_impact",
     "rate_yield_impact", "xau_pressure", "bias", "is_clear"
 ]
 
@@ -104,6 +104,7 @@ def breaking_prompt(title: str, description: str) -> str:
         f"(សរសេរជាកថាខណ្ឌពិរោះក្បោះក្បាយ ៣ ទៅ ៥ ប្រយោគពេញលេញ កុំឱ្យលើសពី ៥៥០ តួអក្សរ)។\n"
         f"- what_happened: សេចក្តីសង្ខេបព្រឹត្តិការណ៍ជាភាសាខ្មែរ (១-២ ប្រយោគ)។\n"
         f"- why_it_matters: សារៈសំខាន់ចំពោះសង្គម ឬពិភពលោកជាភាសាខ្មែរ (១-២ ប្រយោគ)។\n"
+        f"- impact: បញ្ជាក់ផលប៉ះពាល់យ៉ាងខ្លីធម្មជាតិ ដោយគ្មានវង់ក្រចក និងគ្មានសញ្ញាចុចពីរ ដូចជា 'វាផលវិជ្ជមាន ការពន្យល់សង្ខេប' ឬ 'វាផលអវិជ្ជមាន ការពន្យល់សង្ខេប'។\n"
         f"- usd_impact: ផលប៉ះពាល់លើ USD (១ ប្រយោគ ឬដាក់ 'គ្មានផលប៉ះពាល់ផ្ទាល់' បើមិនពាក់ព័ន្ធ)។\n"
         f"- rate_yield_impact: សម្ពាធលើ Bond Yields (១ ប្រយោគ ឬដាក់ 'គ្មានផលប៉ះពាល់ផ្ទាល់' បើមិនពាក់ព័ន្ធ)។\n"
         f"- xau_pressure: 🟢 Bullish ឬ 🔴 Bearish ឬ 🟡 Neutral / គ្មានផលប៉ះពាល់ (១ ប្រយោគ)។\n"
@@ -258,6 +259,15 @@ def normalize_analysis(raw: dict) -> dict:
         why = str(raw.get("why_it_matters", "")).strip()
         parts = [p for p in [what, why] if p]
         out["key_event"] = "\n\n".join(parts) if parts else out.get("what_happened", "កំពុងតាមដាន។")
+    # Guarantee impact line is valid Khmer per user directive
+    imp = out.get("impact", "")
+    if not imp or imp == "កំពុងតាមដាន។" or ("វិជ្ជមាន" not in imp and "អវិជ្ជមាន" not in imp):
+        b = str(raw.get("bias", "")).lower()
+        xp = str(raw.get("xau_pressure", "")).lower()
+        if "bullish" in b or "bullish" in xp or "វិជ្ជមាន" in b:
+            out["impact"] = "វាផលវិជ្ជមាន ជំរុញសន្ទុះកំណើនទីផ្សារ"
+        elif "bearish" in b or "bearish" in xp or "អវិជ្ជមាន" in b:
+            out["impact"] = "វាផលអវិជ្ជមាន បង្កើនសម្ពាធលើទីផ្សារ"
     return out
 
 
@@ -321,7 +331,7 @@ class GeminiAnalyzer:
     def _post(self, payload: dict, max_retries: int = 1) -> dict:
         """POSTs to Gemini with dual-key pool and multi-model fallback on quota/transient errors."""
         self._throttle_wait()
-        candidate_models = [self.model, "gemini-flash-latest", "gemini-flash-lite-latest", "gemini-3.8-flash"]
+        candidate_models = [self.model, "gemini-flash-lite-latest", "gemini-2.5-flash-lite", "gemini-flash-latest", "gemini-pro-latest"]
         seen = set()
         models_to_try = [m for m in candidate_models if m and not (m in seen or seen.add(m))]
 
