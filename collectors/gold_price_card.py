@@ -357,6 +357,35 @@ class DailyGoldPriceCardBuilder:
             import io
             from PIL import Image, ImageDraw, ImageFont
 
+            # 1. Prefer Ultra-HD Pre-rendered Base Template (Zero font shaping dependency, 100% flawless Khmer)
+            tmpl_path = BASE_DIR / "assets" / "gold_card_base_template.png"
+            if tmpl_path.exists():
+                img = Image.open(tmpl_path).convert("RGB")
+                draw = ImageDraw.Draw(img)
+
+                f_outfit = BASE_DIR / "assets" / "Outfit.ttf"
+                f_dejavu = BASE_DIR / "assets" / "DejaVuSans-Bold.ttf"
+                font_price = ImageFont.truetype(str(f_outfit), 62) if f_outfit.exists() else (ImageFont.truetype(str(f_dejavu), 56) if f_dejavu.exists() else ImageFont.load_default())
+                font_date = ImageFont.truetype(str(f_outfit), 28) if f_outfit.exists() else (ImageFont.truetype(str(f_dejavu), 24) if f_dejavu.exists() else ImageFont.load_default())
+
+                # Extract date dd/mm/yyyy from footer_str
+                import re
+                d_match = re.search(r'\d{2}/\d{2}/\d{4}', footer_str)
+                date_num = d_match.group(0) if d_match else datetime.now(CAMBODIA_TZ).strftime("%d/%m/%Y")
+
+                # Date overlay inside badge
+                draw.text((435, 308), date_num, fill=(255, 224, 130), font=font_date, anchor="mm")
+
+                # Prices aligned to the right inside the 3 white rounded pills
+                draw.text((890, 447), damlung_str, fill=(10, 14, 23), font=font_price, anchor="rm")
+                draw.text((890, 615), chi_str, fill=(10, 14, 23), font=font_price, anchor="rm")
+                draw.text((890, 783), oz_str, fill=(10, 14, 23), font=font_price, anchor="rm")
+
+                out = io.BytesIO()
+                img.save(out, format="PNG", quality=95)
+                logger.info("[DailyGoldPriceCardBuilder] Rendered card via Ultra-HD template successfully.")
+                return out.getvalue()
+
             bg_path = BASE_DIR / "gold_bars_raw.jpg"
             if bg_path.exists():
                 img = Image.open(bg_path).convert("RGBA")
