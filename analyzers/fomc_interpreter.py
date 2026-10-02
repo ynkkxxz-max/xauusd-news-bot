@@ -94,7 +94,13 @@ class FomcSpeechInterpreter:
                         v_s += " ដូច្នេះ ទិសដៅតម្លៃមាស ត្រូវបានរំពឹងថានឹងរងសម្ពាធធ្លាក់ចុះ Bearish ផ្តល់អាទិភាពលើឱកាស Sell។"
                     else:
                         v_s += " ដូច្នេះ ទិសដៅតម្លៃមាស អាចមានការប្រែប្រួលរលកធំៗ Sideway សូមប្រុងប្រយ័ត្នខ្ពស់។"
-                    res_dict["voice_script"] = v_s
+                try:
+                    from formatters.khmer_formatter import sanitize_khmer_spelling
+                    for k in ["key_quotes", "gold_pressure", "tone_kh", "voice_script"]:
+                        if k in res_dict and isinstance(res_dict[k], str):
+                            res_dict[k] = sanitize_khmer_spelling(res_dict[k])
+                except Exception:
+                    pass
 
                 return res_dict
             else:
