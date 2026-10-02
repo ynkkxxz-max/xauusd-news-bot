@@ -1640,8 +1640,8 @@ class XAUUSDNewsAssistantBot:
         now = time.time()
         last_alert_ts = float(database.get_state("last_breaking_alert_ts") or "0")
         time_since_last = min(now - last_alert_ts, now - self._last_breaking_sent_ts)
-        # Fast-track gate: if less than 20s passed, wait to protect against Telegram flood
-        if time_since_last < 20.0:
+        # Fast-track gate: if less than 90s passed, wait to protect against Telegram flood
+        if time_since_last < 90.0:
             return
 
         pending = []
@@ -1687,12 +1687,12 @@ class XAUUSDNewsAssistantBot:
             last_alert_ts = float(database.get_state("last_breaking_alert_ts") or "0")
             time_since_last = min(now - last_alert_ts, now - self._last_breaking_sent_ts)
 
-            # Fast-track priority check: critical news gets 20s gap, regular gets BREAKING_ALERT_MIN_GAP (60s)
+            # Fast-track priority check: critical news gets 90s gap, regular gets BREAKING_ALERT_MIN_GAP (180s = 3m)
             is_critical = any(k in (title + " " + desc).lower() for k in [
                 "war", "attack", "missile", "airstrike", "fomc", "rate cut", "rate hike",
                 "interest rate", "powell", "kevin warsh", "cpi", "nfp", "emergency", "nuclear"
             ])
-            required_gap = 20.0 if is_critical else BREAKING_ALERT_MIN_GAP
+            required_gap = 90.0 if is_critical else BREAKING_ALERT_MIN_GAP
             if time_since_last < required_gap:
                 logger.debug(f"[BREAKING GAP] {time_since_last:.1f}s elapsed < {required_gap}s required. Deferring to next cycle.")
                 break
@@ -1700,6 +1700,18 @@ class XAUUSDNewsAssistantBot:
             if database.is_title_already_broadcasted(title):
                 self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                 continue
+
+            # Macro Cluster Deduplication & Cooldown Shield (Prevents repeated NFP, Oil, AI, or Fed floods across feeds)
+            cluster = GoldNewsFilter.get_news_cluster(title + " " + desc)
+            if cluster:
+                last_cluster_ts = float(database.get_state(f"cluster_last_ts_{cluster}") or "0")
+                # Cooldowns: 4 hours for economic reports (jobs, inflation), 2 hours for Fed, 60 mins for tech/energy/crypto
+                cluster_cooldown = 14400.0 if cluster in ("us_jobs", "inflation") else (7200.0 if cluster == "fed_rates" else 3600.0)
+                if (now - last_cluster_ts) < cluster_cooldown:
+                    logger.info(f"[CLUSTER COOLDOWN] Dropping '{title}' (Cluster: {cluster}, {(now - last_cluster_ts)/60:.1f}m ago < {cluster_cooldown/60}m required).")
+                    self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
+                    database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
+                    continue
 
             if GoldNewsFilter.is_duplicate_or_similar(title, recent_sent_titles):
                 self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
@@ -1763,6 +1775,8 @@ class XAUUSDNewsAssistantBot:
             self._broadcasted_titles_cache.add(title.lower())
             database.set_state("last_breaking_alert_ts", str(time.time()))
             self._last_breaking_sent_ts = time.time()
+            if cluster:
+                database.set_state(f"cluster_last_ts_{cluster}", str(time.time()))
             self._cached_channel_html = "" # Invalidate channel cache
             photo = self._fetch_news_image(it)
             if photo:
