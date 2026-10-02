@@ -133,12 +133,24 @@ class MacroAnalyzer:
                     return sanitize_khmer_spelling(translated.strip())
         except Exception as e:
             logger.warning(f"[MacroAnalyzer] translation error: {e}")
+            # Try secondary fallback endpoint
+            try:
+                url_fallback = 'https://translate.googleapis.com/translate_a/single?client=dict-chrome-ex&sl=en&tl=km&dt=t&q=' + urllib.parse.quote(chunk)
+                req_fallback = urllib.request.Request(url_fallback, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; Chrome/120.0.0.0)'})
+                with urllib.request.urlopen(req_fallback, timeout=5) as resp:
+                    data = json.loads(resp.read().decode('utf-8'))
+                    translated = ''.join([part[0] for part in data[0] if part and part[0]])
+                    if translated and translated.strip() and len(re.findall(r'[\u1780-\u17FF]', translated)) >= 5:
+                        try:
+                            from formatters.khmer_formatter import sanitize_khmer_spelling
+                        except Exception:
+                            from khmer_formatter import sanitize_khmer_spelling
+                        return sanitize_khmer_spelling(translated.strip())
+            except Exception:
+                pass
 
-        try:
-            from formatters.khmer_formatter import sanitize_khmer_spelling
-            return sanitize_khmer_spelling(clean[:max_chars])
-        except Exception:
-            return clean[:max_chars]
+        # If translation failed, NEVER return raw English - return empty string to prevent English leakage in channel!
+        return ""
 
     @classmethod
     def analyze_breaking_news(cls, title, description: str = "") -> dict:
@@ -164,8 +176,19 @@ class MacroAnalyzer:
             full_story = clean_title
 
         km_story = cls.translate_to_khmer(full_story)
-        if not km_story or len(km_story) < 15:
+        if not km_story or len(re.findall(r'[\u1780-\u17FF]', km_story)) < 15:
             km_story = cls.translate_to_khmer(clean_title)
+
+        # STRICT QUALITY GATE: If translation failed or lacks genuine Khmer text, drop the item!
+        if not km_story or len(re.findall(r'[\u1780-\u17FF]', km_story)) < 15:
+            return {
+                "key_event": "",
+                "what_happened": "",
+                "why_it_matters": "",
+                "impact": "វាផលអព្យាក្រឹត មិនអាចបកប្រែជាភាសាខ្មែរបាន",
+                "is_clear": False,
+                "bias": "🟡 Neutral"
+            }
 
         text = f"{clean_title} {clean_desc}".lower()
 
