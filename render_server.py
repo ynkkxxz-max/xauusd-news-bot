@@ -1,10 +1,15 @@
 import os
+import json
+import time
+import logging
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from main import XAUUSDNewsAssistantBot
 
-# Simple HTTP health check server so free cloud platforms (Render, Railway) know the app is alive
-# and can be pinged by cron-job.org every 5-10 minutes.
+logger = logging.getLogger("RenderServer")
+_bot_instance = None
+_start_time = time.time()
+
 class HealthHandler(BaseHTTPRequestHandler):
     def do_HEAD(self):
         self.send_response(200)
@@ -13,6 +18,33 @@ class HealthHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
+        global _bot_instance, _start_time
+        path = self.path.split("?")[0].rstrip("/")
+
+        if path in ("/status", "/healthz", "/debug"):
+            self.send_response(200)
+            self.send_header("Content-type", "application/json; charset=utf-8")
+            self.end_headers()
+
+            ai_names = []
+            last_breaking = 0.0
+            if _bot_instance and hasattr(_bot_instance, "analyzer"):
+                ai_names = [getattr(a, "name", a.__class__.__name__)
+                            for a in _bot_instance.analyzer.analyzers if a.is_available()]
+                last_breaking = getattr(_bot_instance, "_last_breaking_sent_ts", 0.0)
+
+            data = {
+                "status": "online",
+                "service": "XAUUSD News Bot & Telegram Mini App Assistant",
+                "uptime_seconds": int(time.time() - _start_time),
+                "ai_engines_active": ai_names,
+                "last_breaking_sent_ts": last_breaking,
+                "bot_running": _bot_instance is not None
+            }
+            self.wfile.write(json.dumps(data, indent=2).encode("utf-8"))
+            return
+
+        # Default 200 OK for root and /health (UptimeRobot, Render pings)
         self.send_response(200)
         self.send_header("Content-type", "text/plain; charset=utf-8")
         self.send_header("Content-length", "2")
@@ -33,8 +65,6 @@ def run_self_pinger():
     Pings the public Render URL every 8 minutes so Render Free Tier never spins down due to inactivity.
     Render's router counts this as inbound HTTP activity, keeping the instance 100% active 24/7.
     """
-    import time
-    import urllib.request
     url = os.getenv("RENDER_EXTERNAL_URL", "https://xauusd-news-bot-kh.onrender.com")
     time.sleep(30) # Initial delay after startup
     while True:
@@ -47,6 +77,8 @@ def run_self_pinger():
         time.sleep(480) # 8 minutes
 
 if __name__ == "__main__":
+    import urllib.request
+
     # 1. Start HTTP health check in background thread
     http_thread = threading.Thread(target=run_http_server, daemon=True, name="HTTP-Health")
     http_thread.start()
@@ -55,6 +87,17 @@ if __name__ == "__main__":
     pinger_thread = threading.Thread(target=run_self_pinger, daemon=True, name="Keep-Alive-Pinger")
     pinger_thread.start()
 
-    # 3. Start Autonomous Telegram Bot
-    bot = XAUUSDNewsAssistantBot()
-    bot.start_loop()
+    # 3. Start Autonomous Telegram Bot with self-healing 24/7 supervisor loop
+    while True:
+        try:
+            print("[SUPERVISOR] Starting XAUUSDNewsAssistantBot...")
+            _bot_instance = XAUUSDNewsAssistantBot()
+            _bot_instance.start_loop()
+        except KeyboardInterrupt:
+            print("[SUPERVISOR] Bot stopped by user.")
+            break
+        except Exception as e:
+            import traceback
+            print(f"[FATAL ENGINE CRASH] {e}\n{traceback.format_exc()}")
+            print("[SUPERVISOR] Restarting bot engine in 10 seconds...")
+            time.sleep(10.0)
