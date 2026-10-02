@@ -220,25 +220,47 @@ class XAUUSDNewsAssistantBot:
         except Exception as e:
             logger.warning(f"[Cloud Health Server] Warning on port {port}: {e}")
 
+    def _fetch_channel_html(self, max_cache_age: float = 30.0) -> str:
+        """Caches public Telegram channel feed HTML for 30s to prevent spamming Telegram web and lagging the event loop."""
+        now = time.time()
+        if hasattr(self, "_cached_channel_html") and self._cached_channel_html:
+            if now - getattr(self, "_cached_channel_html_ts", 0) < max_cache_age:
+                return self._cached_channel_html
+        try:
+            import urllib.request
+            req = urllib.request.Request(
+                "https://t.me/s/GoldMarketKH8888",
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            )
+            with urllib.request.urlopen(req, timeout=5.0) as resp:
+                html = resp.read().decode("utf-8", errors="ignore")
+                self._cached_channel_html = html
+                self._cached_channel_html_ts = now
+                return html
+        except Exception as e:
+            logger.debug(f"[Channel HTML Fetch] {e}")
+            return getattr(self, "_cached_channel_html", "")
+
     def _bootstrap_news_cache(self):
         """
-        On startup, seeds existing headlines that are either older than 3 hours
+        On startup, seeds existing headlines that are either older than 4 hours
         or ALREADY posted to the Telegram channel feed, so only fresh, unposted news
-        is processed for breaking alerts.
+        is processed for breaking alerts. Uses cached channel HTML for sub-second execution.
         """
         try:
             items = self.news_collector.fetch_latest_news()
             bootstrapped_count = 0
             now = time.time()
+            channel_html = self._fetch_channel_html()
             for item in items:
                 news_id = item.get("id")
                 title = (item.get("title") or "").strip()
                 link = item.get("link", "")
                 item_ts = self._news_ts(item)
                 
-                # Check if old (> 3h) or already posted to @GoldMarketKH8888
-                is_stale = item_ts > 0 and (now - item_ts) > 3 * 3600
-                is_in_channel = self._is_already_in_telegram_channel(title, link)
+                # Check if truly stale (> 4h) or already posted to @GoldMarketKH8888
+                is_stale = item_ts > 0 and (now - item_ts) > 4 * 3600
+                is_in_channel = self._is_already_in_telegram_channel(title, link) if channel_html else False
                 
                 if is_stale or is_in_channel:
                     if title:
@@ -247,7 +269,7 @@ class XAUUSDNewsAssistantBot:
                     if news_id and not database.is_news_sent(news_id):
                         database.record_news_sent(news_id, title, item.get("source", ""), is_broadcasted=1 if is_in_channel else 0)
                     bootstrapped_count += 1
-            logger.info(f"[Startup News Sync] Seeded {bootstrapped_count} stale/already-sent headlines from data.")
+            logger.info(f"[Startup News Sync] Seeded {bootstrapped_count} stale/already-sent headlines from data in sub-second time.")
         except Exception as e:
             logger.warning(f"[Startup News Sync] Warning: {e}")
 
@@ -1565,14 +1587,10 @@ class XAUUSDNewsAssistantBot:
     def _is_already_in_telegram_channel(self, title: str, link: str = "", khmer_text: str = "") -> bool:
         """Inspects the public Telegram channel feed to prevent duplicate broadcasts across distributed containers."""
         try:
-            import urllib.request
             import urllib.parse
-            req = urllib.request.Request(
-                "https://t.me/s/GoldMarketKH8888",
-                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-            )
-            with urllib.request.urlopen(req, timeout=4.0) as resp:
-                channel_html = resp.read().decode("utf-8", errors="ignore")
+            channel_html = self._fetch_channel_html()
+            if not channel_html:
+                return False
 
             # 1. Exact Link & Article Slug Verification (Bulletproof Match)
             if link:
@@ -1580,28 +1598,28 @@ class XAUUSDNewsAssistantBot:
                 if clean_link and (clean_link in channel_html or urllib.parse.unquote(clean_link) in channel_html):
                     return True
                 slug = clean_link.split("/")[-1]
-                if len(slug) >= 8:
-                    if slug.lower() in channel_html.lower():
-                        return True
-                    if slug.replace("-", " ").lower() in channel_html.lower():
-                        return True
-                    if slug.replace("_", " ").lower() in channel_html.lower():
+                if len(slug) >= 12:
+                    if slug.lower() in channel_html.lower() or slug.replace("-", " ").lower() in channel_html.lower():
                         return True
 
             # 2. Extract salient English/Khmer keyword tokens (min length 4)
             words = [w for w in re.findall(r'\b[A-Za-z0-9\u1780-\u17FF]{4,}\b', title) 
-                     if w.lower() not in ("news", "today", "live", "world", "market", "report", "the", "says", "with", "from", "after")]
-            if len(words) >= 2:
+                     if w.lower() not in ("news", "today", "live", "world", "market", "report", "the", "says", "with", "from", "after", "gold", "price", "rate", "year", "time", "week", "state", "states", "view", "channel", "message", "telegram")]
+            if len(words) >= 4:
                 matches = sum(1 for w in words if w.lower() in channel_html.lower())
-                if matches >= 2:
+                if matches >= 3 and (matches / len(words)) >= 0.65:
+                    return True
+            elif len(words) in (2, 3):
+                matches = sum(1 for w in words if w.lower() in channel_html.lower())
+                if matches == len(words):
                     return True
 
             # 3. Khmer Translated Content Deduplication
             if khmer_text:
                 kh_words = [w for w in re.findall(r'[\u1780-\u17FF]{6,}', khmer_text)]
-                if len(kh_words) >= 3:
+                if len(kh_words) >= 4:
                     kh_matches = sum(1 for w in kh_words if w in channel_html)
-                    if kh_matches >= 3:
+                    if kh_matches >= 4 and (kh_matches / len(kh_words)) >= 0.5:
                         return True
         except Exception as e:
             logger.debug(f"[Channel Feed Check] {e}")
