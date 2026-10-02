@@ -1741,6 +1741,16 @@ class XAUUSDNewsAssistantBot:
 
             msg = KhmerFormatter.format_breaking_event_alert(it, analysis)
 
+            # ZERO ENGLISH LEAKAGE GATE: Ensure the broadcasted body is genuinely translated into Khmer
+            narrative_body = (analysis.get("key_event") or analysis.get("what_happened") or "").strip()
+            khmer_count = len(re.findall(r'[\u1780-\u17FF]', narrative_body))
+            latin_count = len(re.findall(r'[a-zA-Z]', narrative_body))
+            if khmer_count < 20 or (latin_count > 0 and (latin_count / (khmer_count + latin_count)) > 0.40):
+                logger.warning(f"[REJECTED ENGLISH LEAK] Breaking news '{title}' has untranslated English body (Khmer: {khmer_count}, Latin: {latin_count}). Dropping from broadcast.")
+                self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
+                database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
+                continue
+
             # Re-verify channel feed right before dispatch (with fresh real-time web check)
             if self._is_already_in_telegram_channel(title, it.get("link", ""), khmer_text=msg, fresh=True):
                 self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
