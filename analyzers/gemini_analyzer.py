@@ -56,7 +56,7 @@ _SYSTEM_RULES = (
     "5. FINAL VERDICT / SUMMARY (1-2 sentence concise executive summary)\n\n"
     "LANGUAGE & ACCURACY:\n"
     "- Never guess or generate random numbers; rely strictly on structural price action and technical confluence.\n"
-    "- Write in fluent, professional, authoritative Khmer (retaining standard English financial terminology where clearer).\n"
+    "- Write in fluent, professional, authoritative Khmer. Strictly keep company names (e.g. Apple, Tesla, NVIDIA, Tether, BlackRock) and people's names (e.g. Donald Trump, Jerome Powell, Elon Musk, Kevin Warsh, Vladimir Putin) in their original English/Latin spelling — DO NOT translate or transliterate them into Khmer.\n"
     "- Always filter out noise: if data or news is insignificant or has no direct market impact, set is_clear = false."
 )
 
@@ -93,7 +93,7 @@ def breaking_prompt(title: str, description: str) -> str:
         f"     • ប្រសិនបើព័ត៌មាននោះ «មិនប៉ះពាល់ដល់មាស (XAUUSD) ឬប្រាក់ដុល្លារ (USD) ទេ» ហាមដាច់ខាតកុំនិយាយរឿងមាស ឬប្រាក់ដុល្លារ ($) ឬ Safe-Haven បញ្ចូលដោយបង្ខំឱ្យសោះ! គ្រាន់តែរៀបរាប់ដំណើររឿងព័ត៌មាននោះឱ្យគេយល់ច្បាស់ និងត្រឹមត្រូវ គឺគ្រប់គ្រាន់ និងត្រឹមត្រូវបំផុតហើយ។\n"
         f"     • លើកលែងតែព័ត៌មាននោះពិតជាមានផលប៉ះពាល់ផ្ទាល់ និងជាក់ស្តែងដល់ទីផ្សារហិរញ្ញវត្ថុ តម្លៃមាស ឬប្រាក់ដុល្លារពិតប្រាកដ (ដូចជា Fed, CPI, NFP, សង្គ្រាមបិទច្រកប្រេង Hormuz, ពន្ធគយ Tariffs) ទើបមានការវិភាគបន្ថែមពីឥទ្ធិពលលើតម្លៃមាស និងប្រាក់ដុល្លារ។\n"
         f"២. ហាមខុសអក្ខរាវិរុទ្ធ និងហាមលាយអក្សរបរទេសចម្លែកជាដាច់ខាត (Strict Khmer Orthography - No Broken Typos):\n"
-        f"   - ឈ្មោះមេដឹកនាំពិភពលោកអាចប្រើអក្សរខ្មែរផ្លូវការ (ដូចជា លោក Donald Trump, លោក Jerome Powell, លោក Vladimir Putin)។\n"
+        f"   - បញ្ជាផ្ទាល់របស់អ្នកប្រើប្រាស់ (Company & Person Names Directive): សម្រាប់ «ឈ្មោះក្រុមហ៊ុន» (Company Names ដូចជា Apple, Microsoft, NVIDIA, Tesla, Google, Amazon, Tether, BlackRock, TSMC, Boeing, Pfizer...) និង «ឈ្មោះមនុស្ស/មេដឹកនាំ» (People & Leaders ដូចជា Donald Trump, Jerome Powell, Elon Musk, Kevin Warsh, Vladimir Putin, Joe Biden, Xi Jinping, Christine Lagarde...) ត្រូវរក្សាទុកជាភាសាដើម (Original English/Latin Names) ហាមដាច់ខាតកុំបកប្រែជាភាសាខ្មែរអី (ឧ. សរសេរ Donald Trump ហាមសរសេរ ដូណាល់ ត្រាំ, សរសេរ Apple ហាមសរសេរ អេបផល)។\n"
         f"   - ប្រយោគ និងពាក្យពេចន៍ទាំងអស់ត្រូវតែត្រឹមត្រូវ ១០០% តាមក្បួនវេយ្យាករណ៍ខ្មែរ ដោយរៀបពាក្យពិរោះ រលូន និងងាយយល់បំផុត។\n"
         f"   - ហាមដាច់ខាតមិនឱ្យមានអក្សរថៃ (Thai Script ដូចជា พันธบัตร), អក្សរក្រិក (Greek ដូចជា Πρόβλημα), អក្សររុស្ស៊ី (Cyrillic) ឬភាសាដទៃឡើយ! ត្រូវប្រើប្រាស់តែអក្សរខ្មែរសុទ្ធសាធ ១០០%។ ឧទាហរណ៍ ពាក្យ Bonds ត្រូវសរសេរ «មូលបត្របំណុល» ឬ «ប័ណ្ណបំណុល» (ហាមដាច់ខាតកុំប្រើពាក្យថៃ «พันธบัตร») និងពាក្យ Problem ត្រូវសរសេរ «បញ្ហា» ឬ «ការព្រួយបារម្ភ» (ហាមប្រើ «Πρόβλημα»)។\n"
         f"៣. ការច្រោះព័ត៌មានមតិយោបល់ និងសំនួរ (Strict Opinion / Clickbait Gate):\n"
