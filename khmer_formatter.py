@@ -124,11 +124,11 @@ def sanitize_khmer_spelling(text: str) -> str:
         # Strategic Locations & Geopolitics
         (r"ហូមុដឌ|ហូមុដ|ហូមូស|ហ័រមូដ|ហូមូដ|ហ័រមុដ", "Strait of Hormuz"),
         (r"ច្រកសមុទ្រ\s*(?:ហ័រមូស|Strait of Hormuz)", "ច្រកសមុទ្រ Strait of Hormuz"),
-        (r"តេអ៊ែរ៉ង់|តេហេរ៉ង់", "Tehran (តេអេរ៉ង់)"),
+        (r"(?:(?:Tehran|តេអ៊ែរ៉ង់|តេហេរ៉ង់|តេអេរ៉ង់)\s*[\(\)]*\s*)+", "Tehran "),
         (r"យេមែន|យេម៉ែន", "Yemen"),
-        (r"អ៊ីរ៉ាន", "Iran (អ៊ីរ៉ង់)"),
-        (r"អ៊ីស្រាអែល|អ៊ីស្រាអ៊ែល", "Israel (អ៊ីស្រាអែល)"),
-        (r"អ៊ុយក្រែន", "Ukraine (អ៊ុយក្រែន)"),
+        (r"(?:(?:Iran|អ៊ីរ៉ាន|អ៊ីរ៉ង់)\s*[\(\)]*\s*)+", "Iran "),
+        (r"(?:(?:Israel|អ៊ីស្រាអែល|អ៊ីស្រាអ៊ែល)\s*[\(\)]*\s*)+", "Israel "),
+        (r"(?:(?:Ukraine|អ៊ុយក្រែន)\s*[\(\)]*\s*)+", "Ukraine "),
         (r"រុស្សី(?![៊ី])", "រុស្ស៊ី"),
         
         # Financial & Market Terms
@@ -179,6 +179,9 @@ def sanitize_khmer_spelling(text: str) -> str:
     ]
     for pat, rep in corrections:
         res = re.sub(pat, rep, res)
+    # Strip any nested duplicate words like "Israel (Israel (...))"
+    res = re.sub(r'\b([A-Za-z0-9]+)(?:\s*\(\s*\1\s*[\(\)]*)+', r'\1', res)
+    res = re.sub(r'([A-Za-z0-9]+)\s*\(\s*\1\s*\)', r'\1', res)
     return res.strip()
 
 class KhmerFormatter:
