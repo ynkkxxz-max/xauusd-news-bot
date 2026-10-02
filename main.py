@@ -153,11 +153,11 @@ class XAUUSDNewsAssistantBot:
         self._session_alert_locks = set()
         self._daily_price_locks = set()
         self._broadcasted_titles_cache = set()
-        # Enforce 5-minute startup grace period to guarantee zero reboot-loop spam
+        # Enforce startup grace period before first breaking check (allows feeds to settle)
         now_ts = time.time()
-        self._last_breaking_sent_ts = now_ts
+        self._last_breaking_sent_ts = now_ts - 240 # allows 1st breaking check in 60s
         try:
-            database.set_state("last_breaking_alert_ts", str(now_ts))
+            database.set_state("last_breaking_alert_ts", str(now_ts - 240))
         except Exception:
             pass
 
@@ -178,7 +178,7 @@ class XAUUSDNewsAssistantBot:
             import threading
             import urllib.request
             def pinger_worker():
-                url = os.getenv("RENDER_EXTERNAL_URL", "https://xauusd-news-bot-dl60.onrender.com")
+                url = os.getenv("RENDER_EXTERNAL_URL", "https://xauusd-news-bot-kh.onrender.com")
                 time.sleep(30)
                 while True:
                     try:
@@ -195,16 +195,22 @@ class XAUUSDNewsAssistantBot:
             logger.warning(f"[Cloud Self-Pinger] Could not start: {e}")
 
     def _start_http_health_server(self, port: int = 10000):
-        """Starts a lightweight HTTP server so Cloud platforms (Render, Railway) know the app is alive and never restart it."""
+        """Starts a lightweight HTTP server so Cloud platforms (Render, Railway, cron-job.org) know the app is alive."""
         try:
             from http.server import HTTPServer, BaseHTTPRequestHandler
             import threading
             class HealthHandler(BaseHTTPRequestHandler):
+                def do_HEAD(self):
+                    self.send_response(200)
+                    self.send_header("Content-type", "text/plain")
+                    self.send_header("Content-length", "2")
+                    self.end_headers()
                 def do_GET(self):
                     self.send_response(200)
-                    self.send_header("Content-type", "application/json; charset=utf-8")
+                    self.send_header("Content-type", "text/plain; charset=utf-8")
+                    self.send_header("Content-length", "2")
                     self.end_headers()
-                    self.wfile.write(b'{"status":"online","service":"XAUUSD News Assistant","mode":"autonomous_24_7"}')
+                    self.wfile.write(b"OK")
                 def log_message(self, format, *args):
                     pass
             server = HTTPServer(("0.0.0.0", port), HealthHandler)
@@ -216,23 +222,32 @@ class XAUUSDNewsAssistantBot:
 
     def _bootstrap_news_cache(self):
         """
-        On startup, records all existing RSS headlines as seen so old historical articles
-        are never broadcasted as fresh breaking alerts upon launch.
+        On startup, seeds existing headlines that are either older than 3 hours
+        or ALREADY posted to the Telegram channel feed, so only fresh, unposted news
+        is processed for breaking alerts.
         """
         try:
             items = self.news_collector.fetch_latest_news()
             bootstrapped_count = 0
+            now = time.time()
             for item in items:
                 news_id = item.get("id")
                 title = (item.get("title") or "").strip()
                 link = item.get("link", "")
-                if title:
-                    self._broadcasted_titles_cache.add(title.lower())
-                self.news_collector.clear_item(news_id=news_id, link=link, title=title)
-                if news_id and not database.is_news_sent(news_id):
-                    database.record_news_sent(news_id, title, item.get("source", ""), is_broadcasted=0)
+                item_ts = self._news_ts(item)
+                
+                # Check if old (> 3h) or already posted to @GoldMarketKH8888
+                is_stale = item_ts > 0 and (now - item_ts) > 3 * 3600
+                is_in_channel = self._is_already_in_telegram_channel(title, link)
+                
+                if is_stale or is_in_channel:
+                    if title:
+                        self._broadcasted_titles_cache.add(title.lower())
+                    self.news_collector.clear_item(news_id=news_id, link=link, title=title)
+                    if news_id and not database.is_news_sent(news_id):
+                        database.record_news_sent(news_id, title, item.get("source", ""), is_broadcasted=1 if is_in_channel else 0)
                     bootstrapped_count += 1
-            logger.info(f"[Startup News Sync] Seeded and cleared {bootstrapped_count} historical headlines from data.")
+            logger.info(f"[Startup News Sync] Seeded {bootstrapped_count} stale/already-sent headlines from data.")
         except Exception as e:
             logger.warning(f"[Startup News Sync] Warning: {e}")
 
