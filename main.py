@@ -1625,6 +1625,15 @@ class XAUUSDNewsAssistantBot:
                     kh_matches = sum(1 for w in kh_words if w in channel_html)
                     if kh_matches >= 3 and (kh_matches / len(kh_words)) >= 0.4:
                         return True
+
+            # 4. Macro Cluster & Event Verification in Channel Feed (Prevents cross-container duplicates)
+            cluster = GoldNewsFilter.get_news_cluster(title)
+            if cluster == "us_jobs" and re.search(r'29,000|29K|ការងារ|nfp|payroll', channel_html, re.I):
+                return True
+            if cluster == "inflation" and re.search(r'cpi|អតិផរណា|pce', channel_html, re.I):
+                return True
+            if cluster == "fed_rates" and re.search(r'fomc|អត្រាការប្រាក់|powell|kevin warsh', channel_html, re.I):
+                return True
         except Exception as e:
             logger.debug(f"[Channel Feed Check] {e}")
         return False
