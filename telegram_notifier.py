@@ -25,7 +25,8 @@ class TelegramNotifier:
             "chat_id": target_chat,
             "text": text,
             "parse_mode": parse_mode,
-            "disable_web_page_preview": disable_web_page_preview
+            "disable_web_page_preview": disable_web_page_preview,
+            "link_preview_options": {"is_disabled": True}
         }
         if reply_markup:
             payload["reply_markup"] = reply_markup
@@ -112,6 +113,86 @@ class TelegramNotifier:
             logger.error(f"[TelegramNotifier] Exception while sending photo: {e}")
             return {"ok": False, "error": str(e)}
 
+    def edit_message_caption(self, message_id: int, caption: str, parse_mode: str = "HTML", reply_markup: dict = None, chat_id: str = None) -> dict:
+        """Edits the caption of an existing photo/document message in the chat/channel."""
+        if not self.is_configured():
+            logger.info(f"[TelegramNotifier] Simulated edit caption for message ID: {message_id}")
+            return {"ok": True, "result": {"message_id": message_id, "simulated": True}}
+
+        target_chat = str(chat_id or self.chat_id)
+        url = f"{self.base_url}/editMessageCaption"
+        payload = {
+            "chat_id": target_chat,
+            "message_id": message_id,
+            "caption": caption,
+            "parse_mode": parse_mode
+        }
+        if reply_markup:
+            payload["reply_markup"] = reply_markup
+
+        try:
+            resp = requests.post(url, json=payload, timeout=15)
+            result = resp.json()
+            if result.get("ok"):
+                logger.info(f"[TelegramNotifier] Caption edited successfully (ID: {message_id})")
+            else:
+                logger.error(f"[TelegramNotifier] Error editing caption: {result}")
+            return result
+        except Exception as e:
+            logger.error(f"[TelegramNotifier] Exception while editing caption: {e}")
+            return {"ok": False, "error": str(e)}
+
+    def edit_message_text(self, message_id: int, text: str, parse_mode: str = "HTML", reply_markup: dict = None, chat_id: str = None) -> dict:
+        """Edits the text of an existing text message in the chat/channel."""
+        if not self.is_configured():
+            logger.info(f"[TelegramNotifier] Simulated edit text for message ID: {message_id}")
+            return {"ok": True, "result": {"message_id": message_id, "simulated": True}}
+
+        target_chat = str(chat_id or self.chat_id)
+        url = f"{self.base_url}/editMessageText"
+        payload = {
+            "chat_id": target_chat,
+            "message_id": message_id,
+            "text": text,
+            "parse_mode": parse_mode,
+            "link_preview_options": {"is_disabled": True}
+        }
+        if reply_markup:
+            payload["reply_markup"] = reply_markup
+
+        try:
+            resp = requests.post(url, json=payload, timeout=15)
+            result = resp.json()
+            if result.get("ok"):
+                logger.info(f"[TelegramNotifier] Message text edited successfully (ID: {message_id})")
+            else:
+                logger.error(f"[TelegramNotifier] Error editing message text: {result}")
+            return result
+        except Exception as e:
+            logger.error(f"[TelegramNotifier] Exception while editing text: {e}")
+            return {"ok": False, "error": str(e)}
+
+    def delete_message(self, message_id: int, chat_id: str = None) -> dict:
+        """Deletes a message from the Telegram chat/channel."""
+        if not self.is_configured():
+            logger.info(f"[TelegramNotifier] Simulated delete for message ID: {message_id}")
+            return {"ok": True, "result": True}
+
+        target_chat = str(chat_id or self.chat_id)
+        url = f"{self.base_url}/deleteMessage"
+        payload = {"chat_id": target_chat, "message_id": message_id}
+        try:
+            resp = requests.post(url, json=payload, timeout=15)
+            result = resp.json()
+            if result.get("ok"):
+                logger.info(f"[TelegramNotifier] Message deleted successfully (ID: {message_id})")
+            else:
+                logger.error(f"[TelegramNotifier] Error deleting message: {result}")
+            return result
+        except Exception as e:
+            logger.error(f"[TelegramNotifier] Exception while deleting message: {e}")
+            return {"ok": False, "error": str(e)}
+
     def send_voice(self, voice_bytes: bytes, caption: str = "", parse_mode: str = "HTML", reply_markup: dict = None, chat_id: str = None) -> dict:
         """Uploads an audio/voice note (.mp3 / .ogg) to the chat via the sendVoice API."""
         if not self.is_configured():
@@ -196,8 +277,8 @@ class TelegramNotifier:
         except Exception as e:
             logger.debug(f"[TelegramNotifier] answerCallbackQuery error: {e}")
 
-    def send_poll(self, question: str, options: list, is_anonymous: bool = False, chat_id: str = None) -> dict:
-        """Sends an interactive native Telegram Poll directly to the Channel or Chat."""
+    def send_poll(self, question: str, options: list, is_anonymous: bool = False, reply_markup: dict = None, chat_id: str = None) -> dict:
+        """Sends an interactive native Telegram Poll directly to the Channel or Chat with optional inline keyboard."""
         if not self.is_configured():
             logger.warning(f"[TelegramNotifier] Credentials not set. Simulated Poll: {question}")
             return {"ok": True, "result": {"message_id": 999990, "simulated": True}}
@@ -210,6 +291,8 @@ class TelegramNotifier:
             "options": options,
             "is_anonymous": is_anonymous
         }
+        if reply_markup:
+            payload["reply_markup"] = reply_markup
         try:
             resp = requests.post(url, json=payload, timeout=12)
             data = resp.json()
