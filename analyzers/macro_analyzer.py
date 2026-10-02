@@ -126,11 +126,19 @@ class MacroAnalyzer:
                 data = json.loads(resp.read().decode('utf-8'))
                 translated = ''.join([part[0] for part in data[0] if part and part[0]])
                 if translated and translated.strip():
-                    return translated.strip()
+                    try:
+                        from formatters.khmer_formatter import sanitize_khmer_spelling
+                    except Exception:
+                        from khmer_formatter import sanitize_khmer_spelling
+                    return sanitize_khmer_spelling(translated.strip())
         except Exception as e:
             logger.warning(f"[MacroAnalyzer] translation error: {e}")
 
-        return clean[:max_chars]
+        try:
+            from formatters.khmer_formatter import sanitize_khmer_spelling
+            return sanitize_khmer_spelling(clean[:max_chars])
+        except Exception:
+            return clean[:max_chars]
 
     @classmethod
     def analyze_breaking_news(cls, title, description: str = "") -> dict:
