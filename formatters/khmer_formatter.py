@@ -25,11 +25,73 @@ def sanitize_khmer_spelling(text: str) -> str:
     if not text:
         return ""
     
-    # 1. Clean foreign script leakage (e.g. Arabic subwords accidentally emitted by LLM)
-    res = re.sub(r"ប្រាក់ដុល្លារ\s*អ[\u0600-\u06FF\s]*", "ប្រាក់ដុល្លារ (USD) ", text)
+    res = str(text)
+
+    # 1. Map known Thai economic/financial words to natural Khmer terms before stripping
+    thai_to_khmer = [
+        (r"พันธบัตร\s*รัฐบาล", "មូលបត្របំណុលរដ្ឋាភិបាល"),
+        (r"พันธบัตร", "មូលបត្របំណុល"),
+        (r"ตราสารหนี้", "មូលបត្របំណុល"),
+        (r"ตลาดหุ้น", "ទីផ្សារភាគហ៊ុន"),
+        (r"ตลาด", "ទីផ្សារ"),
+        (r"หุ้น", "ភាគហ៊ុន"),
+        (r"เศรษฐกิจ", "សេដ្ឋកិច្ច"),
+        (r"เงินเฟ้อ", "អតិផរណា"),
+        (r"ดอกเบี้ย", "អត្រាការប្រាក់"),
+        (r"ธนาคาร\s*กลาง", "ធនាគារកណ្តាល"),
+        (r"ธนาคาร", "ធនាគារ"),
+        (r"ทองคำ", "មាស"),
+        (r"ดอลลาร์", "ដុល្លារ"),
+        (r"ราคา", "តម្លៃ"),
+        (r"ลดลง", "ធ្លាក់ចុះ"),
+        (r"เพิ่มขึ้น", "កើនឡើង"),
+        (r"ความเสี่ยง", "ហានិភ័យ"),
+        (r"นักลงทุน", "វិនិយោគិន"),
+        (r"วิกฤต", "វិបត្តិ"),
+        (r"สินทรัพย์", "ទ្រព្យសកម្ម"),
+        (r"หนี้", "បំណុល"),
+        (r"เงินทุน", "ទុនវិនិយោគ"),
+        (r"การค้า", "ពាណិជ្ជកម្ម"),
+        (r"ผลกระทบ", "ផលប៉ះពាល់"),
+        (r"นโยบาย", "គោលនយោបាយ"),
+        (r"การจ้างงาน", "ការងារ"),
+    ]
+    for pat, rep in thai_to_khmer:
+        res = re.sub(pat, rep, res)
+
+    # 2. Map known Greek & Cyrillic leakage to natural Khmer terms before stripping
+    greek_cyrillic_fixes = [
+        (r"ការ\s*[Ππ]ρόβλημα", "ការព្រួយបារម្ភ"),
+        (r"[Ππ]ρόβλημα", "បញ្ហា"),
+        (r"[Κκ]ρίση", "វិបត្តិ"),
+        (r"[Οο]ικονομία", "សេដ្ឋកិច្ច"),
+        (r"ការ\s*[Пп]роблема", "ការព្រួយបារម្ភ"),
+        (r"[Пп]роблема", "បញ្ហា"),
+        (r"[Оо]блигации", "មូលបត្របំណុល"),
+        (r"[Кк]ризис", "វិបត្តិ"),
+        (r"[Ээ]кономика", "សេដ្ឋកិច្ច"),
+        (r"[Ии]нфляция", "អតិផរណា"),
+    ]
+    for pat, rep in greek_cyrillic_fixes:
+        res = re.sub(pat, rep, res)
+
+    # 3. Clean Arabic / Middle Eastern subwords accidentally emitted by LLM
+    res = re.sub(r"ប្រាក់ដុល្លារ\s*អ[\u0600-\u06FF\s]*", "ប្រាក់ដុល្លារ (USD) ", res)
     res = re.sub(r"ដុល្លារ\s*អ[\u0600-\u06FF\s]*", "ដុល្លារ (USD) ", res)
-    # Strip any stray Arabic, Hebrew, Thai, Cyrillic, or Devanagari characters
-    res = re.sub(r"[\u0600-\u06FF\u0590-\u05FF\u0E00-\u0E7F\u0900-\u097F]+", "", res)
+
+    # 4. Strictly strip ANY remaining foreign script characters:
+    # Thai (\u0E00-\u0E7F), Lao (\u0E80-\u0EFF), Greek (\u0370-\u03FF, \u1F00-\u1FFF),
+    # Cyrillic (\u0400-\u052F, \u2DE0-\u2DFF, \uA640-\uA69F),
+    # Arabic (\u0600-\u06FF, \u0750-\u077F, \u08A0-\u08FF, \uFB50-\uFDFF, \uFE70-\uFEFF),
+    # Hebrew (\u0590-\u05FF), Indic/Devanagari (\u0900-\u0DFF), Myanmar (\u1000-\u109F),
+    # CJK (\u4E00-\u9FFF, \u3040-\u30FF, \uAC00-\uD7AF)
+    foreign_regex = (
+        r"[\u0E00-\u0E7F\u0E80-\u0EFF\u0370-\u03FF\u1F00-\u1FFF\u0400-\u052F"
+        r"\u2DE0-\u2DFF\uA640-\uA69F\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF"
+        r"\uFB50-\uFDFF\uFE70-\uFEFF\u0590-\u05FF\u0900-\u0DFF\u1000-\u109F"
+        r"\u4E00-\u9FFF\u3040-\u30FF\uAC00-\uD7AF]+"
+    )
+    res = re.sub(foreign_regex, "", res)
 
     corrections = [
         # Currency & Economy Fixes
@@ -299,8 +361,11 @@ class KhmerFormatter:
         # Strip robotic category prefix with colon (e.g. "ភាពតានតឹង...៖ " or "...កើនឡើង: ")
         key_event = re.sub(r'^[^\n៖:]+[៖:]\s*', '', key_event).strip()
 
-        # Remove parenthetical English phrases like (Safe-Haven Assets )
-        key_event = re.sub(r'\(\s*[A-Za-z\s-]+\s*\)', '', key_event).strip()
+        # Sanitize Khmer spelling to guarantee 100% accurate spelling
+        key_event = sanitize_khmer_spelling(key_event)
+
+        # Remove parenthetical English phrases like (Safe-Haven Assets ) while preserving standard terms like (Safe-Haven), (USD), (SEC)
+        key_event = re.sub(r'\(\s*(?!Safe-Haven\b|USD\b|SEC\b|PMI\b|FED\b|CPI\b|GDP\b|NFP\b)[A-Za-z\s-]+\s*\)', '', key_event).strip()
 
         # Remove trailing wire source name in body (e.g. "- The Guardian")
         key_event = re.sub(r'\s*-\s*(?:The Guardian|Reuters|Bloomberg|CNBC|BBC News|BBC|Al Jazeera|MarketWatch|Yahoo Finance|ForexLive)[^\n]*', '', key_event, flags=re.IGNORECASE).strip()
@@ -337,6 +402,7 @@ class KhmerFormatter:
 
         parts = [header, key_event]
         if impact_line:
+            impact_line = sanitize_khmer_spelling(impact_line)
             parts.append(impact_line)
         parts.append(source_line)
 
@@ -571,6 +637,7 @@ class KhmerFormatter:
             quotes = " \n".join(str(q).strip() for q in quotes_raw if q)
         else:
             quotes = str(quotes_raw).strip()
+        quotes = sanitize_khmer_spelling(quotes)
         quote_section = ""
         if quotes:
             quote_section = (
@@ -586,6 +653,8 @@ class KhmerFormatter:
             gold_impact = str(gold_impact_raw).strip()
         if gold_impact.startswith("•") or gold_impact.startswith("-"):
             gold_impact = gold_impact.lstrip("•- ").strip()
+        gold_impact = sanitize_khmer_spelling(gold_impact)
+        tone_clean = sanitize_khmer_spelling(tone_clean)
 
         return (
             f"{icon} <b>LIVE FED AI INTERPRETER — ការថ្លែងសុន្ទរកថាប្រធាន FED ផ្ទាល់!</b>\n\n"
