@@ -153,13 +153,16 @@ class XAUUSDNewsAssistantBot:
         self._session_alert_locks = set()
         self._daily_price_locks = set()
         self._broadcasted_titles_cache = set()
-        # Enforce startup grace period before first breaking check (allows feeds to settle)
         now_ts = time.time()
-        self._last_breaking_sent_ts = now_ts - 240 # allows 1st breaking check in 60s
-        try:
-            database.set_state("last_breaking_alert_ts", str(now_ts - 240))
-        except Exception:
-            pass
+        saved_last_alert = float(database.get_state("last_breaking_alert_ts") or "0")
+        if saved_last_alert > 0:
+            self._last_breaking_sent_ts = saved_last_alert
+        else:
+            self._last_breaking_sent_ts = now_ts - BREAKING_ALERT_MIN_GAP
+            try:
+                database.set_state("last_breaking_alert_ts", str(self._last_breaking_sent_ts))
+            except Exception:
+                pass
 
         # Bind HTTP health check port & self-pinger if running on Render / Railway
         port_env = os.getenv("PORT")
