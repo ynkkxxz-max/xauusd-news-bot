@@ -218,3 +218,17 @@ This repository is governed by the 5 Golden Principles established by the system
   - កំណត់ត្រាប្រវត្តិព័ត៌មាន (Sent News), ព្រឹត្តិការណ៍សេដ្ឋកិច្ច (Sent Events) និងប្រវត្តិហាងឆេងមាសក្នុង `data.db` ត្រូវកំណត់ឱ្យសម្អាតចោល (Purge) រៀងរាល់ **១ ទៅ ២ ថ្ងៃម្តង (Strict 2-Day Retention / 48 Hours)** រួមជាមួយប្រតិបត្តិការ `VACUUM` ដើម្បីធានាថា Database ស្រាល និងដំណើរការលឿនដូចផ្លេកបន្ទោរ (ក្រោម 100 KB) ជានិច្ច។
 - **ការសម្អាតឯកសារបណ្តោះអាសន្ន (Automatic Scratch Files Purge)**:
   - ឯកសារតេស្ត ឬឯកសារ scratch បណ្តោះអាសន្នទាំងអស់ក្នុងថត `scratch/` ត្រូវតែសម្អាត និងលុបចោលស្វ័យប្រវត្តិឱ្យតែហួសរយៈពេល **១ ទៅ ២ ថ្ងៃ** ដោយមិនឱ្យរក្សាទុកកាកសំណល់ចាស់ៗ ឬធ្ងន់ម៉ាស៊ីនឡើយ។
+
+### 22. 🛡️ គោលការណ៍ធានាដំណើរការព័ត៌មានទាន់ហេតុការណ៍ ២៤/៧ គ្មានការកកស្ទះ (24/7 Uninterrupted News Pipeline Safeguards)
+- **ក្បួនការពារការច្រឡំទម្លាក់ព័ត៌មានចោល (Strict Zero False-Duplicate Dropping)**:
+  - ការត្រួតពិនិត្យ Channel Feed (`_is_already_in_telegram_channel`) ហាមដាច់ខាតមិនឱ្យ match លើពាក្យសាមញ្ញ ២ ពាក្យនាំឱ្យច្រឡំថាព័ត៌មានផ្សាយរួច។
+  - ត្រូវប្រើ Exact Article Link, URL Slug (ប្រវែង >= 12 តួ), ឬសមាមាត្រពាក្យគន្លឹះដាច់ដោយឡែកយ៉ាងតិច 65% - 100%។
+- **ការការពារការកកស្ទះ Network ពេល Startup (Cached Channel HTML 30s TTL)**:
+  - ហាមដាច់ខាតមិនឱ្យធ្វើ HTTP request ទៅ Telegram Web រាប់រយដងក្នុង Loop តែមួយពេល Startup។
+  - ត្រូវទាញយក Channel HTML តែ ១ ដងគត់ និង Cache ទុក ៣០ វិនាទី ដើម្បីឱ្យការចាប់ផ្ដើម និងការ Scan ព័ត៌មានដើរលឿនក្នុងកម្រិត Sub-Second (< 10 វិនាទី)។
+- **ប្រព័ន្ធការពារស្វ័យប្រវត្តិ ២៤/៧ (Supervisor Auto-Healing Loop)**:
+  - ក្នុង `render_server.py` ត្រូវដំណើរការក្រោម Supervisor `while True`។ ប្រសិនបើ Bot ជួបប្រទះការដាច់ ឬ Error ណាមួយ វានឹង Restart ខ្លួនឯងស្វ័យប្រវត្តិក្នង ១០ វិនាទី ដោយមិនឱ្យគាំងស្លាប់ឡើយ។
+- **ប្រព័ន្ធដាស់ Cloud មិនឱ្យគេង (UptimeRobot 24/7 Heartbeat)**:
+  - UptimeRobot Ping រៀងរាល់ ៥ នាទីម្តង ធានាថា Render Web Service មិនចូល Sleeping Mode ជាដាច់ខាត។
+- **ប្រព័ន្ធឆ្លាស់ AI ច្រើនជាន់ (Quadruple AI Fallback Hierarchy)**:
+  - `Gemini Flash Lite` (Primary) ➡️ `DeepSeek-V4.1-Flash TheHive` (Backup 1) ➡️ `OpenRouter` (Backup 2) ➡️ `Local MacroAnalyzer` (Offline Permanent Safety Net)។ មិនមានករណីណាដែល Bot អត់ AI វិភាគឡើយ។
