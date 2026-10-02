@@ -174,6 +174,39 @@ class GoldNewsFilter:
         return False
 
     @staticmethod
+    def get_news_cluster(text: str) -> str:
+        """Categorizes news into a high-level macro cluster for semantic cross-feed deduplication."""
+        t = text.lower()
+        # 1. US Jobs / Payrolls / Labor Market
+        if any(k in t for k in ["non-farm", "nonfarm", "payroll", "payrolls", "unemployment", "job growth", "jobs report", "hiring", "labor market", "workforce"]) or ("job" in t and any(w in t for w in ["us", "fed", "report", "cool", "slow", "data", "cut", "rise", "fall", "jump", "stall"])):
+            return "us_jobs"
+        # 2. Inflation & CPI
+        if any(k in t for k in ["cpi", "inflation", "pce", "producer price", "consumer price", "cost of living"]):
+            return "inflation"
+        # 3. Fed & Central Bank Rates
+        if any(k in t for k in ["fomc", "powell", "kevin warsh", "rate cut", "rate hike", "interest rate", "basis point", "federal reserve"]) or ("fed " in t and any(w in t for w in ["rate", "policy", "pause", "hike", "cut"])):
+            return "fed_rates"
+        # 4. Energy & Crude Oil & Gas
+        if any(k in t for k in ["crude oil", "brent", "wti", "oil price", "oil drop", "oil rise", "diesel", "gasoline", "lng", "fuel", "opec"]):
+            return "energy_oil"
+        # 5. Technology & AI & Semiconductors
+        if any(k in t for k in ["nvidia", "semiconductor", "chipmaker", "tsmc", "intel", "amd", "blackwell", "artificial intelligence", "data center", "datacenter"]) or ("ai " in t and any(w in t for w in ["chip", "tech", "job", "model", "cloud", "server", "wall street"])):
+            return "tech_ai"
+        # 6. Crypto & Digital Assets
+        if any(k in t for k in ["bitcoin", "btc", "ethereum", "crypto", "cryptocurrency", "stablecoin", "tether", "binance", "coinbase"]):
+            return "crypto_assets"
+        # 7. Middle East Geopolitics
+        if any(k in t for k in ["gaza", "israel", "tel aviv", "lebanon", "beirut", "hezbollah", "houthi", "strait of hormuz", "red sea"]):
+            return "middle_east"
+        # 8. Russia & Ukraine
+        if any(k in t for k in ["russia", "ukraine", "kyiv", "moscow", "kremlin", "zelensky", "putin"]):
+            return "russia_ukraine"
+        # 9. Tariffs & Trade Wars
+        if any(k in t for k in ["tariff", "tariffs", "sanction", "sanctions", "trade war", "embargo"]):
+            return "tariffs_trade"
+        return ""
+
+    @staticmethod
     def is_duplicate_or_similar(new_title: str, existing_titles: list, threshold: float = 0.35) -> bool:
         """
         Semantic Deduplication: Checks if the new news article is covering the same topic/event
@@ -182,12 +215,21 @@ class GoldNewsFilter:
         """
         import re
 
+        # Fast Macro Cluster Match: If an article from the same specific cluster was already sent recently
+        new_cluster = GoldNewsFilter.get_news_cluster(new_title)
+        if new_cluster:
+            for past_title in existing_titles:
+                past_cluster = GoldNewsFilter.get_news_cluster(past_title)
+                if new_cluster == past_cluster:
+                    return True
+
         def _stem(w: str) -> str:
             w = w.lower()
             demonyms = {
                 "israeli": "israel", "british": "britain", "russian": "russia",
                 "lebanese": "lebanon", "mexican": "mexico", "canadian": "canada",
-                "ukrainian": "ukraine", "iranian": "iran", "chinese": "china"
+                "ukrainian": "ukraine", "iranian": "iran", "chinese": "china",
+                "japanese": "japan", "american": "america"
             }
             if w in demonyms:
                 return demonyms[w]
@@ -212,8 +254,17 @@ class GoldNewsFilter:
         if not new_tokens:
             return False
 
-        entities_list = ["israel", "lebanon", "russia", "ukraine", "iran", "trump", "biden", "opec", "china", "boe", "fed", "england"]
-        topics_list = ["ai", "strike", "tariff", "sanction", "war", "rate", "inflation", "blackwell", "chip"]
+        entities_list = [
+            "israel", "lebanon", "russia", "ukraine", "iran", "trump", "biden",
+            "opec", "china", "boe", "fed", "england", "us", "usa", "america",
+            "japan", "jera", "sec", "nvidia", "intel", "amd", "tesla", "apple"
+        ]
+        topics_list = [
+            "ai", "strike", "tariff", "sanction", "war", "rate", "inflation",
+            "blackwell", "chip", "job", "jobs", "payroll", "nfp", "employment",
+            "unemployment", "oil", "crude", "brent", "lng", "diesel", "gas",
+            "energy", "crypto", "bitcoin", "btc", "hiring", "datacenter"
+        ]
 
         for past_title in existing_titles:
             past_tokens = _tokenize(past_title)
@@ -226,7 +277,7 @@ class GoldNewsFilter:
             overlap_ratio = len(intersection) / min(len(new_tokens), len(past_tokens)) if min(len(new_tokens), len(past_tokens)) else 0.0
 
             # 1. Exact or High token overlap
-            if similarity >= 0.50 or (overlap_ratio >= 0.40 and len(intersection) >= 3):
+            if similarity >= 0.45 or (overlap_ratio >= 0.35 and len(intersection) >= 3):
                 return True
 
             # 2. Entity + Topic co-occurrence
