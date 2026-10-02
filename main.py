@@ -1587,11 +1587,12 @@ class XAUUSDNewsAssistantBot:
         else:
             return INTERVAL_NORMAL
 
-    def _is_already_in_telegram_channel(self, title: str, link: str = "", khmer_text: str = "") -> bool:
+    def _is_already_in_telegram_channel(self, title: str, link: str = "", khmer_text: str = "", fresh: bool = False) -> bool:
         """Inspects the public Telegram channel feed to prevent duplicate broadcasts across distributed containers."""
         try:
             import urllib.parse
-            channel_html = self._fetch_channel_html()
+            max_age = 0.0 if fresh else 30.0
+            channel_html = self._fetch_channel_html(max_cache_age=max_age)
             if not channel_html:
                 return False
 
@@ -1622,7 +1623,7 @@ class XAUUSDNewsAssistantBot:
                 kh_words = [w for w in re.findall(r'[\u1780-\u17FF]{6,}', khmer_text)]
                 if len(kh_words) >= 4:
                     kh_matches = sum(1 for w in kh_words if w in channel_html)
-                    if kh_matches >= 4 and (kh_matches / len(kh_words)) >= 0.5:
+                    if kh_matches >= 3 and (kh_matches / len(kh_words)) >= 0.4:
                         return True
         except Exception as e:
             logger.debug(f"[Channel Feed Check] {e}")
@@ -1634,7 +1635,7 @@ class XAUUSDNewsAssistantBot:
         Protected by Triple Anti-Duplicate Shield:
         1. Channel Live Feed Verification: Checks @GoldMarketKH8888 live messages so NO duplicate can ever be sent.
         2. In-Memory Process Set & SQLite Deduplication: Records each item_id and title as seen.
-        3. Strict 5-Minute Gap Enforcement: Minimum 300 seconds between any breaking alerts.
+        3. Strict Gap Enforcement & Single Dispatch per cycle: Never sends back-to-back duplicates.
         """
         now = time.time()
         last_alert_ts = float(database.get_state("last_breaking_alert_ts") or "0")
@@ -1653,8 +1654,12 @@ class XAUUSDNewsAssistantBot:
             if not title or "?" in title or not GoldNewsFilter.is_gold_relevant(title, desc):
                 continue
 
-            # SQLite check
+            # SQLite check by news_id
             if database.is_news_sent(news_id):
+                continue
+
+            # SQLite check by title
+            if database.is_title_already_broadcasted(title):
                 continue
 
             # In-memory process check
@@ -1677,6 +1682,11 @@ class XAUUSDNewsAssistantBot:
             title = it["title"]
             desc = it.get("description", "")
 
+            # Dynamically recalculate gap before evaluating each item
+            now = time.time()
+            last_alert_ts = float(database.get_state("last_breaking_alert_ts") or "0")
+            time_since_last = min(now - last_alert_ts, now - self._last_breaking_sent_ts)
+
             # Fast-track priority check: critical news gets 20s gap, regular gets BREAKING_ALERT_MIN_GAP (60s)
             is_critical = any(k in (title + " " + desc).lower() for k in [
                 "war", "attack", "missile", "airstrike", "fomc", "rate cut", "rate hike",
@@ -1684,6 +1694,11 @@ class XAUUSDNewsAssistantBot:
             ])
             required_gap = 20.0 if is_critical else BREAKING_ALERT_MIN_GAP
             if time_since_last < required_gap:
+                logger.debug(f"[BREAKING GAP] {time_since_last:.1f}s elapsed < {required_gap}s required. Deferring to next cycle.")
+                break
+
+            if database.is_title_already_broadcasted(title):
+                self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                 continue
 
             if GoldNewsFilter.is_duplicate_or_similar(title, recent_sent_titles):
@@ -1726,8 +1741,8 @@ class XAUUSDNewsAssistantBot:
 
             msg = KhmerFormatter.format_breaking_event_alert(it, analysis)
 
-            # Re-verify channel feed right before dispatch (with full Khmer text + link check)
-            if self._is_already_in_telegram_channel(title, it.get("link", ""), khmer_text=msg):
+            # Re-verify channel feed right before dispatch (with fresh real-time web check)
+            if self._is_already_in_telegram_channel(title, it.get("link", ""), khmer_text=msg, fresh=True):
                 self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                 database.clear_news_from_data(it["id"], title, it.get("source", ""))
                 self._broadcasted_titles_cache.add(title.lower())
@@ -1738,6 +1753,7 @@ class XAUUSDNewsAssistantBot:
             self._broadcasted_titles_cache.add(title.lower())
             database.set_state("last_breaking_alert_ts", str(time.time()))
             self._last_breaking_sent_ts = time.time()
+            self._cached_channel_html = "" # Invalidate channel cache
             photo = self._fetch_news_image(it)
             if photo:
                 caption_text = self._truncate_html_caption(msg, max_visible_chars=950)
