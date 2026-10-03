@@ -65,6 +65,8 @@ RSS_FEEDS = [
 
 class BreakingNewsCollector:
     DISALLOWED_SOURCES = [
+        "insider monkey", "insidermonkey", "simply wall st", "simply wall street", "fool.com",
+        "motley fool", "zacks", "tipranks", "barchart", "benzinga", "investorplace", "thestreet",
         "united24", "moscow times", "france24", "ua.news", "tnglobal", "morningstar",
         "middle east eye", "blogger", "substack", "medium", "dailystar", "the sun", 
         "daily mail", "mirror", "pr newswire", "globenewswire", "business wire", "press release",
