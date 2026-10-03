@@ -13729,89 +13729,9 @@
 
   async function broadcastSignalAndPollToTelegram(sig, score) {
 
-    if (!sig || !sig.id) return;
+    // 🚫 PERMANENTLY DISABLED: Poll sending to Telegram channel has been deactivated permanently.
 
-    try {
-
-      const sentKey = 'sent_broadcast_' + sig.id;
-
-      if (localStorage.getItem(sentKey) === 'true') {
-
-        return; // Already sent, avoid duplicate spam
-
-      }
-
-      localStorage.setItem(sentKey, 'true');
-
-
-
-      // Obfuscated bot token & channel ID (Protected from GitHub Secret Scanner)
-
-      const _tok = atob('ODgyMDI4NDgyOTpBQUdwYU54T1RfcW01NWNOUkN4VkpCTEFuQlpGUXQ5dm1DMA==');
-
-      const _chatId = '-1003958086636';
-
-      const isBuy = (sig.action === 'BUY');
-
-      const actionTitle = isBuy ? '🟢 BUY NOW — SNIPER DIP BOUNCE' : '🔴 SELL NOW — SNIPER TOP REJECTION';
-
-      const pollAction = isBuy ? 'Buy Dip' : 'Sell Top';
-
-
-
-      // Note: Point 1 (detailed levels) strictly excluded so users view signal inside Mini App
-
-
-
-
-
-      // 🎯 Merged Unified Message: Send Interactive Poll with Mini App CTA Button attached directly
-
-      const pollTitle = `📊 លទ្ធផល Signal XAUUSD (${pollAction}) — សូមបញ្ជាក់លទ្ធផលរបស់អ្នក:`;
-
-      await fetch(`https://api.telegram.org/bot${_tok}/sendPoll`, {
-
-        method: 'POST',
-
-        headers: { 'Content-Type': 'application/json' },
-
-        body: JSON.stringify({
-
-          chat_id: _chatId,
-
-          question: pollTitle,
-
-          options: JSON.stringify(["🎯 ឈ្នះ (Hit TP)", "🛑 ចាញ់ (Hit SL)"]),
-
-          is_anonymous: true,
-
-          reply_markup: {
-
-            inline_keyboard: [
-
-              [
-
-                { text: "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", url: "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=150&tab=smc" }
-
-              ]
-
-            ]
-
-          }
-
-        })
-
-      });
-
-
-
-      console.log('[Telegram Broadcast] Successfully sent Signal + Poll Vote to channel GOLD FX!');
-
-    } catch(err) {
-
-      console.warn('[Telegram Broadcast] Error dispatching to Telegram channel:', err);
-
-    }
+    return;
 
   }
 
