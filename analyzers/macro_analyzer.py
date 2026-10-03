@@ -165,6 +165,13 @@ class MacroAnalyzer:
         clean_title = re.sub(r'<[^>]+>', ' ', title or '')
         clean_title = html.unescape(clean_title)
         clean_title = re.sub(r'\s+', ' ', clean_title).strip()
+        # Clean wire prefixes e.g. "AMAN - ANSA - ", "(Reuters) - ", "BLOOMBERG - "
+        clean_title = re.sub(r'^[A-Z\s]{2,15}\s*-\s*[A-Z\s]{2,15}\s*-\s*', '', clean_title)
+        clean_title = re.sub(r'^\([A-Za-z\s]+\)\s*[-—]\s*', '', clean_title)
+        clean_title = re.sub(r'^[A-Za-z\s]+[-—]\s*(?:Reuters|Bloomberg|AP|AFP|ANSA|Istat)\s*[-—]\s*', '', clean_title, flags=re.IGNORECASE)
+        # Clean suffixes e.g. " | Live blog", " - Live", " | Live updates", " - Istat", " - Reuters"
+        clean_title = re.sub(r'\s*\|\s*(?:Live blog|Live updates|Live|Blog|Breaking).*$', '', clean_title, flags=re.IGNORECASE)
+        clean_title = re.sub(r'\s*-\s*(?:Istat|Reuters|Bloomberg|AP|AFP|CNBC|WSJ|MarketWatch|Yahoo Finance)$', '', clean_title, flags=re.IGNORECASE)
 
         clean_desc = re.sub(r'<[^>]+>', ' ', description or '')
         clean_desc = html.unescape(clean_desc)
@@ -189,6 +196,12 @@ class MacroAnalyzer:
                 "is_clear": False,
                 "bias": "🟡 Neutral"
             }
+
+        # Clean orphan leading punctuation or wire remnants in Khmer narrative
+        km_story = re.sub(r'^[^\w\u1780-\u17FF]+', '', km_story)
+        km_story = re.sub(r'^\s*បញ្ហា\s*[\)\]\}\:\-–—\s]+\s*', '', km_story)
+        km_story = re.sub(r'^[^\s\u1780-\u17FFA-Za-z0-9]*\)\s*', '', km_story)
+        km_story = re.sub(r'\s*\|\s*ប្លក់ផ្ទាល់.*$', '', km_story)
 
         text = f"{clean_title} {clean_desc}".lower()
 
@@ -285,13 +298,24 @@ class MacroAnalyzer:
             }
 
         # Gate 6: Digital Assets & Cryptocurrency (SEC, ETF, Bitcoin, Crypto)
-        if any(re.search(rf"\b{w}\b", text) for w in ["bitcoin", "crypto", "etf", "sec", "xrp", "ethereum", "digital assets", "solana"]):
-            negative_crypto = ["hack", "stole", "ban", "crackdown", "fraud", "lawsuit", "crash", "plunge", "downside"]
+        if any(re.search(rf"\b{w}\b", text) for w in ["bitcoin", "btc", "crypto", "etf", "sec", "xrp", "ethereum", "eth", "digital assets", "solana"]):
+            negative_crypto = [
+                "hack", "stole", "ban", "crackdown", "fraud", "lawsuit", "crash", "plunge", "downside",
+                "fall", "falls", "drop", "drops", "slump", "slumps", "tumble", "tumbles", "slide", "slides",
+                "dip", "dips", "shed", "sheds", "liquidation", "liquidations", "retreat", "retreats", "loss", "losses", "bear", "bearish"
+            ]
+            positive_crypto = [
+                "surge", "surges", "rally", "rallies", "jump", "jumps", "gain", "gains", "record", "high",
+                "ath", "all-time high", "bull", "bullish", "inflow", "inflows", "reserve", "reserves", "adoption", "soar", "soars"
+            ]
             if any(re.search(rf"\b{w}\b", text) for w in negative_crypto):
                 impact = "ផលអវិជ្ជមាន៖ បង្កើតភាពមិនប្រាកដប្រជា និងសម្ពាធលក់ក្នុងទីផ្សារឌីជីថល"
                 bias = "🔴 Bearish"
-            else:
+            elif any(re.search(rf"\b{w}\b", text) for w in positive_crypto):
                 impact = "ផលវិជ្ជមាន៖ ជំរុញលំហូរសាច់ប្រាក់ស្ថាប័ន និងពង្រឹងទំនុកចិត្តលើទីផ្សាររូបិយប័ណ្ណឌីជីថល"
+                bias = "🟢 Bullish"
+            else:
+                impact = "ផលវិជ្ជមាន៖ ពង្រឹងស្ថិរភាព និងការអភិវឌ្ឍប្រព័ន្ធរូបិយវត្ថុឌីជីថល"
                 bias = "🟢 Bullish"
             return {
                 "key_event": km_story,
