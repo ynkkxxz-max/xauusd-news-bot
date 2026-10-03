@@ -338,5 +338,46 @@ def cleanup_old_records(days: int = 2) -> int:
     conn.close()
     return deleted_news + deleted_events + deleted_prices
 
+def add_signal_subscriber(chat_id: int, username: str = None, first_name: str = None):
+    """Registers a private chat user to receive direct signal notifications (Private DM)."""
+    if not chat_id or chat_id <= 0:
+        return
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS signal_subscribers (
+        chat_id INTEGER PRIMARY KEY,
+        username TEXT,
+        first_name TEXT,
+        subscribed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        is_active INTEGER DEFAULT 1
+    )
+    """)
+    cursor.execute("""
+    INSERT INTO signal_subscribers (chat_id, username, first_name, is_active)
+    VALUES (?, ?, ?, 1)
+    ON CONFLICT(chat_id) DO UPDATE SET is_active=1, username=excluded.username, first_name=excluded.first_name
+    """, (chat_id, username, first_name))
+    conn.commit()
+    conn.close()
+
+def get_signal_subscribers() -> list:
+    """Returns all active private user chat IDs subscribed to receive direct signals."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS signal_subscribers (
+        chat_id INTEGER PRIMARY KEY,
+        username TEXT,
+        first_name TEXT,
+        subscribed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        is_active INTEGER DEFAULT 1
+    )
+    """)
+    cursor.execute("SELECT chat_id FROM signal_subscribers WHERE is_active=1")
+    rows = cursor.fetchall()
+    conn.close()
+    return [r[0] for r in rows]
+
 # Initialize upon import
 init_db()
