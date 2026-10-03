@@ -487,22 +487,6 @@ class XAUUSDNewsAssistantBot:
             else:
                 self.notifier.send_message(msg)
 
-            # Send unified native interactive Telegram Poll with direct Mini App CTA button
-            poll_title = "📊 លទ្ធផល Signal XAUUSD — សូមបញ្ជាក់លទ្ធផលរបស់អ្នក:"
-            app_cta_markup = {
-                "inline_keyboard": [
-                    [
-                        {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=150&tab=smc"}
-                    ]
-                ]
-            }
-            self.notifier.send_poll(
-                question=poll_title,
-                options=["🎯 Hit TP", "🛑 Hit SL"],
-                is_anonymous=True,
-                reply_markup=app_cta_markup
-            )
-
             database.set_state("last_candle_conf_ts", str(now))
 
     def check_news_danger_zone(self):
@@ -616,22 +600,6 @@ class XAUUSDNewsAssistantBot:
             
             # Send clean signal message
             self.notifier.send_message(msg)
-
-            # Send unified native interactive Telegram Poll with direct Mini App CTA button
-            poll_title = "📊 លទ្ធផល Signal XAUUSD — សូមបញ្ជាក់លទ្ធផលរបស់អ្នក:"
-            app_cta_markup = {
-                "inline_keyboard": [
-                    [
-                        {"text": "📱 បើក Mini App ដើម្បីទទួលបាន Signal Live", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=150&tab=smc"}
-                    ]
-                ]
-            }
-            self.notifier.send_poll(
-                question=poll_title,
-                options=["🎯 Hit TP", "🛑 Hit SL"],
-                is_anonymous=True,
-                reply_markup=app_cta_markup
-            )
 
             database.set_state("last_sniper_signal_ts", str(now))
             database.set_state("last_sniper_action", sig.get("action", ""))
