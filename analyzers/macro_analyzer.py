@@ -240,13 +240,19 @@ class MacroAnalyzer:
             }
 
         # Gate 3: Economy & Inflation (CPI, PCE, GDP, Retail Sales, Labor, Jobs)
-        if any(re.search(rf"\b{w}\b", text) for w in ["cpi", "inflation", "pce", "producer price"]):
-            if any(re.search(rf"\b{w}\b", text) for w in ["accelerat", "surge", "higher", "rise", "jump", "hot", "beat"]):
-                impact = "ផលអវិជ្ជមាន៖ សម្ពាធអតិផរណាខ្ពស់រុញច្រានការបញ្ចុះអត្រាការប្រាក់ឱ្យពន្យារពេល"
+        if any(re.search(rf"\b{w}\b", text) for w in ["cpi", "inflation", "pce", "producer price", "gdp", "retail sales", "pmi", "growth", "predict"]):
+            if any(re.search(rf"\b{w}\b", text) for w in ["accelerat", "surge", "higher", "rise", "jump", "hot", "beat", "strong"]):
+                impact = "ផលវិជ្ជមាន៖ កំណើនសេដ្ឋកិច្ចរឹងមាំគាំទ្រដល់ទំនុកចិត្តទីផ្សារ និងសន្ទុះវិនិយោគ"
+                bias = "🟢 Bullish"
+            elif any(re.search(rf"\b{w}\b", text) for w in ["decline", "slow", "slump", "weak", "miss", "recession", "drop", "refuse", "declines"]):
+                impact = "ផលអវិជ្ជមាន៖ ភាពមិនច្បាស់លាស់នៃកំណើនសេដ្ឋកិច្ចបង្កើនការប្រុងប្រយ័ត្នដល់វិនិយោគិន"
                 bias = "🔴 Bearish"
-            else:
+            elif any(re.search(rf"\b{w}\b", text) for w in ["cpi", "inflation", "pce", "producer price"]):
                 impact = "ផលវិជ្ជមាន៖ អតិផរណាធ្លាក់ចុះគាំទ្រដល់លទ្ធភាពនៃការបន្ធូរបន្ថយអត្រាការប្រាក់"
                 bias = "🟢 Bullish"
+            else:
+                impact = "ផលអវិជ្ជមាន៖ ភាពមិនច្បាស់លាស់នៃទស្សនវិស័យសេដ្ឋកិច្ចអាចជះឥទ្ធិពលដល់ទីផ្សារ"
+                bias = "🔴 Bearish"
             return {
                 "key_event": km_story,
                 "impact": impact,
