@@ -477,8 +477,15 @@ class KhmerFormatter:
         for _, fl in flag_rules:
             key_event = key_event.replace(fl, "")
 
-        # Strip robotic category prefix with colon (e.g. "ភាពតានតឹង...៖ " or "...កើនឡើង: ")
-        key_event = re.sub(r'^[^\n៖:]+[៖:]\s*', '', key_event).strip()
+        # Strip trailing news wire tags like ": Report", "៖ របាយការណ៍", ": Reports", "(Report)"
+        key_event = re.sub(r'\s*[៖:\-–—|]\s*(?:របាយការណ៍|សេចក្តីរាយការណ៍|ការវិភាគ|ព័ត៌មានលម្អិត|Report|Reports|Analysis)\s*$', '', key_event, flags=re.IGNORECASE).strip()
+
+        # Strip robotic category prefix with colon ONLY if prefix is short (<= 25 chars) and remainder has real content (>= 30 chars, >= 4 words)
+        m_prefix = re.match(r'^([^\n៖:]{1,25}[៖:])\s*(.+)$', key_event, re.DOTALL)
+        if m_prefix:
+            remainder = m_prefix.group(2).strip()
+            if len(remainder) >= 30 and len(remainder.split()) >= 4:
+                key_event = remainder
 
         # Strip dangling / orphaned prefixes like "បញ្ហា )", "(Reuters) - ", "Topic )", etc.
         key_event = re.sub(r'^\s*(?:[A-Za-z\u1780-\u17FF\s]{1,15}\s*)?[\)\]\}\>]\s*[-–—:]*\s*', '', key_event).strip()
@@ -493,6 +500,23 @@ class KhmerFormatter:
 
         # Remove trailing wire source name in body (e.g. "- The Guardian")
         key_event = re.sub(r'\s*-\s*(?:The Guardian|Reuters|Bloomberg|CNBC|BBC News|BBC|Al Jazeera|MarketWatch|Yahoo Finance|ForexLive)[^\n]*', '', key_event, flags=re.IGNORECASE).strip()
+
+        # Substantive Narrative Fallback Gate: Never output a single-word or short empty stub like "របាយការណ៍"
+        kh_chars = len(re.findall(r'[\u1780-\u17FF]', key_event))
+        if kh_chars < 35 or key_event in ("របាយការណ៍", "សេចក្តីរាយការណ៍", "ព័ត៌មាន", "បច្ចុប្បន្នភាព", "ការវិភាគ", "Report"):
+            what = (analysis.get("what_happened") or "").strip()
+            if what and len(re.findall(r'[\u1780-\u17FF]', what)) >= 35:
+                key_event = what
+            else:
+                desc_raw = (news_item.get("description") or "").strip()
+                if desc_raw and len(desc_raw) >= 30:
+                    try:
+                        from analyzers.macro_analyzer import MacroAnalyzer
+                        tr_desc = MacroAnalyzer.translate_to_khmer(desc_raw)
+                        if tr_desc and len(re.findall(r'[\u1780-\u17FF]', tr_desc)) >= 35:
+                            key_event = tr_desc
+                    except Exception:
+                        pass
 
         # Double Safety: If key_event has significant English (> 25% Latin characters), translate to fluent Khmer
         latin_chars = len(re.findall(r'[a-zA-Z]', key_event))
