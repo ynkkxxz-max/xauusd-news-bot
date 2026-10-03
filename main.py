@@ -333,11 +333,35 @@ class XAUUSDNewsAssistantBot:
             database.record_daily_price_sent(today_str, msg_id)
             logger.info(f"Daily Gold Price broadcast completed for {today_str} (msg_id: {msg_id}).")
 
-    def _is_session_alert_sent(self, key: str) -> bool:
+    def _is_session_alert_already_in_channel(self, session_keyword: str) -> bool:
+        """Inspects live Telegram channel feed to verify if session open alert was already broadcasted today."""
+        try:
+            import urllib.request
+            req = urllib.request.Request(
+                "https://t.me/s/GoldMarketKH8888",
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            )
+            with urllib.request.urlopen(req, timeout=4.0) as resp:
+                channel_html = resp.read().decode("utf-8", errors="ignore")
+            # If session keyword (e.g. 'LONDON SESSION OPENING' or 'NEW YORK SESSION OPENING') is already in channel
+            if session_keyword.upper() in channel_html.upper():
+                return True
+        except Exception as e:
+            logger.debug(f"[Channel Session Check] {e}")
+        return False
+
+    def _is_session_alert_sent(self, key: str, session_keyword: str = "") -> bool:
         if key in self._session_alert_locks:
             return True
         if database.get_state(key):
             self._session_alert_locks.add(key)
+            return True
+        if session_keyword and self._is_session_alert_already_in_channel(session_keyword):
+            self._session_alert_locks.add(key)
+            try:
+                database.set_state(key, "sent")
+            except Exception:
+                pass
             return True
         return False
 
@@ -362,7 +386,7 @@ class XAUUSDNewsAssistantBot:
 
         # London Session: 14:00 (2:00 PM) Cambodia Time (strictly 14:00 - 14:10)
         london_key = f"london_session_{today_str}"
-        if now_kh.hour == 14 and now_kh.minute <= 10 and not self._is_session_alert_sent(london_key):
+        if now_kh.hour == 14 and now_kh.minute <= 10 and not self._is_session_alert_sent(london_key, "LONDON SESSION OPENING"):
             # Lock IMMEDIATELY before generating / sending to prevent concurrent loops
             self._mark_session_alert_sent(london_key)
             try:
@@ -384,7 +408,7 @@ class XAUUSDNewsAssistantBot:
 
         # New York Session: 19:00 (7:00 PM) Cambodia Time (strictly 19:00 - 19:10)
         ny_key = f"ny_session_{today_str}"
-        if now_kh.hour == 19 and now_kh.minute <= 10 and not self._is_session_alert_sent(ny_key):
+        if now_kh.hour == 19 and now_kh.minute <= 10 and not self._is_session_alert_sent(ny_key, "NEW YORK SESSION OPENING"):
             # Lock IMMEDIATELY before generating / sending to prevent concurrent loops
             self._mark_session_alert_sent(ny_key)
             try:
