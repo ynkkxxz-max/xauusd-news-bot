@@ -33,8 +33,7 @@ This repository is governed by the 5 Golden Principles established by the system
 - **កាលវិភាគបញ្ចេញ Signal និងកម្រិតកំណត់ (Signal Operating Hours & Daily Limit):**
   - ម៉ោងដំណើរការ Signal: **ចាប់ពីម៉ោង ៧:០០ ព្រឹក ដល់ម៉ោង ១១:០០ យប់** (Strict 07:00 AM – 11:00 PM Cambodia Time / UTC+7)។ ក្រៅពីម៉ោងនេះ (១១:០០ យប់ ដល់ ៧:០០ ព្រឹក) ហាមបញ្ចេញ Signal ថ្មីជាដាច់ខាត ដើម្បីការពារពី Spread រីកធំ និងទីផ្សារគ្មាន Volume។
   - កម្រិត Signal ប្រចាំថ្ងៃ: **មិនឱ្យលើសពី ៥ Signal ក្នុងមួយថ្ងៃជាដាច់ខាត (Strictly Maximum 5 Signals Per Day, NEVER exceed 5)** ដើម្បីការពារទុន និងទប់ស្កាត់ Overtrading។
-- Action button waiting text must strictly remain concise: `រង់ចាំ Signal ថ្មី` (no verbose calculations or cluttered descriptions).
-- Channel broadcast: Only dispatch the unified single-bubble package (Interactive Poll + Mini App CTA Button) into the Telegram channel. Raw signal levels are never exposed in plain text on the channel, ensuring users engage via the Mini App.
+- **🚫 លុបចោលការផ្ញើសារ Interactive Poll ជារៀងរហូត (Permanently Disable Polls — បញ្ជាផ្ទាល់)**: ហាមដាច់ខាតមិនឱ្យផ្ញើសារប្រភេទ Interactive Poll (`📊 លទ្ធផល Signal XAUUSD...`) ចូល Telegram Channel ទៀតឡើយ។
 
 ### 5. ♾️ ប្រើប្រាស់បានយូរ មិនរាំងស្ទះ (Long-Term Stability & Zero Bottlenecks)
 - Self-healing multi-stream architecture (Binance WebSocket, Gold-API, Swissquote, CoinGecko).
