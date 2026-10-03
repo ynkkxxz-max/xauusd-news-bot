@@ -1609,8 +1609,8 @@ class XAUUSDNewsAssistantBot:
         """Returns elapsed seconds since the latest message was published in @GoldMarketKH8888 live channel feed."""
         try:
             import datetime
-            channel_html = self._fetch_channel_html(max_cache_age=10.0)
-            times = re.findall(r'<time datetime="([^"]+)"', channel_html)
+            channel_html = self._fetch_channel_html(max_cache_age=5.0)
+            times = re.findall(r'<time[^>]*datetime="([^"]+)"', channel_html)
             if times:
                 last_dt = datetime.datetime.fromisoformat(times[-1])
                 now_utc = datetime.datetime.now(datetime.timezone.utc)
@@ -1625,7 +1625,7 @@ class XAUUSDNewsAssistantBot:
         try:
             import urllib.parse
             import html as html_module
-            max_age = 0.0 if fresh else 20.0
+            max_age = 0.0 if fresh else 15.0
             channel_html = self._fetch_channel_html(max_cache_age=max_age)
             if not channel_html:
                 return False
@@ -1641,7 +1641,6 @@ class XAUUSDNewsAssistantBot:
                         return True
 
             # 2. Extract Individual Telegram Posts for precise post-by-post comparison
-            # Telegram channel web view encloses messages in tgme_widget_message_text or tgme_widget_message_caption
             posts_raw = re.findall(r'<div class="tgme_widget_message_(?:text|caption)[^"]*"[^>]*>(.*?)</div>', channel_html, re.DOTALL)
             if not posts_raw:
                 posts_raw = [channel_html]
@@ -1661,7 +1660,12 @@ class XAUUSDNewsAssistantBot:
 
             # Khmer content words excluding standard channel boilerplate template phrases
             KHMER_BOILERPLATE = {'ព្រឹត្តិការណ៍សំខាន់', 'ព្រឹត្តិការណ៍', 'ប្រភពព័ត៌មាន', 'ផលវិជ្ជមាន', 'ផលអវិជ្ជមាន', 'ឥទ្ធិពលវិជ្ជមាន', 'ឥទ្ធិពលអវិជ្ជមាន', 'អព្យាក្រឹត', 'ផលអព្យាក្រឹត'}
-            kh_content_words = [kw for kw in re.findall(r'[\u1780-\u17FF]{6,}', khmer_text) if kw not in KHMER_BOILERPLATE] if khmer_text else []
+            kh_content_words = [kw for kw in re.findall(r'[\u1780-\u17FF]{5,}', khmer_text) if kw not in KHMER_BOILERPLATE] if khmer_text else []
+
+            src_match = re.search(r'ប្រភពព័ត៌មាន\s*\|\s*(?:<[^>]+>)?([^<>\n]+)', khmer_text) if khmer_text else None
+            source_in_msg = src_match.group(1).strip() if src_match else ""
+
+            norm_msg = re.sub(r'[\s\W_]+', '', khmer_text).lower() if khmer_text else ""
 
             # 3. Check each post individually to eliminate cross-post false-positive accumulation
             for post_html in posts_raw:
@@ -1669,14 +1673,13 @@ class XAUUSDNewsAssistantBot:
                 post_lower = post_text.lower()
 
                 # A. Title keywords match against THIS specific post
+                post_matches = sum(1 for w in title_words if w.lower() in post_lower) if title_words else 0
                 if len(title_words) >= 4:
-                    post_matches = sum(1 for w in title_words if w.lower() in post_lower)
                     if post_matches >= 3 and (post_matches / len(title_words)) >= 0.45:
                         return True
                     if post_matches >= 4:
                         return True
                 elif len(title_words) in (2, 3):
-                    post_matches = sum(1 for w in title_words if w.lower() in post_lower)
                     if post_matches >= 2:
                         return True
 
@@ -1687,11 +1690,27 @@ class XAUUSDNewsAssistantBot:
                         if other_word_matches >= 1:
                             return True
 
-                # C. Khmer content words match in this specific post (>= 40% of non-boilerplate words)
-                if len(kh_content_words) >= 5:
-                    kh_matches = sum(1 for kw in kh_content_words if kw in post_text)
-                    if kh_matches >= 3 and (kh_matches / len(kh_content_words)) >= 0.40:
+                # C. Khmer content words match in this specific post
+                kh_matches = sum(1 for kw in kh_content_words if kw in post_text) if kh_content_words else 0
+                if len(kh_content_words) >= 4:
+                    if kh_matches >= 3 and (kh_matches / len(kh_content_words)) >= 0.50:
                         return True
+                elif len(kh_content_words) in (2, 3):
+                    if kh_matches >= 2 and (kh_matches / len(kh_content_words)) >= 0.60:
+                        return True
+
+                # D. Distinctive Publisher / Source match in recent posts
+                if source_in_msg and len(source_in_msg) >= 4 and source_in_msg.lower() not in ('reuters', 'bloomberg', 'ap news', 'cnbc', 'bbc'):
+                    if source_in_msg.lower() in post_lower and (kh_matches >= 2 or post_matches >= 2):
+                        return True
+
+                # E. Substring match for identical or near-identical formatted text
+                norm_post = re.sub(r'[\s\W_]+', '', post_text).lower()
+                if len(norm_msg) >= 35:
+                    for offset in range(0, min(len(norm_msg) - 30, 100), 15):
+                        seg = norm_msg[offset:offset+30]
+                        if seg in norm_post:
+                            return True
 
             # 4. Macro Cluster Verification in Channel Feed (Prevents cross-container duplicates for single major events)
             cluster = GoldNewsFilter.get_news_cluster(title)
@@ -1841,12 +1860,40 @@ class XAUUSDNewsAssistantBot:
                 database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
                 continue
 
+            # STRICT SUBSTANTIVE NARRATIVE GATE: Ensure formatted message has genuine, meaningful narrative content (No single-word stubs)
+            msg_lines = [l.strip() for l in msg.split('\n') if l.strip()]
+            body_lines = [
+                l for l in msg_lines 
+                if not l.startswith("🔹") 
+                and not l.startswith("ផល") 
+                and not l.startswith("ឥទ្ធិពល") 
+                and not l.startswith("ប្រភពព័ត៌មាន")
+            ]
+            final_body = " ".join(body_lines).strip()
+            final_body_khmer = len(re.findall(r'[\u1780-\u17FF]', final_body))
+            GENERIC_STUBS = {"របាយការណ៍", "សេចក្តីរាយការណ៍", "ព័ត៌មាន", "បច្ចុប្បន្នភាព", "ការវិភាគ", "report", "breaking", "news"}
+            if final_body_khmer < 35 or len(final_body.split()) < 4 or final_body.lower() in GENERIC_STUBS:
+                logger.warning(f"[REJECTED MEANINGLESS STUB] Breaking news '{title}' has no substantive narrative body: '{final_body}'. Dropping from broadcast.")
+                self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
+                database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
+                continue
+
+            # Anti-Collision Jitter: Breaks race condition if multiple containers evaluate news simultaneously
+            import random
+            time.sleep(random.uniform(0.8, 2.2))
+
             # Re-verify channel feed right before dispatch (with fresh real-time web check)
             if self._is_already_in_telegram_channel(title, it.get("link", ""), khmer_text=msg, fresh=True):
                 self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                 database.clear_news_from_data(it["id"], title, it.get("source", ""))
                 self._broadcasted_titles_cache.add(title.lower())
                 continue
+
+            # Pre-flight channel cooldown check: ensure another container did not just post in the last required_gap seconds
+            fresh_elapsed = self._channel_time_since_last_post()
+            if fresh_elapsed < (required_gap - 10.0):
+                logger.info(f"[CHANNEL COLLISION PREVENTED] Channel has a post from {fresh_elapsed:.1f}s ago (< {required_gap}s required). Deferring.")
+                break
 
             # Lock in-memory and database atomically BEFORE dispatching
             database.clear_news_from_data(it["id"], title, it.get("source", ""))
