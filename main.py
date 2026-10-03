@@ -1624,12 +1624,13 @@ class XAUUSDNewsAssistantBot:
         """Inspects the public Telegram channel feed to prevent duplicate broadcasts across distributed containers."""
         try:
             import urllib.parse
+            import html as html_module
             max_age = 0.0 if fresh else 20.0
             channel_html = self._fetch_channel_html(max_cache_age=max_age)
             if not channel_html:
                 return False
 
-            # 1. Exact Link & Article Slug Verification (Bulletproof Match)
+            # 1. Exact Link & Article Slug Verification (Bulletproof Match across whole channel feed)
             if link:
                 clean_link = link.split("?")[0].rstrip("/")
                 if clean_link and (clean_link in channel_html or urllib.parse.unquote(clean_link) in channel_html):
@@ -1639,40 +1640,60 @@ class XAUUSDNewsAssistantBot:
                     if slug.lower() in channel_html.lower() or slug.replace("-", " ").lower() in channel_html.lower():
                         return True
 
-            # 2. Extract salient English/Khmer keyword tokens (min length 4)
-            words = [w for w in re.findall(r'\b[A-Za-z0-9\u1780-\u17FF]{4,}\b', title) 
-                     if w.lower() not in ("news", "today", "live", "world", "market", "report", "the", "says", "with", "from", "after", "gold", "price", "rate", "year", "time", "week", "state", "states", "view", "channel", "message", "telegram")]
-            if len(words) >= 4:
-                matches = sum(1 for w in words if w.lower() in channel_html.lower())
-                # Lowered threshold: in Khmer posts, only Latin entities and names remain in English
-                if matches >= 2 and (matches / len(words)) >= 0.30:
-                    return True
-                if matches >= 3:
-                    return True
-            elif len(words) in (2, 3):
-                matches = sum(1 for w in words if w.lower() in channel_html.lower())
-                if matches >= 2:
-                    return True
+            # 2. Extract Individual Telegram Posts for precise post-by-post comparison
+            # Telegram channel web view encloses messages in tgme_widget_message_text or tgme_widget_message_caption
+            posts_raw = re.findall(r'<div class="tgme_widget_message_(?:text|caption)[^"]*"[^>]*>(.*?)</div>', channel_html, re.DOTALL)
+            if not posts_raw:
+                posts_raw = [channel_html]
 
-            # 3. High-entropy proper nouns (names of people, companies, unique subjects)
-            proper_nouns = [w for w in re.findall(r'\b[A-Z][a-z0-9]{4,}\b', title)
-                            if w.lower() not in ("today", "market", "report", "world", "breaking", "global", "united", "states", "first", "could", "would", "after", "about")]
-            for pn in proper_nouns:
-                if len(pn) >= 6 and pn.lower() in channel_html.lower():
-                    # If a distinctive entity matches (e.g. Gelsinger, Palantir, Flydubai) plus any other word
-                    other_match = any(w.lower() in channel_html.lower() for w in words if w.lower() != pn.lower())
-                    if other_match or len(proper_nouns) == 1:
+            BROAD_GEOPOLITICAL = {
+                'israel', 'gaza', 'russia', 'ukraine', 'china', 'united', 'states', 'america',
+                'iran', 'yemen', 'syria', 'lebanon', 'india', 'japan', 'korea', 'france',
+                'germany', 'britain', 'british', 'taiwan', 'today', 'world', 'market', 'report',
+                'breaking', 'global', 'first', 'could', 'would', 'after', 'about', 'state'
+            }
+
+            title_words = [w for w in re.findall(r'\b[A-Za-z0-9]{4,}\b', title) 
+                           if w.lower() not in ('news', 'today', 'live', 'world', 'market', 'report', 'the', 'says', 'with', 'from', 'after', 'gold', 'price', 'rate', 'year', 'time', 'week', 'state', 'states', 'view', 'channel', 'message', 'telegram')]
+            
+            # Distinctive proper nouns (e.g. Palantir, Gelsinger, Boeing, DeepSeek) excluding broad geopolitical nations
+            proper_nouns = [w for w in re.findall(r'\b[A-Z][a-z0-9]{4,}\b', title) if w.lower() not in BROAD_GEOPOLITICAL]
+
+            # Khmer content words excluding standard channel boilerplate template phrases
+            KHMER_BOILERPLATE = {'ព្រឹត្តិការណ៍សំខាន់', 'ព្រឹត្តិការណ៍', 'ប្រភពព័ត៌មាន', 'ផលវិជ្ជមាន', 'ផលអវិជ្ជមាន', 'ឥទ្ធិពលវិជ្ជមាន', 'ឥទ្ធិពលអវិជ្ជមាន', 'អព្យាក្រឹត', 'ផលអព្យាក្រឹត'}
+            kh_content_words = [kw for kw in re.findall(r'[\u1780-\u17FF]{6,}', khmer_text) if kw not in KHMER_BOILERPLATE] if khmer_text else []
+
+            # 3. Check each post individually to eliminate cross-post false-positive accumulation
+            for post_html in posts_raw:
+                post_text = html_module.unescape(re.sub(r'<[^>]+>', ' ', post_html)).strip()
+                post_lower = post_text.lower()
+
+                # A. Title keywords match against THIS specific post
+                if len(title_words) >= 4:
+                    post_matches = sum(1 for w in title_words if w.lower() in post_lower)
+                    if post_matches >= 3 and (post_matches / len(title_words)) >= 0.45:
+                        return True
+                    if post_matches >= 4:
+                        return True
+                elif len(title_words) in (2, 3):
+                    post_matches = sum(1 for w in title_words if w.lower() in post_lower)
+                    if post_matches >= 2:
                         return True
 
-            # 4. Khmer Translated Content Deduplication
-            if khmer_text:
-                kh_words = [w for w in re.findall(r'[\u1780-\u17FF]{6,}', khmer_text)]
-                if len(kh_words) >= 4:
-                    kh_matches = sum(1 for w in kh_words if w in channel_html)
-                    if kh_matches >= 2:
+                # B. Distinctive proper noun in this specific post plus at least one other word
+                for pn in proper_nouns:
+                    if len(pn) >= 6 and pn.lower() in post_lower:
+                        other_word_matches = sum(1 for w in title_words if w.lower() != pn.lower() and w.lower() in post_lower)
+                        if other_word_matches >= 1:
+                            return True
+
+                # C. Khmer content words match in this specific post (>= 40% of non-boilerplate words)
+                if len(kh_content_words) >= 5:
+                    kh_matches = sum(1 for kw in kh_content_words if kw in post_text)
+                    if kh_matches >= 3 and (kh_matches / len(kh_content_words)) >= 0.40:
                         return True
 
-            # 5. Macro Cluster & Event Verification in Channel Feed (Prevents cross-container duplicates)
+            # 4. Macro Cluster Verification in Channel Feed (Prevents cross-container duplicates for single major events)
             cluster = GoldNewsFilter.get_news_cluster(title)
             if cluster == "us_jobs" and re.search(r'29,000|29K|ការងារ|nfp|payroll', channel_html, re.I):
                 return True
