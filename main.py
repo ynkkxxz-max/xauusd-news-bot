@@ -482,10 +482,20 @@ class XAUUSDNewsAssistantBot:
                 timeframe="M15",
                 title_extra=conf.get("pattern", "")
             )
-            if chart_png:
-                self.notifier.send_photo(chart_png, caption=self._truncate_html_caption(msg, 950))
-            else:
-                self.notifier.send_message(msg)
+            # Direct Signal Alert via Private Bot DM ONLY (Never sent to public channel)
+            subscribers = database.get_signal_subscribers()
+            admin_id = os.getenv("TELEGRAM_ADMIN_CHAT_ID")
+            if admin_id and admin_id.isdigit():
+                subscribers = list(set(subscribers + [int(admin_id)]))
+
+            for sub_id in subscribers:
+                try:
+                    if chart_png:
+                        self.notifier.send_photo(chart_png, caption=self._truncate_html_caption(msg, 950), chat_id=sub_id)
+                    else:
+                        self.notifier.send_message(msg, chat_id=sub_id)
+                except Exception as e:
+                    logger.warning(f"[Private Signal DM] Error sending to {sub_id}: {e}")
 
             database.set_state("last_candle_conf_ts", str(now))
 
@@ -598,8 +608,17 @@ class XAUUSDNewsAssistantBot:
             logger.info(f"[AI SNIPER INSTANT SIGNAL APPROVED] {sig['action_title']} at ${sig['entry']} (ID: {sig_id}) | Daily Position: {new_daily_count}/{DAILY_MAX_SIGNALS}")
             msg = KhmerFormatter.format_sniper_instant_alert(sig)
             
-            # Send clean signal message
-            self.notifier.send_message(msg)
+            # Direct Signal Alert via Private Bot DM ONLY (Never sent to public channel)
+            subscribers = database.get_signal_subscribers()
+            admin_id = os.getenv("TELEGRAM_ADMIN_CHAT_ID")
+            if admin_id and admin_id.isdigit():
+                subscribers = list(set(subscribers + [int(admin_id)]))
+
+            for sub_id in subscribers:
+                try:
+                    self.notifier.send_message(msg, chat_id=sub_id)
+                except Exception as e:
+                    logger.warning(f"[Private Sniper Signal DM] Error sending to {sub_id}: {e}")
 
             database.set_state("last_sniper_signal_ts", str(now))
             database.set_state("last_sniper_action", sig.get("action", ""))
@@ -881,6 +900,12 @@ class XAUUSDNewsAssistantBot:
             if chat_id > 0:
                 from_user = msg_obj.get("from", {})
                 from_user_id = from_user.get("id") or chat_id
+                # Register private user for Direct Signal DMs
+                database.add_signal_subscriber(
+                    chat_id=chat_id,
+                    username=from_user.get("username"),
+                    first_name=from_user.get("first_name")
+                )
                 # Check if user has joined the official channel
                 is_member = self.notifier.is_user_member_of_channel(user_id=from_user_id)
                 if not is_member:
