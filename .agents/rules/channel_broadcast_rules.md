@@ -45,13 +45,8 @@ description: "Core rules and design standards for Telegram Channel Broadcasts (D
   - គម្លាតផ្សាយទូទៅ: ៣ នាទី (១៨០ វិនាទី) យ៉ាងតិចរវាងសារនីមួយៗ (VIP Critical: ៩០ វិនាទី) ការពារការបាញ់សារ Spam ជាន់ៗគ្នា ៥ សារក្នុង ១ នាទី។
   - Cooldown តាមប្រធានបទ: Jobs/NFP (៤ ម៉ោង), អតិផរណា CPI (៤ ម៉ោង), Fed (២ ម៉ោង), ប្រេងកាត Energy/Oil (១ ម៉ោង), Tech/AI (១ ម៉ោង), Crypto (១ ម៉ោង) មិនឱ្យចេញព័ត៌មានពីប្រធានបទដដែលៗពី Feed ផ្សេងទៀតឡើយ។
 
-### 4. 📊 ស្តង់ដារ Interactive Poll & Mini App Button (Strict Single-Bubble Standard)
-- **សំណួរ Poll សាមញ្ញ ស្អាត គ្មានបញ្ជាក់ទិសដៅ**:
-  - `📊 លទ្ធផល Signal XAUUSD — សូមបញ្ជាក់លទ្ធផលរបស់អ្នក:` (ហាមដាច់ខាតមិនដាក់ `(Buy Dip) —` ឬ `(Sell Top) —` ឡើយ)។
-- **ជម្រើស Options បែប Trader អាជីព (Strict No Gambling Terms)**:
-  - ជម្រើសទី ១: `🎯 Hit TP` (ហាមដាច់ខាតមិនប្រើពាក្យ `ឈ្នះ`)
-  - ជម្រើសទី ២: `🛑 Hit SL` (ហាមដាច់ខាតមិនប្រើពាក្យ `ចាញ់`)
-- **កញ្ចប់តែមួយគត់ (Single Unified Bubble — Zero Separate Message)**:
-  - ប៊ូតុង `📱 បើក Mini App ដើម្បីទទួលបាន Signal Live` ត្រូវតែភ្ជាប់ផ្ទាល់ជាមួយ Poll តែម្ដង (`sendPoll(..., reply_markup=app_cta_markup)`)។
-  - **ហាមដាច់ខាតមិនឱ្យផ្ញើសារទី ២** ប្រភេទ `👇 ចុចប៊ូតុងខាងក្រោមដើម្បីចូលមើល Signal បន្តផ្ទាល់លើ Mini App:` ឡើយ (ត្រូវលុបចោលទាំងស្រុងជាអចិន្ត្រៃយ៍)។
+### 4. 🚫 លុបចោលសារ Interactive Poll ជារៀងរហូត (Permanently Disable Signal Polls)
+- **បិទការផ្ញើសារ Poll ជារៀងរហូត (Permanently Banned — បញ្ជាផ្ទាល់)**:
+  - ហាមដាច់ខាតមិនឱ្យផ្ញើសារ Interactive Poll (`📊 លទ្ធផល Signal XAUUSD — សូមបញ្ជាក់លទ្ធផលរបស់អ្នក:`) ចូល Telegram Channel ទៀតឡើយ។
+  - មុខងារ `send_poll` ត្រូវបានបិទទាំងស្រុងជាអចិន្ត្រៃយ៍។
 
