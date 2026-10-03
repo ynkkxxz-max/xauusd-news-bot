@@ -163,6 +163,8 @@ class BreakingNewsCollector:
                         title = re.sub(PUBLISHER_SUFFIX_REGEX, '', title, flags=re.IGNORECASE).strip()
                         title = re.sub(r'\s*[-–—|:]\s*[\w\.-]+\.(?:com|org|net|id|uk|kh|gov|io|edu|vn|th)\b.*$', '', title, flags=re.IGNORECASE).strip()
                         title = re.sub(r'\s*[-–—|:]\s*(?:Breaking News|Latest News|Videos|Top Stories|World News|Live Updates).*$', '', title, flags=re.IGNORECASE).strip()
+                        title = re.sub(r'\s*[:\-–—|]\s*(?:Report|Reports|Analysis|Exclusive|Live updates|Live|Updates)\s*$', '', title, flags=re.IGNORECASE).strip()
+                        title = re.sub(r'\s*[\[\(](?:Report|Reports|Analysis|Exclusive)[\]\)]\s*$', '', title, flags=re.IGNORECASE).strip()
 
                         clean_desc = re.sub(r'<[^>]+>', ' ', desc)
                         clean_desc = html.unescape(clean_desc)
