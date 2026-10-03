@@ -58,6 +58,36 @@ MACRO_KEYWORDS = [
     "sec regulation", "crypto regulation", "banking oversight"
 ]
 
+import re
+
+# Comprehensive exclusion filter for Sports, Football, Entertainment, Celebrity, Gossip, and Lifestyle
+SPORTS_AND_GOSSIP_PATTERNS = [
+    # Football / Soccer / Sports
+    r"\b(manchester city|man city|premier league|champions league|football|soccer|fifa|uefa)\b",
+    r"\b(la liga|serie a|bundesliga|world cup|olympics|nfl|nba|mlb|nhl|cricket|tennis|golf)\b",
+    r"\b(tournament|referee|striker|goalkeeper|player|transfer fee|stadium|coach|ballon d'or|pinto)\b",
+    r"\b(athletics|athlete|racing|f1|formula 1|grand prix|super bowl)\b",
+    
+    # Celebrity / Gossip / Romance / Personal Drama
+    r"\b(dating|romance|relationship|divorce|girlfriend|boyfriend|breakup|ended relationship|split)\b",
+    r"\b(affair|marriage|wedding|personal life|gossip|scandal|celebrity|hollywood|actor|actress|pop star)\b",
+    
+    # Entertainment / Streaming / Food / Lifestyle
+    r"\b(netflix|movie|movies|film|films|cinema|box office|tv series|trailer|album|concert)\b",
+    r"\b(french food|recipe|cuisine|restaurant|satire|parody|comedy|funny|horoscope)\b",
+]
+
+def _matches_any_keyword(text: str, keywords: list) -> bool:
+    """Safe keyword matching: Uses strict word boundaries for short words (<=4 chars) to prevent substring false positives."""
+    for kw in keywords:
+        if len(kw) <= 4:
+            if re.search(rf"\b{re.escape(kw)}\b", text):
+                return True
+        else:
+            if kw in text:
+                return True
+    return False
+
 class GoldNewsFilter:
     # High-impact catalysts that MUST trigger immediate alert (Zero-delay bypass)
     IMMEDIATE_CATALYSTS = [
@@ -82,7 +112,7 @@ class GoldNewsFilter:
     def is_immediate_alert(title: str, description: str = "") -> bool:
         """Determines whether the news is a high-impact catalyst or market anomaly that must alert IMMEDIATELY."""
         text = f"{title} {description}".lower()
-        return any(c in text for c in GoldNewsFilter.IMMEDIATE_CATALYSTS)
+        return _matches_any_keyword(text, GoldNewsFilter.IMMEDIATE_CATALYSTS)
 
     @staticmethod
     def urgency_score(title: str) -> int:
@@ -91,22 +121,30 @@ class GoldNewsFilter:
         # VIP Immediate Priority Tier: Fed Chair/Governor Speeches (Kevin Warsh, Powell, FOMC)
         if any(w in text for w in ["kevin warsh", "warsh", "powell", "fomc statement", "fed rate decision"]):
             return 3
-        if any(c in text for c in GoldNewsFilter.IMMEDIATE_CATALYSTS):
+        if _matches_any_keyword(text, GoldNewsFilter.IMMEDIATE_CATALYSTS):
             return 2
-        return 1 if any(s in text for s in GoldNewsFilter.URGENT_SIGNALS) else 0
+        return 1 if _matches_any_keyword(text, GoldNewsFilter.URGENT_SIGNALS) else 0
 
     @staticmethod
     def is_gold_relevant(title: str, description: str = "") -> bool:
         """
         Determines whether a piece of news directly or indirectly influences XAUUSD / Financial Markets
         across the 7 Core News Pillars (Geopolitics, Macroeconomics, Fed/Monetary, Energy/Oil, Tech, Policies).
+        Strictly rejects Sports, Football, Celebrity, Gossip, Opinion, and Lifestyle news.
         """
         clean_title = (title or "").strip()
-        # Strictly reject speculative questions and opinion pieces (e.g. "Trump the environmentalist? ...")
+        # Strictly reject speculative questions
         if "?" in clean_title:
             return False
         
         t_low = clean_title.lower()
+        full_text = f"{title} {description}".lower()
+
+        # Gate 0: Strict rejection of sports, football clubs (e.g. Manchester City), gossip, celebrities
+        for pat in SPORTS_AND_GOSSIP_PATTERNS:
+            if re.search(pat, full_text):
+                return False
+
         opinion_markers = [
             "opinion:", "opinion |", "analysis:", "analysis |", "op-ed:", "op-ed |",
             "editorial:", "editorial |", "column:", "columnist:", "essay:", "viewpoint:", "perspective:"
@@ -114,24 +152,24 @@ class GoldNewsFilter:
         if any(t_low.startswith(marker) or f" {marker}" in t_low for marker in opinion_markers):
             return False
 
-        text = f"{title} {description}".lower()
+        text = full_text
         
         # 1. Explicit Gold mention
-        if any(kw in text for kw in GOLD_KEYWORDS):
+        if _matches_any_keyword(text, GOLD_KEYWORDS):
             return True
 
         # 2. Immediate high-impact catalysts (War, FOMC, Emergency, Hormuz, Sanctions)
-        if any(c in text for c in GoldNewsFilter.IMMEDIATE_CATALYSTS):
+        if _matches_any_keyword(text, GoldNewsFilter.IMMEDIATE_CATALYSTS):
             return True
 
         # 3. Geopolitical, War, and Global Conflict (Pillar 2 - safe-haven drivers)
         geopolitical_triggers = [
             "iran", "israel", "middle east", "war", "conflict", "strait of hormuz", "hormuz",
             "red sea", "russia", "ukraine", "taiwan", "missile", "airstrike", "drone attack",
-            "military", "nuclear", "sanctions", "ceasefire", "peace deal", "trump war",
+            "military attack", "nuclear threat", "sanctions", "ceasefire", "peace deal", "trump war",
             "rial", "geopolitical", "safe haven", "safe-haven"
         ]
-        if any(kw in text for kw in geopolitical_triggers):
+        if _matches_any_keyword(text, geopolitical_triggers):
             return True
 
         # 4. Energy & Commodities (Pillar 5 - inflation & market driver)
@@ -139,7 +177,7 @@ class GoldNewsFilter:
             "crude oil", "oil price", "oil prices", "brent", "wti", "opec", "energy crisis",
             "gas prices", "petroleum"
         ]
-        if any(kw in text for kw in energy_triggers):
+        if _matches_any_keyword(text, energy_triggers):
             return True
 
         # 5. Monetary Policy & Central Banks (Pillar 4)
@@ -147,7 +185,7 @@ class GoldNewsFilter:
             "fed", "federal reserve", "powell", "warsh", "kevin warsh", "fomc", "interest rate",
             "rate cut", "rate hike", "ecb", "boe", "boj", "pboc", "central bank", "yield", "yields", "treasury"
         ]
-        if any(kw in text for kw in monetary_triggers):
+        if _matches_any_keyword(text, monetary_triggers):
             return True
 
         # 6. Global Economy & Inflation (Pillar 1 & 7)
@@ -155,20 +193,19 @@ class GoldNewsFilter:
             "cpi", "inflation", "gdp", "nfp", "non-farm", "nonfarm", "jobs report", "pce", "ppi",
             "recession", "pmi", "tariff", "trade war", "de-dollarization", "debt ceiling", "sovereign debt"
         ]
-        if any(kw in text for kw in macro_triggers):
+        if _matches_any_keyword(text, macro_triggers):
             return True
 
         # 7. Check across all 7 Core News Pillars (Macro, Geopolitics, Tech/AI, Energy, Social, Laws/Tariffs)
-        if any(kw in text for kw in MACRO_KEYWORDS):
+        if _matches_any_keyword(text, MACRO_KEYWORDS):
             return True
 
         # 8. USD / Currency shocks (Pillar 1)
-        has_usd = any(kw in text for kw in USD_KEYWORDS)
-        if has_usd:
+        if _matches_any_keyword(text, USD_KEYWORDS):
             return True
 
         # 9. Digital Currency, Bitcoin & Crypto (Digital Assets & Financial Innovation)
-        if any(kw in text for kw in CRYPTO_KEYWORDS):
+        if _matches_any_keyword(text, CRYPTO_KEYWORDS):
             return True
 
         return False
