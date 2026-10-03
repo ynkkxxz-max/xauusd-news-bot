@@ -189,6 +189,42 @@ def sanitize_khmer_spelling(text: str) -> str:
     # Strip any nested duplicate words like "Israel (Israel (...))"
     res = re.sub(r'\b([A-Za-z0-9]+)(?:\s*\(\s*\1\s*[\(\)]*)+', r'\1', res)
     res = re.sub(r'([A-Za-z0-9]+)\s*\(\s*\1\s*\)', r'\1', res)
+
+    # 5. Clean orphaned / stray brackets, parentheses, and dangling prefix artifacts (e.g. "បញ្ហា ) ព្រួយបារម្ភ...")
+    res = re.sub(r'^\s*(?:[A-Za-z\u1780-\u17FF\s]{1,15}\s*)?[\)\]\}\>]\s*[-–—:]*\s*', '', res).strip()
+    res = re.sub(r'^[\(\[\{][^\)\]\}]{1,25}[\)\]\}]\s*[-–—:]*\s*', '', res).strip()
+    res = re.sub(r'^\s*បញ្ហា\s*[\)\]\}\:\-–—\s]+\s*', '', res).strip()
+
+    # 6. Deduplicate repeated Khmer words/syllable stutters (e.g. "ព្យាករណ៍ព្យាករណ៍", "ប្រឆាំង ប្រឆាំង", "ទុកទុក", "កើនឡើងឡើង")
+    stutter_fixes = [
+        (r"ការព្យាករណ៍ព្យាករណ៍", "ការព្យាករណ៍"),
+        (r"ព្យាករណ៍ព្យាករណ៍", "ព្យាករណ៍"),
+        (r"រំពឹងទុកទុក", "រំពឹងទុក"),
+        (r"ទុកទុកជាមុន", "ទុកជាមុន"),
+        (r"ប្រឆាំង\s+ប្រឆាំង", "ប្រឆាំង"),
+        (r"ភាពប្រឆាំង\s*ប្រឆាំង", "ភាពប្រឆាំង"),
+        (r"កើនឡើងឡើង", "កើនឡើង"),
+        (r"ធ្លាក់ចុះចុះ", "ធ្លាក់ចុះ"),
+        (r"ព្រួយបារម្ភ\s*ព្រួយបារម្ភ", "ព្រួយបារម្ភ"),
+        (r"តានតឹង\s*តានតឹង", "តានតឹង"),
+        (r"រដ្ឋាភិបាល\s*រដ្ឋាភិបាល", "រដ្ឋាភិបាល"),
+        (r"សេដ្ឋកិច្ច\s*សេដ្ឋកិច្ច", "សេដ្ឋកិច្ច"),
+        (r"អតិផរណា\s*អតិផរណា", "អតិផរណា"),
+        (r"ទីផ្សារ\s*ទីផ្សារ", "ទីផ្សារ"),
+        (r"វិនិយោគិន\s*វិនិយោគិន", "វិនិយោគិន"),
+        (r"នយោបាយ\s*នយោបាយ", "នយោបាយ"),
+        (r"អន្តរជាតិ\s*អន្តរជាតិ", "អន្តរជាតិ"),
+    ]
+    for pat, rep in stutter_fixes:
+        res = re.sub(pat, rep, res)
+
+    # General algorithmic deduplication of Khmer word/syllable repeats (length >= 3)
+    for _ in range(2):
+        res = re.sub(r'([\u1780-\u17D3\u17B6-\u17C5]{3,})\s*\1', r'\1', res)
+
+    # 7. Ensure space after Khmer full stop (។) to prevent text crowding
+    res = re.sub(r'។(?!\s|$)', '។ ', res)
+
     return res.strip()
 
 class KhmerFormatter:
@@ -400,7 +436,7 @@ class KhmerFormatter:
             key_event = (news_item.get("description") or news_item.get("title") or "").strip()
 
         # Flag mapping per user directive (Header only)
-        full_search = f"{news_item.get('title', '')} {key_event}".lower()
+        full_search = f"{news_item.get('title', '')} {news_item.get('source', '')} {key_event}".lower()
         country_flags = []
         flag_rules = [
             (r"\b(us|usa|united states|america|fed|biden|trump|powell)\b|អាមេរិក|សហរដ្ឋអាមេរិក", "🇺🇸"),
@@ -411,9 +447,24 @@ class KhmerFormatter:
             (r"\b(ukraine|kyiv|zelenskyy|zelensky)\b|អ៊ុយក្រែន", "🇺🇦"),
             (r"\b(china|beijing|pboc|xi jinping)\b|ចិន", "🇨🇳"),
             (r"\b(japan|tokyo|boj|yen)\b|ជប៉ុន", "🇯🇵"),
-            (r"\b(eu|europe|european|ecb|germany|france)\b|អឺរ៉ុប|អាល្លឺម៉ង់|បារាំង", "🇪🇺"),
+            (r"\b(india|indian|delhi|mumbai|modi|rbi|rupee|times of india)\b|ឥណ្ឌា", "🇮🇳"),
+            (r"\b(germany|german|berlin|bundesbank|scholz)\b|អាល្លឺម៉ង់", "🇩🇪"),
+            (r"\b(france|french|paris|macron)\b|បារាំង", "🇫🇷"),
+            (r"\b(eu|europe|european|ecb)\b|អឺរ៉ុប", "🇪🇺"),
+            (r"\b(korea|korean|seoul|bok)\b|កូរ៉េ", "🇰🇷"),
+            (r"\b(taiwan|taiwanese|taipei|tsmc)\b|តៃវ៉ាន់", "🇹🇼"),
+            (r"\b(australia|australian|sydney|rba|canberra)\b|អូស្ត្រាលី", "🇦🇺"),
+            (r"\b(switzerland|swiss|snb|zurich|geneva)\b|ស្វីស", "🇨🇭"),
+            (r"\b(singapore|straits times|mas)\b|សិង្ហបុរី", "🇸🇬"),
             (r"\b(saudi|opec|riyadh)\b|អារ៉ាប៊ីសាអ៊ូឌីត", "🇸🇦"),
             (r"\b(canada|canadian|boc|toronto|canadian tire)\b|កាណាដា", "🇨🇦"),
+            (r"\b(uae|dubai|abu dhabi|emirates)\b|អេមីរ៉ាត|ឌូបៃ", "🇦🇪"),
+            (r"\b(turkey|turkish|turkiye|ankara|erdogan|cbrt)\b|តួកគី", "🇹🇷"),
+            (r"\b(brazil|brazilian|lula)\b|ប្រេស៊ីល", "🇧🇷"),
+            (r"\b(qatar|doha)\b|កាតា", "🇶🇦"),
+            (r"\b(egypt|cairo)\b|អេហ្ស៊ីប", "🇪🇬"),
+            (r"\b(mexico|mexican|banxico)\b|ម៉ិកស៊ិក", "🇲🇽"),
+            (r"\b(vietnam|vietnamese|hanoi)\b|វៀតណាម", "🇻🇳"),
         ]
         for pattern, flag in flag_rules:
             if re.search(pattern, full_search, re.IGNORECASE) and flag not in country_flags:
@@ -428,6 +479,11 @@ class KhmerFormatter:
 
         # Strip robotic category prefix with colon (e.g. "ភាពតានតឹង...៖ " or "...កើនឡើង: ")
         key_event = re.sub(r'^[^\n៖:]+[៖:]\s*', '', key_event).strip()
+
+        # Strip dangling / orphaned prefixes like "បញ្ហា )", "(Reuters) - ", "Topic )", etc.
+        key_event = re.sub(r'^\s*(?:[A-Za-z\u1780-\u17FF\s]{1,15}\s*)?[\)\]\}\>]\s*[-–—:]*\s*', '', key_event).strip()
+        key_event = re.sub(r'^[\(\[\{][^\)\]\}]{1,25}[\)\]\}]\s*[-–—:]*\s*', '', key_event).strip()
+        key_event = re.sub(r'^\s*បញ្ហា\s*[\)\]\}\:\-–—\s]+\s*', '', key_event).strip()
 
         # Sanitize Khmer spelling to guarantee 100% accurate spelling
         key_event = sanitize_khmer_spelling(key_event)
@@ -470,6 +526,9 @@ class KhmerFormatter:
 
         parts = [header, key_event]
         if impact_line:
+            # Strip internal newlines so impact stays strictly on a single cohesive line
+            impact_line = re.sub(r'[\r\n]+', ' ', impact_line).strip()
+            impact_line = re.sub(r'^(ផលវិជ្ជមាន|ផលអវិជ្ជមាន|ផលអព្យាក្រឹត)[\s៖:]+', r'\1៖ ', impact_line)
             impact_line = sanitize_khmer_spelling(impact_line)
             parts.append(impact_line)
         parts.append(source_line)
