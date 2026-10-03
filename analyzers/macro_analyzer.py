@@ -185,7 +185,7 @@ class MacroAnalyzer:
                 "key_event": "",
                 "what_happened": "",
                 "why_it_matters": "",
-                "impact": "វាផលអព្យាក្រឹត មិនអាចបកប្រែជាភាសាខ្មែរបាន",
+                "impact": "ផលអព្យាក្រឹត៖ មិនអាចបកប្រែជាភាសាខ្មែរបាន",
                 "is_clear": False,
                 "bias": "🟡 Neutral"
             }
@@ -197,7 +197,7 @@ class MacroAnalyzer:
         if any(re.search(rf"\b{w}\b", text) for w in ent_words):
             return {
                 "key_event": km_story,
-                "impact": "វាផលអព្យាក្រឹត ព័ត៌មានកម្សាន្តគ្មានផលប៉ះពាល់លើទីផ្សារ",
+                "impact": "ផលអព្យាក្រឹត៖ ព័ត៌មានកម្សាន្តគ្មានផលប៉ះពាល់លើទីផ្សារ",
                 "is_clear": False,
                 "bias": "🟡 Neutral"
             }
@@ -216,7 +216,7 @@ class MacroAnalyzer:
                 "key_event": km_story,
                 "what_happened": km_story,
                 "why_it_matters": "បង្កើនហានិភ័យភូមិសាស្ត្រនយោបាយ និងអស្ថិរភាពសន្តិសុខសកល",
-                "impact": "វាផលអវិជ្ជមាន បង្កើនហានិភ័យភូមិសាស្ត្រនយោបាយ និងអស្ថិរភាពសន្តិសុខសកល",
+                "impact": "ផលអវិជ្ជមាន៖ បង្កើនហានិភ័យភូមិសាស្ត្រនយោបាយ និងអស្ថិរភាពសន្តិសុខសកល",
                 "usd_impact": "USD អាចឡើងថ្លៃក្នុងនាមជា Safe Haven ប៉ុន្តែមាស (Gold) ទទួលបានអត្ថប្រយោជន៍ និងទំហំទិញខ្លាំងជាង។",
                 "rate_yield_impact": "វិនិយោគិនសម្រុកទិញសញ្ញាប័ណ្ណរដ្ឋាភិបាល (Bonds) ធ្វើឱ្យ Bond Yields ធ្លាក់ចុះ។",
                 "xau_pressure": "🟢 Bullish (តម្រូវការទិញមាស Safe-Haven កើនឡើងខ្ពស់)",
@@ -231,7 +231,7 @@ class MacroAnalyzer:
                 "key_event": km_story,
                 "what_happened": km_story,
                 "why_it_matters": "បង្កើនហានិភ័យសង្គ្រាមពាណិជ្ជកម្ម និងបន្ទុកពន្ធគយ",
-                "impact": "វាផលអវិជ្ជមាន បង្កើនហានិភ័យសង្គ្រាមពាណិជ្ជកម្ម និងបន្ទុកពន្ធគយ",
+                "impact": "ផលអវិជ្ជមាន៖ បង្កើនហានិភ័យសង្គ្រាមពាណិជ្ជកម្ម និងបន្ទុកពន្ធគយ",
                 "usd_impact": "USD អាចប្រែប្រួលតាមទំហំពាណិជ្ជកម្ម។",
                 "rate_yield_impact": "ហានិភ័យអតិផរណាពីពន្ធគយអាចរុញ Bond Yields ឡើង។",
                 "xau_pressure": "🟢 Bullish (គាំទ្រតម្រូវការមាសការពារហានិភ័យ)",
@@ -242,10 +242,10 @@ class MacroAnalyzer:
         # Gate 3: Economy & Inflation (CPI, PCE, GDP, Retail Sales, Labor, Jobs)
         if any(re.search(rf"\b{w}\b", text) for w in ["cpi", "inflation", "pce", "producer price"]):
             if any(re.search(rf"\b{w}\b", text) for w in ["accelerat", "surge", "higher", "rise", "jump", "hot", "beat"]):
-                impact = "វាផលអវិជ្ជមាន សម្ពាធអតិផរណាខ្ពស់រុញច្រានការបញ្ចុះអត្រាការប្រាក់ឱ្យពន្យារពេល"
+                impact = "ផលអវិជ្ជមាន៖ សម្ពាធអតិផរណាខ្ពស់រុញច្រានការបញ្ចុះអត្រាការប្រាក់ឱ្យពន្យារពេល"
                 bias = "🔴 Bearish"
             else:
-                impact = "វាផលវិជ្ជមាន អតិផរណាធ្លាក់ចុះគាំទ្រដល់លទ្ធភាពនៃការបន្ធូរបន្ថយអត្រាការប្រាក់"
+                impact = "ផលវិជ្ជមាន៖ អតិផរណាធ្លាក់ចុះគាំទ្រដល់លទ្ធភាពនៃការបន្ធូរបន្ថយអត្រាការប្រាក់"
                 bias = "🟢 Bullish"
             return {
                 "key_event": km_story,
@@ -258,7 +258,7 @@ class MacroAnalyzer:
         if any(re.search(rf"\b{w}\b", text) for w in ["strike", "strikes", "layoff", "layoffs", "unemployment", "job cuts"]):
             return {
                 "key_event": km_story,
-                "impact": "វាផលអវិជ្ជមាន ការកកស្ទះដឹកជញ្ជូនទំនិញ និងបន្ទុកថ្លៃដើមពាណិជ្ជកម្ម",
+                "impact": "ផលអវិជ្ជមាន៖ ការកកស្ទះដឹកជញ្ជូនទំនិញ និងបន្ទុកថ្លៃដើមពាណិជ្ជកម្ម",
                 "bias": "🔴 Bearish",
                 "is_clear": True
             }
@@ -267,7 +267,7 @@ class MacroAnalyzer:
         if any(re.search(rf"\b{w}\b", text) for w in ["opec", "crude", "oil production", "crude oil", "fuel exports", "gas pipeline"]):
             return {
                 "key_event": km_story,
-                "impact": "វាផលអវិជ្ជមាន ថ្លៃដើមថាមពលកើនឡើងខ្ពស់បង្កហានិភ័យអតិផរណា",
+                "impact": "ផលអវិជ្ជមាន៖ ថ្លៃដើមថាមពលកើនឡើងខ្ពស់បង្កហានិភ័យអតិផរណា",
                 "bias": "🔴 Bearish",
                 "is_clear": True
             }
@@ -276,10 +276,10 @@ class MacroAnalyzer:
         if any(re.search(rf"\b{w}\b", text) for w in ["bitcoin", "crypto", "etf", "sec", "xrp", "ethereum", "digital assets", "solana"]):
             negative_crypto = ["hack", "stole", "ban", "crackdown", "fraud", "lawsuit", "crash", "plunge", "downside"]
             if any(re.search(rf"\b{w}\b", text) for w in negative_crypto):
-                impact = "វាផលអវិជ្ជមាន បង្កើតភាពមិនប្រាកដប្រជា និងសម្ពាធលក់ក្នុងទីផ្សារឌីជីថល"
+                impact = "ផលអវិជ្ជមាន៖ បង្កើតភាពមិនប្រាកដប្រជា និងសម្ពាធលក់ក្នុងទីផ្សារឌីជីថល"
                 bias = "🔴 Bearish"
             else:
-                impact = "វាផលវិជ្ជមាន ជំរុញលំហូរសាច់ប្រាក់ស្ថាប័ន និងពង្រឹងទំនុកចិត្តលើទីផ្សាររូបិយប័ណ្ណឌីជីថល"
+                impact = "ផលវិជ្ជមាន៖ ជំរុញលំហូរសាច់ប្រាក់ស្ថាប័ន និងពង្រឹងទំនុកចិត្តលើទីផ្សាររូបិយប័ណ្ណឌីជីថល"
                 bias = "🟢 Bullish"
             return {
                 "key_event": km_story,
@@ -292,10 +292,10 @@ class MacroAnalyzer:
         if any(re.search(rf"\b{w}\b", text) for w in ["artificial intelligence", "ai", "semiconductor", "chips", "nvidia", "tsmc", "tech"]):
             negative_tech = ["curb", "curbs", "ban", "restriction", "sanction", "export", "downside", "investigation", "fall", "drop", "warning"]
             if any(re.search(rf"\b{w}\b", text) for w in negative_tech):
-                impact = "វាផលអវិជ្ជមាន បង្កផលរំខានដល់ខ្សែច្រវាក់ផ្គត់ផ្គង់បន្ទះឈីបសកល"
+                impact = "ផលអវិជ្ជមាន៖ បង្កផលរំខានដល់ខ្សែច្រវាក់ផ្គត់ផ្គង់បន្ទះឈីបសកល"
                 bias = "🔴 Bearish"
             else:
-                impact = "វាផលវិជ្ជមាន ជំរុញនវានុវត្តន៍បច្ចេកវិទ្យា និងទាក់ទាញលំហូរសាច់ប្រាក់វិនិយោគ"
+                impact = "ផលវិជ្ជមាន៖ ជំរុញនវានុវត្តន៍បច្ចេកវិទ្យា និងទាក់ទាញលំហូរសាច់ប្រាក់វិនិយោគ"
                 bias = "🟢 Bullish"
             return {
                 "key_event": km_story,
@@ -307,10 +307,10 @@ class MacroAnalyzer:
         # Gate 8: Monetary Policy & Central Banks (Fed, Powell, Rates)
         if any(re.search(rf"\b{w}\b", text) for w in ["fed", "powell", "fomc", "rate cut", "rate hike", "central bank", "ecb", "boe", "boj", "pboc"]):
             if any(re.search(rf"\b{w}\b", text) for w in ["cut", "cuts", "dovish", "easing", "lower"]):
-                impact = "វាផលវិជ្ជមាន កាត់បន្ថយថ្លៃដើមខ្ចីប្រាក់ និងជំរុញសន្ទុះសេដ្ឋកិច្ច"
+                impact = "ផលវិជ្ជមាន៖ កាត់បន្ថយថ្លៃដើមខ្ចីប្រាក់ និងជំរុញសន្ទុះសេដ្ឋកិច្ច"
                 bias = "🟢 Bullish"
             else:
-                impact = "វាផលអវិជ្ជមាន អត្រាការប្រាក់រក្សាកម្រិតខ្ពស់យូរជាងការរំពឹងទុក"
+                impact = "ផលអវិជ្ជមាន៖ អត្រាការប្រាក់រក្សាកម្រិតខ្ពស់យូរជាងការរំពឹងទុក"
                 bias = "🔴 Bearish"
             return {
                 "key_event": km_story,
@@ -322,7 +322,7 @@ class MacroAnalyzer:
         # Final Fallback: Neutral
         return {
             "key_event": km_story,
-            "impact": "វាផលអព្យាក្រឹត ទីផ្សារកំពុងរង់ចាំទិន្នន័យបន្ថែម",
+            "impact": "ផលអព្យាក្រឹត៖ ទីផ្សារកំពុងរង់ចាំទិន្នន័យបន្ថែម",
             "is_clear": False,
             "bias": "🟡 Neutral"
         }
