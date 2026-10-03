@@ -172,6 +172,8 @@ class MacroAnalyzer:
         # Clean suffixes e.g. " | Live blog", " - Live", " | Live updates", " - Istat", " - Reuters"
         clean_title = re.sub(r'\s*\|\s*(?:Live blog|Live updates|Live|Blog|Breaking).*$', '', clean_title, flags=re.IGNORECASE)
         clean_title = re.sub(r'\s*-\s*(?:Istat|Reuters|Bloomberg|AP|AFP|CNBC|WSJ|MarketWatch|Yahoo Finance)$', '', clean_title, flags=re.IGNORECASE)
+        clean_title = re.sub(r'\s*[:\-–—|]\s*(?:Report|Reports|Analysis|Exclusive|Live updates|Live|Updates)\s*$', '', clean_title, flags=re.IGNORECASE).strip()
+        clean_title = re.sub(r'\s*[\[\(](?:Report|Reports|Analysis|Exclusive)[\]\)]\s*$', '', clean_title, flags=re.IGNORECASE).strip()
 
         clean_desc = re.sub(r'<[^>]+>', ' ', description or '')
         clean_desc = html.unescape(clean_desc)
