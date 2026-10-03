@@ -2771,43 +2771,43 @@
 
 
 
-    /* Waiting State: Refined Luxury Amber/Gold */
+    /* Waiting / Closed State: Vibrant Ruby/Pink Laser Neon (Matching Stop Loss $4125.46) */
 
     .signal-action-btn.waiting {
 
-      background: linear-gradient(180deg, rgba(18, 24, 38, 0.95) 0%, rgba(9, 13, 22, 0.98) 100%);
+      background: linear-gradient(180deg, rgba(32, 10, 20, 0.95) 0%, rgba(14, 5, 10, 0.98) 100%);
 
-      border: 1px solid rgba(255, 215, 0, 0.35);
+      border: 1px solid rgba(255, 51, 102, 0.45);
 
-      border-top: 1.5px solid rgba(255, 215, 0, 0.55);
+      border-top: 1.5px solid #FF3366;
 
-      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      box-shadow: 0 0 22px rgba(255, 51, 102, 0.28), inset 0 0 14px rgba(255, 51, 102, 0.15), 0 4px 18px rgba(0, 0, 0, 0.6);
 
-      color: var(--gold);
+      color: #FF3366;
 
-      text-shadow: 0 0 10px rgba(255, 215, 0, 0.35);
+      text-shadow: 0 0 12px #FF3366, 0 0 24px rgba(255, 51, 102, 0.7);
 
     }
 
 
 
-    /* Ready State: Vibrant Emerald Laser */
+    /* Ready State: Vibrant Electric Cyan/Blue Laser Neon (ឡូតពណ៌ខៀវវិញ) */
 
     .signal-action-btn.ready {
 
-      background: linear-gradient(135deg, rgba(0, 230, 118, 0.18) 0%, rgba(8, 36, 22, 0.96) 100%);
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.22) 0%, rgba(4, 20, 38, 0.96) 100%);
 
-      border: 1.5px solid #00E676;
+      border: 1.5px solid #00F0FF;
 
-      border-top: 1.5px solid #69F0AE;
+      border-top: 1.5px solid #60EFFF;
 
-      box-shadow: 0 6px 24px rgba(0, 230, 118, 0.3), inset 0 0 16px rgba(0, 230, 118, 0.15);
+      box-shadow: 0 6px 26px rgba(0, 240, 255, 0.45), inset 0 0 18px rgba(0, 240, 255, 0.2);
 
-      color: #00E676;
+      color: #00F0FF;
 
-      text-shadow: 0 0 12px rgba(0, 230, 118, 0.6);
+      text-shadow: 0 0 14px rgba(0, 240, 255, 0.85);
 
-      animation: readyPulse 1.8s infinite;
+      animation: readyPulseBlue 1.8s infinite;
 
     }
 
@@ -2815,9 +2815,39 @@
 
     .signal-action-btn.ready .btn-pulse-dot {
 
-      background: #00E676;
+      background: #00F0FF;
 
-      box-shadow: 0 0 10px #00E676;
+      box-shadow: 0 0 10px #00F0FF;
+
+    }
+
+
+
+    @keyframes readyPulseBlue {
+
+      0% {
+
+        box-shadow: 0 0 18px rgba(0, 240, 255, 0.4), inset 0 0 12px rgba(0, 240, 255, 0.15);
+
+        border-color: rgba(0, 240, 255, 0.7);
+
+      }
+
+      50% {
+
+        box-shadow: 0 0 32px rgba(0, 240, 255, 0.75), inset 0 0 20px rgba(0, 240, 255, 0.35);
+
+        border-color: #00F0FF;
+
+      }
+
+      100% {
+
+        box-shadow: 0 0 18px rgba(0, 240, 255, 0.4), inset 0 0 12px rgba(0, 240, 255, 0.15);
+
+        border-color: rgba(0, 240, 255, 0.7);
+
+      }
 
     }
 
@@ -6859,7 +6889,7 @@
 
       <div id="signalActionBtn" class="signal-action-btn waiting" onclick="handleSignalActionClick()">
 
-        <span id="signalActionIcon" style="display: inline-flex; align-items: center; justify-content: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.6));"><rect x="3" y="11" width="18" height="11" rx="3" ry="3" fill="rgba(255, 215, 0, 0.15)" stroke="currentColor"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path><circle cx="12" cy="16" r="1.5" fill="currentColor"></circle></svg></span>
+        <span id="signalActionIcon" style="display: inline-flex; align-items: center; justify-content: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 8px rgba(255, 51, 102, 0.8));"><rect x="3" y="11" width="18" height="11" rx="3" ry="3" fill="rgba(255, 51, 102, 0.2)" stroke="currentColor"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path><circle cx="12" cy="16" r="1.5" fill="currentColor"></circle></svg></span>
 
         <span id="signalActionText" style="letter-spacing: 2px; font-weight: 800; font-family: 'Outfit', 'Inter', sans-serif;">CLOSED</span>
 
@@ -13355,15 +13385,13 @@
 
 
 
-          // Only if STILL in Entry Zone AND Safety >= 75%:
-
           btn.className = 'signal-action-btn ready';
 
           if (icon) {
 
-            icon.innerText = '🟢';
+            icon.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.85));"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="rgba(0, 240, 255, 0.25)"></polygon></svg>';
 
-            icon.style.display = 'inline-block';
+            icon.style.display = 'inline-flex';
 
           }
 
@@ -13587,7 +13615,7 @@
 
         if (icon) {
 
-          icon.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 8px rgba(0, 230, 118, 0.8));"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="rgba(0, 230, 118, 0.25)"></polygon></svg>';
+          icon.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.85));"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="rgba(0, 240, 255, 0.25)"></polygon></svg>';
 
           icon.style.display = 'inline-flex';
 
@@ -13631,7 +13659,7 @@
 
       if (icon) {
 
-        icon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.6));"><rect x="3" y="11" width="18" height="11" rx="3" ry="3" fill="rgba(255, 215, 0, 0.15)" stroke="currentColor"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path><circle cx="12" cy="16" r="1.5" fill="currentColor"></circle></svg>';
+        icon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 8px rgba(255, 51, 102, 0.8));"><rect x="3" y="11" width="18" height="11" rx="3" ry="3" fill="rgba(255, 51, 102, 0.2)" stroke="currentColor"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path><circle cx="12" cy="16" r="1.5" fill="currentColor"></circle></svg>';
 
         icon.style.display = 'inline-flex';
 
@@ -15253,7 +15281,7 @@
 
     if (initActionBeacon) initActionBeacon.style.display = 'none';
 
-    if (initActionIcon) { initActionIcon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.6));"><rect x="3" y="11" width="18" height="11" rx="3" ry="3" fill="rgba(255, 215, 0, 0.15)" stroke="currentColor"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path><circle cx="12" cy="16" r="1.5" fill="currentColor"></circle></svg>'; initActionIcon.style.display = 'inline-flex'; }
+    if (initActionIcon) { initActionIcon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 8px rgba(255, 51, 102, 0.8));"><rect x="3" y="11" width="18" height="11" rx="3" ry="3" fill="rgba(255, 51, 102, 0.2)" stroke="currentColor"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path><circle cx="12" cy="16" r="1.5" fill="currentColor"></circle></svg>'; initActionIcon.style.display = 'inline-flex'; }
 
     if (initActionText) initActionText.innerText = 'CLOSED';
 
