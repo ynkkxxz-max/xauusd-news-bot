@@ -181,16 +181,19 @@ class BreakingNewsCollector:
                             continue
 
                         # Strictly reject reviews, opinions, podcasts, entertainment, streaming, movies, sports, satire, and memecoin/airdrop spam
-                        t_low = title.lower()
+                        full_entry_text = f"{title} {clean_desc}".lower()
                         NON_NEWS_PATTERNS = [
                             "press review", "review:", "opinion:", "opinion |", "analysis:", "analysis |", "podcast", "roundup", "editorial",
                             "new to streaming", "streaming:", "streaming on", "netflix", "hollywood", "box office", "tv series", "movie", "movies",
-                            "film", "films", "trailer", "actor", "actress", "celebrity", "album", "concert", "recipe", "horoscope",
+                            "film", "films", "trailer", "actor", "actress", "celebrity", "album", "concert", "recipe", "cuisine", "french food", "horoscope",
                             "hilarious", "satire", "parody", "comedy", "anti-enshittification", "funny",
-                            "nfl", "nba", "premier league", "champions league", "super bowl", "world cup",
+                            "manchester city", "man city", "premier league", "champions league", "football", "soccer", "fifa", "uefa",
+                            "la liga", "serie a", "bundesliga", "world cup", "olympics", "super bowl", "nfl", "nba", "mlb", "nhl", "cricket", "tennis",
+                            "pinto", "whistleblower", "striker", "goalkeeper", "ballon d'or",
+                            "dating", "romance", "relationship", "divorce", "girlfriend", "boyfriend", "breakup", "ended relationship",
                             "airdrop", "presale", "giveaway", "memecoin", "meme coin", "pepe", "shiba inu", "dogecoin", "100x", "pump and dump"
                         ]
-                        if any(p in t_low for p in NON_NEWS_PATTERNS):
+                        if any(p in full_entry_text for p in NON_NEWS_PATTERNS):
                             continue
 
                         # Extract true publisher source (e.g. CNN, Reuters, AP News, Bloomberg)
