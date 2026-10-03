@@ -246,9 +246,9 @@ class XAUUSDNewsAssistantBot:
 
     def _bootstrap_news_cache(self):
         """
-        On startup, seeds existing headlines that are either older than 4 hours
-        or ALREADY posted to the Telegram channel feed, so only fresh, unposted news
-        is processed for breaking alerts. Uses cached channel HTML for sub-second execution.
+        On startup, seeds existing headlines that are either older than 30 minutes,
+        already posted, or part of initial backlog, so only fresh news arriving
+        AFTER startup is processed for breaking alerts. Prevents restart/deploy floods.
         """
         try:
             items = self.news_collector.fetch_latest_news()
@@ -261,18 +261,18 @@ class XAUUSDNewsAssistantBot:
                 link = item.get("link", "")
                 item_ts = self._news_ts(item)
                 
-                # Check if truly stale (> 4h) or already posted to @GoldMarketKH8888
-                is_stale = item_ts > 0 and (now - item_ts) > 4 * 3600
+                # Check if older than 30 minutes, or already in channel, or part of startup backlog
+                is_stale = item_ts == 0.0 or (now - item_ts) > 1800.0
                 is_in_channel = self._is_already_in_telegram_channel(title, link) if channel_html else False
                 
-                if is_stale or is_in_channel:
-                    if title:
-                        self._broadcasted_titles_cache.add(title.lower())
-                    self.news_collector.clear_item(news_id=news_id, link=link, title=title)
-                    if news_id and not database.is_news_sent(news_id):
-                        database.record_news_sent(news_id, title, item.get("source", ""), is_broadcasted=1 if is_in_channel else 0)
-                    bootstrapped_count += 1
-            logger.info(f"[Startup News Sync] Seeded {bootstrapped_count} stale/already-sent headlines from data in sub-second time.")
+                # Seed all startup backlog items to ensure zero spam/repeats on reboot
+                if title:
+                    self._broadcasted_titles_cache.add(title.lower())
+                self.news_collector.clear_item(news_id=news_id, link=link, title=title)
+                if news_id and not database.is_news_sent(news_id):
+                    database.record_news_sent(news_id, title, item.get("source", ""), is_broadcasted=1 if is_in_channel else 0)
+                bootstrapped_count += 1
+            logger.info(f"[Startup News Sync] Seeded {bootstrapped_count} initial backlog headlines to prevent restart floods.")
         except Exception as e:
             logger.warning(f"[Startup News Sync] Warning: {e}")
 
