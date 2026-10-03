@@ -75,9 +75,9 @@ def sanitize_khmer_spelling(text: str) -> str:
     for pat, rep in greek_cyrillic_fixes:
         res = re.sub(pat, rep, res)
 
-    # 3. Clean Arabic / Middle Eastern subwords accidentally emitted by LLM
-    res = re.sub(r"ប្រាក់ដុល្លារ\s*អ[\u0600-\u06FF\s]*", "ប្រាក់ដុល្លារ (USD) ", res)
-    res = re.sub(r"ដុល្លារ\s*អ[\u0600-\u06FF\s]*", "ដុល្លារ (USD) ", res)
+    # 3. Clean Arabic / Middle Eastern subwords accidentally emitted by LLM (only when Arabic script actually exists)
+    res = re.sub(r"ប្រាក់ដុល្លារ\s*[\u0600-\u06FF]+", "ប្រាក់ដុល្លារ (USD) ", res)
+    res = re.sub(r"ដុល្លារ\s*[\u0600-\u06FF]+", "ដុល្លារ (USD) ", res)
 
     # 4. Strictly strip ANY remaining foreign script characters:
     # Thai (\u0E00-\u0E7F), Lao (\u0E80-\u0EFF), Greek (\u0370-\u03FF, \u1F00-\u1FFF),
@@ -94,11 +94,16 @@ def sanitize_khmer_spelling(text: str) -> str:
     res = re.sub(foreign_regex, "", res)
 
     corrections = [
-        # Currency & Economy Fixes
-        (r"ប្រាក់ដុល្លារ\s*អាមេរិក(?:\s*\(USD\))?", "ប្រាក់ដុល្លារ (USD)"),
-        (r"ដុល្លារ\s*អាមេរិក(?:\s*\(USD\))?", "ប្រាក់ដុល្លារ (USD)"),
+        # Currency & Economy Fixes (prevents orphan or duplicate 'អាមេរិក' / 'ាមេរិក')
+        (r"ប្រាក់ដុល្លារ\s*\(USD\)\s*(?:អា|ា)?មេរិក", "ប្រាក់ដុល្លារ (USD)"),
+        (r"\(USD\)\s*(?:អា|ា)?មេរិក", "(USD)"),
+        (r"ប្រាក់ដុល្លារ\s*(?:អា|ា)?មេរិក(?:\s*\(USD\))?", "ប្រាក់ដុល្លារ (USD)"),
+        (r"ដុល្លារ\s*(?:អា|ា)?មេរិក(?:\s*\(USD\))?", "ប្រាក់ដុល្លារ (USD)"),
+        (r"(?<![\u1780-\u17A2])ាមេរិក\b", "អាមេរិក"),
         (r"អាមេរិច", "អាមេរិក"),
         (r"សេដ្ធកិច្ច", "សេដ្ឋកិច្ច"),
+        (r"រក្សាថ្លៃឡើងថ្លៃ", "រក្សាកំណើនថ្លៃ"),
+        (r"តម្លៃលោហៈមានតម្លៃ", "តម្លៃលោហៈដ៏មានតម្លៃ"),
 
         # Foreign Leaders & Prominent People (Strict Original Language - Zero Khmer Literal Translation per user directive)
         (r"លោក\s*វ៉[្ល\u17d2\u179b]*[ា\u17b6]*ឌីមៀ\s*ពូទីន|វ៉[្ល\u17d2\u179b]*[ា\u17b6]*ឌីមៀ\s*ពូទីន", "Vladimir Putin"),
@@ -351,10 +356,35 @@ class KhmerFormatter:
             key_event = (analysis.get("key_event") or "").strip()
             impact_raw = (analysis.get("impact") or "").strip()
             if impact_raw:
-                imp_clean = re.sub(r'^[💡🔴🟢🟡:\s]+', '', impact_raw)
+                imp_clean = re.sub(r'^[💡🔴🟢🟡:\s]+', '', impact_raw).strip()
+                # Strictly strip leading "វា" or "វាផល" per user directive
+                if imp_clean.startswith("វាផលវិជ្ជមាន"):
+                    imp_clean = imp_clean[2:]
+                elif imp_clean.startswith("វាផលអវិជ្ជមាន"):
+                    imp_clean = imp_clean[2:]
+                elif imp_clean.startswith("វាផលអព្យាក្រឹត"):
+                    imp_clean = imp_clean[2:]
+                elif imp_clean.startswith("វា"):
+                    imp_clean = imp_clean[2:].strip()
+
+                # Clean any parentheses inside impact
                 imp_clean = re.sub(r'[()]+', '', imp_clean).strip()
-                if not imp_clean.startswith("វាផល"):
-                    imp_clean = f"វាផល{imp_clean}"
+
+                # Standardize to clean Khmer narrative: ផលវិជ្ជមាន៖ / ផលអវិជ្ជមាន៖
+                m_pos = re.match(r'^(ផលវិជ្ជមាន|ឥទ្ធិពលវិជ្ជមាន)\s*[៖:]?\s*(.*)', imp_clean)
+                m_neg = re.match(r'^(ផលអវិជ្ជមាន|ឥទ្ធិពលអវិជ្ជមាន)\s*[៖:]?\s*(.*)', imp_clean)
+                m_neu = re.match(r'^(ផលអព្យាក្រឹត|ឥទ្ធិពលអព្យាក្រឹត)\s*[៖:]?\s*(.*)', imp_clean)
+                if m_pos:
+                    detail = m_pos.group(2).strip()
+                    imp_clean = f"ផលវិជ្ជមាន៖ {detail}" if detail else "ផលវិជ្ជមាន"
+                elif m_neg:
+                    detail = m_neg.group(2).strip()
+                    imp_clean = f"ផលអវិជ្ជមាន៖ {detail}" if detail else "ផលអវិជ្ជមាន"
+                elif m_neu:
+                    detail = m_neu.group(2).strip()
+                    imp_clean = f"ផលអព្យាក្រឹត៖ {detail}" if detail else "ផលអព្យាក្រឹត"
+                elif not imp_clean.startswith(("ផល", "ឥទ្ធិពល")):
+                    imp_clean = f"ផលវិជ្ជមាន៖ {imp_clean}"
                 impact_line = imp_clean
 
             if not key_event:
