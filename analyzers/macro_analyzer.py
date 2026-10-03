@@ -192,12 +192,18 @@ class MacroAnalyzer:
 
         text = f"{clean_title} {clean_desc}".lower()
 
-        # Gate 0: Entertainment, Streaming, Movies, Sports, Celebrity, Satire (Strict Drop)
-        ent_words = ["streaming", "netflix", "movie", "cinema", "box office", "actor", "actress", "hollywood", "album", "comedy", "parody", "satire"]
-        if any(re.search(rf"\b{w}\b", text) for w in ent_words):
+        # Gate 0: Entertainment, Streaming, Movies, Sports, Football, Celebrity, Gossip (Strict Drop)
+        ent_words = [
+            "streaming", "netflix", "movie", "cinema", "box office", "actor", "actress", "hollywood", "album", "comedy", "parody", "satire",
+            "manchester city", "man city", "premier league", "champions league", "football", "soccer", "fifa", "uefa",
+            "la liga", "serie a", "bundesliga", "world cup", "olympics", "super bowl", "nfl", "nba", "mlb", "nhl", "cricket", "tennis",
+            "pinto", "ballon d'or", "striker", "goalkeeper", "dating", "romance", "relationship", "divorce", "breakup", "ended relationship",
+            "recipe", "french food", "cuisine", "horoscope"
+        ]
+        if any(w in text for w in ent_words):
             return {
                 "key_event": km_story,
-                "impact": "ផលអព្យាក្រឹត៖ ព័ត៌មានកម្សាន្តគ្មានផលប៉ះពាល់លើទីផ្សារ",
+                "impact": "ផលអព្យាក្រឹត៖ ព័ត៌មានកីឡា/កម្សាន្តគ្មានផលប៉ះពាល់លើទីផ្សារហិរញ្ញវត្ថុ",
                 "is_clear": False,
                 "bias": "🟡 Neutral"
             }
