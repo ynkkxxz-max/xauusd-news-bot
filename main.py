@@ -1581,11 +1581,26 @@ class XAUUSDNewsAssistantBot:
         else:
             return INTERVAL_NORMAL
 
+    def _channel_time_since_last_post(self) -> float:
+        """Returns elapsed seconds since the latest message was published in @GoldMarketKH8888 live channel feed."""
+        try:
+            import datetime
+            channel_html = self._fetch_channel_html(max_cache_age=10.0)
+            times = re.findall(r'<time datetime="([^"]+)"', channel_html)
+            if times:
+                last_dt = datetime.datetime.fromisoformat(times[-1])
+                now_utc = datetime.datetime.now(datetime.timezone.utc)
+                elapsed = (now_utc - last_dt).total_seconds()
+                return max(0.0, elapsed)
+        except Exception as e:
+            logger.debug(f"[Channel Post Time Check] {e}")
+        return 999999.0
+
     def _is_already_in_telegram_channel(self, title: str, link: str = "", khmer_text: str = "", fresh: bool = False) -> bool:
         """Inspects the public Telegram channel feed to prevent duplicate broadcasts across distributed containers."""
         try:
             import urllib.parse
-            max_age = 0.0 if fresh else 30.0
+            max_age = 0.0 if fresh else 20.0
             channel_html = self._fetch_channel_html(max_cache_age=max_age)
             if not channel_html:
                 return False
@@ -1596,7 +1611,7 @@ class XAUUSDNewsAssistantBot:
                 if clean_link and (clean_link in channel_html or urllib.parse.unquote(clean_link) in channel_html):
                     return True
                 slug = clean_link.split("/")[-1]
-                if len(slug) >= 12:
+                if len(slug) >= 10:
                     if slug.lower() in channel_html.lower() or slug.replace("-", " ").lower() in channel_html.lower():
                         return True
 
@@ -1605,22 +1620,35 @@ class XAUUSDNewsAssistantBot:
                      if w.lower() not in ("news", "today", "live", "world", "market", "report", "the", "says", "with", "from", "after", "gold", "price", "rate", "year", "time", "week", "state", "states", "view", "channel", "message", "telegram")]
             if len(words) >= 4:
                 matches = sum(1 for w in words if w.lower() in channel_html.lower())
-                if matches >= 3 and (matches / len(words)) >= 0.65:
+                # Lowered threshold: in Khmer posts, only Latin entities and names remain in English
+                if matches >= 2 and (matches / len(words)) >= 0.30:
+                    return True
+                if matches >= 3:
                     return True
             elif len(words) in (2, 3):
                 matches = sum(1 for w in words if w.lower() in channel_html.lower())
-                if matches == len(words):
+                if matches >= 2:
                     return True
 
-            # 3. Khmer Translated Content Deduplication
+            # 3. High-entropy proper nouns (names of people, companies, unique subjects)
+            proper_nouns = [w for w in re.findall(r'\b[A-Z][a-z0-9]{4,}\b', title)
+                            if w.lower() not in ("today", "market", "report", "world", "breaking", "global", "united", "states", "first", "could", "would", "after", "about")]
+            for pn in proper_nouns:
+                if len(pn) >= 6 and pn.lower() in channel_html.lower():
+                    # If a distinctive entity matches (e.g. Gelsinger, Palantir, Flydubai) plus any other word
+                    other_match = any(w.lower() in channel_html.lower() for w in words if w.lower() != pn.lower())
+                    if other_match or len(proper_nouns) == 1:
+                        return True
+
+            # 4. Khmer Translated Content Deduplication
             if khmer_text:
                 kh_words = [w for w in re.findall(r'[\u1780-\u17FF]{6,}', khmer_text)]
                 if len(kh_words) >= 4:
                     kh_matches = sum(1 for w in kh_words if w in channel_html)
-                    if kh_matches >= 3 and (kh_matches / len(kh_words)) >= 0.4:
+                    if kh_matches >= 2:
                         return True
 
-            # 4. Macro Cluster & Event Verification in Channel Feed (Prevents cross-container duplicates)
+            # 5. Macro Cluster & Event Verification in Channel Feed (Prevents cross-container duplicates)
             cluster = GoldNewsFilter.get_news_cluster(title)
             if cluster == "us_jobs" and re.search(r'29,000|29K|ការងារ|nfp|payroll', channel_html, re.I):
                 return True
@@ -1642,7 +1670,8 @@ class XAUUSDNewsAssistantBot:
         """
         now = time.time()
         last_alert_ts = float(database.get_state("last_breaking_alert_ts") or "0")
-        time_since_last = min(now - last_alert_ts, now - self._last_breaking_sent_ts)
+        channel_time_since_last = self._channel_time_since_last_post()
+        time_since_last = min(now - last_alert_ts, now - self._last_breaking_sent_ts, channel_time_since_last)
         # Fast-track gate: if less than 90s passed, wait to protect against Telegram flood
         if time_since_last < 90.0:
             return
@@ -1653,7 +1682,7 @@ class XAUUSDNewsAssistantBot:
             title = (item.get("title") or "").strip()
             desc = item.get("description", "")
 
-            # Strict relevance & question/opinion rejection
+            # Strict relevance & question/opinion rejection (Zero Sports, Zero Celebrity Gossip)
             if not title or "?" in title or not GoldNewsFilter.is_gold_relevant(title, desc):
                 continue
 
@@ -1688,7 +1717,8 @@ class XAUUSDNewsAssistantBot:
             # Dynamically recalculate gap before evaluating each item
             now = time.time()
             last_alert_ts = float(database.get_state("last_breaking_alert_ts") or "0")
-            time_since_last = min(now - last_alert_ts, now - self._last_breaking_sent_ts)
+            channel_time_since_last = self._channel_time_since_last_post()
+            time_since_last = min(now - last_alert_ts, now - self._last_breaking_sent_ts, channel_time_since_last)
 
             # Fast-track priority check: critical news gets 90s gap, regular gets BREAKING_ALERT_MIN_GAP (180s = 3m)
             is_critical = any(k in (title + " " + desc).lower() for k in [
