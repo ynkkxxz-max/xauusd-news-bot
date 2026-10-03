@@ -1294,11 +1294,12 @@ class XAUUSDNewsAssistantBot:
         # Check if second to last block is impact_line
         impact_line = ""
         body_blocks = []
-        if len(blocks) >= 4 and blocks[-2].strip().startswith("វាផល"):
+        _impact_prefixes = ("ផល", "ឥទ្ធិពល", "វាផល")
+        if len(blocks) >= 4 and blocks[-2].strip().startswith(_impact_prefixes):
             impact_line = blocks[-2].strip()
             body_blocks = blocks[1:-2]
         elif len(blocks) >= 3:
-            if blocks[-2].strip().startswith("វាផល"):
+            if blocks[-2].strip().startswith(_impact_prefixes):
                 impact_line = blocks[-2].strip()
                 body_blocks = blocks[1:-2]
             else:
