@@ -83,13 +83,18 @@ This repository is governed by the 5 Golden Principles established by the system
   7. ⚖️ **ច្បាប់ បទប្បញ្ញត្តិ និងគោលនយោបាយរដ្ឋាភិបាល (Laws, Regulations & Government Policies)**: ពន្ធគយ Tariffs, ទណ្ឌកម្ម, បំណុលរដ្ឋ, ច្បាប់ហិរញ្ញវត្ថុ។
   8. 🪙 **ប្រាក់ឌីជីថល និងទ្រព្យសកម្មគ្រីបតូ (Digital Assets & Cryptocurrency — បញ្ជាផ្ទាល់)**: Bitcoin (BTC), Ethereum (ETH), Stablecoins (USDT/USDC), CBDC, ច្បាប់ SEC, Spot Crypto ETFs, ស្ថាប័នទិញស្តុកទុក (Strategic Crypto Reserves)។ ហាមមិនឱ្យច្រឡំទម្លាក់ព័ត៌មានប្រាក់ឌីជីថលចោលឡើយ។
 - **ទម្រង់ និងខ្លឹមសាររៀបរាប់ក្បោះក្បាយត្រឹមត្រូវ (Clean & Professional Standard)**:
-  - Header ចាប់ផ្ដើមផ្ទាល់ពី `🔹 <b>ព្រឹត្តិការណ៍សំខាន់</b> {ទង់ជាតិ}` (ដកឃ្លា ២ បន្ទាត់ទៅអត្ថបទ)។
+  - **Header សាច់រឿងបែបសារព័ត៌មានអាជីព (Story Headline Header — បញ្ជាផ្ទាល់)**៖
+    - លុបចោលទាំងស្រុងនូវពាក្យ `🔹 ព្រឹត្តិការណ៍សំខាន់` មិនឱ្យប្រើទៀតឡើយ។
+    - ចាប់ផ្ដើមផ្ទាល់ពីទង់ជាតិ និងចំណងជើងសាច់រឿងជាភាសាខ្មែរតែម្ដង៖ `{ទង់ជាតិ} <b>ចំណងជើងសាច់រឿងខ្លីទាន់ហេតុការណ៍ជាភាសាខ្មែរ</b>` (ឧ. `🇹🇼 <b>តៃវ៉ាន់អភិវឌ្ឍបច្ចេកវិទ្យា AI ដើម្បីជួយថែទាំអ្នកជំងឺវង្វេងវង្វាន់</b>`)។
+    - រូបភាពព័ត៌មាន (News Image) ត្រូវបង្ហាញនៅខាងលើគេបង្អស់ បន្ទាប់មកទើបជា Caption អត្ថបទដែលមាន Header ទង់ជាតិ+ចំណងជើងខ្មែរនេះ។
   - សាច់រឿងព័ត៌មានក្បោះក្បាយ ត្រឹមត្រូវតាមដំណើររឿងពិតជាភាសាខ្មែរសុទ្ធសាធ (គ្មានចំណងជើងភាសាអង់គ្លេសនៅខាងមុខឡើយ)។
   - **ឈ្មោះក្រុមហ៊ុន និងឈ្មោះមនុស្ស/មេដឹកនាំ (Original English/Latin Names — បញ្ជាផ្ទាល់)**: ត្រូវរក្សាទុកជាភាសាដើមអង់គ្លេស/ឡាតាំងជានិច្ច ហាមដាច់ខាតកុំបកប្រែ ឬសរសេរកាឡៃជាភាសាខ្មែរឡើយ (ឧ. Apple, Microsoft, NVIDIA, Tesla, Google, Amazon, Tether, BlackRock, TSMC, Boeing, Intel, Elon Musk, Donald Trump, Kevin Warsh, Jerome Powell, Xi Jinping, Scott Bessent, Warren Buffett ជាដើម)។
   - **ការបញ្ជាក់ផលប៉ះពាល់ (Impact Assessment — ប្រើ ផលវិជ្ជមាន៖ ឬ ផលអវិជ្ជមាន៖ គ្មានពាក្យ វា និងគ្មាន Emoji — បញ្ជាផ្ទាល់)**៖
     - ត្រូវប្រើ `ផលវិជ្ជមាន៖ ការពន្យល់សង្ខេប` (ឬ `ឥទ្ធិពលវិជ្ជមាន៖...`) ឬ `ផលអវិជ្ជមាន៖ ការពន្យល់សង្ខេប` (ឬ `ឥទ្ធិពលអវិជ្ជមាន៖...`)។
     - **ហាមដាច់ខាតមិនឱ្យប្រើពាក្យ «វា» នៅខាងមុខឡើយ (ហាមប្រើ «វាផលវិជ្ជមាន» ឬ «វាផលអវិជ្ជមាន» — បញ្ជាផ្ទាល់)**។
     - ព័ត៌មានណាដែលជា `ផលអព្យាក្រឹត` ត្រូវទម្លាក់ចោលភ្លាមៗ (Drop/Skip)។
+  - **ទប់ស្កាត់ការផ្សាយព័ត៌មានផ្ទាល់ខ្លួន ឬរឿងរ៉ាវឯកជនរបស់បុគ្គល (Strict Personal Affairs & Private Life Filter — បញ្ជាផ្ទាល់)**:
+    - ហាមដាច់ខាតមិនឱ្យផ្សាយព័ត៌មានទាក់ទងនឹងរឿងរ៉ាវផ្ទាល់ខ្លួន ឬជីវិតឯកជនរបស់បុគ្គល (រឿងស្នេហា អាពាហ៍ពិពាហ៍ លែងលះ ជម្លោះគ្រួសារ សៀវភៅជីវប្រវត្តិ/អនុស្សាវរីយ៍ Memoir/Biography របៀបរស់នៅ ទ្រព្យសម្បត្តិផ្ទាល់ខ្លួន វិស្សមកាល ការដើរលេង ឬការសារភាពរឿងផ្ទាល់ខ្លួនរបស់ CEO/បុគ្គលល្បី ដែលគ្មានឥទ្ធិពលផ្ទាល់លើសេដ្ឋកិច្ច ឬទីផ្សារហិរញ្ញវត្ថុស្ថាប័នឡើយ)។ ឱ្យតែជួបព័ត៌មានប្រភេទនេះ ប្រព័ន្ធត្រូវ Drop/Skip ចោលភ្លាមៗ (`is_clear = false`) ហាមមិនឱ្យផ្សាយដាច់ខាត។
   - ជួរប្រភពព័ត៌មានខាងក្រោមស្អាត៖ `ប្រភពព័ត៌មាន | <a href="{link}">{source_name}</a>`។
   - គ្មានប៊ូតុង Inline Buttons ខាងក្រោមឡើយ (`reply_markup=None`)។
 
@@ -244,3 +249,8 @@ This repository is governed by the 5 Golden Principles established by the system
   - UptimeRobot Ping រៀងរាល់ ៥ នាទីម្តង ធានាថា Render Web Service មិនចូល Sleeping Mode ជាដាច់ខាត។
 - **ប្រព័ន្ធឆ្លាស់ AI ច្រើនជាន់ (Quadruple AI Fallback Hierarchy)**:
   - `Gemini Flash Lite` (Primary) ➡️ `DeepSeek-V4.1-Flash TheHive` (Backup 1) ➡️ `OpenRouter` (Backup 2) ➡️ `Local MacroAnalyzer` (Offline Permanent Safety Net)។ មិនមានករណីណាដែល Bot អត់ AI វិភាគឡើយ។
+
+### 23. 🚫 លុបចោលសារ Weekly Gold Outlook ជារៀងរហូត (Permanently Disable Weekly Gold Outlook — បញ្ជាផ្ទាល់)
+- **បិទការផ្សាយ Weekly Gold Outlook ជារៀងរហូត (Permanently Banned)**:
+  - មិនត្រូវផ្ញើសារប្រភេទ `🏛️ WEEKLY GOLD OUTLOOK — យុទ្ធសាស្ត្រមាសប្រចាំសប្តាហ៍ថ្មី!` ចូល Telegram Channel ឬ Group ឡើយ។
+  - មុខងារ `check_weekly_sunday_outlook` ក្នុង `main.py` ត្រូវបានបិទទាំងស្រុងជាអចិន្ត្រៃយ៍ (`return` ភ្លាមៗ) និងដកចេញពី Background Loop មិនឱ្យដំណើរការទៀតជាដាច់ខាត។
