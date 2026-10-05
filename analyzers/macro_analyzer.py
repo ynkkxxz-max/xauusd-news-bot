@@ -207,18 +207,22 @@ class MacroAnalyzer:
 
         text = f"{clean_title} {clean_desc}".lower()
 
-        # Gate 0: Entertainment, Streaming, Movies, Sports, Football, Celebrity, Gossip (Strict Drop)
+        # Gate 0: Entertainment, Streaming, Movies, Sports, Football, Celebrity, Gossip, Personal Affairs & Private Matters (Strict Drop)
         ent_words = [
             "streaming", "netflix", "movie", "cinema", "box office", "actor", "actress", "hollywood", "album", "comedy", "parody", "satire",
             "manchester city", "man city", "premier league", "champions league", "football", "soccer", "fifa", "uefa",
             "la liga", "serie a", "bundesliga", "world cup", "olympics", "super bowl", "nfl", "nba", "mlb", "nhl", "cricket", "tennis",
             "pinto", "ballon d'or", "striker", "goalkeeper", "dating", "romance", "relationship", "divorce", "breakup", "ended relationship",
-            "recipe", "french food", "cuisine", "horoscope"
+            "recipe", "french food", "cuisine", "horoscope",
+            # Personal affairs and private matters of individuals
+            "personal life", "personal affairs", "family drama", "affair", "wedding", "marriage", "girlfriend", "boyfriend",
+            "memoir", "biography", "childhood", "lifestyle", "hobby", "vacation", "yacht", "private jet", "mansion",
+            "gossip", "scandal", "defamation", "personal lawsuit", "confession", "personal confession", "personal reflection"
         ]
         if any(w in text for w in ent_words):
             return {
                 "key_event": km_story,
-                "impact": "ផលអព្យាក្រឹត៖ ព័ត៌មានកីឡា/កម្សាន្តគ្មានផលប៉ះពាល់លើទីផ្សារហិរញ្ញវត្ថុ",
+                "impact": "ផលអព្យាក្រឹត៖ ព័ត៌មានកីឡា/កម្សាន្ត/រឿងរ៉ាវផ្ទាល់ខ្លួនបុគ្គលគ្មានផលប៉ះពាល់លើទីផ្សារហិរញ្ញវត្ថុ",
                 "is_clear": False,
                 "bias": "🟡 Neutral"
             }
