@@ -68,9 +68,13 @@ SPORTS_AND_GOSSIP_PATTERNS = [
     r"\b(tournament|referee|striker|goalkeeper|player|transfer fee|stadium|coach|ballon d'or|pinto)\b",
     r"\b(athletics|athlete|racing|f1|formula 1|grand prix|super bowl)\b",
     
-    # Celebrity / Gossip / Romance / Personal Drama
+    # Celebrity / Gossip / Romance / Personal Drama / Private Life / Non-Institutional Individual Affairs
     r"\b(dating|romance|relationship|divorce|girlfriend|boyfriend|breakup|ended relationship|split)\b",
-    r"\b(affair|marriage|wedding|personal life|gossip|scandal|celebrity|hollywood|actor|actress|pop star)\b",
+    r"\b(affair|marriage|wedding|personal life|personal affairs|gossip|scandal|celebrity|hollywood|actor|actress|pop star)\b",
+    r"\b(family feud|personal dispute|family drama|personal wealth|richest person|net worth rank|lottery|personal lawsuit|defamation|libel)\b",
+    r"\b(memoir|biography|personal podcast|personal blog|childhood|lifestyle|diet|morning routine|hobby|hobbies|vacation|yacht|mansion|private jet)\b",
+    r"\b(personal health|cosmetic surgery|plastic surgery|arrested for dui|speeding|petty theft|shoplifting)\b",
+    r"\b(personal apology|personal confession|confesses to|regrets personal|personal reflection|personal matter|private matter)\b",
     
     # Entertainment / Streaming / Food / Lifestyle
     r"\b(netflix|movie|movies|film|films|cinema|box office|tv series|trailer|album|concert)\b",
