@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 # Keys must match what KhmerFormatter expects from an analysis dict.
 _ANALYSIS_KEYS = [
-    "key_event", "what_happened", "why_it_matters", "impact", "usd_impact",
+    "headline_km", "key_event", "what_happened", "why_it_matters", "impact", "usd_impact",
     "rate_yield_impact", "xau_pressure", "bias", "is_clear"
 ]
 
@@ -98,10 +98,27 @@ def breaking_prompt(title: str, description: str) -> str:
         f"   - បញ្ជាផ្ទាល់របស់អ្នកប្រើប្រាស់ (Company & Person Names Directive): សម្រាប់ «ឈ្មោះក្រុមហ៊ុន» (Company Names ដូចជា Apple, Microsoft, NVIDIA, Tesla, Google, Amazon, Tether, BlackRock, TSMC, Boeing, Pfizer...) និង «ឈ្មោះមនុស្ស/មេដឹកនាំ» (People & Leaders ដូចជា Donald Trump, Jerome Powell, Elon Musk, Kevin Warsh, Vladimir Putin, Joe Biden, Xi Jinping, Christine Lagarde...) ត្រូវរក្សាទុកជាភាសាដើម (Original English/Latin Names) ហាមដាច់ខាតកុំបកប្រែជាភាសាខ្មែរអី (ឧ. សរសេរ Donald Trump ហាមសរសេរ ដូណាល់ ត្រាំ, សរសេរ Apple ហាមសរសេរ អេបផល)។\n"
         f"   - ប្រយោគ និងពាក្យពេចន៍ទាំងអស់ត្រូវតែត្រឹមត្រូវ ១០០% តាមក្បួនវេយ្យាករណ៍ខ្មែរ ដោយរៀបពាក្យពិរោះ រលូន និងងាយយល់បំផុត។\n"
         f"   - ហាមដាច់ខាតមិនឱ្យមានអក្សរថៃ (Thai Script ដូចជា พันธบัตร), អក្សរក្រិក (Greek ដូចជា Πρόβλημα), អក្សររុស្ស៊ី (Cyrillic) ឬភាសាដទៃឡើយ! ត្រូវប្រើប្រាស់តែអក្សរខ្មែរសុទ្ធសាធ ១០០%។ ឧទាហរណ៍ ពាក្យ Bonds ត្រូវសរសេរ «មូលបត្របំណុល» ឬ «ប័ណ្ណបំណុល» (ហាមដាច់ខាតកុំប្រើពាក្យថៃ «พันธบัตร») និងពាក្យ Problem ត្រូវសរសេរ «បញ្ហា» ឬ «ការព្រួយបារម្ភ» (ហាមប្រើ «Πρόβλημα»)។\n"
-        f"៣. ការច្រោះព័ត៌មានមិនពាក់ព័ន្ធ កីឡា បាល់ទាត់ និងជីវិតឯកជន (Strict Sports, Football & Gossip Gate):\n"
-        f"   - ហាមដាច់ខាតមិនឱ្យផ្សាយព័ត៌មានកីឡា បាល់ទាត់ (Football, Soccer, Premier League, Champions League, Manchester City, Pinto, FIFA, ក្លឹបបាល់ទាត់), ព័ត៌មានកម្សាន្ត រឿងស្នេហា/លែងលះរបស់បុគ្គលល្បី (Dating, Romance, Relationship Breakup), ភាពយន្ត, ម្ហូបអាហារ, ឬអត្ថបទមតិយោបល់ផ្ទាល់ខ្លួន (Opinion, Editorial, Op-Ed) ឡើយ! ប្រសិនបើជួបព័ត៌មានប្រភេទនេះ ត្រូវតែកំណត់ is_clear = false ជាដាច់ខាត (Drop ភ្លាមៗមិនឱ្យផ្សាយឡើយ)។\n"
-        f"   - ឱ្យតែ AI វាយតម្លៃថាជាព័ត៌មានពិតជាក់ស្ដែង ថ្មី ធំ សំខាន់ ទាក់ទងនឹងសេដ្ឋកិច្ច ភូមិសាស្ត្រនយោបាយ បច្ចេកវិទ្យា គោលនយោបាយរូបិយវត្ថុ ថាមពល ក្នុងវិស័យស្នូលទាំង ៧ របស់ពិភពលោក ទើបកំណត់ is_clear = true ជានិច្ច ដើម្បីឱ្យប្រព័ន្ធចេញផ្សាយភ្លាមៗមុនគេជាដាច់ខាត។\n\n"
+        f"៣. ការច្រោះព័ត៌មានមិនពាក់ព័ន្ធ កីឡា បាល់ទាត់ ជីវិតឯកជន និងរឿងរ៉ាវផ្ទាល់ខ្លួនរបស់បុគ្គល (Strict Personal Affairs, Gossip & Private Life Gate — បញ្ជាផ្ទាល់)៖\n"
+        f"   - ហាមដាច់ខាតមិនឱ្យផ្សាយព័ត៌មានកីឡា បាល់ទាត់ (Football, Soccer, Premier League, Champions League, Manchester City, Pinto, FIFA, ក្លឹបបាល់ទាត់), ព័ត៌មានកម្សាន្ត រឿងស្នេហា/លែងលះរបស់បុគ្គលល្បី (Dating, Romance, Relationship Breakup), ភាពយន្ត, ម្ហូបអាហារ, ឬអត្ថបទមតិយោបល់ផ្ទាល់ខ្លួន (Opinion, Editorial, Op-Ed) ឡើយ! \n"
+        f"   - បញ្ជាផ្ទាល់ (Strict Ban on Personal Affairs): ហាមដាច់ខាតមិនឱ្យផ្សាយព័ត៌មានទាក់ទងនឹងរឿងរ៉ាវផ្ទាល់ខ្លួន ឬជីវិតឯកជនរបស់បុគ្គល (Personal Affairs & Private Matters of Individuals ដូចជា រឿងគ្រួសារ ជម្លោះផ្ទាល់ខ្លួន សៀវភៅអនុស្សាវរីយ៍/ជីវប្រវត្តិ Memoir/Biography របៀបរស់នៅ ទម្លាប់ប្រចាំថ្ងៃ ទ្រព្យសម្បត្តិផ្ទាល់ខ្លួន វិស្សមកាល ការដើរលេង ឬការសារភាពរឿងផ្ទាល់ខ្លួនរបស់នាយកប្រតិបត្តិ CEO/បុគ្គលល្បី ដែលគ្មានឥទ្ធិពលផ្ទាល់លើសេដ្ឋកិច្ច ឬទីផ្សារហិរញ្ញវត្ថុស្ថាប័នឡើយ)។ ប្រសិនបើជួបព័ត៌មានប្រភេទនេះ ត្រូវតែកំណត់ is_clear = false ជាដាច់ខាត (Drop ភ្លាមៗមិនឱ្យផ្សាយឡើយ)។\n"
+        f"   - ឱ្យតែ AI វាយតម្លៃថាជាព័ត៌មានពិតជាក់ស្ដែង ថ្មី ធំ សំខាន់ ទាក់ទងនឹងសេដ្ឋកិច្ច ភូមិសាស្ត្រនយោបាយ បច្ចេកវិទ្យា គោលនយោបាយរូបិយវត្ថុ ថាមពល ក្នុងវិស័យស្នូលទាំង ៧ របស់ពិភពលោក ទើបកំណត់ is_clear = true ជានិច្ច ដើម្បីឱ្យប្រព័ន្ធចេញផ្សាយភ្លាមៗមុនគេជាដាច់ខាត។\n"
+        f"៤. ស្តង់ដារតែងនិពន្ធបែបសារព័ត៌មានអាជីព និងក្បួនពាក្យពេចន៍ (Professional News Style - No Literal Translation)៖\n"
+        f"   - ហាមដាច់ខាតមិនឱ្យបកប្រែពាក្យទល់ពាក្យ (No Word-for-Word Literal Translation) ដែលនាំឱ្យអានទៅរដិបរដុប ដូចភាសាបរទេសឡើយ។ ត្រូវរៀបប្រយោគជាភាសាខ្មែរឱ្យមានន័យពេញលេញ ពិរោះ និងរលូនបែបសារព័ត៌មានអាជីព។\n"
+        f"   - ក្បួនប្រើប្រាស់ពាក្យសារព័ត៌មានជាក់លាក់ (Mandatory Vocabulary Guidelines)៖\n"
+        f"     * ប្រើ «ទីតាំងសន្តិសុខរសើប» ឬ «តំបន់ងាយរងគ្រោះ» (Sensitive areas), ហាមដាច់ខាតមិនសរសេរ «កន្លែងរើសើប» ឬ «កន្លែងរសើប» ឡើយ។\n"
+        f"     * ប្រើ «ដំឡើង» (Install/Erect), ហាមសរសេរ «តម្លើង»។\n"
+        f"     * ប្រើ «វិធានការនេះត្រូវបានចាត់ទុកជា...» (Considered as...), ហាមសរសេរ «វិធានការនេះត្រូវបានគេមើលឃើញថា»។\n"
+        f"     * ប្រើ «ដំណោះស្រាយចំណាយទាប» ឬ «ដំណោះស្រាយសន្សំសំចៃ» (Low-cost solution), ហាមសរសេរ «ចំណាយថវិកាស្តួចស្តើង» ឬ «ថោក»។\n"
+        f"     * ប្រើ «បច្ចេកវិទ្យាកម្រិតទាប» ឬ «វិធីសាស្ត្រសាមញ្ញ» (Low-tech / simple methods), ហាមសរសេរ «បច្ចេកវិទ្យាទាប»។\n"
+        f"     * ប្រើ «តែងតែប្រឈមនឹងការគំរាមកំហែង...» (Constantly facing threats...), ហាមសរសេរ «ជាញឹកញាប់រង...»។\n"
+        f"     * ប្រើ «ក្រុមប្រដាប់អាវុធ» ឬ «ក្រុមឧទ្ទាម» (Armed militants / rebels)។\n"
+        f"   - ការកំណត់ផលប៉ះពាល់ (Strict Sentiment / Impact Gate)៖\n"
+        f"     * ចំពោះព័ត៌មានសង្គ្រាម, ការវាយប្រហារដោយដ្រូន/មីស៊ីល, គ្រាប់បែក, ក្រុមឧទ្ទាម, ក្រុមប្រដាប់អាវុធ, ភាពតានតឹងយោធា និងអសន្តិសុខ ត្រូវតែកំណត់ជា 'ផលអវិជ្ជមាន៖' (Negative Risk) ជានិច្ច! ហាមច្រឡំដាក់ជាផលវិជ្ជមានឡើយ ព្រោះជាហានិភ័យភូមិសាស្ត្រនយោបាយ និងសន្តិសុខសកល (ឧ. 'ផលអវិជ្ជមាន៖ ឆ្លុះបញ្ចាំងពីការកើនឡើងនៃហានិភ័យអសន្តិសុខ និងការគំរាមកំហែងដោយដ្រូនពីក្រុមប្រដាប់អាវុធនៅតាមតំបន់រសើប')។\n"
+        f"   - ការរៀបចំកថាខណ្ឌ (Paragraph Structure)៖\n"
+        f"     * សរសេរជាកថាខណ្ឌជាប់គ្នា ២ ទៅ ៣ កថាខណ្ឌពេញលេញ ហាមដាច់ខាតកុំចុះបន្ទាត់មួយៗដាច់ពីគ្នាគ្រប់ប្រយោគឡើយ។\n\n"
         f"ត្រឡប់ JSON ដែលមាន fields ដូចតទៅ (ជាភាសាខ្មែរផ្លូវការ ពិរោះ ច្បាស់លាស់):\n"
+        f"- headline_km: ចំណងជើងព័ត៌មានខ្លីទាន់ហេតុការណ៍ជាភាសាខ្មែរ (ស្ថានភាពបែបសារព័ត៌មានអាជីព ១ ប្រយោគ ≤ ៨០ តួ) "
+        f"ដូចឧទាហរណ៍: «TSMC ប្រកាសប្រាក់ចំណូលត្រីមាស ៣ កើន ៣៦%» ឬ «តៃវ៉ាន់អភិវឌ្ឍ AI ជួយថែទាំអ្នកជំងឺវង្វេងវង្វាន់»។ ហាមចម្លងចំណងជើងជាអង់គ្លេស ហាមចាប់ផ្ដើមដោយ «ការ» ឬ «ព័ត៌មាន» ក្នុងករណីដែលមិនចាំបាច់ ហាមដាំ Emoji ។\n"
         f"- key_event: រៀបរាប់ដំណើររឿងជាក់ស្ដែងដែលទើបកើតឡើងឱ្យបានក្បោះក្បាយ ត្រឹមត្រូវ និងទាន់ហេតុការណ៍ជាភាសាខ្មែរសុទ្ធសាធ។ "
         f"ប្រសិនបើព័ត៌មាននេះមិនប៉ះពាល់ដល់មាស/USD ទេ ហាមដាច់ខាតកុំនិយាយរឿងមាស ប្រាក់ដុល្លារ ឬទ្រព្យសុវត្ថិភាពចូលឱ្យសោះ គ្រាន់តែរៀបរាប់ព័ត៌មាននោះឱ្យបានត្រឹមត្រូវ "
         f"(សរសេរជាកថាខណ្ឌពិរោះក្បោះក្បាយ ៣ ទៅ ៥ ប្រយោគពេញលេញ កុំឱ្យលើសពី ៥៥០ តួអក្សរ)។\n"
@@ -263,6 +280,17 @@ def normalize_analysis(raw: dict) -> dict:
         val = str(raw.get(k, "")).strip()
         val = sanitize_khmer_spelling(val)
         out[k] = val if val else "កំពុងតាមដាន។"
+    # Ensure headline_km is never a generic placeholder
+    hl = str(out.get("headline_km", "")).strip()
+    if not hl or hl == "កំពុងតាមដាន។":
+        candidate = str(raw.get("what_happened", "")).strip() or str(raw.get("key_event", "")).strip()
+        if candidate and candidate != "កំពុងតាមដាន។":
+            first_sent = candidate.split("។")[0].strip()
+            if len(first_sent) > 82:
+                first_sent = first_sent[:80].rsplit(" ", 1)[0].rstrip(".,;:–—")
+            out["headline_km"] = sanitize_khmer_spelling(first_sent)
+        else:
+            out["headline_km"] = ""
     if not raw.get("key_event") or out["key_event"] == "កំពុងតាមដាន។":
         what = str(raw.get("what_happened", "")).strip()
         why = str(raw.get("why_it_matters", "")).strip()
@@ -280,10 +308,17 @@ def normalize_analysis(raw: dict) -> dict:
         else:
             out["impact"] = "ផលអវិជ្ជមាន៖ បង្កើនសម្ពាធលើទីផ្សារ"
     else:
-        import re
         imp = re.sub(r'[\r\n]+', ' ', imp).strip()
         imp = re.sub(r'^(ផលវិជ្ជមាន|ផលអវិជ្ជមាន|ផលអព្យាក្រឹត)[\s៖:]+', r'\1៖ ', imp)
         out["impact"] = imp
+
+    # Combat / Attack / War / Drone Sentiment Safety Net: Strictly Negative
+    combat_words = ["ដ្រូន", "drone", "វាយប្រហារ", "attack", "សង្គ្រាម", "war", "គ្រាប់បែក", "bomb", "ឧទ្ទាម", "rebel", "insurgent", "ប្រដាប់អាវុធ", "armed", "មីស៊ីល", "missile", "ជម្លោះ", "conflict"]
+    narrative_full = (out.get("key_event", "") + " " + out.get("what_happened", "") + " " + str(raw.get("title", ""))).lower()
+    if any(w in narrative_full for w in combat_words) and "ផលវិជ្ជមាន" in out.get("impact", ""):
+        out["impact"] = "ផលអវិជ្ជមាន៖ ឆ្លុះបញ្ចាំងពីការកើនឡើងនៃហានិភ័យអសន្តិសុខ និងការគំរាមកំហែងក្នុងតំបន់"
+        out["bias"] = "🔴 Bearish"
+
     out["impact"] = sanitize_khmer_spelling(out["impact"])
     return out
 
