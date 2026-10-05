@@ -749,28 +749,10 @@ class XAUUSDNewsAssistantBot:
 
     def check_weekly_sunday_outlook(self):
         """
-        Broadcasts Weekly Macro Outlook every Sunday at 19:00 (7:00 PM Cambodia Time)
-        before markets open on Monday morning.
+        🚫 USER DIRECTIVE: Permanently disabled Weekly Sunday Gold Outlook alert.
+        Weekly Gold Outlook (🏛️ WEEKLY GOLD OUTLOOK) is banned permanently from the channel.
         """
-        now_kh = datetime.now(CAMBODIA_TZ)
-        # Sunday is weekday 6
-        if now_kh.weekday() == 6 and now_kh.hour >= 19:
-            today_str = now_kh.strftime("%Y-%m-%d")
-            key = f"weekly_outlook_{today_str}"
-            if database.get_state(key):
-                return
-
-            logger.info(f"Triggering Weekly Sunday Outlook for {today_str}...")
-            price_data = self.gold_collector.fetch_price()
-            events = self.calendar_collector.fetch_events()
-            high_impact = [e for e in events if e.get("impact") == "HIGH"]
-
-            summary = self.analyzer.summarize_daily_price(price_data)
-            cot_data = self.cot_collector.fetch_gold_cot()
-            msg = KhmerFormatter.format_weekly_outlook(price_data, high_impact, summary=summary, cot_data=cot_data)
-            self.notifier.send_message(msg)
-            database.set_state(key, "sent")
-            logger.info("Weekly Sunday Outlook broadcasted successfully.")
+        return
 
     def check_database_maintenance(self):
         """Performs automatic database cleanup keeping data.db fast and lightweight (1-2 days retention)."""
@@ -1446,8 +1428,12 @@ class XAUUSDNewsAssistantBot:
                 import io
                 with Image.open(io.BytesIO(img_bytes)) as im:
                     w, h = im.size
-                    # Reject small square logos / icons; genuine news photos are landscape >= 380x200
-                    if w >= 380 and h >= 180 and (w / max(h, 1)) >= 1.15:
+                    # Accept any genuine news photo: landscape, portrait, or square.
+                    # Block only tiny icons/logos (< 280px in both dimensions).
+                    # Min short-side=180 to avoid tiny badge/icon images.
+                    min_side = min(w, h)
+                    max_side = max(w, h)
+                    if max_side >= 380 and min_side >= 180:
                         return True
             except Exception:
                 pass
@@ -1936,10 +1922,7 @@ class XAUUSDNewsAssistantBot:
             # 4. Market Sessions Open Alerts (London 14:00 & NY 19:00 Cambodia Time)
             self.check_session_open_alerts()
 
-            # 5.1 Weekly Sunday Outlook (Every Sunday 19:00 Cambodia Time)
-            self.check_weekly_sunday_outlook()
-
-            # 5.2 Real-Time Signals & Trade Trailing
+            # 5. Real-Time Signals & Trade Trailing
             self.check_news_danger_zone()
             self.check_sniper_instant_signals()
             self.check_dynamic_breakeven_trailing()
@@ -2062,7 +2045,6 @@ class XAUUSDNewsAssistantBot:
                         self.check_database_maintenance()
                         self.check_daily_gold_price()
                         self.check_session_open_alerts()
-                        self.check_weekly_sunday_outlook()
                         background_interval = self.check_economic_events()
                     except Exception as err:
                         logger.error(f"Error during background task check: {err}", exc_info=True)
