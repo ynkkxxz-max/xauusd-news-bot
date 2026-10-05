@@ -179,6 +179,20 @@ def sanitize_khmer_spelling(text: str) -> str:
         (r"ក្រុមហ៊ុន\s*មេតា|មេតា(?!\s*ទិន្នន័យ)", "Meta"),
         (r"ក្រុមហ៊ុន\s*ប៊ែកសៀ\s*ហាតថាវ៉េ|ប៊ែកសៀ\s*ហាតថាវ៉េ", "Berkshire Hathaway"),
 
+        # Natural Journalistic Style & Accurate Spelling Corrections per user directive
+        (r"កន្លែងសន្តិសុខរើសើប|តំបន់សន្តិសុខរើសើប|ទីតាំងសន្តិសុខរើសើប|កន្លែងសន្តិសុខរសើប|កន្លែងរសើប", "ទីតាំងសន្តិសុខរសើប"),
+        (r"រើសើប", "រសើប"),
+        (r"តម្លើង", "ដំឡើង"),
+        (r"ត្រូវបានគេមើលឃើញថាជា", "ត្រូវបានចាត់ទុកជា"),
+        (r"ត្រូវបានគេមើលឃើញថា", "ត្រូវបានចាត់ទុកថា"),
+        (r"ដំណោះស្រាយចំណាយថវិកាស្តួចស្តើង|ចំណាយថវិកាស្តួចស្តើង|ថវិកាស្តួចស្តើង|ដំណោះស្រាយថោក|ចំណាយថោក", "ដំណោះស្រាយចំណាយទាប"),
+        (r"បច្ចេកវិទ្យាទាប", "វិធីសាស្ត្រសាមញ្ញ"),
+        (r"ជាញឹកញាប់រងការគំរាមកំហែង", "តែងតែប្រឈមនឹងការគំរាមកំហែង"),
+        (r"ជាញឹកញាប់រង", "តែងតែប្រឈម"),
+        (r"រងការគំរាមកំហែងពីក្រុមឧទ្ទាម", "ប្រឈមនឹងការគំរាមកំហែងពីក្រុមឧទ្ទាម"),
+        (r"ការអនុវត្តនេះឆ្លុះបញ្ចាំង", "ការអនុវត្តបែបនេះបានឆ្លុះបញ្ចាំង"),
+        (r"ការការពារថយ", "ការការពារ"),
+
         # Typography & spacing cleanup (preserve newlines \n)
         (r"\([ \t]+", "("),
         (r"[ \t]+\)", ")"),
@@ -388,7 +402,9 @@ class KhmerFormatter:
         # Extract comprehensive narrative
         key_event = ""
         impact_line = ""
+        headline_km = ""
         if isinstance(analysis, dict):
+            headline_km = (analysis.get("headline_km") or "").strip()
             key_event = (analysis.get("key_event") or "").strip()
             impact_raw = (analysis.get("impact") or "").strip()
             if impact_raw:
@@ -465,13 +481,37 @@ class KhmerFormatter:
             (r"\b(egypt|cairo)\b|អេហ្ស៊ីប", "🇪🇬"),
             (r"\b(mexico|mexican|banxico)\b|ម៉ិកស៊ិក", "🇲🇽"),
             (r"\b(vietnam|vietnamese|hanoi)\b|វៀតណាម", "🇻🇳"),
+            (r"\b(pakistan|pakistani|islamabad)\b|ប៉ាគីស្ថាន", "🇵🇰"),
+            (r"\b(syria|syrian|damascus)\b|ស៊ីរី", "🇸🇾"),
+            (r"\b(lebanon|lebanese|beirut|hezbollah)\b|លីបង់", "🇱🇧"),
+            (r"\b(iraq|iraqi|baghdad)\b|អ៊ីរ៉ាក់", "🇮🇶"),
+            (r"\b(yemen|yemeni|houthi|sanaa)\b|យេម៉ែន", "🇾🇪"),
         ]
         for pattern, flag in flag_rules:
             if re.search(pattern, full_search, re.IGNORECASE) and flag not in country_flags:
                 country_flags.append(flag)
 
-        flag_str = (" " + " ".join(country_flags[:2])) if country_flags else ""
-        header = f"🔹 <b>ព្រឹត្តិការណ៍សំខាន់</b>{flag_str}".strip()
+        # Build headline: use AI-generated headline_km, fallback to shortened what_happened / key_event / title
+        if not headline_km or headline_km == "កំពុងតាមដាន។":
+            fallback = ""
+            if isinstance(analysis, dict):
+                fallback = (analysis.get("what_happened") or analysis.get("key_event") or "").strip()
+            if not fallback or fallback == "កំពុងតាមដាន។":
+                fallback = (news_item.get("title") or "").strip()
+            if "។" in fallback:
+                fallback = fallback.split("។")[0].strip()
+            if len(fallback) > 82:
+                fallback = fallback[:80].rsplit(" ", 1)[0].rstrip(".,;:–—") + "..."
+            headline_km = fallback
+
+        # Strip emojis and flag chars from headline (flags go in prefix, not inside bold)
+        headline_km = re.sub(r'[\U0001F1E0-\U0001F1FF]{2}', '', headline_km).strip()
+        headline_km = re.sub(r'[\U0001F300-\U0001FFFF]', '', headline_km).strip()
+        # Sanitize spelling
+        headline_km = sanitize_khmer_spelling(headline_km)
+
+        flag_prefix = (" ".join(country_flags[:2]) + " ") if country_flags else ""
+        header = f"{flag_prefix}<b>{headline_km}</b>".strip()
 
         # Strip any country flag emojis from body key_event
         for _, fl in flag_rules:
@@ -543,10 +583,19 @@ class KhmerFormatter:
 
         # Clean multiple spaces / newlines
         key_event = re.sub(r'[ \t]+', ' ', key_event)
+        # Eliminate awkward single line breaks within sentences, turning them into flowing journalistic prose
+        key_event = re.sub(r'(?<!\n)\n(?!\n)', ' ', key_event)
         key_event = re.sub(r'\n{3,}', '\n\n', key_event).strip()
 
         # Sanitize Khmer spelling to guarantee 100% accurate spelling
         key_event = sanitize_khmer_spelling(key_event)
+
+        # Security / conflict / attack / drone / bomb sentiment safety net: Military threats are strictly ផលអវិជ្ជមាន
+        if impact_line:
+            threat_kw = ["ដ្រូន", "drone", "វាយប្រហារ", "attack", "សង្គ្រាម", "war", "គ្រាប់បែក", "bomb", "ឧទ្ទាម", "rebel", "insurgent", "ប្រដាប់អាវុធ", "armed", "មីស៊ីល", "missile"]
+            txt_check = f"{news_item.get('title', '')} {key_event} {impact_line}".lower()
+            if any(w in txt_check for w in threat_kw) and "ផលវិជ្ជមាន" in impact_line:
+                impact_line = "ផលអវិជ្ជមាន៖ ឆ្លុះបញ្ចាំងពីការកើនឡើងនៃហានិភ័យអសន្តិសុខ និងការគំរាមកំហែងក្នុងតំបន់"
 
         parts = [header, key_event]
         if impact_line:
