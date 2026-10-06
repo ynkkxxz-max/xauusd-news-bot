@@ -193,6 +193,18 @@ def sanitize_khmer_spelling(text: str) -> str:
         (r"ការអនុវត្តនេះឆ្លុះបញ្ចាំង", "ការអនុវត្តបែបនេះបានឆ្លុះបញ្ចាំង"),
         (r"ការការពារថយ", "ការការពារ"),
 
+        # Professional Technical Terms & Mistranslation Corrections (Point 4)
+        (r"ដាក់ឈ្មោះ(?:\s*ជា)?", "តែងតាំង"),
+        (r"ប៉ះ(?:ពាល់)?(?:នឹង|ទៅលើ)?ប្រេង(?:កាត)?", "សម្ពាធតម្លៃប្រេង"),
+        (r"ក្រុមហ៊ុន\s*ប៊ិកថេក|ប៊ិកថេក|របស់បច្ចេកវិទ្យាធំ|បច្ចេកវិទ្យាធំ", "ក្រុមហ៊ុនបច្ចេកវិទ្យាយក្ស"),
+        (r"ការប្រញាប់ប្រញាល់ផ្តល់មូលនិធិ", "ការសម្រុកបញ្ចេញទុនវិនិយោគ"),
+        (r"គម្លាតសាច់ប្រាក់\s*របស់ទំនើប", "កង្វះខាតសាច់ប្រាក់ងាយស្រួលក្នុងយុគសម័យទំនើប"),
+        (r"គម្លាតសាច់ប្រាក់", "កង្វះខាតសាច់ប្រាក់ងាយស្រួល"),
+        (r"សម្រាប់កាណាដា", "ប្រចាំប្រទេសកាណាដា"),
+        (r"កម្រិតខ្ពស់គ្រប់ពេល", "កម្រិតខ្ពស់បំផុតជាប្រវត្តិសាស្ត្រ (ATH)"),
+        (r"កាត់បន្ថយអត្រា(?!ការប្រាក់)", "កាត់បន្ថយអត្រាការប្រាក់"),
+        (r"ការដំឡើងអត្រា(?!ការប្រាក់)", "ការដំឡើងអត្រាការប្រាក់"),
+
         # Typography & spacing cleanup (preserve newlines \n)
         (r"\([ \t]+", "("),
         (r"[ \t]+\)", ")"),
@@ -238,6 +250,10 @@ def sanitize_khmer_spelling(text: str) -> str:
 
     # 7. Ensure space after Khmer full stop (។) to prevent text crowding
     res = re.sub(r'។(?!\s|$)', '។ ', res)
+
+    # 8. Ensure clean spacing between Khmer and Latin (English) characters (e.g. 'កងទ័ព Yemen', 'Houthi បាន')
+    res = re.sub(r'([\u1780-\u17FF])([A-Za-z])', r'\1 \2', res)
+    res = re.sub(r'([A-Za-z])([\u1780-\u17FF])', r'\1 \2', res)
 
     return res.strip()
 
@@ -293,50 +309,8 @@ class KhmerFormatter:
 
 
     def format_upcoming_alert(event: dict, minutes_left: int) -> str:
-        """Formats upcoming high-impact event alert (e.g. 15m or 5m countdown)."""
-        time_str = event.get("release_time_str", "")
-        title = event.get("title", "")
-        currency = event.get("currency", "USD")
-        impact = event.get("impact", "HIGH")
-        forecast = event.get("forecast", "N/A") or "N/A"
-        previous = event.get("previous", "N/A") or "N/A"
-        
-        reason = (
-            f"{title} អាចជះឥទ្ធិពលខ្លាំងលើកម្លាំងរូបិយប័ណ្ណ USD "
-            f"និងការរំពឹងទុកលើអត្រាការប្រាក់របស់ Fed ដែលនឹងធ្វើឱ្យតម្លៃមាស XAUUSD "
-            f"មានបម្រែបម្រួលខ្លាំង (High Volatility)។"
-        )
-
-        header = f"🚨 <b>UPCOMING HIGH IMPACT EVENT — ព្រឹត្តិការណ៍សេដ្ឋកិច្ចសំខាន់!</b>"
-        if minutes_left <= 5:
-            header = f"🚨 <b>{minutes_left} នាទីទៀតដល់ម៉ោងចេញទិន្នន័យសំខាន់! (5-MIN COUNTDOWN)</b>"
-
-        # Pre-News Volatility & Risk Analysis
-        spread_alert = "Spread អាចរីកធំឡើង (Spread Widening) និងអាចមាន Slippage ខ្លាំង!"
-        risk_advice = (
-            "• ⚠️ <b>ហានិភ័យ Slippage & Spread:</b> អាចកើនឡើង ២x ទៅ ៥x ធម្មតា\n"
-            "• 🛡️ <b>ការគ្រប់គ្រងហានិភ័យ:</b> បន្ថយទំហំ Lot, ពិនិត្យ Stop Loss (SL) ឬឈរមើលក្រៅទីផ្សាររហូតដល់ទៀនទី១បិទ\n"
-            "• 🚫 <b>ការណែនាំ:</b> មិនត្រូវប្រញាប់ទស្សន៍ទាយចូល Order មុនទិន្នន័យពិតចេញឡើយ!"
-        )
-
-        msg = (
-            f"{header}\n\n"
-            f"🇺🇸 <b>រូបិយប័ណ្ណ:</b> {currency}\n"
-            f"📰 <b>ព្រឹត្តិការណ៍:</b> {title}\n"
-            f"🕐 <b>ម៉ោងចេញផ្សាយនៅកម្ពុជា:</b> <b>{time_str} (ម៉ោងនៅកម្ពុជា UTC+7)</b>\n"
-            f"⏳ <b>នៅសល់ពេល:</b> {minutes_left} នាទីទៀត\n"
-            f"🔴 <b>កម្រិតផលប៉ះពាល់:</b> {impact}\n\n"
-            f"📊 <b>ការរំពឹងទុកទីផ្សារ:</b>\n"
-            f"• <b>ការព្យាករណ៍ (Forecast):</b> <code>{forecast}</code>\n"
-            f"• <b>ទិន្នន័យមុន (Previous):</b> <code>{previous}</code>\n\n"
-            f"⚡ <b>ការព្រមានអំពីបម្រែបម្រួល (Pre-News Volatility Warning):</b>\n"
-            f"• ⚠️ <b>{spread_alert}</b>\n\n"
-            f"🧠 <b>មូលហេតុចម្បង:</b>\n"
-            f"{reason}\n\n"
-            f"🛡️ <b>យុទ្ធសាស្ត្រ Trader (VIP Risk Management):</b>\n"
-            f"{risk_advice}"
-        )
-        return msg
+        """Upcoming news countdown reminders are permanently disabled per user directive."""
+        return ""
 
     @staticmethod
     def format_actual_release_alert(event: dict, analysis: dict) -> str:
@@ -387,7 +361,7 @@ class KhmerFormatter:
         return msg
 
     @staticmethod
-    def format_breaking_event_alert(news_item: dict, analysis: dict) -> str:
+    def format_breaking_event_alert(news_item: dict, analysis: dict = None, has_photo: bool = False) -> str:
         """Formats breaking news / major geopolitical or unexpected central bank event alert."""
         import re
         import html
@@ -395,9 +369,9 @@ class KhmerFormatter:
         source_name = (news_item.get("source") or "ForexLive News").strip()
         article_url = (news_item.get("link") or news_item.get("url") or "").strip()
         if article_url:
-            source_line = f'ប្រភពព័ត៌មាន | <a href="{article_url}">{source_name}</a>'
+            source_line = f'ប្រភព | <a href="{html.escape(article_url, quote=True)}">{html.escape(source_name)}</a>'
         else:
-            source_line = f"ប្រភពព័ត៌មាន | {source_name}"
+            source_line = f"ប្រភព | {html.escape(source_name)}"
 
         # Extract comprehensive narrative
         key_event = ""
@@ -408,36 +382,70 @@ class KhmerFormatter:
             key_event = (analysis.get("key_event") or "").strip()
             impact_raw = (analysis.get("impact") or "").strip()
             if impact_raw:
-                imp_clean = re.sub(r'^[💡🔴🟢🟡:\s]+', '', impact_raw).strip()
-                # Strictly strip leading "វា" or "វាផល" per user directive
-                if imp_clean.startswith("វាផលវិជ្ជមាន"):
-                    imp_clean = imp_clean[2:]
-                elif imp_clean.startswith("វាផលអវិជ្ជមាន"):
-                    imp_clean = imp_clean[2:]
-                elif imp_clean.startswith("វាផលអព្យាក្រឹត"):
-                    imp_clean = imp_clean[2:]
-                elif imp_clean.startswith("វា"):
-                    imp_clean = imp_clean[2:].strip()
+                # Pre-split if multiple impacts were squished on one line without newline
+                impact_raw = re.sub(r'([^\n\r])\s+([🔸🔴🔹🟢]\s*(?:ផលវិជ្ជមាន|ផលអវិជ្ជមាន|ហានិភ័យ))', r'\1\n\2', impact_raw)
+                parsed_impact_lines = []
+                for imp_segment in impact_raw.split("\n"):
+                    imp_segment = imp_segment.strip()
+                    if not imp_segment:
+                        continue
+                    # Remove any lingering secondary inline impact clause
+                    imp_segment = re.sub(r'\s+[🔸🔴🔹🟢]\s*(?:ផលវិជ្ជមាន|ផលអវិជ្ជមាន|ហានិភ័យ).*$', '', imp_segment).strip()
+                    imp_clean = re.sub(r'^[💡🔴🟢🟡:\s]+', '', imp_segment).strip()
+                    # Strictly strip leading "វា" or "វាផល" per user directive
+                    if imp_clean.startswith("វាផលវិជ្ជមាន"):
+                        imp_clean = imp_clean[2:]
+                    elif imp_clean.startswith("វាផលអវិជ្ជមាន"):
+                        imp_clean = imp_clean[2:]
+                    elif imp_clean.startswith("វាផលអព្យាក្រឹត"):
+                        imp_clean = imp_clean[2:]
+                    elif imp_clean.startswith("វា"):
+                        imp_clean = imp_clean[2:].strip()
 
-                # Clean any parentheses inside impact
-                imp_clean = re.sub(r'[()]+', '', imp_clean).strip()
+                    # Strip non-ticker parentheses while preserving standard tickers (XAUUSD, USD, BTC, Crypto, SEC, Fed)
+                    imp_clean = re.sub(r'\(\s*(?!XAUUSD\b|USD\b|BTC\b|Crypto\b|SEC\b|PMI\b|FED\b|CPI\b|GDP\b|NFP\b)[A-Za-z\s-]+\s*\)', '', imp_clean).strip()
 
-                # Standardize to clean Khmer narrative: ផលវិជ្ជមាន៖ / ផលអវិជ្ជមាន៖
-                m_pos = re.match(r'^(ផលវិជ្ជមាន|ឥទ្ធិពលវិជ្ជមាន)\s*[៖:]?\s*(.*)', imp_clean)
-                m_neg = re.match(r'^(ផលអវិជ្ជមាន|ឥទ្ធិពលអវិជ្ជមាន)\s*[៖:]?\s*(.*)', imp_clean)
-                m_neu = re.match(r'^(ផលអព្យាក្រឹត|ឥទ្ធិពលអព្យាក្រឹត)\s*[៖:]?\s*(.*)', imp_clean)
-                if m_pos:
-                    detail = m_pos.group(2).strip()
-                    imp_clean = f"ផលវិជ្ជមាន៖ {detail}" if detail else "ផលវិជ្ជមាន"
-                elif m_neg:
-                    detail = m_neg.group(2).strip()
-                    imp_clean = f"ផលអវិជ្ជមាន៖ {detail}" if detail else "ផលអវិជ្ជមាន"
-                elif m_neu:
-                    detail = m_neu.group(2).strip()
-                    imp_clean = f"ផលអព្យាក្រឹត៖ {detail}" if detail else "ផលអព្យាក្រឹត"
-                elif not imp_clean.startswith(("ផល", "ឥទ្ធិពល")):
-                    imp_clean = f"ផលវិជ្ជមាន៖ {imp_clean}"
-                impact_line = imp_clean
+                    # Standardize to clean Khmer narrative with 🔹 for positive and 🔸 for negative/risk
+                    m_pos = re.match(r'^(?:[🔹🟢]*)?\s*(?:ផលវិជ្ជមាន|ឥទ្ធិពលវិជ្ជមាន)\s*[៖:]?\s*(.*)', imp_clean)
+                    m_neg = re.match(r'^(?:[🔸🔴]*)?\s*(?:ផលអវិជ្ជមាន/ហានិភ័យ|ហានិភ័យទីផ្សារ|ផលអវិជ្ជមាន|ឥទ្ធិពលអវិជ្ជមាន|ហានិភ័យ)\s*[៖:]?\s*(.*)', imp_clean)
+                    m_neu = re.match(r'^(?:[🟡]*)?\s*(?:ផលអព្យាក្រឹត|ឥទ្ធិពលអព្យាក្រឹត)\s*[៖:]?\s*(.*)', imp_clean)
+                    if m_pos:
+                        detail = m_pos.group(1).strip()
+                        detail = re.sub(r'^[\s៖:]+', '', detail).strip()
+                        parsed_impact_lines.append(f"🔹 ផលវិជ្ជមាន៖ {detail}" if detail else "🔹 ផលវិជ្ជមាន")
+                    elif m_neg:
+                        prefix_used = "🔸 ផលអវិជ្ជមាន"
+                        if "ហានិភ័យទីផ្សារ" in imp_clean:
+                            prefix_used = "🔸 ហានិភ័យទីផ្សារ"
+                        elif "ផលអវិជ្ជមាន/ហានិភ័យ" in imp_clean:
+                            prefix_used = "🔸 ផលអវិជ្ជមាន/ហានិភ័យ"
+                        detail = m_neg.group(1).strip()
+                        detail = re.sub(r'^[\s៖:]+', '', detail).strip()
+                        parsed_impact_lines.append(f"{prefix_used}៖ {detail}" if detail else prefix_used)
+                    elif m_neu:
+                        detail = m_neu.group(1).strip()
+                        detail = re.sub(r'^[\s៖:]+', '', detail).strip()
+                        parsed_impact_lines.append(f"ផលអព្យាក្រឹត៖ {detail}" if detail else "ផលអព្យាក្រឹត")
+                    elif not imp_clean.startswith(("ផល", "ឥទ្ធិពល", "ហានិភ័យ")):
+                        parsed_impact_lines.append(f"🔸 ហានិភ័យទីផ្សារ៖ {imp_clean}")
+                    else:
+                        parsed_impact_lines.append(imp_clean)
+                
+                # Enforce strictly ONE impact line based on sentiment
+                if parsed_impact_lines:
+                    bias_str = str(analysis.get("bias", "")).lower()
+                    full_txt = f"{news_item.get('title', '')} {key_event}".lower()
+                    is_neg = "bearish" in bias_str or any(k in full_txt for k in ["crisis", "war", "debt", "default", "fall", "drop", "cut", "risk", "វិបត្តិ", "សង្គ្រាម", "បំណុល", "ក្ស័យធន", "ធ្លាក់ចុះ", "ហានិភ័យ", "សម្ពាធ", "រឹតបន្តឹង"])
+                    pos = [l for l in parsed_impact_lines if l.startswith("🔹")]
+                    neg = [l for l in parsed_impact_lines if l.startswith("🔸")]
+                    if is_neg and neg:
+                        impact_line = neg[0]
+                    elif pos:
+                        impact_line = pos[0]
+                    elif neg:
+                        impact_line = neg[0]
+                    else:
+                        impact_line = parsed_impact_lines[0]
 
             if not key_event:
                 what = (analysis.get("what_happened") or "").strip()
@@ -472,10 +480,10 @@ class KhmerFormatter:
             (r"\b(australia|australian|sydney|rba|canberra)\b|អូស្ត្រាលី", "🇦🇺"),
             (r"\b(switzerland|swiss|snb|zurich|geneva)\b|ស្វីស", "🇨🇭"),
             (r"\b(singapore|straits times|mas)\b|សិង្ហបុរី", "🇸🇬"),
-            (r"\b(saudi|opec|riyadh)\b|អារ៉ាប៊ីសាអ៊ូឌីត", "🇸🇦"),
+            (r"\b(saudi|opec|riyadh|jeddah|aramco)\b|អារ៉ាប៊ីសាអ៊ូឌីត", "🇸🇦"),
             (r"\b(canada|canadian|boc|toronto|canadian tire)\b|កាណាដា", "🇨🇦"),
             (r"\b(uae|dubai|abu dhabi|emirates)\b|អេមីរ៉ាត|ឌូបៃ", "🇦🇪"),
-            (r"\b(turkey|turkish|turkiye|ankara|erdogan|cbrt)\b|តួកគី", "🇹🇷"),
+            (r"\b(turkey|turkish|turkiye|ankara|istanbul|erdogan|cbrt)\b|តួកគី|អ៊ីស្តង់ប៊ុល", "🇹🇷"),
             (r"\b(brazil|brazilian|lula)\b|ប្រេស៊ីល", "🇧🇷"),
             (r"\b(qatar|doha)\b|កាតា", "🇶🇦"),
             (r"\b(egypt|cairo)\b|អេហ្ស៊ីប", "🇪🇬"),
@@ -491,24 +499,58 @@ class KhmerFormatter:
             if re.search(pattern, full_search, re.IGNORECASE) and flag not in country_flags:
                 country_flags.append(flag)
 
-        # Build headline: use AI-generated headline_km, fallback to shortened what_happened / key_event / title
+        if isinstance(analysis, dict):
+            c_flag = (analysis.get("country_flag") or "").strip()
+            if c_flag and c_flag not in country_flags:
+                country_flags.insert(0, c_flag)
+
+        # Build headline: use AI-generated headline_km, fallback to shortened title / what_happened / key_event
         if not headline_km or headline_km == "កំពុងតាមដាន។":
             fallback = ""
             if isinstance(analysis, dict):
-                fallback = (analysis.get("what_happened") or analysis.get("key_event") or "").strip()
+                fallback = (analysis.get("headline_km") or "").strip()
             if not fallback or fallback == "កំពុងតាមដាន។":
-                fallback = (news_item.get("title") or "").strip()
+                raw_title = (news_item.get("title") or "").strip()
+                if raw_title:
+                    try:
+                        from analyzers.macro_analyzer import MacroAnalyzer
+                        km_t = MacroAnalyzer.translate_to_khmer(raw_title)
+                        if km_t and len(re.findall(r'[\u1780-\u17FF]', km_t)) >= 5:
+                            fallback = km_t
+                    except Exception:
+                        pass
+                if not fallback or fallback == "កំពុងតាមដាន។":
+                    fallback = raw_title
+            if not fallback or fallback == "កំពុងតាមដាន។":
+                if isinstance(analysis, dict):
+                    fallback = (analysis.get("what_happened") or analysis.get("key_event") or "").strip()
             if "។" in fallback:
                 fallback = fallback.split("។")[0].strip()
-            if len(fallback) > 82:
-                fallback = fallback[:80].rsplit(" ", 1)[0].rstrip(".,;:–—") + "..."
+            if "\n" in fallback:
+                fallback = fallback.split("\n")[0].strip()
+            if " — " in fallback:
+                fallback = fallback.split(" — ")[0].strip()
             headline_km = fallback
 
         # Strip emojis and flag chars from headline (flags go in prefix, not inside bold)
         headline_km = re.sub(r'[\U0001F1E0-\U0001F1FF]{2}', '', headline_km).strip()
         headline_km = re.sub(r'[\U0001F300-\U0001FFFF]', '', headline_km).strip()
+
+        # STRICT NO-ELLIPSIS DIRECTIVE: Strictly strip any trailing dots, ellipsis, colons, hyphens, and whitespace (NO "..." allowed!)
+        headline_km = re.sub(r'[\s.,;:៖–—_…]+$', '', headline_km).strip()
+        headline_km = re.sub(r'\.{2,}', '', headline_km).strip()
+        headline_km = re.sub(r'…+', '', headline_km).strip()
+        headline_km = re.sub(r'[\s.,;:៖–—_…]+$', '', headline_km).strip()
+
         # Sanitize spelling
         headline_km = sanitize_khmer_spelling(headline_km)
+
+        # Final pass to ensure absolutely zero trailing dots, colons, or cut-off prepositions
+        headline_km = re.sub(r'[\s.,;:៖–—_…]+$', '', headline_km).strip()
+        headline_km = re.sub(r'\.{2,}', '', headline_km).strip()
+        headline_km = re.sub(r'…+', '', headline_km).strip()
+        headline_km = re.sub(r'\s+(?:នៃ|របស់|និង|ពី|ក្នុង|ដើម្បី|លើ|អំពី)\s*$', '', headline_km).strip()
+        headline_km = re.sub(r'[\s.,;:៖–—_…]+$', '', headline_km).strip()
 
         flag_prefix = (" ".join(country_flags[:2]) + " ") if country_flags else ""
         header = f"{flag_prefix}<b>{headline_km}</b>".strip()
@@ -590,23 +632,193 @@ class KhmerFormatter:
         # Sanitize Khmer spelling to guarantee 100% accurate spelling
         key_event = sanitize_khmer_spelling(key_event)
 
-        # Security / conflict / attack / drone / bomb sentiment safety net: Military threats are strictly ផលអវិជ្ជមាន
+        # Security / conflict / attack / drone / bomb / military / strait sentiment safety net: Military threats are strictly ហានិភ័យទីផ្សារ (🔸)
         if impact_line:
-            threat_kw = ["ដ្រូន", "drone", "វាយប្រហារ", "attack", "សង្គ្រាម", "war", "គ្រាប់បែក", "bomb", "ឧទ្ទាម", "rebel", "insurgent", "ប្រដាប់អាវុធ", "armed", "មីស៊ីល", "missile"]
-            txt_check = f"{news_item.get('title', '')} {key_event} {impact_line}".lower()
-            if any(w in txt_check for w in threat_kw) and "ផលវិជ្ជមាន" in impact_line:
-                impact_line = "ផលអវិជ្ជមាន៖ ឆ្លុះបញ្ចាំងពីការកើនឡើងនៃហានិភ័យអសន្តិសុខ និងការគំរាមកំហែងក្នុងតំបន់"
+            threat_kh = [
+                "ដ្រូន", "វាយប្រហារ", "សង្គ្រាម", "គ្រាប់បែក", "ឧទ្ទាម", "ប្រដាប់អាវុធ", "មីស៊ីល",
+                "ជម្លោះ", "កងទ័ព", "យោធា", "ទ័ព", "កងកម្លាំង", "ច្រកសមុទ្រ", "សមុទ្រក្រហម", "យេម៉ែន", "ហូទី"
+            ]
+            threat_en = [
+                r"\bwar\b", r"\bwars\b", r"\bdrone\b", r"\bdrones\b", r"\battack\b", r"\battacks\b",
+                r"\bbomb\b", r"\bbombing\b", r"\brebel\b", r"\brebels\b", r"\barmed\b", r"\bmissile\b",
+                r"\bmissiles\b", r"\bconflict\b", r"\bmilitary\b", r"\barmy\b", r"\btroops\b",
+                r"\bsoldiers\b", r"\bnavy\b", r"\byemen\b", r"\bhouthi\b", r"\bmandab\b", r"\bred sea\b",
+                r"\bstrait\b", r"\bstraits\b", r"\bhormuz\b", r"\bclash\b", r"\bairstrike\b"
+            ]
+            txt_check = f"{news_item.get('title', '')} {key_event} {impact_line} {headline_km}".lower()
+            is_threat = any(k in txt_check for k in threat_kh) or any(re.search(pat, txt_check) for pat in threat_en)
+            if is_threat and ("ផលវិជ្ជមាន" in impact_line or "អស្ថិរភាពសន្តិសុខសកល" in impact_line or "សន្ទុះកំណើនទីផ្សារ" in impact_line):
+                is_strait = any(k in txt_check for k in ["mandab", "bab al-mandab", "red sea", "strait", "straits", "hormuz", "ច្រកសមុទ្រ", "សមុទ្រក្រហម"])
+                if is_strait:
+                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ ភាពតានតឹងនៅច្រកសមុទ្រក្រហមអាចគំរាមកំហែងដល់ផ្លូវដឹកជញ្ជូនថាមពលសកល ដែលអាចរុញច្រានតម្លៃប្រេងឆៅ និងមាសឱ្យកើនឡើង"
+                else:
+                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ បង្កើនភាពតានតឹងផ្នែកភូមិសាស្ត្រនយោបាយ ដែលអាចជំរុញឱ្យតម្រូវការទិញមាស XAUUSD ហក់ឡើងខ្ពស់ក្នុងនាមជាទ្រព្យសុវត្ថិភាព"
 
-        parts = [header, key_event]
         if impact_line:
-            # Strip internal newlines so impact stays strictly on a single cohesive line
-            impact_line = re.sub(r'[\r\n]+', ' ', impact_line).strip()
-            impact_line = re.sub(r'^(ផលវិជ្ជមាន|ផលអវិជ្ជមាន|ផលអព្យាក្រឹត)[\s៖:]+', r'\1៖ ', impact_line)
-            impact_line = sanitize_khmer_spelling(impact_line)
-            parts.append(impact_line)
-        parts.append(source_line)
+            impact_lines = []
+            for iline in impact_line.split("\n"):
+                iline = iline.strip()
+                if not iline:
+                    continue
+                if "ផលវិជ្ជមាន" in iline or "ឥទ្ធិពលវិជ្ជមាន" in iline:
+                    if not iline.startswith("🔹"):
+                        iline = "🔹 " + re.sub(r'^[🔹🟢\s]*', '', iline)
+                elif any(k in iline for k in ["ផលអវិជ្ជមាន", "ហានិភ័យទីផ្សារ", "ហានិភ័យ", "ឥទ្ធិពលអវិជ្ជមាន"]):
+                    if not iline.startswith("🔸"):
+                        iline = "🔸 " + re.sub(r'^[🔸🔴\s]*', '', iline)
+                iline = re.sub(r'^(🔹|🔸)?\s*(ផលវិជ្ជមាន|ផលអវិជ្ជមាន/ហានិភ័យ|ហានិភ័យទីផ្សារ|ផលអវិជ្ជមាន|ផលអព្យាក្រឹត)[\s៖:]+', r'\1 \2៖ ', iline).strip()
+                # Strict No Parentheses Rule in impact line
+                iline = re.sub(r'[\(\)]', '', iline)
+                iline = sanitize_khmer_spelling(iline)
+                impact_lines.append(iline)
+            impact_line = "\n".join(impact_lines)
 
-        return "\n\n".join(parts).strip()
+            # Specific Asset Targeting (Point 3) - Replace generic templates with trader-focused asset impacts
+            generic_phrases = [
+                "បង្កើនសម្ពាធលើទីផ្សារ",
+                "សម្ពាធលើទីផ្សារ",
+                "ភាពមិនច្បាស់លាស់នៃទស្សនវិស័យសេដ្ឋកិច្ចអាចជះឥទ្ធិពលដល់ទីផ្សារ",
+                "ភាពមិនច្បាស់លាស់នៃកំណើនសេដ្ឋកិច្ចបង្កើនការប្រុងប្រយ័ត្នដល់វិនិយោគិន",
+                "អាចជះឥទ្ធិពលដល់ទីផ្សារ",
+                "បង្កើនហានិភ័យភូមិសាស្ត្រនយោបាយ និងអស្ថិរភាពសន្តិសុខសកល",
+                "ជំរុញនវានុវត្តន៍បច្ចេកវិទ្យា និងទាក់ទាញលំហូរសាច់ប្រាក់វិនិយោគ",
+                "ជំរុញនវានុវត្តន៍ និងទាក់ទាញលំហូរទុនវិនិយោគក្នុងវិស័យ AI",
+                "ជំរុញនវានុវត្តន៍បច្ចេកវិទ្យា",
+            ]
+            if any(p in impact_line for p in generic_phrases):
+                is_neg = "ផលអវិជ្ជមាន" in impact_line or "ឥទ្ធិពលអវិជ្ជមាន" in impact_line or "ហានិភ័យ" in impact_line
+                if any(k in full_search for k in ["gold", "xau", "មាស", "bullion"]):
+                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ ដាក់សម្ពាធលើទិសដៅតម្លៃមាស XAUUSD" if is_neg else "🔹 ផលវិជ្ជមាន៖ គាំទ្រដល់និន្នាការកើនឡើងនៃតម្លៃមាស XAUUSD"
+                elif any(k in full_search for k in ["oil", "crude", "energy", "opec", "ប្រេង", "ប្រេងកាត", "ថាមពល"]):
+                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ ការធ្លាក់ចុះស្តុកប្រេង ឬការរំខានការផ្គត់ផ្គង់ រុញសម្ពាធតម្លៃប្រេងឡើងថ្លៃ និងបង្កើនហានិភ័យអតិផរណា" if is_neg else "🔹 ផលវិជ្ជមាន៖ ការកើនឡើងការផ្គត់ផ្គង់ប្រេង ជួយកាត់បន្ថយសម្ពាធថ្លៃដើមថាមពលសកល"
+                elif any(k in full_search for k in ["ai", "chip", "semiconductor", "tech", "nvidia", "tsmc", "apple", "microsoft", "google", "meta", "បច្ចេកវិទ្យា", "បន្ទះឈីប"]):
+                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ បង្កផលរំខានដល់ខ្សែច្រវាក់ផ្គត់ផ្គង់បន្ទះឈីប ដែលអាចដាក់សម្ពាធលើទីផ្សារភាគហ៊ុនបច្ចេកវិទ្យា" if is_neg else "🔹 ផលវិជ្ជមាន៖ ជំរុញកំណើនភាគហ៊ុនបច្ចេកវិទ្យា Big Tech និងទាក់ទាញលំហូរទុនវិនិយោគសកល"
+                elif any(k in full_search for k in ["fed", "rate", "powell", "fomc", "cpi", "inflation", "អត្រាការប្រាក់", "អតិផរណា", "ecb", "boj"]):
+                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ អត្រាការប្រាក់កម្រិតខ្ពស់យូរអង្វែង រុញ USD និង Yields ឡើងថ្លៃ ព្រមទាំងដាក់សម្ពាធលើតម្លៃមាស XAUUSD" if is_neg else "🔹 ផលវិជ្ជមាន៖ ការបន្ធូរបន្ថយអត្រាការប្រាក់ ដាក់សម្ពាធលើ USD និងគាំទ្រដល់ការហក់ឡើងនៃតម្លៃមាស XAUUSD"
+                elif any(k in full_search for k in ["bitcoin", "crypto", "etf", "sec", "គ្រីបតូ", "ប៊ីតខយ", "btc"]):
+                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ បង្កើនសម្ពាធលក់ និងការប្រុងប្រយ័ត្នខ្ពស់ក្នុងទីផ្សារទ្រព្យសកម្មឌីជីថល Crypto" if is_neg else "🔹 ផលវិជ្ជមាន៖ លំហូរទុនវិនិយោគស្ថាប័នក្នុង Spot ETF គាំទ្រដល់ស្ថិរភាព និងកំណើនទីផ្សារ Bitcoin BTC"
+                elif any(k in full_search for k in ["war", "strike", "attack", "drone", "missile", "military", "army", "troops", "strait", "mandab", "yemen", "houthi", "សង្គ្រាម", "វាយប្រហារ", "កងទ័ព", "យោធា", "ច្រកសមុទ្រ"]):
+                    if any(k in full_search for k in ["mandab", "bab al-mandab", "red sea", "strait", "straits", "hormuz", "ច្រកសមុទ្រ", "សមុទ្រក្រហម"]):
+                        impact_line = "🔸 ហានិភ័យទីផ្សារ៖ ភាពតានតឹងនៅច្រកសមុទ្រក្រហមអាចគំរាមកំហែងដល់ផ្លូវដឹកជញ្ជូនថាមពលសកល ដែលអាចរុញច្រានតម្លៃប្រេងឆៅ និងមាសឱ្យកើនឡើង"
+                    else:
+                        impact_line = "🔸 ហានិភ័យទីផ្សារ៖ បង្កើនភាពតានតឹងផ្នែកភូមិសាស្ត្រនយោបាយ ដែលអាចជំរុញឱ្យតម្រូវការទិញមាស XAUUSD ហក់ឡើងខ្ពស់ក្នុងនាមជាទ្រព្យសុវត្ថិភាព"
+                else:
+                    impact_line = "🔸 ផលអវិជ្ជមាន/ហានិភ័យ៖ ការរឹតបន្តឹងគោលនយោបាយរូបិយវត្ថុយូរអង្វែង អាចដាក់សម្ពាធលើកំណើនសេដ្ឋកិច្ច" if is_neg else "🔹 ផលវិជ្ជមាន៖ ជួយពង្រឹងកិច្ចសហប្រតិបត្តិការអន្តរជាតិក្នុងការរក្សាស្ថិរភាពលំហូរសាច់ប្រាក់"
+                impact_line = re.sub(r'[\(\)]', '', impact_line)
+
+        # Strictly enforce a SINGLE impact line per user directive (Remove redundant/conflicting 2nd impact)
+        if impact_line:
+            # Also clean any inline leakage where 🔸 and 🔹 were squished together on the same line
+            m_inline1 = re.search(r'([🔹🟢]\s*ផលវិជ្ជមាន[^🔸🔴\n]+)\s*([🔸🔴]\s*(?:ផលអវិជ្ជមាន|ហានិភ័យ)[^\n]+)', impact_line)
+            m_inline2 = re.search(r'([🔸🔴]\s*(?:ផលអវិជ្ជមាន|ហានិភ័យ)[^🔹🟢\n]+)\s*([🔹🟢]\s*ផលវិជ្ជមាន[^\n]+)', impact_line)
+            bias_str = str(analysis.get("bias", "")).lower() if isinstance(analysis, dict) else ""
+            is_threat_or_negative = "bearish" in bias_str or any(k in full_search for k in ["crisis", "war", "debt", "default", "fall", "drop", "cut", "risk", "វិបត្តិ", "សង្គ្រាម", "បំណុល", "ក្ស័យធន", "ធ្លាក់ចុះ", "ហានិភ័យ", "សម្ពាធ", "រឹតបន្តឹង"])
+
+            if m_inline1:
+                impact_line = m_inline1.group(2).strip() if is_threat_or_negative else m_inline1.group(1).strip()
+            elif m_inline2:
+                impact_line = m_inline2.group(1).strip() if is_threat_or_negative else m_inline2.group(2).strip()
+
+            lines = [l.strip() for l in impact_line.split("\n") if l.strip()]
+            if len(lines) > 1:
+                neg_lines = [l for l in lines if l.startswith("🔸")]
+                pos_lines = [l for l in lines if l.startswith("🔹")]
+                if is_threat_or_negative and neg_lines:
+                    impact_line = neg_lines[0]
+                elif pos_lines:
+                    impact_line = pos_lines[0]
+                else:
+                    impact_line = lines[0]
+            else:
+                impact_line = lines[0] if lines else ""
+
+        # Deduplicate narrative against headline to avoid repeating the exact title
+        norm_hl = re.sub(r'[\s\u200b]+', '', headline_km).lower()
+        norm_ke = re.sub(r'[\s\u200b]+', '', key_event).lower()
+        if norm_hl and (norm_ke.startswith(norm_hl[:25]) or norm_hl.startswith(norm_ke[:25])):
+            remainder = key_event
+            for delim in ['។', '\n', ' — ', ' - ', ':']:
+                if delim in remainder:
+                    parts = remainder.split(delim, 1)
+                    first_part_norm = re.sub(r'[\s\u200b]+', '', parts[0]).lower()
+                    if first_part_norm.startswith(norm_hl[:20]) or norm_hl.startswith(first_part_norm[:20]):
+                        remainder = parts[1].strip()
+                        break
+            norm_rem = re.sub(r'[\s\u200b]+', '', remainder).lower()
+            if len(norm_rem) >= 20 and norm_rem != norm_hl and not norm_rem.startswith(norm_hl[:25]):
+                key_event = remainder
+            elif isinstance(analysis, dict):
+                why = (analysis.get("why_it_matters") or "").strip()
+                what = (analysis.get("what_happened") or "").strip()
+                if why and re.sub(r'[\s\u200b]+', '', why).lower() != norm_hl:
+                    key_event = why
+                elif what and re.sub(r'[\s\u200b]+', '', what).lower() != norm_hl:
+                    key_event = what
+
+        header_bold = f"{flag_prefix}<b>{headline_km}</b>".strip()
+
+        if not has_photo:
+            # MODE B: TEXT-ONLY POST (When no image is attached)
+            # Structure per user directive:
+            # [Flag] <b>[Comprehensive Headline]</b>
+            #
+            # [Detailed Context Paragraph 1 - Core event and key developments]
+            #
+            # [Detailed Context Paragraph 2 - Broader economic background or central bank reaction]
+            #
+            # 🔹 ផលវិជ្ជមាន៖ [Specific positive impact]
+            # 🔸 ផលអវិជ្ជមាន/ហានិភ័យ៖ [Specific downside or risk]
+            #
+            # 🌐 ប្រភព | <a href="{article_url}">{source_name}</a>
+            blocks = [header_bold]
+            if key_event and key_event != headline_km:
+                blocks.append(key_event)
+            if impact_line:
+                blocks.append(impact_line)
+            blocks.append(source_line)
+            return "\n\n".join(blocks).strip()
+        else:
+            # MODE A: PHOTO CAPTION (When an image is attached)
+            # Structure per user directive:
+            # [Flag] <b>[Headline - 1 to 2 lines max]</b>
+            #
+            # [Context Summary - 2 to 3 concise sentences]
+            #
+            # 🔹/🔸 [Market Impact - 1 direct sentence]
+            #
+            # 🌐 ប្រភព | <a href="{article_url}">{source_name}</a>
+            blocks = [header_bold]
+            if key_event and key_event != headline_km:
+                blocks.append(key_event)
+            first_impact = ""
+            if impact_line:
+                first_impact = impact_line.split("\n")[0].strip()
+                blocks.append(first_impact)
+            blocks.append(source_line)
+            full_msg = "\n\n".join(blocks).strip()
+
+            # Strictly enforce <= 850 total characters for Mode A photo captions (60 to 90 words)
+            if len(full_msg) > 850:
+                overhead = len(header_bold) + 2 + (len(first_impact) + 2 if first_impact else 0) + len(source_line) + 4
+                max_ke_len = max(850 - overhead, 100)
+                if key_event and len(key_event) > max_ke_len:
+                    sub = key_event[:max_ke_len]
+                    last_period = max(sub.rfind("។ "), sub.rfind("។\n"), sub.rfind("។"))
+                    if last_period > 50:
+                        key_event = sub[:last_period + 1].strip()
+                    else:
+                        last_space = sub.rfind(" ")
+                        if last_space > 50:
+                            key_event = sub[:last_space].strip() + "។"
+                        else:
+                            key_event = sub.strip() + "។"
+                    blocks = [header_bold, key_event]
+                    if first_impact:
+                        blocks.append(first_impact)
+                    blocks.append(source_line)
+                    full_msg = "\n\n".join(blocks).strip()
+
+            return full_msg
 
     @staticmethod
     def format_whale_alert(whale_data: dict) -> str:
@@ -814,38 +1026,74 @@ class KhmerFormatter:
 
     @staticmethod
     def format_fomc_speech_alert(event_title: str, interp: dict) -> str:
-        """Formats Real-Time AI Live Speech Interpretation of FOMC / Fed Officials."""
+        """
+        Formats Real-Time AI Live Speech Interpretation of FOMC / Fed Officials.
+        Strictly follows the VIP template requested by the user:
+        សុន្ទរកថា៖ Kevin Warsh (អតីតទេសាភិបាល Fed)
+        ជំហរ (Tone)៖ Hawkish (តឹងរ៉ឹងលើអត្រាការប្រាក់)
+        💬 សម្រង់សម្តីសំខាន់៖ «Fed ត្រូវតែប្រុងប្រយ័ត្នខ្ពស់ចំពោះអតិផរណាដែលមិនទាន់ធ្លាក់ដល់គោលដៅ ២% ហើយទីផ្សារមិនគួររំពឹងការបញ្ចុះអត្រាការប្រាក់លឿនពេកឡើយ។»
+        🔸 ផលប៉ះពាល់៖ XAUUSD Bearish (មាសមាននិន្នាការធ្លាក់ចុះ) ដុល្លារ និងទិន្នផលប័ណ្ណបំណុលឡើងថ្លៃ ដាក់សម្ពាធអវិជ្ជមានលើតម្លៃមាស។
+        """
         import re
-        is_dovish = interp.get("tone") == "DOVISH"
-        is_hawkish = interp.get("tone") == "HAWKISH"
-        icon = "🟢" if is_dovish else ("🔴" if is_hawkish else "🟡")
 
-        # Detect speaker name dynamically
-        speaker = "Fed"
-        for name in ["Kevin Warsh", "Warsh", "Jerome Powell", "Powell", "Christopher Waller", "Waller", "Michelle Bowman", "Bowman", "Austan Goolsbee", "Goolsbee", "John Williams", "Williams"]:
-            if name.lower() in event_title.lower():
-                speaker = name
-                break
+        # Determine speaker & title
+        speaker = interp.get("speaker") or ""
+        title_combined = f"{event_title} {speaker}".lower()
 
-        # Clean tone description: strip leading emojis (e.g. 🌓, 🟢, 🔴, 🟡)
-        tone_raw = interp.get("tone_kh") or interp.get("tone") or "Neutral"
-        tone_clean = re.sub(r"^[^\w\s\u1780-\u17FF]+", "", tone_raw).strip()
+        if "warsh" in title_combined:
+            speaker_name = "Kevin Warsh"
+            speaker_role = "អតីតទេសាភិបាល Fed"
+        elif "powell" in title_combined:
+            speaker_name = "Jerome Powell"
+            speaker_role = "ប្រធាន Fed"
+        elif "waller" in title_combined:
+            speaker_name = "Christopher Waller"
+            speaker_role = "ទេសាភិបាល Fed"
+        elif "bowman" in title_combined:
+            speaker_name = "Michelle Bowman"
+            speaker_role = "ទេសាភិបាល Fed"
+        elif "goolsbee" in title_combined:
+            speaker_name = "Austan Goolsbee"
+            speaker_role = "ប្រធាន Fed សាខា Chicago"
+        elif "williams" in title_combined:
+            speaker_name = "John Williams"
+            speaker_role = "ប្រធាន Fed សាខា New York"
+        else:
+            speaker_name = speaker if speaker else "Kevin Warsh"
+            speaker_role = "អតីតទេសាភិបាល Fed" if "warsh" in speaker_name.lower() else "មន្ត្រី Fed"
 
-        # Clean quotes (handle string or list)
+        # Determine Tone
+        tone_str = (interp.get("tone") or "").upper()
+        raw_tone_kh = (interp.get("tone_kh") or "").lower()
+
+        if "HAWK" in tone_str or "hawkish" in raw_tone_kh:
+            tone_display = "Hawkish (តឹងរ៉ឹងលើអត្រាការប្រាក់)"
+            impact_icon = "🔸"
+            market_dir = "XAUUSD Bearish (មាសមាននិន្នាការធ្លាក់ចុះ)"
+        elif "DOV" in tone_str or "dovish" in raw_tone_kh:
+            tone_display = "Dovish (បន្ធូរបន្ថយអត្រាការប្រាក់)"
+            impact_icon = "🔹"
+            market_dir = "XAUUSD Bullish (មាសមាននិន្នាការកើនឡើង)"
+        else:
+            tone_display = "Neutral (អព្យាក្រឹត/ប្រុងប្រយ័ត្ន)"
+            impact_icon = "🔸"
+            market_dir = "XAUUSD Sideway (មាសប្រែប្រួលរលកធំៗ)"
+
+        # Key Quotes
         quotes_raw = interp.get("key_quotes") or ""
         if isinstance(quotes_raw, list):
-            quotes = " \n".join(str(q).strip() for q in quotes_raw if q)
+            quotes = " ".join(str(q).strip() for q in quotes_raw if q)
         else:
             quotes = str(quotes_raw).strip()
+        quotes = quotes.strip("«»\"' ")
         quotes = sanitize_khmer_spelling(quotes)
-        quote_section = ""
-        if quotes:
-            quote_section = (
-                f"💬 <b>ចំណុចគន្លឹះសំខាន់ៗដែល {speaker} ថ្លែង (Key Quotes):</b>\n"
-                f"«<i>{quotes}</i>»\n\n"
-            )
+        if not quotes:
+            if "HAWK" in tone_str or "hawkish" in raw_tone_kh:
+                quotes = "Fed ត្រូវតែប្រុងប្រយ័ត្នខ្ពស់ចំពោះអតិផរណាដែលមិនទាន់ធ្លាក់ដល់គោលដៅ ២% ហើយទីផ្សារមិនគួររំពឹងការបញ្ចុះអត្រាការប្រាក់លឿនពេកឡើយ។"
+            else:
+                quotes = "ទីផ្សារការងារ និងកំណើនសេដ្ឋកិច្ចកំពុងបង្ហាញសញ្ញាបន្ធូរបន្ថយ ដែលអាចបើកផ្លូវឱ្យ Fed ពិចារណាលើការបន្ធូរបន្ថយគោលនយោបាយរូបិយវត្ថុ។"
 
-        # Clean gold impact: handle gold_pressure or gold_impact, remove bullet points
+        # Impact description
         gold_impact_raw = interp.get("gold_pressure") or interp.get("gold_impact") or ""
         if isinstance(gold_impact_raw, list):
             gold_impact = " ".join(str(g).strip() for g in gold_impact_raw if g)
@@ -853,16 +1101,20 @@ class KhmerFormatter:
             gold_impact = str(gold_impact_raw).strip()
         if gold_impact.startswith("•") or gold_impact.startswith("-"):
             gold_impact = gold_impact.lstrip("•- ").strip()
+        # Clean any repeated prefixes
+        gold_impact = re.sub(r'^(xauusd\s+(bearish|bullish)[^:]*:\s*)', '', gold_impact, flags=re.I).strip()
         gold_impact = sanitize_khmer_spelling(gold_impact)
-        tone_clean = sanitize_khmer_spelling(tone_clean)
+        if not gold_impact:
+            if "HAWK" in tone_str or "hawkish" in raw_tone_kh:
+                gold_impact = "ដុល្លារ និងទិន្នផលប័ណ្ណបំណុលឡើងថ្លៃ ដាក់សម្ពាធអវិជ្ជមានលើតម្លៃមាស។"
+            else:
+                gold_impact = "ដុល្លារចុះខ្សោយ និងកាត់បន្ថយសម្ពាធ ជំរុញឱ្យតម្លៃមាសងើបឡើងខ្ពស់។"
 
         return (
-            f"{icon} <b>LIVE FED AI INTERPRETER — ការថ្លែងសុន្ទរកថាប្រធាន FED ផ្ទាល់!</b>\n\n"
-            f"<b>ព្រឹត្តិការណ៍:</b> {event_title}\n"
-            f"<b>សម្លេង និងអារម្មណ៍ Fed (Tone):</b> {tone_clean}\n\n"
-            f"{quote_section}"
-            f"🥇 <b>ផលប៉ះពាល់លើតម្លៃមាស (XAUUSD Impact):</b>\n"
-            f"{gold_impact}"
+            f"<b>សុន្ទរកថា៖</b> {speaker_name} ({speaker_role})\n"
+            f"<b>ជំហរ (Tone)៖</b> {tone_display}\n\n"
+            f"💬 <b>សម្រង់សម្តីសំខាន់៖</b> «{quotes}»\n\n"
+            f"{impact_icon} <b>ផលប៉ះពាល់៖</b> {market_dir} {gold_impact}"
         )
 
     @staticmethod
