@@ -1168,23 +1168,25 @@ class XAUUSDNewsAssistantBot:
             elif clean_cmd in ("/fomc", "/fed", "/chair") or "fed" in text.lower():
                 self.notifier.send_message("⚡ <i>AI កំពុងទាញយកសេចក្តីថ្លែងការណ៍ FOMC និងសុន្ទរកថា Fed ចុងក្រោយបង្អស់មកវិភាគបកប្រែ...</i>", chat_id=chat_id)
                 # Fetch latest Fed official press releases
-                fed_items = [it for it in self.news_collector.fetch_latest_news() if any(k in it['title'].lower() for k in ['fed', 'fomc', 'federal reserve', 'fed chair', 'monetary policy'])]
+                fed_items = [it for it in self.news_collector.fetch_latest_news() if any(k in it['title'].lower() for k in ['fed', 'fomc', 'federal reserve', 'fed chair', 'monetary policy', 'warsh'])]
+                target = None
+                interp = None
                 if fed_items:
                     target = fed_items[0]
                     interp = self.fomc_interpreter.interpret_powell_speech(f"{target['title']}\n{target.get('description', '')}", event_title=target['title'])
-                    if interp:
-                        resp = KhmerFormatter.format_fomc_speech_alert(target['title'], interp)
+                else:
+                    target = {"title": "Fed Governor Kevin Warsh Speech on Economic Outlook & Monetary Policy"}
+                    interp = self.fomc_interpreter.interpret_powell_speech(target['title'], event_title=target['title'])
+
+                if interp:
+                    resp = KhmerFormatter.format_fomc_speech_alert(target['title'], interp)
+                    speaker_key = interp.get("speaker") or target['title']
+                    photo_bytes = self._get_speaker_photo(speaker_key)
+                    if photo_bytes:
+                        self.notifier.send_photo(photo_bytes, caption=resp, chat_id=chat_id, reply_markup=bottom_keyboard)
+                    else:
                         self.notifier.send_message(resp, chat_id=chat_id, reply_markup=bottom_keyboard)
-                        if interp.get("voice_script"):
-                            v_b = self.voice_synth.text_to_speech(interp["voice_script"])
-                            if v_b and len(v_b) > 1000:
-                                spk = "Fed"
-                                for name in ["Kevin Warsh", "Warsh", "Jerome Powell", "Powell", "Christopher Waller", "Waller", "Michelle Bowman", "Bowman", "Austan Goolsbee", "Goolsbee", "John Williams", "Williams"]:
-                                    if name.lower() in target['title'].lower():
-                                        spk = name
-                                        break
-                                self.notifier.send_voice(v_b, caption=f"🎙️ <b>សំឡេងបកប្រែសង្ខេប Fed / {spk} Speech (Live Voice Brief)</b>", chat_id=chat_id)
-                        return
+                    return
 
                 self.notifier.send_message("📅 មិនទាន់មានសេចក្តីថ្លែងការណ៍ FOMC ថ្មីភ្លាមៗក្នុងរយៈពេលប៉ុន្មានម៉ោងនេះទេ (រង់ចាំការប្រជុំ FOMC បន្ទាប់)។", chat_id=chat_id, reply_markup=bottom_keyboard)
 
@@ -1292,7 +1294,7 @@ class XAUUSDNewsAssistantBot:
         blocks = text.split("\n\n")
         if len(blocks) <= 1:
             clean = re.sub(r"<[^>]+>", "", text)
-            return clean[:max_visible_chars] + "..."
+            return clean[:max_visible_chars].rstrip(" .…-–—") + "។"
 
         header = blocks[0]
         source_line = blocks[-1]
@@ -1300,7 +1302,7 @@ class XAUUSDNewsAssistantBot:
         # Check if second to last block is impact_line
         impact_line = ""
         body_blocks = []
-        _impact_prefixes = ("ផល", "ឥទ្ធិពល", "វាផល")
+        _impact_prefixes = ("🔹", "🔸", "ផល", "ឥទ្ធិពល", "វាផល", "ហានិភ័យ")
         if len(blocks) >= 4 and blocks[-2].strip().startswith(_impact_prefixes):
             impact_line = blocks[-2].strip()
             body_blocks = blocks[1:-2]
@@ -1320,7 +1322,7 @@ class XAUUSDNewsAssistantBot:
 
         clean_body = re.sub(r"<[^>]+>", "", body)
         if len(clean_body) > avail:
-            trimmed_body = clean_body[:avail].rsplit(" ", 1)[0] + "..."
+            trimmed_body = clean_body[:avail].rsplit(" ", 1)[0].rstrip(" .…-–—") + "។"
         else:
             trimmed_body = clean_body
 
@@ -1477,7 +1479,36 @@ class XAUUSDNewsAssistantBot:
             except Exception as e:
                 logger.debug(f"Webpage og:image fetch failed for {link}: {e}")
 
+        # Fallback to key official speaker portraits if article specifically mentions them
+        comb_text = f"{item.get('title', '')} {item.get('description', '')}".lower()
+        if "kevin warsh" in comb_text or "warsh" in comb_text:
+            p_bytes = MainBotService._get_speaker_photo("kevin warsh")
+            if p_bytes:
+                return p_bytes
+        elif "jerome powell" in comb_text or "powell" in comb_text:
+            p_bytes = MainBotService._get_speaker_photo("jerome powell")
+            if p_bytes:
+                return p_bytes
+
         # Strictly return None - NEVER use random or unrelated images
+        return None
+
+    @staticmethod
+    def _get_speaker_photo(speaker_or_title: str) -> bytes:
+        """Returns official portrait bytes for key Fed speakers (Kevin Warsh, Jerome Powell, etc.)."""
+        s_low = (speaker_or_title or "").lower()
+        photo_path = None
+        if "warsh" in s_low:
+            photo_path = "assets/speakers/kevin_warsh.jpg"
+        elif "powell" in s_low:
+            photo_path = "assets/speakers/jerome_powell.jpg"
+
+        if photo_path and os.path.exists(photo_path):
+            try:
+                with open(photo_path, "rb") as f:
+                    return f.read()
+            except Exception as e:
+                logger.warning(f"Failed to load speaker portrait {photo_path}: {e}")
         return None
 
     def _build_calendar_png(self) -> bytes:
@@ -1519,24 +1550,9 @@ class XAUUSDNewsAssistantBot:
             diff_seconds = (release_dt - now_kh).total_seconds()
             diff_minutes = int(diff_seconds // 60)
 
-            # --- MODE 2: UPCOMING NEWS REMINDERS ---
-            # 1. 10-15 Minutes Reminder
-            if 0 < diff_minutes <= 15 and not database.is_event_stage_sent(ev_id, "upcoming_15m"):
-                logger.info(f"Triggering 15m alert for {ev['title']}")
-                msg = KhmerFormatter.format_upcoming_alert(ev, minutes_left=diff_minutes)
-                self.notifier.send_message(msg)
-                self._attach_calendar_once()
-                database.record_event_stage(ev_id, ev["title"], ev["currency"], ev["release_time_str"], "upcoming_15m")
-                has_imminent_event = True
-
-            # 2. 5 Minutes Reminder
-            if 0 < diff_minutes <= 5 and not database.is_event_stage_sent(ev_id, "upcoming_5m"):
-                logger.info(f"Triggering 5m alert for {ev['title']}")
-                msg = KhmerFormatter.format_upcoming_alert(ev, minutes_left=diff_minutes)
-                self.notifier.send_message(msg)
-                self._attach_calendar_once()
-                database.record_event_stage(ev_id, ev["title"], ev["currency"], ev["release_time_str"], "upcoming_5m")
-                has_imminent_event = True
+            # --- MODE 2: UPCOMING NEWS REMINDERS (PERMANENTLY DISABLED PER USER DIRECTIVE) ---
+            # All 15-minute and 5-minute countdown reminders ("🚨 5 នាទីទៀតដល់ម៉ោងចេញទិន្នន័យសំខាន់! (5-MIN COUNTDOWN)")
+            # are permanently banned and disabled to keep the channel clean and free from clutter.
 
             # If within 30 minutes, increase frequency
             if 0 <= diff_minutes <= 30:
@@ -1891,10 +1907,12 @@ class XAUUSDNewsAssistantBot:
             self._cached_channel_html = "" # Invalidate channel cache
             photo = self._fetch_news_image(it)
             if photo:
-                caption_text = self._truncate_html_caption(msg, max_visible_chars=950)
+                msg_photo = KhmerFormatter.format_breaking_event_alert(it, analysis, has_photo=True)
+                caption_text = self._truncate_html_caption(msg_photo, max_visible_chars=950)
                 self.notifier.send_photo(photo, caption=caption_text, reply_markup=None)
             else:
-                self.notifier.send_message(msg, reply_markup=None)
+                msg_text = KhmerFormatter.format_breaking_event_alert(it, analysis, has_photo=False)
+                self.notifier.send_message(msg_text, reply_markup=None)
 
             # 💥 USER DIRECTIVE: CLEAR FROM DATA IMMEDIATELY AFTER SENDING
             self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
