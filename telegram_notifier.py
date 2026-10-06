@@ -21,6 +21,9 @@ class TelegramNotifier:
 
         target_chat = str(chat_id or self.chat_id)
         url = f"{self.base_url}/sendMessage"
+        if parse_mode == "HTML" and text:
+            import re
+            text = re.sub(r'&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[a-fA-F0-9]+);)', '&amp;', text)
         payload = {
             "chat_id": target_chat,
             "text": text,
@@ -47,6 +50,7 @@ class TelegramNotifier:
                     # Strip all tags except supported Telegram tags
                     clean_text = re.sub(r'<(?!(?:b|strong|i|em|u|ins|s|strike|del|a|code|pre|blockquote)\b)[^>]+>', '', clean_text)
                     clean_text = re.sub(r'</(?!(?:b|strong|i|em|u|ins|s|strike|del|a|code|pre|blockquote)\b)[^>]+>', '', clean_text)
+                    clean_text = re.sub(r'&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[a-fA-F0-9]+);)', '&amp;', clean_text)
                     payload["text"] = clean_text
                     retry_resp = requests.post(url, json=payload, timeout=15)
                     data = retry_resp.json()
@@ -84,6 +88,9 @@ class TelegramNotifier:
         files = {"photo": ("calendar.png", photo_bytes, "image/png")}
         data = {"chat_id": target_chat}
         if caption:
+            if parse_mode == "HTML":
+                import re
+                caption = re.sub(r'&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[a-fA-F0-9]+);)', '&amp;', caption)
             data["caption"] = caption
             data["parse_mode"] = parse_mode
         if reply_markup:
@@ -97,17 +104,30 @@ class TelegramNotifier:
                 logger.info(f"[TelegramNotifier] Photo sent (ID: {result.get('result', {}).get('message_id')})")
             else:
                 logger.error(f"[TelegramNotifier] Error sending photo: {result}")
-                # Fallback: if HTML parsing failed, strip HTML or retry without parse_mode so photo is never lost
-                if "can't parse entities" in str(result.get("description", "")):
+                # Fallback: if HTML parsing failed, retry with sanitized HTML preserving supported tags & escaped &
+                desc = str(result.get("description", "")).lower()
+                if "can't parse entities" in desc or "entity" in desc:
                     import re
-                    clean_caption = re.sub(r"<[^>]+>", "", caption)[:1020]
+                    import html
+                    clean_caption = re.sub(r'<a\s+[^>]*href=["\']([^"\']+)["\'][^>]*>', r'<a href="\1">', caption, flags=re.IGNORECASE)
+                    clean_caption = re.sub(r'<(?!(?:b|strong|i|em|u|ins|s|strike|del|a|code|pre|blockquote)\b)[^>]+>', '', clean_caption)
+                    clean_caption = re.sub(r'</(?!(?:b|strong|i|em|u|ins|s|strike|del|a|code|pre|blockquote)\b)[^>]+>', '', clean_caption)
+                    clean_caption = re.sub(r'&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[a-fA-F0-9]+);)', '&amp;', clean_caption)[:1020]
                     data["caption"] = clean_caption
-                    data.pop("parse_mode", None)
                     files = {"photo": ("calendar.png", photo_bytes, "image/png")}
                     retry_resp = requests.post(url, data=data, files=files, timeout=30)
                     result = retry_resp.json()
                     if result.get("ok"):
-                        logger.info(f"[TelegramNotifier] Photo sent on plain-text fallback (ID: {result.get('result', {}).get('message_id')})")
+                        logger.info(f"[TelegramNotifier] Photo sent on sanitized HTML retry (ID: {result.get('result', {}).get('message_id')})")
+                    else:
+                        clean_caption = re.sub(r"<[^>]+>", "", caption)[:1020]
+                        data["caption"] = html.unescape(clean_caption).strip()
+                        data.pop("parse_mode", None)
+                        files = {"photo": ("calendar.png", photo_bytes, "image/png")}
+                        retry_resp2 = requests.post(url, data=data, files=files, timeout=30)
+                        result = retry_resp2.json()
+                        if result.get("ok"):
+                            logger.info(f"[TelegramNotifier] Photo sent on plain-text fallback (ID: {result.get('result', {}).get('message_id')})")
             return result
         except Exception as e:
             logger.error(f"[TelegramNotifier] Exception while sending photo: {e}")
@@ -121,6 +141,9 @@ class TelegramNotifier:
 
         target_chat = str(chat_id or self.chat_id)
         url = f"{self.base_url}/editMessageCaption"
+        if parse_mode == "HTML" and caption:
+            import re
+            caption = re.sub(r'&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[a-fA-F0-9]+);)', '&amp;', caption)
         payload = {
             "chat_id": target_chat,
             "message_id": message_id,
@@ -194,33 +217,9 @@ class TelegramNotifier:
             return {"ok": False, "error": str(e)}
 
     def send_voice(self, voice_bytes: bytes, caption: str = "", parse_mode: str = "HTML", reply_markup: dict = None, chat_id: str = None) -> dict:
-        """Uploads an audio/voice note (.mp3 / .ogg) to the chat via the sendVoice API."""
-        if not self.is_configured():
-            logger.warning(f"[TelegramNotifier] Credentials not set. Simulated voice upload ({len(voice_bytes)} bytes).")
-            return {"ok": True, "result": {"message_id": 999997, "simulated": True}}
-
-        target_chat = str(chat_id or self.chat_id)
-        url = f"{self.base_url}/sendVoice"
-        files = {"voice": ("voice.mp3", voice_bytes, "audio/mpeg")}
-        data = {"chat_id": target_chat}
-        if caption:
-            data["caption"] = caption
-            data["parse_mode"] = parse_mode
-        if reply_markup:
-            import json
-            data["reply_markup"] = json.dumps(reply_markup)
-
-        try:
-            resp = requests.post(url, data=data, files=files, timeout=30)
-            result = resp.json()
-            if result.get("ok"):
-                logger.info(f"[TelegramNotifier] Voice message sent (ID: {result.get('result', {}).get('message_id')})")
-            else:
-                logger.error(f"[TelegramNotifier] Error sending voice: {result}")
-            return result
-        except Exception as e:
-            logger.error(f"[TelegramNotifier] Exception while sending voice: {e}")
-            return {"ok": False, "error": str(e)}
+        """Voice notes are permanently disabled per user directive."""
+        logger.info("[TelegramNotifier] Voice notes are permanently disabled per user directive. Skipping upload.")
+        return {"ok": True, "result": {"message_id": 0, "disabled": True}}
 
     def pin_message(self, message_id: int, disable_notification: bool = True) -> bool:
         """Auto-pin message in the chat/channel."""
