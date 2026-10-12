@@ -223,8 +223,8 @@ class XAUUSDNewsAssistantBot:
         except Exception as e:
             logger.warning(f"[Cloud Health Server] Warning on port {port}: {e}")
 
-    def _fetch_channel_html(self, max_cache_age: float = 30.0) -> str:
-        """Caches public Telegram channel feed HTML for 30s to prevent spamming Telegram web and lagging the event loop."""
+    def _fetch_channel_html(self, max_cache_age: float = 180.0) -> str:
+        """Caches public Telegram channel feed HTML for 180s to prevent bandwidth waste, spamming Telegram web, and event loop lag."""
         now = time.time()
         if hasattr(self, "_cached_channel_html") and self._cached_channel_html:
             if now - getattr(self, "_cached_channel_html_ts", 0) < max_cache_age:
@@ -235,7 +235,7 @@ class XAUUSDNewsAssistantBot:
                 "https://t.me/s/GoldMarketKH8888",
                 headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
             )
-            with urllib.request.urlopen(req, timeout=5.0) as resp:
+            with urllib.request.urlopen(req, timeout=4.0) as resp:
                 html = resp.read().decode("utf-8", errors="ignore")
                 self._cached_channel_html = html
                 self._cached_channel_html_ts = now
@@ -279,13 +279,7 @@ class XAUUSDNewsAssistantBot:
     def _is_daily_price_already_in_channel(self, date_str: str) -> bool:
         """Inspects live channel feed to verify if today's daily gold price was already broadcasted."""
         try:
-            import urllib.request
-            req = urllib.request.Request(
-                "https://t.me/s/GoldMarketKH8888",
-                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-            )
-            with urllib.request.urlopen(req, timeout=4.0) as resp:
-                channel_html = resp.read().decode("utf-8", errors="ignore")
+            channel_html = self._fetch_channel_html(max_cache_age=300.0)
             # If today's date formatted (e.g. 02/10/2026) is already in channel, return True
             if date_str in channel_html:
                 return True
@@ -336,13 +330,7 @@ class XAUUSDNewsAssistantBot:
     def _is_session_alert_already_in_channel(self, session_keyword: str) -> bool:
         """Inspects live Telegram channel feed to verify if session open alert was already broadcasted today."""
         try:
-            import urllib.request
-            req = urllib.request.Request(
-                "https://t.me/s/GoldMarketKH8888",
-                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-            )
-            with urllib.request.urlopen(req, timeout=4.0) as resp:
-                channel_html = resp.read().decode("utf-8", errors="ignore")
+            channel_html = self._fetch_channel_html(max_cache_age=300.0)
             # If session keyword (e.g. 'LONDON SESSION OPENING' or 'NEW YORK SESSION OPENING') is already in channel
             if session_keyword.upper() in channel_html.upper():
                 return True
@@ -1611,7 +1599,7 @@ class XAUUSDNewsAssistantBot:
         """Returns elapsed seconds since the latest message was published in @GoldMarketKH8888 live channel feed."""
         try:
             import datetime
-            channel_html = self._fetch_channel_html(max_cache_age=5.0)
+            channel_html = self._fetch_channel_html(max_cache_age=180.0)
             times = re.findall(r'<time[^>]*datetime="([^"]+)"', channel_html)
             if times:
                 last_dt = datetime.datetime.fromisoformat(times[-1])
@@ -1627,7 +1615,7 @@ class XAUUSDNewsAssistantBot:
         try:
             import urllib.parse
             import html as html_module
-            max_age = 0.0 if fresh else 15.0
+            max_age = 30.0 if fresh else 180.0
             channel_html = self._fetch_channel_html(max_cache_age=max_age)
             if not channel_html:
                 return False
@@ -1783,8 +1771,12 @@ class XAUUSDNewsAssistantBot:
             # Dynamically recalculate gap before evaluating each item
             now = time.time()
             last_alert_ts = float(database.get_state("last_breaking_alert_ts") or "0")
-            channel_time_since_last = self._channel_time_since_last_post()
-            time_since_last = min(now - last_alert_ts, now - self._last_breaking_sent_ts, channel_time_since_last)
+            local_last = max(last_alert_ts, self._last_breaking_sent_ts)
+            if local_last > 0:
+                time_since_last = now - local_last
+            else:
+                channel_time_since_last = self._channel_time_since_last_post()
+                time_since_last = channel_time_since_last
 
             # Fast-track priority check: critical news gets 90s gap, regular gets BREAKING_ALERT_MIN_GAP (180s = 3m)
             is_critical = any(k in (title + " " + desc).lower() for k in [
