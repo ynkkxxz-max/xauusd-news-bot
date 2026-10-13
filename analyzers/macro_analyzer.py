@@ -37,60 +37,72 @@ class MacroAnalyzer:
         
         bias = "🟡 Mixed / Unclear"
         usd_impact = "មិនទាន់ច្បាស់លាស់ (Neutral / Mixed)"
-        rate_impact = "ទីផ្សារកំពុងរង់ចាំការបកស្រាយបន្ថែម"
-        xau_pressure = "🟡 Possible Mixed / Consolidation Pressure"
-        comparison_desc = ""
+        # Determine condition and effect
+        condition = ""
+        effect = ""
 
         if act_num is not None and fc_num is not None:
             diff = act_num - fc_num
             if abs(diff) < 0.0001:
-                comparison_desc = f"ទិន្នន័យជាក់ស្តែង ({actual}) ចេញមកស្មើនឹងការព្យាករណ៍ ({forecast})។"
-                usd_impact = "USD អាចមានចលនាមធ្យម ឬ Neutral ដោយសារទីផ្សារបាន Price-in រួចហើយ។"
-                rate_impact = "ការរំពឹងទុកលើអត្រាការប្រាក់នៅរក្សាជំហរដដែល។"
-                xau_pressure = "🟡 Neutral to Mixed (រង់ចាំការបំបែកកម្រិតបច្ចេកទេស)"
-                bias = "🟡 Mixed / Unclear"
+                condition = f"{event_name} ចេញមក {actual} ស្មើនឹងការព្យាករណ៍របស់ទីផ្សារ ({forecast})។"
+                effect = "ទីផ្សារបាន Price-in រួចរាល់ មិនមានការប្រែប្រួលខ្លាំងដល់ការរំពឹងទុក Fed ឡើយ។"
+                usd_impact = "ប្រែប្រួលចង្អៀត (Neutral)"
+                rate_impact = "រក្សាស្ថិរភាព"
+                xau_pressure = "ប្រឈមការប្រែប្រួលក្នុងរង្វង់ចង្អៀត (Consolidation)"
+                bias = "🟡 Neutral"
             elif diff > 0: # Actual > Forecast
                 if not is_inverse_metric:
-                    comparison_desc = f"ទិន្នន័យជាក់ស្តែង ({actual}) ចេញមក **ខ្ពស់ជាង** ការព្យាករណ៍ ({forecast})។"
-                    usd_impact = "💵 USD ទទួលបានកម្លាំងជំរុញវិជ្ជមាន (Bullish USD)។"
-                    rate_impact = "🏦 សេដ្ឋកិច្ចរឹងមាំ/អតិផរណាខ្ពស់ អាចពន្យារពេលបញ្ចុះការប្រាក់ ឬគាំទ្រ Bond Yields ឱ្យឡើងខ្ពស់។"
-                    xau_pressure = "🔴 Possible Bearish Pressure (សម្ពាធធ្លាក់ចុះលើមាស)"
+                    if "cpi" in title_lower or "inflation" in title_lower or "pce" in title_lower:
+                        condition = f"{event_name} កើនឡើង {actual} បង្ហាញថាសម្ពាធអតិផរណានៅតែរឹងរូសខ្លាំង (Sticky Inflation)។"
+                        effect = "កាត់បន្ថយឱកាសដែល Fed នឹងទម្លាក់អត្រាការប្រាក់គំហុកនៅកិច្ចប្រជុំបន្ទាប់។"
+                    elif "nfp" in title_lower or "payrolls" in title_lower:
+                        condition = f"ទិន្នន័យការងារកើនឡើង {actual} បង្ហាញថាទីផ្សារការងារអាមេរិកនៅតែរឹងមាំខ្លាំង (Strong Labor Market)។"
+                        effect = "អនុញ្ញាតឱ្យ Fed រក្សាអត្រាការប្រាក់កម្រិតខ្ពស់បានយូរ (Higher-for-Longer)។"
+                    else:
+                        condition = f"{event_name} ចេញមក {actual} ខ្ពស់ជាងការព្យាករណ៍ ({forecast}) បង្ហាញពីកំណើនរឹងមាំ។"
+                        effect = "គាំទ្រសេដ្ឋកិច្ចអាមេរិក និងពន្យារពេលការបន្ធូរបន្ថយនយោបាយរូបិយវត្ថុ។"
+                    usd_impact = "ឡើងថ្លៃភ្លាមៗ (Bullish)"
+                    rate_impact = "ស្ទុះងើបឡើងខ្ពស់"
+                    xau_pressure = "ប្រឈមសម្ពាធធ្លាក់ចុះរយៈពេលខ្លី (Bearish Pressure)"
                     bias = "🔴 Bearish"
                 else:
-                    comparison_desc = f"ទិន្នន័យអវិជ្ជមាន ({actual}) ខ្ពស់ជាងការព្យាករណ៍ ({forecast}) (ភាពអត់ការងារធ្វើកើនឡើង)។"
-                    usd_impact = "💵 USD រងសម្ពាធធ្លាក់ចុះ (Bearish USD)។"
-                    rate_impact = "🏦 បង្កើនឱកាសដែល Fed នឹងកាត់បន្ថយអត្រាការប្រាក់ (Dovish expectations)។"
-                    xau_pressure = "🟢 Possible Bullish Pressure (សម្ពាធជំរុញឱ្យមាសឡើង)"
+                    condition = f"ទិន្នន័យអវិជ្ជមាន {actual} ខ្ពស់ជាងការព្យាករណ៍ ({forecast}) បង្ហាញសញ្ញានៃភាពទន់ខ្សោយ។"
+                    effect = "បង្កើនឱកាសដែល Fed នឹងកាត់បន្ថយអត្រាការប្រាក់ដើម្បីគាំទ្រសេដ្ឋកិច្ច។"
+                    usd_impact = "ចុះខ្សោយភ្លាមៗ (Bearish)"
+                    rate_impact = "ធ្លាក់ចុះទាប"
+                    xau_pressure = "ទទួលបានកម្លាំងរុញឡើង (Bullish Momentum)"
                     bias = "🟢 Bullish"
             else: # Actual < Forecast
                 if not is_inverse_metric:
-                    comparison_desc = f"ទិន្នន័យជាក់ស្តែង ({actual}) ចេញមក **ទាបជាង** ការព្យាករណ៍ ({forecast})។"
-                    usd_impact = "💵 USD រងសម្ពាធធ្លាក់ចុះ (Bearish USD) ដោយសារសេដ្ឋកិច្ច/អតិផរណាថយចុះ។"
-                    rate_impact = "🏦 Fed អាចមានលំហរបន្ធូរបន្ថយនយោបាយរូបិយវត្ថុ (Rate Cut expectations កើនឡើង)។"
-                    xau_pressure = "🟢 Possible Bullish Pressure (សម្ពាធជំរុញឱ្យមាសឡើង)"
+                    if "cpi" in title_lower or "inflation" in title_lower or "pce" in title_lower:
+                        condition = f"{event_name} ថយចុះមក {actual} បង្ហាញថាសម្ពាធអតិផរណាកំពុងបន្តធ្លាក់ចុះ (Cooling Inflation)។"
+                        effect = "បង្កើនលទ្ធភាពដែល Fed នឹងបន្តកាត់បន្ថយអត្រាការប្រាក់ (Dovish Easing)។"
+                    elif "nfp" in title_lower or "payrolls" in title_lower:
+                        condition = f"ទិន្នន័យការងារធ្លាក់ចុះមក {actual} បង្ហាញសញ្ញានៃការចុះខ្សោយក្នុងទីផ្សារការងារ (Labor Softening)។"
+                        effect = "ជំរុញឱ្យ Fed បង្កើនល្បឿនកាត់បន្ថយអត្រាការប្រាក់ដើម្បីគាំទ្រសេដ្ឋកិច្ច។"
+                    else:
+                        condition = f"{event_name} ចេញមក {actual} ទាបជាងការព្យាករណ៍ ({forecast})។"
+                        effect = "Fed អាចមានលំហរបន្ធូរបន្ថយនយោបាយរូបិយវត្ថុបន្ថែមទៀត។"
+                    usd_impact = "ចុះខ្សោយភ្លាមៗ (Bearish)"
+                    rate_impact = "ធ្លាក់ចុះទាប"
+                    xau_pressure = "ទទួលបានកម្លាំងរុញឡើង (Bullish Momentum)"
                     bias = "🟢 Bullish"
                 else:
-                    comparison_desc = f"ទិន្នន័យជាក់ស្តែង ({actual}) ចេញមកទាបជាងការព្យាករណ៍ ({forecast}) (អត្រាគ្មានការងារធ្វើថយចុះ)។"
-                    usd_impact = "💵 USD រឹងមាំឡើងវិញ (Bullish USD)។"
-                    rate_impact = "🏦 កាត់បន្ថយសម្ពាធក្នុងការបន្ទាន់បញ្ចុះការប្រាក់។"
-                    xau_pressure = "🔴 Possible Bearish Pressure (សម្ពាធធ្លាក់ចុះលើមាស)"
+                    condition = f"ទិន្នន័យជាក់ស្តែង {actual} ទាបជាងការព្យាករណ៍ ({forecast}) បង្ហាញពីភាពរឹងមាំ។"
+                    effect = "កាត់បន្ថយសម្ពាធក្នុងការបន្ទាន់បញ្ចុះអត្រាការប្រាក់។"
+                    usd_impact = "ឡើងថ្លៃភ្លាមៗ (Bullish)"
+                    rate_impact = "ស្ទុះងើបឡើងខ្ពស់"
+                    xau_pressure = "ប្រឈមសម្ពាធធ្លាក់ចុះរយៈពេលខ្លី (Bearish Pressure)"
                     bias = "🔴 Bearish"
         else:
-            comparison_desc = f"ទិន្នន័យជាក់ស្តែងបានចេញ៖ {actual} (ព្យាករណ៍: {forecast})"
-
-        # Context-specific "Why it matters"
-        if "cpi" in title_lower or "inflation" in title_lower or "pce" in title_lower:
-            why_it_matters = "CPI / PCE គឺជាសូចនាករវាស់ស្ទង់អតិផរណាដ៏ចម្បងដែល Fed យកជាមូលដ្ឋានក្នុងការសម្រេចចិត្តដំឡើង ឬបញ្ចុះអត្រាការប្រាក់។"
-        elif "nfp" in title_lower or "payrolls" in title_lower or "unemployment" in title_lower:
-            why_it_matters = "NFP បង្ហាញពីភាពរឹងមាំនៃទីផ្សារការងារអាមេរិក។ ទីផ្សារការងាររឹងមាំអនុញ្ញាតឱ្យ Fed រក្សាអត្រាការប្រាក់ខ្ពស់បានយូរ។"
-        elif "rate" in title_lower or "fomc" in title_lower:
-            why_it_matters = "ការសម្រេចចិត្តលើអត្រាការប្រាក់របស់ Fed ជះឥទ្ធិពលផ្ទាល់បំផុតលើថ្លៃដើមនៃការកាន់កាប់មាស (Gold yield opportunity cost)។"
-        else:
-            why_it_matters = f"{event_name} ជះឥទ្ធិពលលើទស្សនវិស័យសេដ្ឋកិច្ចអាមេរិក និងតម្រូវការទិញប្រាក់ដុល្លារ។"
+            condition = f"ទិន្នន័យជាក់ស្តែង {event_name} ចេញមក {actual} (ព្យាករណ៍: {forecast})។"
+            effect = "ទីផ្សារកំពុងតាមដានប្រតិកម្ម និងការបកស្រាយបន្ថែមពីស្ថាប័នហិរញ្ញវត្ថុ។"
 
         return {
-            "what_happened": comparison_desc,
-            "why_it_matters": why_it_matters,
+            "condition": condition,
+            "effect": effect,
+            "what_happened": condition,
+            "why_it_matters": effect,
             "usd_impact": usd_impact,
             "rate_yield_impact": rate_impact,
             "xau_pressure": xau_pressure,
