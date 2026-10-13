@@ -20,46 +20,53 @@ logger = logging.getLogger(__name__)
 # -------------------------------------------------------------------------
 RSS_FEEDS = [
     # --- Pillar 1: Economy ---
-    ("Google News Economy 1h", "https://news.google.com/rss/search?q=(inflation+OR+cpi+OR+gdp+OR+pmi+OR+retail+sales+OR+recession)+when:1h&hl=en-US&gl=US&ceid=US:en"),
     ("CNBC Economy", "https://www.cnbc.com/id/20910258/device/rss/rss.html"),
+    ("BBC Business", "https://feeds.bbci.co.uk/news/business/rss.xml"),
+    ("The Guardian Business", "https://www.theguardian.com/business/rss"),
+    ("Fox Business Latest", "https://moxie.foxbusiness.com/google-publisher/latest.xml"),
     ("MarketWatch Real-time", "https://feeds.content.dowjones.io/public/rss/mw_realtimeheadlines"),
     ("Yahoo Finance Global", "https://finance.yahoo.com/news/rssindex"),
     ("ForexLive News", "https://www.forexlive.com/feed/news"),
 
     # --- Pillar 2: Geopolitics ---
-    ("Google News Geopolitics 1h", "https://news.google.com/rss/search?q=(iran+OR+israel+OR+war+OR+trump+OR+middle+east+OR+sanctions+OR+hormuz+OR+russia+OR+ukraine)+when:1h&hl=en-US&gl=US&ceid=US:en"),
-    ("Al Jazeera World", "https://www.aljazeera.com/xml/rss/all.xml"),
     ("BBC World News", "https://feeds.bbci.co.uk/news/world/rss.xml"),
+    ("Al Jazeera World", "https://www.aljazeera.com/xml/rss/all.xml"),
+    ("The Guardian World", "https://www.theguardian.com/world/rss"),
+    ("Politico World", "https://rss.politico.com/politics-news.xml"),
     ("CNBC World News", "https://www.cnbc.com/id/100727362/device/rss/rss.html"),
 
     # --- Pillar 3: Technology / AI / Semiconductor ---
-    ("Google News Tech 1h", "https://news.google.com/rss/search?q=(ai+OR+semiconductor+OR+chips+OR+nvidia+OR+openai+OR+cyberattack+OR+big+tech)+when:1h&hl=en-US&gl=US&ceid=US:en"),
     ("CNBC Tech", "https://www.cnbc.com/id/19854910/device/rss/rss.html"),
     ("TechCrunch", "https://techcrunch.com/feed/"),
     ("Ars Technica", "https://feeds.arstechnica.com/arstechnica/index"),
 
     # --- Pillar 4: Monetary Policy & Central Banks ---
-    ("Google News Central Banks 1h", "https://news.google.com/rss/search?q=(federal+reserve+OR+powell+OR+fomc+OR+interest+rate+OR+ecb+OR+boj+OR+central+bank)+when:1h&hl=en-US&gl=US&ceid=US:en"),
     ("Federal Reserve Press", "https://www.federalreserve.gov/feeds/press_monetary.xml"),
     ("ECB Press Releases", "https://www.ecb.europa.eu/rss/press.html"),
 
     # --- Pillar 5: Environment & Natural Resources (OPEC / Oil / Gold) ---
-    ("Google News Energy 1h", "https://news.google.com/rss/search?q=(crude+oil+OR+opec+OR+gold+price+OR+xauusd+OR+energy+crisis+OR+natural+gas)+when:1h&hl=en-US&gl=US&ceid=US:en"),
     ("OilPrice Real-time", "https://oilprice.com/rss/main"),
     ("CNBC Energy", "https://www.cnbc.com/id/19836768/device/rss/rss.html"),
 
     # --- Pillar 6: Social & Demographics (Labor, Employment, Strikes) ---
-    ("Google News Labor & Jobs 1h", "https://news.google.com/rss/search?q=(strike+OR+layoffs+OR+unemployment+claims+OR+consumer+sentiment+OR+wages)+when:1h&hl=en-US&gl=US&ceid=US:en"),
     ("CNBC Jobs & Economy", "https://www.cnbc.com/id/10000115/device/rss/rss.html"),
 
     # --- Pillar 7: Laws, Regulations & Government Policies (Tariffs, Sanctions, Debt) ---
-    ("Google News Policies & Tariffs 1h", "https://news.google.com/rss/search?q=(tariffs+OR+trade+war+OR+debt+ceiling+OR+sanctions+OR+crypto+regulation)+when:1h&hl=en-US&gl=US&ceid=US:en"),
     ("CNBC US Politics", "https://www.cnbc.com/id/10000113/device/rss/rss.html"),
+    ("Politico Politics", "https://rss.politico.com/politics-news.xml"),
 
     # --- Pillar 8: Digital Assets, Bitcoin & Cryptocurrency (ប្រាក់ឌីជីថល) ---
-    ("Google News Crypto 1h", "https://news.google.com/rss/search?q=(bitcoin+OR+crypto+OR+cbdc+OR+stablecoin+OR+ethereum+OR+sec+crypto)+when:1h&hl=en-US&gl=US&ceid=US:en"),
     ("CoinDesk Top News", "https://www.coindesk.com/arc/outboundfeeds/rss/"),
     ("CoinTelegraph Top", "https://cointelegraph.com/rss"),
+
+    # --- Broad Fallback Search Matrix ---
+    ("Google News Economy 1h", "https://news.google.com/rss/search?q=(inflation+OR+cpi+OR+gdp+OR+pmi+OR+retail+sales+OR+recession)+when:1h&hl=en-US&gl=US&ceid=US:en"),
+    ("Google News Geopolitics 1h", "https://news.google.com/rss/search?q=(iran+OR+israel+OR+war+OR+trump+OR+middle+east+OR+sanctions+OR+hormuz+OR+russia+OR+ukraine)+when:1h&hl=en-US&gl=US&ceid=US:en"),
+    ("Google News Tech 1h", "https://news.google.com/rss/search?q=(ai+OR+semiconductor+OR+chips+OR+nvidia+OR+openai+OR+cyberattack+OR+big+tech)+when:1h&hl=en-US&gl=US&ceid=US:en"),
+    ("Google News Central Banks 1h", "https://news.google.com/rss/search?q=(federal+reserve+OR+powell+OR+fomc+OR+interest+rate+OR+ecb+OR+boj+OR+central+bank)+when:1h&hl=en-US&gl=US&ceid=US:en"),
+    ("Google News Energy 1h", "https://news.google.com/rss/search?q=(crude+oil+OR+opec+OR+gold+price+OR+xauusd+OR+energy+crisis+OR+natural+gas)+when:1h&hl=en-US&gl=US&ceid=US:en"),
+    ("Google News Policies & Tariffs 1h", "https://news.google.com/rss/search?q=(tariffs+OR+trade+war+OR+debt+ceiling+OR+sanctions+OR+crypto+regulation)+when:1h&hl=en-US&gl=US&ceid=US:en"),
+    ("Google News Crypto 1h", "https://news.google.com/rss/search?q=(bitcoin+OR+crypto+OR+cbdc+OR+stablecoin+OR+ethereum+OR+sec+crypto)+when:1h&hl=en-US&gl=US&ceid=US:en"),
 ]
 
 
@@ -115,29 +122,51 @@ class BreakingNewsCollector:
         return False
 
     def _extract_image(self, entry) -> str:
-        """Pulls the article image URL from RSS enclosure / media:* / description img tags."""
-        enc = entry.find("enclosure")
-        if enc is not None and "image" in (enc.get("type") or ""):
+        """Pulls the highest-resolution authentic article image from RSS entry (media:content, media:thumbnail, enclosure, encoded)."""
+        candidates = []
+
+        # 1. Check all media:content and media:thumbnail tags
+        for tag in ("{http://search.yahoo.com/mrss/}content", "{http://search.yahoo.com/mrss/}thumbnail", "media:content", "media:thumbnail"):
+            for node in entry.findall(tag):
+                url = (node.get("url") or "").strip()
+                if not url or not url.startswith("http"):
+                    continue
+                width = 0
+                try:
+                    width = int(node.get("width") or 0)
+                except Exception:
+                    pass
+                med = (node.get("medium") or "").lower()
+                typ = (node.get("type") or "").lower()
+                if med == "video" or "video" in typ:
+                    continue
+                candidates.append((width, url))
+
+        # 2. Check enclosure
+        for enc in entry.findall("enclosure"):
             url = (enc.get("url") or "").strip()
-            if url:
-                return url
-        for tag, attr_medium in (("content", True), ("thumbnail", False)):
-            node = entry.find("{http://search.yahoo.com/mrss/}" + tag)
-            if node is None:
-                continue
-            if attr_medium and not ((node.get("medium") == "image") or (node.get("type") or "").startswith("image")):
-                continue
-            url = (node.get("url") or "").strip()
-            if url:
-                return url
-        for tag in ("description", "{http://purl.org/rss/1.0/modules/content/}encoded"):
-            desc_text = entry.findtext(tag, "")
-            if desc_text and "<img" in desc_text:
-                m = re.search(r'<img[^>]+src=[\'"]([^\'"]+)[\'"]', desc_text, re.IGNORECASE)
-                if m:
-                    u = m.group(1).strip()
-                    if u.startswith("http") and not any(ic in u.lower() for ic in ["icon", "logo", "avatar", "1x1"]):
-                        return u
+            typ = (enc.get("type") or "").lower()
+            if url and url.startswith("http") and ("image" in typ or url.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))):
+                candidates.append((500, url))
+
+        # 3. Check html description / encoded content for img tags
+        if not candidates:
+            for tag in ("description", "{http://purl.org/rss/1.0/modules/content/}encoded"):
+                desc_text = entry.findtext(tag, "")
+                if desc_text and "<img" in desc_text:
+                    for m in re.finditer(r'<img[^>]+src=[\'"]([^\'"]+)[\'"]', desc_text, re.IGNORECASE):
+                        u = m.group(1).strip()
+                        if u.startswith("http") and not any(ic in u.lower() for ic in ["icon", "logo", "avatar", "1x1", "pixel"]):
+                            candidates.append((200, u))
+
+        if candidates:
+            # Sort by width descending to prioritize highest quality
+            candidates.sort(key=lambda x: x[0], reverse=True)
+            for _, url in candidates:
+                u_low = url.lower()
+                if not any(bad in u_low for bad in ["googleusercontent", "gstatic", "google", "logo", "icon", "avatar", "1x1", "pixel", "favicon"]):
+                    return url
+
         return ""
 
     def _fetch_single_feed(self, source_name: str, feed_url: str) -> list:
