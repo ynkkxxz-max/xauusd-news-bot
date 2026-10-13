@@ -362,376 +362,37 @@ class XAUUSDNewsAssistantBot:
 
     def check_session_open_alerts(self):
         """
-        Monitors and alerts London Session (14:00) and New York Session (19:00) Openings.
-        Strictly armed with 4-Tier Zero-Spam Protection:
-        1. Minute window guard (only first 10 minutes: 14:00-14:10 or 19:00-19:10)
-        2. In-memory Set lock (instant, survives any within-process loops)
-        3. Pre-send lock acquisition (locked BEFORE calling Telegram API)
-        4. SQLite WAL persistence
+        [PERMANENTLY DISABLED PER USER DIRECTIVE]
+        Market Session Open Alerts (London 14:00 & New York 19:00 Cambodia Time) are permanently disabled.
+        No alerts or heatmaps will ever be broadcasted to Telegram channels or groups.
         """
-        now_kh = datetime.now(CAMBODIA_TZ)
-        today_str = now_kh.strftime("%Y-%m-%d")
-
-        # London Session: 14:00 (2:00 PM) Cambodia Time (strictly 14:00 - 14:10)
-        london_key = f"london_session_{today_str}"
-        if now_kh.hour == 14 and now_kh.minute <= 10 and not self._is_session_alert_sent(london_key, "LONDON SESSION OPENING"):
-            # Lock IMMEDIATELY before generating / sending to prevent concurrent loops
-            self._mark_session_alert_sent(london_key)
-            try:
-                price_data = self.gold_collector.fetch_price()
-                order_book = self.order_book_tracker.fetch_order_book_depth()
-                msg = KhmerFormatter.format_session_open_alert(
-                    "London Session", "14:00",
-                    price_data=price_data,
-                    order_book=order_book
-                )
-                heatmap_png = self.heatmap_builder.generate_heatmap_png(price_data, order_book)
-                if heatmap_png:
-                    self.notifier.send_photo(heatmap_png, caption=msg)
-                else:
-                    self.notifier.send_message(msg)
-                logger.info("London Session Open alert + Heatmap broadcasted.")
-            except Exception as e:
-                logger.error(f"Error broadcasting London Session Open alert: {e}")
-
-        # New York Session: 19:00 (7:00 PM) Cambodia Time (strictly 19:00 - 19:10)
-        ny_key = f"ny_session_{today_str}"
-        if now_kh.hour == 19 and now_kh.minute <= 10 and not self._is_session_alert_sent(ny_key, "NEW YORK SESSION OPENING"):
-            # Lock IMMEDIATELY before generating / sending to prevent concurrent loops
-            self._mark_session_alert_sent(ny_key)
-            try:
-                price_data = self.gold_collector.fetch_price()
-                order_book = self.order_book_tracker.fetch_order_book_depth()
-                msg = KhmerFormatter.format_session_open_alert(
-                    "New York Session", "19:00",
-                    price_data=price_data,
-                    order_book=order_book
-                )
-                heatmap_png = self.heatmap_builder.generate_heatmap_png(price_data, order_book)
-                if heatmap_png:
-                    self.notifier.send_photo(heatmap_png, caption=msg)
-                else:
-                    self.notifier.send_message(msg)
-                logger.info("New York Session Open alert + Heatmap broadcasted.")
-            except Exception as e:
-                logger.error(f"Error broadcasting New York Session Open alert: {e}")
+        return
 
 
 
     def check_candlestick_confirmation(self):
-        """
-        Monitors M15 candlestick confirmations when price arrives at SMC Key Zones.
-        Sends actionable Buy/Sell Confirmation Alerts when Pin Bar or Engulfing candle completes.
-        """
-        now = time.time()
-        last_conf = float(database.get_state("last_candle_conf_ts") or 0.0)
-        if now - last_conf < 2700:  # 45-minute cooldown between confirmation alerts
-            return
-
-        price_data = self.gold_collector.fetch_price()
-        current_price = price_data.get("price_oz", 0.0)
-        levels = price_data.get("key_levels", {})
-        oz = current_price
-        pivot = levels.get("pivot", oz)
-        r1 = levels.get("r1", oz + 20)
-        s1 = levels.get("s1", oz - 20)
-
-        buy_zone = (s1 - 4, s1 + 3)
-        sell_zone = (r1 - 3, r1 + 4)
-
-        DAILY_MAX_SIGNALS = 5
-        if not database.can_issue_signal_today(DAILY_MAX_SIGNALS):
-            return
-
-        now_kh = datetime.now(CAMBODIA_TZ)
-        hour_kh = now_kh.hour
-        # Signals strictly cut off at 22:00 (10:00 PM) Cambodia Time
-        is_active_session = (14 <= hour_kh < 18) or (19 <= hour_kh < 22)
-        if not is_active_session:
-            return
-
-        conf = self.candle_analyzer.detect_confirmation(current_price, buy_zone, sell_zone)
-        if conf:
-            # Audit setup through AI to guarantee Grade A+ accuracy
-            macro_data = self.macro_collector.fetch_macro_correlations()
-            order_book = self.order_book_tracker.fetch_order_book_depth()
-            raw_conf_sig = {
-                "action": "BUY" if "BULLISH" in conf.get("type", "") else "SELL",
-                "entry": conf.get("entry", current_price),
-                "sl": conf.get("sl"),
-                "tp1": conf.get("tp"),
-                "tp2": conf.get("tp2", conf.get("tp")),
-                "pattern": conf.get("pattern", "Candlestick Confirmation"),
-                "reason": conf.get("desc", "")
-            }
-            ai_audit = self.analyzer.analyze_and_validate_sniper_signal(
-                raw_signal=raw_conf_sig,
-                current_price=current_price,
-                key_levels=levels,
-                macro_data=macro_data,
-                order_book=order_book
-            )
-            if not ai_audit or not ai_audit.get("approved"):
-                logger.info(f"[CANDLE CONF REJECTED BY AI] Audit failed or low confluence: {ai_audit.get('rejection_reason') if ai_audit else 'No response'}")
-                return
-
-            if not database.can_issue_signal_today(DAILY_MAX_SIGNALS):
-                return
-
-            new_daily_c = database.increment_daily_signal_count()
-            conf["daily_count"] = new_daily_c
-            conf["daily_max"] = DAILY_MAX_SIGNALS
-            logger.info(f"[CANDLESTICK CONFIRMATION DETECTED & AI APPROVED] {conf['pattern']} at {conf['zone_name']} | Daily Position: {new_daily_c}/{DAILY_MAX_SIGNALS}")
-            msg = KhmerFormatter.format_candlestick_confirmation(conf)
-            
-            # Render chart image for visual confirmation
-            candles = self.candle_analyzer.fetch_m15_candles(count=35)
-            chart_png = self.chart_renderer.render_candlestick_chart(
-                candles=candles,
-                current_price=current_price,
-                key_levels=levels,
-                setup={"entry": conf.get("entry", current_price), "sl": conf.get("sl"), "tp1": conf.get("tp")},
-                timeframe="M15",
-                title_extra=conf.get("pattern", "")
-            )
-            # Direct Signal Alert via Private Bot DM ONLY (Never sent to public channel)
-            subscribers = database.get_signal_subscribers()
-            admin_id = os.getenv("TELEGRAM_ADMIN_CHAT_ID")
-            if admin_id and admin_id.isdigit():
-                subscribers = list(set(subscribers + [int(admin_id)]))
-
-            for sub_id in subscribers:
-                try:
-                    if chart_png:
-                        self.notifier.send_photo(chart_png, caption=self._truncate_html_caption(msg, 950), chat_id=sub_id)
-                    else:
-                        self.notifier.send_message(msg, chat_id=sub_id)
-                except Exception as e:
-                    logger.warning(f"[Private Signal DM] Error sending to {sub_id}: {e}")
-
-            database.set_state("last_candle_conf_ts", str(now))
+        """[PERMANENTLY DISABLED PER USER DIRECTIVE] Trade signals permanently disabled."""
+        return
 
     def check_news_danger_zone(self):
-        """
-        AI Market Regime & High-Impact News Filter:
-        Monitors if market is within 30 minutes of a High-Impact USD release (CPI, NFP, FOMC).
-        Broadcasts high-priority Danger Warning and sets temporary No-Trade lock.
-        """
-        now = time.time()
-        danger_info = self.calendar_collector.is_news_danger_zone(buffer_minutes=30)
-        
-        if danger_info.get("is_danger"):
-            # Mark danger state in database
-            database.set_state("news_danger_zone_active", "true")
-            database.set_state("news_danger_event_title", danger_info.get("title", ""))
-            
-            last_alert = float(database.get_state("last_danger_zone_alert_ts") or 0.0)
-            # Send alert once per danger event (cooldown 45 mins)
-            if now - last_alert >= 2700:
-                logger.warning(f"[AI NEWS DANGER ZONE] High-impact event approaching: {danger_info['title']}")
-                msg = KhmerFormatter.format_danger_zone_alert(danger_info)
-                self.notifier.send_message(msg)
-                database.set_state("last_danger_zone_alert_ts", str(now))
-        else:
-            database.set_state("news_danger_zone_active", "false")
+        """[PERMANENTLY DISABLED PER USER DIRECTIVE] Trade danger alerts permanently disabled."""
+        return
 
     def check_sniper_instant_signals(self):
-        """
-        Monitors live market for AI Sniper Instant Entry (BUY DIP / SELL TOP) with precise SL & TP.
-        Deeply audited by AI for maximum accuracy and strictly capped at 5 positions per day.
-        Blocked automatically if AI News Danger Zone is active or market is in Asian/pre-market low volume.
-        """
-        # Safety Gate 1: Do NOT send buy/sell signals within 30 minutes of High-Impact News!
-        danger_info = self.calendar_collector.is_news_danger_zone(buffer_minutes=30)
-        if danger_info.get("is_danger"):
-            logger.info(f"[SNIPER SIGNAL BLOCKED] Danger zone active for {danger_info.get('title')}. Capital protection active.")
-            return
-
-        # Safety Gate 2: Trading Sessions Filter (Strictly 07:00 AM to 23:00 / 11:00 PM Cambodia Time)
-        now_kh = datetime.now(CAMBODIA_TZ)
-        hour_kh = now_kh.hour
-        # Signals strictly allowed from 07:00 AM to 23:00 (11:00 PM) Cambodia Time (7:00 - 23:00)
-        is_active_session = (7 <= hour_kh < 23)
-        if not is_active_session:
-            # Outside active trading window (between 23:00 / 11:00 PM and 07:00 AM)
-            return
-
-        # Safety Gate 3: Strict Daily Signal Limit (Strictly maximum 5 position signals per day)
-        DAILY_MAX_SIGNALS = 5
-        daily_count = database.get_daily_signal_count()
-        if daily_count >= DAILY_MAX_SIGNALS:
-            logger.info(f"[SNIPER SIGNAL BLOCKED] Daily signal limit reached ({daily_count}/{DAILY_MAX_SIGNALS}). Overtrading protection active.")
-            return
-
-        now = time.time()
-        last_sniper = float(database.get_state("last_sniper_signal_ts") or 0.0)
-        last_action = database.get_state("last_sniper_action") or ""
-        
-        # 30-minute cooldown or until opposite signal appears
-        if now - last_sniper < 1800:
-            return
-
-        price_data = self.gold_collector.fetch_price()
-        current_price = price_data.get("price_oz", 0.0)
-        levels = price_data.get("key_levels", {})
-
-        sig = self.candle_analyzer.detect_sniper_instant_signal(current_price, levels)
-        if sig:
-            # Avoid repeating the same direction consecutively within short period
-            if sig.get("action") == last_action and (now - last_sniper < 3600):
-                return
-
-            # Safety Gate 4: AI Deep Analysis & Accuracy Verification (AI Analy ត្រឹមត្រូវបំផុត)
-            macro_data = self.macro_collector.fetch_macro_correlations()
-            order_book = self.order_book_tracker.fetch_order_book_depth()
-            ai_audit = self.analyzer.analyze_and_validate_sniper_signal(
-                raw_signal=sig,
-                current_price=current_price,
-                key_levels=levels,
-                macro_data=macro_data,
-                order_book=order_book
-            )
-            if not ai_audit or not ai_audit.get("approved"):
-                logger.info(f"[SNIPER SIGNAL REJECTED BY AI AUDITOR] Reason: {ai_audit.get('rejection_reason') if ai_audit else 'Low confluence'}")
-                return
-
-            # Final check on daily quota limit before issuing
-            if not database.can_issue_signal_today(DAILY_MAX_SIGNALS):
-                logger.info(f"[SNIPER SIGNAL BLOCKED] Daily position limit of {DAILY_MAX_SIGNALS} reached. Capital protection active.")
-                return
-
-            new_daily_count = database.increment_daily_signal_count()
-            sig["daily_count"] = new_daily_count
-            sig["daily_max"] = DAILY_MAX_SIGNALS
-
-            # Apply AI audited & refined parameters
-            sig["entry"] = float(ai_audit.get("entry", sig["entry"]))
-            sig["sl"] = float(ai_audit.get("sl", sig["sl"]))
-            sig["tp1"] = float(ai_audit.get("tp1", sig["tp1"]))
-            sig["tp2"] = float(ai_audit.get("tp2", sig["tp2"]))
-            sig["rr_ratio"] = ai_audit.get("rr_ratio", sig.get("rr_ratio", "1:2.0"))
-            sig["confidence_score"] = ai_audit.get("confidence_score", sig.get("confidence_score", "88%"))
-            sig["ai_analysis"] = ai_audit.get("ai_analysis", "")
-            sig["macro_context"] = ai_audit.get("macro_context", "")
-            sig["invalidation_note"] = ai_audit.get("invalidation_note", "")
-            sig["execution_tips"] = ai_audit.get("execution_tips", "")
-
-            sig_id = f"sig_{int(now)}"
-            logger.info(f"[AI SNIPER INSTANT SIGNAL APPROVED] {sig['action_title']} at ${sig['entry']} (ID: {sig_id}) | Daily Position: {new_daily_count}/{DAILY_MAX_SIGNALS}")
-            msg = KhmerFormatter.format_sniper_instant_alert(sig)
-            
-            # Direct Signal Alert via Private Bot DM ONLY (Never sent to public channel)
-            subscribers = database.get_signal_subscribers()
-            admin_id = os.getenv("TELEGRAM_ADMIN_CHAT_ID")
-            if admin_id and admin_id.isdigit():
-                subscribers = list(set(subscribers + [int(admin_id)]))
-
-            for sub_id in subscribers:
-                try:
-                    self.notifier.send_message(msg, chat_id=sub_id)
-                except Exception as e:
-                    logger.warning(f"[Private Sniper Signal DM] Error sending to {sub_id}: {e}")
-
-            database.set_state("last_sniper_signal_ts", str(now))
-            database.set_state("last_sniper_action", sig.get("action", ""))
-            # Save active signal details for Dynamic Break-Even & Profit Lock tracking
-            database.set_state("active_trade_action", sig.get("action", ""))
-            database.set_state("active_trade_entry", str(sig.get("entry", 0.0)))
-            database.set_state("active_trade_tp1", str(sig.get("tp1", 0.0)))
-            database.set_state("active_trade_tp2", str(sig.get("tp2", 0.0)))
-            database.set_state("active_trade_sl", str(sig.get("sl", 0.0)))
-            database.set_state("active_trade_be_sent", "false")
+        """[PERMANENTLY DISABLED PER USER DIRECTIVE] Trade Signals (Point 5) permanently disabled."""
+        return
 
     def check_dynamic_breakeven_trailing(self):
-        """
-        Monitors active trades in real time.
-        When price moves +30 pips in profit towards TP1, automatically fires
-        Dynamic Break-Even & Profit Lock Alert to Telegram so members lock risk-free profits.
-        """
-        active_action = database.get_state("active_trade_action")
-        if not active_action:
-            return
-
-        be_sent = database.get_state("active_trade_be_sent")
-        if be_sent == "true":
-            return
-
-        try:
-            entry_p = float(database.get_state("active_trade_entry") or 0.0)
-            tp1_p = float(database.get_state("active_trade_tp1") or 0.0)
-            if entry_p <= 0:
-                return
-
-            price_data = self.gold_collector.fetch_price()
-            curr_p = price_data.get("price_oz", 0.0)
-            if curr_p <= 0:
-                return
-
-            pips_gained = 0.0
-            trigger_be = False
-
-            if "BUY" in active_action:
-                pips_gained = (curr_p - entry_p) * 10.0
-                # Trigger when gained >= 30 pips ($3.00)
-                if pips_gained >= 30.0:
-                    trigger_be = True
-            elif "SELL" in active_action:
-                pips_gained = (entry_p - curr_p) * 10.0
-                if pips_gained >= 30.0:
-                    trigger_be = True
-
-            if trigger_be:
-                logger.info(f"[DYNAMIC BREAK-EVEN TRIGGERED] {active_action} gained +{pips_gained:.1f} pips. Sending lock alert.")
-                be_info = {
-                    "action": active_action,
-                    "entry_price": entry_p,
-                    "current_price": curr_p,
-                    "tp1_price": tp1_p,
-                    "pips_gained": pips_gained
-                }
-                msg = KhmerFormatter.format_breakeven_profit_alert(be_info)
-                self.notifier.send_message(msg)
-                database.set_state("active_trade_be_sent", "true")
-        except Exception as e:
-            logger.warning(f"Error checking dynamic breakeven: {e}")
+        """[PERMANENTLY DISABLED PER USER DIRECTIVE] Trade Trailing (Point 5) permanently disabled."""
+        return
 
     def check_liquidity_sweep(self):
-        """
-        Monitors for real-time institutional liquidity sweeps (Stop Loss Hunts)
-        at Asian High/Low and Key Session levels.
-        """
-        now = time.time()
-        last_sweep = float(database.get_state("last_liquidity_sweep_ts") or 0.0)
-        if now - last_sweep < 3600:  # 1-hour cooldown between liquidity sweep alerts
-            return
-
-        sweep = self.candle_analyzer.detect_liquidity_sweep()
-        if sweep:
-            logger.info(f"[LIQUIDITY SWEEP DETECTED] {sweep['type']} at {sweep['level_name']}")
-            msg = KhmerFormatter.format_liquidity_sweep(sweep)
-            self.notifier.send_message(msg)
-            database.set_state("last_liquidity_sweep_ts", str(now))
+        """[PERMANENTLY DISABLED PER USER DIRECTIVE] Liquidity Sweep alerts permanently disabled."""
+        return
 
     def check_macro_divergence(self):
-        """
-        Monitors institutional divergence between Gold and US Dollar Index (DXY).
-        Sends high-priority alert when Gold shows Bullish Accumulation or Bearish Distribution.
-        """
-        now = time.time()
-        last_div = float(database.get_state("last_macro_divergence_ts") or 0.0)
-        if now - last_div < 7200:  # 2-hour cooldown between divergence alerts
-            return
-
-        price_data = self.gold_collector.fetch_price()
-        current_price = price_data.get("price_oz", 0.0)
-        gold_pct = price_data.get("change_pct", 0.0)
-
-        div = self.macro_collector.detect_divergence(current_price, gold_pct)
-        if div:
-            logger.info(f"[MACRO DIVERGENCE DETECTED] {div['type']}")
-            msg = KhmerFormatter.format_divergence_alert(div)
-            self.notifier.send_message(msg)
-            database.set_state("last_macro_divergence_ts", str(now))
+        """[PERMANENTLY DISABLED PER USER DIRECTIVE] Macro Divergence alerts permanently disabled."""
+        return
 
 
 
@@ -1438,7 +1099,7 @@ class XAUUSDNewsAssistantBot:
             except Exception as e:
                 logger.warning(f"Direct news image fetch failed: {e}")
 
-        # 2. Extract genuine article image directly from the publisher's web page (og:image / twitter:image)
+        # 2. Extract genuine article image directly from the publisher's web page (og:image / twitter:image / json-ld)
         # Must be a specific deep article URL (not a generic section homepage like /world or /news)
         is_deep_article = (
             link.count("/") >= 4 and
@@ -1451,8 +1112,11 @@ class XAUUSDNewsAssistantBot:
                     patterns = [
                         r'<meta[^>]+property=[\'"]og:image[\'"][^>]+content=[\'"]([^\'"]+)[\'"]',
                         r'<meta[^>]+content=[\'"]([^\'"]+)[\'"][^>]+property=[\'"]og:image[\'"]',
+                        r'<meta[^>]+property=[\'"]og:image:secure_url[\'"][^>]+content=[\'"]([^\'"]+)[\'"]',
                         r'<meta[^>]+name=[\'"]twitter:image(?:[:\w]+)?[\'"][^>]+content=[\'"]([^\'"]+)[\'"]',
                         r'<meta[^>]+content=[\'"]([^\'"]+)[\'"][^>]+name=[\'"]twitter:image(?:[:\w]+)?[\'"]',
+                        r'[\'"]image[\'"]\s*:\s*[\'"](https?://[^\'"]+\.(?:jpg|jpeg|png|webp)[^\'"]*)[\'"]',
+                        r'[\'"]thumbnailUrl[\'"]\s*:\s*[\'"](https?://[^\'"]+\.(?:jpg|jpeg|png|webp)[^\'"]*)[\'"]',
                     ]
                     for p in patterns:
                         m = re.search(p, art_resp.text, re.IGNORECASE)
@@ -1467,29 +1131,32 @@ class XAUUSDNewsAssistantBot:
             except Exception as e:
                 logger.debug(f"Webpage og:image fetch failed for {link}: {e}")
 
-        # Fallback to key official speaker portraits if article specifically mentions them
+        # 3. Fallback to authentic portraits for key leaders/speakers if article specifically mentions them
         comb_text = f"{item.get('title', '')} {item.get('description', '')}".lower()
-        if "kevin warsh" in comb_text or "warsh" in comb_text:
-            p_bytes = MainBotService._get_speaker_photo("kevin warsh")
-            if p_bytes:
-                return p_bytes
-        elif "jerome powell" in comb_text or "powell" in comb_text:
-            p_bytes = MainBotService._get_speaker_photo("jerome powell")
-            if p_bytes:
-                return p_bytes
+        speaker_img = XAUUSDNewsAssistantBot._get_speaker_photo(comb_text)
+        if speaker_img:
+            return speaker_img
 
-        # Strictly return None - NEVER use random or unrelated images
+        # 4. Fallback to authentic Ultra-HD topic photos for core macroeconomic pillars
+        topic_img = XAUUSDNewsAssistantBot._get_topic_photo(comb_text)
+        if topic_img:
+            return topic_img
+
+        # Strictly return None - NEVER use random, fake, or unrelated placeholder images
         return None
 
     @staticmethod
-    def _get_speaker_photo(speaker_or_title: str) -> bytes:
-        """Returns official portrait bytes for key Fed speakers (Kevin Warsh, Jerome Powell, etc.)."""
-        s_low = (speaker_or_title or "").lower()
+    def _get_speaker_photo(text_low: str) -> bytes:
+        """Returns official portrait bytes for key leaders/speakers (Trump, Musk, Powell, Warsh)."""
         photo_path = None
-        if "warsh" in s_low:
+        if "warsh" in text_low or "kevin warsh" in text_low:
             photo_path = "assets/speakers/kevin_warsh.jpg"
-        elif "powell" in s_low:
+        elif "powell" in text_low or "jerome powell" in text_low:
             photo_path = "assets/speakers/jerome_powell.jpg"
+        elif "trump" in text_low or "donald trump" in text_low:
+            photo_path = "assets/speakers/donald_trump.jpg"
+        elif "musk" in text_low or "elon musk" in text_low:
+            photo_path = "assets/speakers/elon_musk.jpg"
 
         if photo_path and os.path.exists(photo_path):
             try:
@@ -1497,6 +1164,33 @@ class XAUUSDNewsAssistantBot:
                     return f.read()
             except Exception as e:
                 logger.warning(f"Failed to load speaker portrait {photo_path}: {e}")
+        return None
+
+    @staticmethod
+    def _get_topic_photo(text_low: str) -> bytes:
+        """Returns authentic Ultra-HD topic photo for core macroeconomic pillars."""
+        photo_path = None
+        if any(w in text_low for w in ["federal reserve", "fed ", "fomc", "eccles building", "central bank"]):
+            photo_path = "assets/topics/federal_reserve.jpg"
+        elif any(w in text_low for w in ["gold", "bullion", "xauusd", "precious metal"]):
+            photo_path = "assets/topics/gold_bullion.jpg"
+        elif any(w in text_low for w in ["crude oil", "brent", "wti", "opec", "petroleum", "oil price"]):
+            photo_path = "assets/topics/crude_oil.jpg"
+        elif any(w in text_low for w in ["semiconductor", "chip", "chips", "wafer", "tsmc", "nvidia", "intel"]):
+            photo_path = "assets/topics/semiconductor_chips.jpg"
+        elif any(w in text_low for w in ["bitcoin", "btc", "cryptocurrency", "crypto reserve", "crypto", "stablecoin"]):
+            photo_path = "assets/topics/bitcoin_crypto.jpg"
+        elif any(w in text_low for w in ["hormuz", "strait of hormuz", "red sea", "naval", "warship", "persian gulf"]):
+            photo_path = "assets/topics/geopolitics_naval.jpg"
+        elif any(w in text_low for w in ["wall street", "nyse", "nasdaq", "s&p 500", "stock market"]):
+            photo_path = "assets/topics/wall_street.jpg"
+
+        if photo_path and os.path.exists(photo_path):
+            try:
+                with open(photo_path, "rb") as f:
+                    return f.read()
+            except Exception as e:
+                logger.warning(f"Failed to load topic photo {photo_path}: {e}")
         return None
 
     def _build_calendar_png(self) -> bytes:
@@ -1740,6 +1434,11 @@ class XAUUSDNewsAssistantBot:
             if not title or "?" in title or not GoldNewsFilter.is_gold_relevant(title, desc):
                 continue
 
+            # Strict High-Importance Filter: Broadcast ONLY critical high-impact news per user directive (ព័ត៌មានដែលសំខាន់ខ្លាំង)
+            if not GoldNewsFilter.is_high_importance(title, desc):
+                logger.debug(f"[FILTER: NOT HIGH IMPORTANCE] Skipping minor/routine wire item: '{title}'")
+                continue
+
             # SQLite check by news_id
             if database.is_news_sent(news_id):
                 continue
@@ -1929,18 +1628,7 @@ class XAUUSDNewsAssistantBot:
             # 3. Daily Gold Price Check (7:00 AM Cambodia Time)
             self.check_daily_gold_price()
 
-            # 4. Market Sessions Open Alerts (London 14:00 & NY 19:00 Cambodia Time)
-            self.check_session_open_alerts()
-
-            # 5. Real-Time Signals & Trade Trailing
-            self.check_news_danger_zone()
-            self.check_sniper_instant_signals()
-            self.check_dynamic_breakeven_trailing()
-            self.check_candlestick_confirmation()
-            self.check_liquidity_sweep()
-            self.check_macro_divergence()
-
-            # 6. Breaking News Alert (Triple Anti-Duplicate Shield)
+            # 4. Breaking News Alert (Triple Anti-Duplicate Shield)
             self.check_breaking_news()
 
             # 7. Economic Calendar & Upcoming/Actual News Check
@@ -2035,18 +1723,7 @@ class XAUUSDNewsAssistantBot:
                     except Exception as err:
                         logger.error(f"Error checking breaking news: {err}", exc_info=True)
 
-                # 3. Real-Time Sniper Signals & Trade Trailing Check (Dedicated 30-second cadence)
-                if now - last_signal_check >= signal_interval:
-                    last_signal_check = now
-                    try:
-                        self.check_news_danger_zone()
-                        self.check_sniper_instant_signals()
-                        self.check_dynamic_breakeven_trailing()
-                        self.check_candlestick_confirmation()
-                        self.check_liquidity_sweep()
-                        self.check_macro_divergence()
-                    except Exception as err:
-                        logger.error(f"Error checking signals or trade trailing: {err}", exc_info=True)
+
 
                 # 4. Scheduled & Periodic Tasks Checker (Non-blocking)
                 if now - last_background_check >= background_interval:
@@ -2054,7 +1731,6 @@ class XAUUSDNewsAssistantBot:
                     try:
                         self.check_database_maintenance()
                         self.check_daily_gold_price()
-                        self.check_session_open_alerts()
                         background_interval = self.check_economic_events()
                     except Exception as err:
                         logger.error(f"Error during background task check: {err}", exc_info=True)
