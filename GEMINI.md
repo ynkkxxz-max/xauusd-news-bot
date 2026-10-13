@@ -321,3 +321,10 @@ This repository is governed by the 5 Golden Principles established by the system
 - **បិទការផ្សាយ Weekly Gold Outlook ជារៀងរហូត (Permanently Banned)**:
   - មិនត្រូវផ្ញើសារប្រភេទ `🏛️ WEEKLY GOLD OUTLOOK — យុទ្ធសាស្ត្រមាសប្រចាំសប្តាហ៍ថ្មី!` ចូល Telegram Channel ឬ Group ឡើយ។
   - មុខងារ `check_weekly_sunday_outlook` ក្នុង `main.py` ត្រូវបានបិទទាំងស្រុងជាអចិន្ត្រៃយ៍ (`return` ភ្លាមៗ) និងដកចេញពី Background Loop មិនឱ្យដំណើរការទៀតជាដាច់ខាត។
+
+### 24. ☁️ ហេដ្ឋារចនាសម្ព័ន្ធ Cloud ២៤/៧ & UptimeRobot (24/7 Production Hosting & Zero-PC Dependency Standard — បញ្ជាផ្ទាល់)
+- **សេវាកម្ម Cloud Render.com & UptimeRobot (Production Verified — កត់ត្រាជាគោលការណ៍ផ្លូវការ)**:
+  - Bot ដំណើរការលើ Cloud Host: **Render.com** ភ្ជាប់ជាមួយ Web Service URL ផ្លូវការ: `https://xauusd-news-bot-kh.onrender.com`។
+  - **UptimeRobot Heartbeat ៥ នាទី (Verified 100% Up)**: ប្រព័ន្ធ UptimeRobot កំពុងតាមដាន និង Ping រៀងរាល់ ៥ នាទីម្តង (`HTTP Up 23h+, 100%`) ការពារកុំឱ្យ Render Web Service ចូល Sleeping Mode ឬផ្អាកដំណើរការជាដាច់ខាត។
+  - **ឯករាជ្យភាពពីកុំព្យូទ័រ (Zero Local PC Dependency)**: នៅពេលអ្នកប្រើប្រាស់បិទកុំព្យូទ័រផ្ទាល់ខ្លួន (Shut down PC), បិទ Wi-Fi ឬដកភ្លើង ក៏ Bot នៅតែបន្តដំណើរការ ៤ ចំណុចស្នូលចូល Telegram Channel `@GoldMarketKH8888` បានយ៉ាងទៀងទាត់ និងរលូន ១០០% ដោយគ្មានការរំខានឡើយ។
+  - **ស្វ័យប្រវត្តិកម្ម GitHub Auto-Deploy**: រាល់ពេលកូដថ្មីត្រូវបាន Push ទៅកាន់ `ynkkxxz-max/xauusd-news-bot @ main`, Render នឹងទាញយកកូដថ្មី និង Restart Service ដោយស្វ័យប្រវត្តិតាម GitHub Webhook។
