@@ -81,6 +81,19 @@ SPORTS_AND_GOSSIP_PATTERNS = [
     r"\b(french food|recipe|cuisine|restaurant|satire|parody|comedy|funny|horoscope)\b",
 ]
 
+# Trivial, Low-Impact, Routine Market Noise, Analyst Ratings, and Minor Tips Filter
+TRIVIAL_AND_LOW_IMPACT_PATTERNS = [
+    r"\b(price target|analyst rating|analyst upgrades|analyst downgrades|upgrades to buy|downgrades to hold)\b",
+    r"\b(top pick|stocks to buy|stocks to watch|stocks to sell|best stock to buy)\b",
+    r"\b(retire rich|retirement portfolio|dividend yield of \d|passive income|penny stock|penny stocks)\b",
+    r"\b(earnings whisper|q[1-4] earnings preview|earnings call transcript|zacks rank|zacks investment)\b",
+    r"\b(unusual volume|options activity|short squeeze|meme stock|day trading)\b",
+    r"\b(how to invest|investing tips|beginner guide|cryptocurrency prediction 20\d\d)\b",
+    r"\b(morning brief|podcast episode|listen now|webinar|q&a with|interview transcript)\b",
+    r"\b(why .+ (?:fell|dropped|rose|jumped) today|here's why|is it time to buy)\b",
+    r"\b(daily horoscope|lottery numbers|jackpot)\b",
+]
+
 def _matches_any_keyword(text: str, keywords: list) -> bool:
     """Safe keyword matching: Uses strict word boundaries for short words (<=4 chars) to prevent substring false positives."""
     for kw in keywords:
@@ -130,6 +143,78 @@ class GoldNewsFilter:
         return 1 if _matches_any_keyword(text, GoldNewsFilter.URGENT_SIGNALS) else 0
 
     @staticmethod
+    def is_high_importance(title: str, description: str = "") -> bool:
+        """
+        Strictly evaluates whether a news event is HIGH IMPORTANCE (ព័ត៌មានដែលសំខាន់ខ្លាំង).
+        Only approves Tier-1 market catalysts, geopolitical security shocks, and major central bank/macro moves.
+        """
+        full_text = f"{title} {description}".lower()
+
+        # Reject trivial patterns early
+        for pat in TRIVIAL_AND_LOW_IMPACT_PATTERNS:
+            if re.search(pat, full_text):
+                return False
+
+        # Reject sports and gossip
+        for pat in SPORTS_AND_GOSSIP_PATTERNS:
+            if re.search(pat, full_text):
+                return False
+
+        # 1. Immediate Catalysts
+        if _matches_any_keyword(full_text, GoldNewsFilter.IMMEDIATE_CATALYSTS):
+            return True
+
+        # 2. Urgent Market Signals
+        if _matches_any_keyword(full_text, GoldNewsFilter.URGENT_SIGNALS):
+            return True
+
+        # 3. Macroeconomic & Central Bank Decisions (Tier 1)
+        macro_core = [
+            "cpi", "core cpi", "inflation", "pce", "core pce", "non-farm", "nonfarm", "nfp",
+            "gdp", "fomc", "federal reserve", "interest rate", "rate cut", "rate hike",
+            "powell", "warsh", "kevin warsh", "ecb rate", "boj rate", "pboc rate",
+            "central bank reserves", "unemployment rate", "recession", "debt ceiling", "tariff", "trade war"
+        ]
+        if _matches_any_keyword(full_text, macro_core):
+            return True
+
+        # 4. War, Geopolitical Conflict & Maritime Disruption (Tier 1)
+        geo_core = [
+            "war", "invasion", "military strike", "missile", "airstrike", "drone attack",
+            "strait of hormuz", "red sea", "iran", "israel", "russia", "ukraine", "taiwan",
+            "sanctions", "nuclear", "ceasefire", "peace deal", "naval blockade"
+        ]
+        if _matches_any_keyword(full_text, geo_core):
+            return True
+
+        # 5. Energy Crisis & Commodities Shocks (Tier 1)
+        energy_core = [
+            "opec", "crude oil", "oil supply", "brent", "wti", "energy crisis",
+            "central bank buying gold", "gold surges", "gold plunges"
+        ]
+        if _matches_any_keyword(full_text, energy_core):
+            return True
+
+        # 6. Big Tech & AI Infrastructure Shifts (Tier 1)
+        tech_core = [
+            "nvidia", "tsmc", "semiconductor export", "chip export controls", "chip ban",
+            "artificial intelligence", "big tech antitrust", "cyberattack"
+        ]
+        if _matches_any_keyword(full_text, tech_core):
+            return True
+
+        # 7. Major Digital Asset & Crypto Milestones (Tier 1)
+        crypto_core = [
+            "strategic bitcoin reserve", "spot bitcoin etf", "crypto regulation", "sec approves",
+            "sec sues", "crypto crash", "bitcoin surges above", "bitcoin plunges below",
+            "stablecoin law", "cbdc", "binance settlement", "crypto liquidation"
+        ]
+        if _matches_any_keyword(full_text, crypto_core):
+            return True
+
+        return False
+
+    @staticmethod
     def is_gold_relevant(title: str, description: str = "") -> bool:
         """
         Determines whether a piece of news directly or indirectly influences XAUUSD / Financial Markets
@@ -146,6 +231,11 @@ class GoldNewsFilter:
 
         # Gate 0: Strict rejection of sports, football clubs (e.g. Manchester City), gossip, celebrities
         for pat in SPORTS_AND_GOSSIP_PATTERNS:
+            if re.search(pat, full_text):
+                return False
+
+        # Gate 0.1: Reject trivial low-impact, analyst ratings, routine earnings previews
+        for pat in TRIVIAL_AND_LOW_IMPACT_PATTERNS:
             if re.search(pat, full_text):
                 return False
 
