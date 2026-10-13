@@ -187,7 +187,7 @@ def is_title_already_broadcasted(title: str, hours: int = 48) -> bool:
 def is_daily_price_sent(date_str: str) -> bool:
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT 1 FROM daily_price_logs WHERE date_str = ?", (date_str,))
+    cursor.execute("SELECT 1 FROM daily_price_logs WHERE date_str = ? AND message_id > 0", (date_str,))
     exists = cursor.fetchone() is not None
     conn.close()
     return exists
