@@ -248,12 +248,16 @@ def sanitize_khmer_spelling(text: str) -> str:
     for _ in range(2):
         res = re.sub(r'([\u1780-\u17D3\u17B6-\u17C5]{3,})\s*\1', r'\1', res)
 
-    # 7. Ensure space after Khmer full stop (។) to prevent text crowding
-    res = re.sub(r'។(?!\s|$)', '។ ', res)
+    # 7. Ensure clean spacing between Khmer letters and Latin (English) characters (e.g. 'កងទ័ព Yemen', 'Houthi បាន')
+    # Use letters/vowels [\u1780-\u17D3] only to exclude punctuation marks [\u17D4-\u17DA] (។, ៕, ៖, ៗ)
+    res = re.sub(r'([\u1780-\u17D3])([A-Za-z0-9])', r'\1 \2', res)
+    res = re.sub(r'([A-Za-z0-9])([\u1780-\u17D3])', r'\1 \2', res)
 
-    # 8. Ensure clean spacing between Khmer and Latin (English) characters (e.g. 'កងទ័ព Yemen', 'Houthi បាន')
-    res = re.sub(r'([\u1780-\u17FF])([A-Za-z])', r'\1 \2', res)
-    res = re.sub(r'([A-Za-z])([\u1780-\u17FF])', r'\1 \2', res)
+    # 8. Ensure no awkward whitespace before Khmer punctuation marks (។, ៕, ៖, ៗ, ៘)
+    res = re.sub(r'\s+([។៕៖ៗ៘])', r'\1', res)
+
+    # 9. Ensure clean space after Khmer full stop (។) and Bariyoosan (៕)
+    res = re.sub(r'([។៕])(?!\s|$)', r'\1 ', res)
 
     return res.strip()
 
@@ -314,49 +318,202 @@ class KhmerFormatter:
 
     @staticmethod
     def format_actual_release_alert(event: dict, analysis: dict) -> str:
-        """Formats immediate flash alert when Actual economic data is released."""
-        title = event.get("title", "")
-        currency = event.get("currency", "USD")
-        actual = event.get("actual", "N/A")
-        forecast = event.get("forecast", "N/A")
-        previous = event.get("previous", "N/A")
-        time_str = event.get("release_time_str", "")
-        date_str = event.get("release_date_str", "")
-        source = event.get("source", "ForexFactory / Global Institutional Calendar")
+        """
+        Formats immediate flash alert when Actual economic data is released.
+        Strictly follows Point 3 VIP Flash Update Template:
+        🚨 FLASH UPDATE | ACTUAL RELEASE 🇺🇸
+        📊 US Core CPI m/m (សន្ទស្សន៍ថ្លៃទំនិញប្រើប្រាស់ស្នូល)
+        ⏱ 19:30 | 13/10/2026
+        ━━━━━━━━━━━━━━━━━━━
+        📈 ទិន្នន័យជាក់ស្តែង (Actual Data)
+        • Actual: 0.3% ⬆️ (ខ្ពស់ជាងរំពឹងទុក)
+        • Forecast: 0.2%
+        • Previous: 0.2%
+        ━━━━━━━━━━━━━━━━━━━
+        🧠 ការសង្ខេប & ការវិភាគ (Quick Take)
+        • ស្ថានភាព: Core CPI កើនឡើង ០.៣% បង្ហាញថាសម្ពាធអតិផរណានៅតែរឹងរូសខ្លាំង (Sticky Inflation)។
+        • ផលជះ: កាត់បន្ថយឱកាសដែល Fed នឹងទម្លាក់អត្រាការប្រាក់គំហុកនៅកិច្ចប្រជុំបន្ទាប់។
+        ━━━━━━━━━━━━━━━━━━━
+        ⚡ ផលប៉ះពាល់ទីផ្សារ (Market Impact)
+        🔹 USD: ឡើងថ្លៃភ្លាមៗ (Bullish)
+        🔹 US10Y Yields: ស្ទុះងើបឡើងខ្ពស់
+        🔸 XAUUSD (មាស): ប្រឈមសម្ពាធធ្លាក់ចុះរយៈពេលខ្លី (Bearish Pressure)
+        ━━━━━━━━━━━━━━━━━━━
+        ⚠️ បម្រាមហានិភ័យ: ទីផ្សារប្រែប្រួលខ្លាំង! រង់ចាំការបិទទៀន M5/M15 បញ្ជាក់ទិសដៅច្បាស់លាស់ ជៀសវាង FOMO ដេញតាមតម្លៃ។
+        """
+        import re
+        import html
+        from datetime import datetime
 
-        # Clip fields so the photo with full analysis always fits in 1 single message (<= 1024 chars)
-        c_what = _clip(analysis.get("what_happened", ""), 160)
-        c_why = _clip(analysis.get("why_it_matters", ""), 220)
-        c_usd = _clip(analysis.get("usd_impact", ""), 110)
-        c_rate = _clip(analysis.get("rate_yield_impact", ""), 110)
-        raw_c_xau = _clip(analysis.get("xau_pressure", ""), 110).strip()
-        c_xau = re.sub(r'^[👉\s\-•]+', '', raw_c_xau).strip()
-        c_xau = re.sub(r'^([🟢🔴🟡])\s*\n+', r'\1 ', c_xau)
-        if not re.match(r'^[🟢🔴🟡]', c_xau):
-            bias_emoji = "🟢" if "Bullish" in analysis.get('bias', '') else ("🔴" if "Bearish" in analysis.get('bias', '') else "🟡")
-            c_xau = f"{bias_emoji} {c_xau}"
+        if not analysis:
+            analysis = {}
 
+        title = str(event.get("title", "Economic Release")).strip()
+        currency = str(event.get("currency", "USD")).strip().upper()
+        actual = str(event.get("actual", "N/A")).strip()
+        forecast = str(event.get("forecast", "N/A")).strip()
+        previous = str(event.get("previous", "N/A")).strip()
+        time_str = str(event.get("release_time_str", "")).strip()
+        date_str = str(event.get("release_date_str", "")).strip()
+
+        # Fallback date / time if not in event dict
+        if not time_str or not date_str:
+            rel_dt = event.get("release_dt")
+            if isinstance(rel_dt, datetime):
+                if not time_str:
+                    time_str = rel_dt.strftime("%H:%M")
+                if not date_str:
+                    date_str = rel_dt.strftime("%d/%m/%Y")
+            else:
+                now_kh = datetime.now()
+                if not time_str:
+                    time_str = now_kh.strftime("%H:%M")
+                if not date_str:
+                    date_str = now_kh.strftime("%d/%m/%Y")
+
+        # Currency flag mapping
+        FLAG_MAP = {
+            "USD": "🇺🇸", "EUR": "🇪🇺", "GBP": "🇬🇧", "JPY": "🇯🇵",
+            "AUD": "🇦🇺", "CAD": "🇨🇦", "CNY": "🇨🇳", "CHF": "🇨🇭",
+            "NZD": "🇳🇿", "XAU": "🥇", "GOLD": "🥇"
+        }
+        flag = FLAG_MAP.get(currency, "🇺🇸")
+
+        # Khmer title mapping
+        KM_TITLE_MAP = {
+            "Core CPI": "សន្ទស្សន៍ថ្លៃទំនិញប្រើប្រាស់ស្នូល",
+            "CPI": "សន្ទស្សន៍ថ្លៃទំនិញប្រើប្រាស់",
+            "Core PCE": "សន្ទស្សន៍ថ្លៃចំណាយផ្ទាល់ខ្លួនស្នូល",
+            "PCE": "សន្ទស្សន៍ថ្លៃចំណាយផ្ទាល់ខ្លួន",
+            "Non-Farm Employment Change": "ចំនួនការងារមិនមែនកសិកម្ម",
+            "NFP": "ចំនួនការងារមិនមែនកសិកម្ម",
+            "Unemployment Rate": "អត្រាគ្មានការងារធ្វើ",
+            "Federal Funds Rate": "អត្រាការប្រាក់គោល Fed",
+            "FOMC": "កិច្ចប្រជុំគោលនយោបាយ Fed",
+            "GDP": "ផលិតផលក្នុងស្រុកសរុប",
+            "Retail Sales": "ទិន្នន័យការលក់រាយ",
+            "PPI": "សន្ទស្សន៍ថ្លៃអ្នកផលិត",
+            "ISM Manufacturing PMI": "សន្ទស្សន៍អ្នកគ្រប់គ្រងការទិញផ្នែកផលិតកម្ម",
+            "ISM Services PMI": "សន្ទស្សន៍អ្នកគ្រប់គ្រងការទិញផ្នែកសេវាកម្ម",
+            "Jobless Claims": "ពាក្យស្នើសុំប្រាក់ឧបត្ថម្ភអ្នកគ្មានការងារធ្វើ"
+        }
+
+        # Check if title already contains Khmer
+        has_km_in_title = bool(re.search(r'[\u1780-\u17FF]', title))
+        km_sub = event.get("title_km", "")
+        if not km_sub and not has_km_in_title:
+            for k, v in KM_TITLE_MAP.items():
+                if k.lower() in title.lower():
+                    km_sub = v
+                    break
+
+        if km_sub and not has_km_in_title:
+            title_display = f"{title} ({km_sub})"
+        else:
+            title_display = title
+
+        # Numerical comparison between actual and forecast
+        def _parse_num(val_str: str):
+            if not val_str or val_str in ("N/A", "--", ""):
+                return None
+            m = re.search(r'[-+]?\d*\.?\d+', val_str.replace(",", ""))
+            if m:
+                try:
+                    return float(m.group(0))
+                except Exception:
+                    return None
+            return None
+
+        act_num = _parse_num(actual)
+        fc_num = _parse_num(forecast)
+
+        if act_num is not None and fc_num is not None:
+            diff = act_num - fc_num
+            if abs(diff) < 1e-5:
+                arrow = "➡️"
+                diff_label = "ស្មើនឹងការរំពឹងទុក"
+            elif diff > 0:
+                arrow = "⬆️"
+                diff_label = "ខ្ពស់ជាងរំពឹងទុក"
+            else:
+                arrow = "⬇️"
+                diff_label = "ទាបជាងរំពឹងទុក"
+        else:
+            arrow = "📌"
+            diff_label = "ចេញផ្សាយផ្លូវការ"
+
+        # Quick Take: Condition & Effect
+        raw_cond = (analysis.get("condition") or analysis.get("what_happened") or "").strip()
+        raw_cond = re.sub(r'^(•|\-|\*|ស្ថានភាព:|\:)+', '', raw_cond).strip()
+        raw_cond = re.sub(r'^\*\*.*?\*\*\s*', '', raw_cond).strip()
+        if not raw_cond:
+            raw_cond = f"{title} ចេញមក {actual} {diff_label} បង្ហាញពីចលនាសេដ្ឋកិច្ចជាក់ស្តែង។"
+
+        raw_effect = (analysis.get("effect") or analysis.get("why_it_matters") or "").strip()
+        raw_effect = re.sub(r'^(•|\-|\*|ផលជះ:|\:)+', '', raw_effect).strip()
+        raw_effect = re.sub(r'^\*\*.*?\*\*\s*', '', raw_effect).strip()
+        if not raw_effect:
+            raw_effect = "ជះឥទ្ធិពលផ្ទាល់ដល់ការរំពឹងទុកគោលនយោបាយរូបិយវត្ថុ និងចរន្តសាច់ប្រាក់លើទីផ្សារ។"
+
+        # Market Impact
+        # USD
+        raw_usd = (analysis.get("usd_impact") or "").strip()
+        raw_usd = re.sub(r'^(💵|•|\-|\*|USD:|\:)+', '', raw_usd).strip()
+        if not raw_usd:
+            bias = analysis.get("bias", "")
+            if "Bearish" in bias:
+                raw_usd = "ឡើងថ្លៃភ្លាមៗ (Bullish)"
+            elif "Bullish" in bias:
+                raw_usd = "ចុះខ្សោយភ្លាមៗ (Bearish)"
+            else:
+                raw_usd = "ប្រែប្រួលចង្អៀត (Mixed/Neutral)"
+
+        # US10Y Yields
+        raw_yield = (analysis.get("rate_yield_impact") or analysis.get("rate_impact") or "").strip()
+        raw_yield = re.sub(r'^(🏛️|🏦|•|\-|\*|Yields:|\:)+', '', raw_yield).strip()
+        if not raw_yield:
+            bias = analysis.get("bias", "")
+            if "Bearish" in bias:
+                raw_yield = "ស្ទុះងើបឡើងខ្ពស់"
+            elif "Bullish" in bias:
+                raw_yield = "ធ្លាក់ចុះទាប"
+            else:
+                raw_yield = "ប្រែប្រួលចង្អៀត"
+
+        # XAUUSD
+        raw_xau = (analysis.get("xau_pressure") or "").strip()
+        raw_xau = re.sub(r'^(🥇|👉|•|\-|\*|🟢|🔴|🟡|XAUUSD:|\:)+', '', raw_xau).strip()
+        if not raw_xau:
+            bias = analysis.get("bias", "")
+            if "Bearish" in bias:
+                raw_xau = "ប្រឈមសម្ពាធធ្លាក់ចុះរយៈពេលខ្លី (Bearish Pressure)"
+            elif "Bullish" in bias:
+                raw_xau = "ទទួលបានកម្លាំងរុញឡើង (Bullish Momentum)"
+            else:
+                raw_xau = "ប្រឈមការប្រែប្រួលសងខាង (Volatile Range)"
+
+        # Build message exactly per user template
+        div = "━━━━━━━━━━━━━━━━━━━"
         msg = (
-            f"🚨 <b>FLASH: ទិន្នន័យជាក់ស្តែងបានចេញផ្សាយ (ACTUAL RELEASE)</b>\n\n"
-            f"🇺🇸 <b>រូបិយប័ណ្ណ:</b> {currency}\n"
-            f"📰 <b>ព្រឹត្តិការណ៍:</b> {title}\n"
-            f"🕐 <b>ម៉ោងចេញផ្សាយនៅកម្ពុជា:</b> <b>{time_str} ({date_str} ម៉ោងនៅកម្ពុជា UTC+7)</b>\n\n"
-            f"📊 <b>លទ្ធផលទិន្នន័យសេដ្ឋកិច្ច:</b>\n"
-            f"• <b>ជាក់ស្តែង (Actual):</b> <code>{actual}</code>\n"
-            f"• <b>ការព្យាករណ៍ (Forecast):</b> <code>{forecast}</code>\n"
-            f"• <b>ទិន្នន័យមុន (Previous):</b> <code>{previous}</code>\n\n"
-            f"🚨 <b>តើមានអ្វីកើតឡើង?:</b>\n"
-            f"{c_what}\n\n"
-            f"🧠 <b>ហេតុអ្វីវាសំខាន់?:</b>\n"
-            f"{c_why}\n\n"
-            f"💵 <b>ផលប៉ះពាល់លើ USD:</b>\n"
-            f"{c_usd}\n\n"
-            f"🏛️ <b>សម្ពាធលើ Yields / Fed Rates:</b>\n"
-            f"{c_rate}\n\n"
-            f"🥇 <b>សម្ពាធលើ XAUUSD:</b>\n"
-            f"👉 <b>{c_xau}</b>\n\n"
-            f"⚠️ <b>ការប្រែប្រួល (Volatility):</b> បម្រែបម្រួលខ្ពស់ សូមរង់ចាំទៀន M5/M15 បិទដើម្បីបញ្ជាក់ពីប្រតិកម្មពិត!\n\n"
-            f'🔗 <i>ប្រភពព័ត៌មាន: <a href="https://www.forexfactory.com/calendar">{source}</a> (ចុចដើម្បីពិនិត្យតារាងទិន្នន័យ)</i>'
+            f"🚨 FLASH UPDATE | ACTUAL RELEASE {flag}\n\n"
+            f"📊 {title_display}\n\n"
+            f"⏱ {time_str} | {date_str}\n\n"
+            f"{div}\n\n"
+            f"📈 ទិន្នន័យជាក់ស្តែង (Actual Data)\n\n"
+            f"• Actual: {actual} {arrow} ({diff_label})\n\n"
+            f"• Forecast: {forecast}\n\n"
+            f"• Previous: {previous}\n\n"
+            f"{div}\n\n"
+            f"🧠 ការសង្ខេប & ការវិភាគ (Quick Take)\n\n"
+            f"• ស្ថានភាព: {raw_cond}\n\n"
+            f"• ផលជះ: {raw_effect}\n\n"
+            f"{div}\n\n"
+            f"⚡ ផលប៉ះពាល់ទីផ្សារ (Market Impact)\n\n"
+            f"🔹 USD: {raw_usd}\n\n"
+            f"🔹 US10Y Yields: {raw_yield}\n\n"
+            f"🔸 XAUUSD (មាស): {raw_xau}\n\n"
+            f"{div}\n\n"
+            f"⚠️ បម្រាមហានិភ័យ: ទីផ្សារប្រែប្រួលខ្លាំង! រង់ចាំការបិទទៀន M5/M15 បញ្ជាក់ទិសដៅច្បាស់លាស់ ជៀសវាង FOMO ដេញតាមតម្លៃ។"
         )
         return msg
 
@@ -631,6 +788,20 @@ class KhmerFormatter:
 
         # Sanitize Khmer spelling to guarantee 100% accurate spelling
         key_event = sanitize_khmer_spelling(key_event)
+
+        # Moderate narrative length: Keep it clean, balanced, and digestible (2-3 concise sentences, ~200-360 chars)
+        if len(key_event) > 360:
+            sentences = [s.strip() for s in re.split(r'(?<=។)\s+', key_event) if s.strip()]
+            if len(sentences) >= 2:
+                clipped = []
+                cur_len = 0
+                for s in sentences[:3]:
+                    if cur_len + len(s) > 360 and len(clipped) >= 2:
+                        break
+                    clipped.append(s)
+                    cur_len += len(s)
+                if clipped:
+                    key_event = " ".join(clipped).strip()
 
         # Security / conflict / attack / drone / bomb / military / strait sentiment safety net: Military threats are strictly ហានិភ័យទីផ្សារ (🔸)
         if impact_line:
@@ -1029,10 +1200,15 @@ class KhmerFormatter:
         """
         Formats Real-Time AI Live Speech Interpretation of FOMC / Fed Officials.
         Strictly follows the VIP template requested by the user:
-        សុន្ទរកថា៖ Kevin Warsh (អតីតទេសាភិបាល Fed)
-        ជំហរ (Tone)៖ Hawkish (តឹងរ៉ឹងលើអត្រាការប្រាក់)
-        💬 សម្រង់សម្តីសំខាន់៖ «Fed ត្រូវតែប្រុងប្រយ័ត្នខ្ពស់ចំពោះអតិផរណាដែលមិនទាន់ធ្លាក់ដល់គោលដៅ ២% ហើយទីផ្សារមិនគួររំពឹងការបញ្ចុះអត្រាការប្រាក់លឿនពេកឡើយ។»
-        🔸 ផលប៉ះពាល់៖ XAUUSD Bearish (មាសមាននិន្នាការធ្លាក់ចុះ) ដុល្លារ និងទិន្នផលប័ណ្ណបំណុលឡើងថ្លៃ ដាក់សម្ពាធអវិជ្ជមានលើតម្លៃមាស។
+        សុន្ទរកថា៖ Kevin Warsh (ប្រធាន Federal Reserve)
+        ជំហរ៖ Hawkish (រឹតបន្តឹងគោលនយោបាយរូបិយវត្ថុ)
+
+        💬 សម្រង់សម្តីសំខាន់៖
+        «Federal Reserve ត្រូវតែប្រុងប្រយ័ត្នខ្ពស់ចំពោះអតិផរណាដែលមិនទាន់ធ្លាក់ដល់គោលដៅ ២% ហើយទីផ្សារមិនគួររំពឹងការបញ្ចុះអត្រាការប្រាក់លឿនពេកឡើយ។»
+
+        ⚡ ផលប៉ះពាល់ទីផ្សារ៖
+        🔹 USD & US10Y Yields៖ ដុល្លារ និងទិន្នផលប័ណ្ណបំណុលឡើងថ្លៃ (Bullish)
+        🔸 XAUUSD (មាស)៖ ប្រឈមសម្ពាធធ្លាក់ចុះ (Bearish)
         """
         import re
 
@@ -1042,42 +1218,55 @@ class KhmerFormatter:
 
         if "warsh" in title_combined:
             speaker_name = "Kevin Warsh"
-            speaker_role = "អតីតទេសាភិបាល Fed"
+            speaker_role = "ប្រធាន Federal Reserve"
         elif "powell" in title_combined:
             speaker_name = "Jerome Powell"
-            speaker_role = "ប្រធាន Fed"
+            speaker_role = "ប្រធាន Federal Reserve"
         elif "waller" in title_combined:
             speaker_name = "Christopher Waller"
-            speaker_role = "ទេសាភិបាល Fed"
+            speaker_role = "ទេសាភិបាល Federal Reserve"
         elif "bowman" in title_combined:
             speaker_name = "Michelle Bowman"
-            speaker_role = "ទេសាភិបាល Fed"
+            speaker_role = "ទេសាភិបាល Federal Reserve"
         elif "goolsbee" in title_combined:
             speaker_name = "Austan Goolsbee"
-            speaker_role = "ប្រធាន Fed សាខា Chicago"
+            speaker_role = "ប្រធាន Federal Reserve សាខា Chicago"
         elif "williams" in title_combined:
             speaker_name = "John Williams"
-            speaker_role = "ប្រធាន Fed សាខា New York"
+            speaker_role = "ប្រធាន Federal Reserve សាខា New York"
         else:
             speaker_name = speaker if speaker else "Kevin Warsh"
-            speaker_role = "អតីតទេសាភិបាល Fed" if "warsh" in speaker_name.lower() else "មន្ត្រី Fed"
+            speaker_role = "ប្រធាន Federal Reserve" if "warsh" in speaker_name.lower() or "powell" in speaker_name.lower() else "មន្ត្រី Federal Reserve"
 
         # Determine Tone
         tone_str = (interp.get("tone") or "").upper()
         raw_tone_kh = (interp.get("tone_kh") or "").lower()
 
         if "HAWK" in tone_str or "hawkish" in raw_tone_kh:
-            tone_display = "Hawkish (តឹងរ៉ឹងលើអត្រាការប្រាក់)"
-            impact_icon = "🔸"
-            market_dir = "XAUUSD Bearish (មាសមាននិន្នាការធ្លាក់ចុះ)"
+            tone_display = "Hawkish (រឹតបន្តឹងគោលនយោបាយរូបិយវត្ថុ)"
+            usd_yield_impact = "ដុល្លារ និងទិន្នផលប័ណ្ណបំណុលឡើងថ្លៃ (Bullish)"
+            gold_impact = "ប្រឈមសម្ពាធធ្លាក់ចុះ (Bearish)"
         elif "DOV" in tone_str or "dovish" in raw_tone_kh:
-            tone_display = "Dovish (បន្ធូរបន្ថយអត្រាការប្រាក់)"
-            impact_icon = "🔹"
-            market_dir = "XAUUSD Bullish (មាសមាននិន្នាការកើនឡើង)"
+            tone_display = "Dovish (បន្ធូរបន្ថយគោលនយោបាយរូបិយវត្ថុ)"
+            usd_yield_impact = "ដុល្លារ និងទិន្នផលប័ណ្ណបំណុលធ្លាក់ចុះ (Bearish)"
+            gold_impact = "កើនឡើងថ្លៃខ្លាំង (Bullish)"
         else:
             tone_display = "Neutral (អព្យាក្រឹត/ប្រុងប្រយ័ត្ន)"
-            impact_icon = "🔸"
-            market_dir = "XAUUSD Sideway (មាសប្រែប្រួលរលកធំៗ)"
+            usd_yield_impact = "ដុល្លារ និងទិន្នផលប័ណ្ណបំណុលមានស្ថិរភាព (Range-bound)"
+            gold_impact = "ជួញដូរក្នុងរង្វង់ចង្អៀត (Sideways)"
+
+        # Custom override if interp provides specific impacts
+        custom_usd = interp.get("usd_yield_impact")
+        if custom_usd:
+            usd_yield_impact = str(custom_usd).strip()
+
+        custom_gold = interp.get("gold_pressure") or interp.get("gold_impact")
+        if custom_gold:
+            g_clean = str(custom_gold).strip().lstrip("•- ")
+            g_clean = re.sub(r'^(xauusd\s+(bearish|bullish)[^:]*:\s*)', '', g_clean, flags=re.I).strip()
+            g_clean = sanitize_khmer_spelling(g_clean)
+            if g_clean and not ("មាសមាននិន្នាការ" in g_clean and len(g_clean) > 30):
+                gold_impact = g_clean
 
         # Key Quotes
         quotes_raw = interp.get("key_quotes") or ""
@@ -1087,34 +1276,20 @@ class KhmerFormatter:
             quotes = str(quotes_raw).strip()
         quotes = quotes.strip("«»\"' ")
         quotes = sanitize_khmer_spelling(quotes)
-        if not quotes:
+        if not quotes or len(quotes) < 5:
             if "HAWK" in tone_str or "hawkish" in raw_tone_kh:
-                quotes = "Fed ត្រូវតែប្រុងប្រយ័ត្នខ្ពស់ចំពោះអតិផរណាដែលមិនទាន់ធ្លាក់ដល់គោលដៅ ២% ហើយទីផ្សារមិនគួររំពឹងការបញ្ចុះអត្រាការប្រាក់លឿនពេកឡើយ។"
+                quotes = "Federal Reserve ត្រូវតែប្រុងប្រយ័ត្នខ្ពស់ចំពោះអតិផរណាដែលមិនទាន់ធ្លាក់ដល់គោលដៅ ២% ហើយទីផ្សារមិនគួររំពឹងការបញ្ចុះអត្រាការប្រាក់លឿនពេកឡើយ។"
             else:
-                quotes = "ទីផ្សារការងារ និងកំណើនសេដ្ឋកិច្ចកំពុងបង្ហាញសញ្ញាបន្ធូរបន្ថយ ដែលអាចបើកផ្លូវឱ្យ Fed ពិចារណាលើការបន្ធូរបន្ថយគោលនយោបាយរូបិយវត្ថុ។"
-
-        # Impact description
-        gold_impact_raw = interp.get("gold_pressure") or interp.get("gold_impact") or ""
-        if isinstance(gold_impact_raw, list):
-            gold_impact = " ".join(str(g).strip() for g in gold_impact_raw if g)
-        else:
-            gold_impact = str(gold_impact_raw).strip()
-        if gold_impact.startswith("•") or gold_impact.startswith("-"):
-            gold_impact = gold_impact.lstrip("•- ").strip()
-        # Clean any repeated prefixes
-        gold_impact = re.sub(r'^(xauusd\s+(bearish|bullish)[^:]*:\s*)', '', gold_impact, flags=re.I).strip()
-        gold_impact = sanitize_khmer_spelling(gold_impact)
-        if not gold_impact:
-            if "HAWK" in tone_str or "hawkish" in raw_tone_kh:
-                gold_impact = "ដុល្លារ និងទិន្នផលប័ណ្ណបំណុលឡើងថ្លៃ ដាក់សម្ពាធអវិជ្ជមានលើតម្លៃមាស។"
-            else:
-                gold_impact = "ដុល្លារចុះខ្សោយ និងកាត់បន្ថយសម្ពាធ ជំរុញឱ្យតម្លៃមាសងើបឡើងខ្ពស់។"
+                quotes = "ទីផ្សារការងារ និងកំណើនសេដ្ឋកិច្ចកំពុងបង្ហាញសញ្ញាបន្ធូរបន្ថយ ដែលអាចបើកផ្លូវឱ្យ Federal Reserve ពិចារណាលើការបន្ធូរបន្ថយគោលនយោបាយរូបិយវត្ថុ។"
 
         return (
             f"<b>សុន្ទរកថា៖</b> {speaker_name} ({speaker_role})\n"
-            f"<b>ជំហរ (Tone)៖</b> {tone_display}\n\n"
-            f"💬 <b>សម្រង់សម្តីសំខាន់៖</b> «{quotes}»\n\n"
-            f"{impact_icon} <b>ផលប៉ះពាល់៖</b> {market_dir} {gold_impact}"
+            f" <b>ជំហរ៖</b> {tone_display}\n\n"
+            f"💬 <b>សម្រង់សម្តីសំខាន់៖</b>\n"
+            f"«{quotes}»\n\n"
+            f"⚡ <b>ផលប៉ះពាល់ទីផ្សារ៖</b>\n"
+            f"🔹 <b>USD & US10Y Yields៖</b> {usd_yield_impact}\n"
+            f"🔸 <b>XAUUSD (មាស)៖</b> {gold_impact}"
         )
 
     @staticmethod
