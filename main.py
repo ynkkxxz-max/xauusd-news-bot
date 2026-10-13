@@ -291,41 +291,39 @@ class XAUUSDNewsAssistantBot:
         """Checks if daily gold price message needs to be sent at 07:00 AM Cambodia Time (strictly once per day)."""
         now_kh = datetime.now(CAMBODIA_TZ)
         today_str = now_kh.strftime("%Y-%m-%d")
-        date_display_str = now_kh.strftime("%d/%m/%Y")
 
-        # 1. In-memory lock guard
+        # 1. First check: STRICTLY execute only within the 07:00 AM window (07:00 - 07:30 AM Cambodia Time)
+        if not (now_kh.hour == DAILY_PRICE_ALERT_HOUR and DAILY_PRICE_ALERT_MINUTE <= now_kh.minute <= 30):
+            return
+
+        # 2. In-memory lock guard (already broadcasted during current process session)
         if today_str in self._daily_price_locks:
             return
 
-        # 2. Database SQLite persistence guard
+        # 3. Database SQLite persistence guard (only counts confirmed broadcasts where message_id > 0)
         if database.is_daily_price_sent(today_str):
             self._daily_price_locks.add(today_str)
             return
 
-        # 3. Live Telegram Channel Feed Verification Guard (survives zero-database cloud reboots)
-        if self._is_daily_price_already_in_channel(date_display_str):
-            logger.info(f"[Daily Gold Price] Already verified in channel feed for {today_str}. Locking today.")
-            database.record_daily_price_sent(today_str, 0)
-            self._daily_price_locks.add(today_str)
-            return
+        # 4. Trigger 07:00 AM Daily Gold Price broadcast
+        self._daily_price_locks.add(today_str)
+        logger.info(f"Triggering 07:00 AM Daily Gold Price broadcast for {today_str}...")
+        price_data = self.gold_collector.fetch_price(force_refresh=True)
 
-        # Trigger STRICTLY at 07:00 AM Cambodia Time (07:00 - 07:15 AM only)
-        if now_kh.hour == DAILY_PRICE_ALERT_HOUR and now_kh.minute <= 15 and now_kh.minute >= DAILY_PRICE_ALERT_MINUTE:
-            self._daily_price_locks.add(today_str)
-            logger.info(f"Triggering 07:00 AM Daily Gold Price broadcast for {today_str}...")
-            price_data = self.gold_collector.fetch_price(force_refresh=True)
-            
-            # Render Ultra-HD Graphic Card per user design specification
-            card_png = self.gold_card_builder.build_card_png(price_data) if self.gold_card_builder else None
-            if card_png:
-                res = self.notifier.send_photo(card_png, caption="", reply_markup=None)
-            else:
-                msg = KhmerFormatter.format_daily_gold_price(price_data)
-                res = self.notifier.send_message(msg, auto_pin=False, reply_markup=None)
+        # Render Ultra-HD Graphic Card per user design specification
+        card_png = self.gold_card_builder.build_card_png(price_data) if self.gold_card_builder else None
+        if card_png:
+            res = self.notifier.send_photo(card_png, caption="", reply_markup=None)
+        else:
+            msg = KhmerFormatter.format_daily_gold_price(price_data)
+            res = self.notifier.send_message(msg, auto_pin=False, reply_markup=None)
 
-            msg_id = res.get("result", {}).get("message_id")
+        msg_id = res.get("result", {}).get("message_id") if res else None
+        if msg_id:
             database.record_daily_price_sent(today_str, msg_id)
             logger.info(f"Daily Gold Price broadcast completed for {today_str} (msg_id: {msg_id}).")
+        else:
+            logger.error(f"Failed to broadcast Daily Gold Price for {today_str}: {res}")
 
     def _is_session_alert_already_in_channel(self, session_keyword: str) -> bool:
         """Inspects live Telegram channel feed to verify if session open alert was already broadcasted today."""
