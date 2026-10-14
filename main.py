@@ -1563,9 +1563,11 @@ class XAUUSDNewsAssistantBot:
             if isinstance(analysis, dict):
                 impact = (analysis.get("impact") or "").strip()
 
-            is_positive = "វិជ្ជមាន" in impact and "អវិជ្ជមាន" not in impact
-            is_negative = "អវិជ្ជមាន" in impact
-            if not (is_positive or is_negative) or "អព្យាក្រឹត" in impact:
+            is_positive = ("វិជ្ជមាន" in impact or "🔹" in impact) and "អវិជ្ជមាន" not in impact and "ហានិភ័យ" not in impact
+            is_negative = "អវិជ្ជមាន" in impact or "ហានិភ័យ" in impact or "🔸" in impact
+            is_neutral = "អព្យាក្រឹត" in impact
+            if is_neutral or not (is_positive or is_negative):
+                logger.info(f"[FILTER: NEUTRAL/UNCLEAR IMPACT] Dropping '{title}' (Impact: '{impact}').")
                 self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                 database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
                 continue
