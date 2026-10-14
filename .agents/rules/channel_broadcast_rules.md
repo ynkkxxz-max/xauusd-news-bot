@@ -52,12 +52,14 @@ description: "Core rules and design standards for Telegram Channel Broadcasts (D
 - **ទម្រង់ប្រភពស្អាត (ហាមដាច់ខាតមិនប្រើសញ្ញា 🌐 — បញ្ជាផ្ទាល់)**:
   - ជួរប្រភពព័ត៌មានខាងក្រោម ត្រូវដាក់ទម្រង់ស្អាតគ្មាន emoji ឡើយ៖ `ប្រភព | <a href="{link}">{source_name}</a>` (គ្មានសញ្ញាផែនដី 🌐, គ្មានសញ្ញាចុចពីរ `:` និងមានឈ្មោះប្រភពជាអក្សរខៀវ Clickable Hyperlink អាចចុចចូលមើលបាន គ្មានពាក្យចុចដើម្បីអានបន្ថែមឡើយ)។
   - គ្មានប៊ូតុង Inline Buttons ខាងក្រោមឡើយ (`reply_markup=None`)។
-- **រូបភាពពិតប្រាកដ និងត្រូវនឹងអត្ថបទ (Authentic Ultra-HD News Photo Standard — បញ្ជាផ្ទាល់)**:
-  - ប្រព័ន្ធស្វែងរក និងផ្គូផ្គងរូបភាពពិត ៤ ជាន់ (4-Tier Authentic Real Image Pipeline)៖
-    1. **Direct Article Photo**: ទាញយករូបភាពពិត Ultra-HD ពី Article Feed ផ្ទាល់ (`media:content`, `media:thumbnail`, `enclosure`)។
-    2. **Publisher Webpage Photo**: ទាញយករូបភាពពិតចេញពីគេហទំព័រសារព័ត៌មានផ្ទាល់ (`og:image`, `twitter:image`, JSON-LD schema)។
-    3. **Official Speaker Portrait**: សម្រាប់ព័ត៌មានដែលនិយាយចំមេដឹកនាំសំខាន់ៗ ប្រើប្រាស់រូបថតពិតច្បាស់ Ultra-HD ផ្លូវការ (Donald Trump, Elon Musk, Jerome Powell, Kevin Warsh)។
-    4. **Core Topic Ultra-HD Photo**: សម្រាប់ព័ត៌មានសេដ្ឋកិច្ចស្នូលដែលគ្មានរូបផ្ទាល់ ផ្គូផ្គងរូបថតពិតតាមប្រធានបទជាក់ស្តែង (Federal Reserve, Gold Bullion ដុំមាស, Crude Oil ប្រេងកាត, Silicon Wafer បន្ទះឈីប AI/Semiconductor, Bitcoin Crypto, Geopolitics កងទ័ពជើងទឹក/ច្រក Hormuz, Wall Street/NYSE)។
+- **ស្តង់ដាររូបភាពពិតប្រាកដ និងកែសម្រួលត្រូវតាមដំណើររឿង (Story-Accurate VIP Image Pipeline — បញ្ជាផ្ទាល់)**:
+  - ប្រព័ន្ធបង្កើត និងផ្គូផ្គងរូបភាពឆ្លាតវៃតាមដំណើររឿង ៦ ជាន់ (6-Tier Story-Accurate Image Pipeline)៖
+    1. **រូបភាពផ្គួបថ្នាក់ដឹកនាំសងខាង (Dual-Leader Split Image)**: ប្រសិនបើសាច់រឿងនិយាយពីទំនាក់ទំនង ជម្លោះ ឬកិច្ចព្រមព្រៀងរវាងថ្នាក់ដឹកនាំ ២ រូប (ឧ. Meloni និង Trump, Trump និង Putin, Trump និង Xi Jinping, Trump និង Musk, Putin និង Zelenskyy) ប្រព័ន្ធត្រូវកាត់តផ្គួបរូបថតច្បាស់ៗនៃថ្នាក់ដឹកនាំទាំងពីរជា Split Image 50/50 ក្នុង Canvas តែមួយភ្លាមៗ។
+    2. **រូបភាពផ្គួបទង់ជាតិប្រទេសសងខាង (Dual-Country Flag Split Image)**: ប្រសិនបើសាច់រឿងជាទំនាក់ទំនង ឬបញ្ហាទ្វេភាគីរវាងប្រទេស ២ (ឧ. ឥណ្ឌា និង កាណាដា, អាមេរិក និង ចិន, អាមេរិក និង តៃវ៉ាន់, អ៊ីស្រាអែល និង អ៊ីរ៉ង់) ប្រព័ន្ធត្រូវបង្កើតផ្ទាំងរូបភាពផ្គួបទង់ជាតិប្រទេសទាំងពីរជា Split Image 50/50 ច្បាស់ត្រដែត។
+    3. **រូបថតផ្លូវការមេដឹកនាំទោល (Single Leader Official Portrait)**: ព័ត៌មានដែលនិយាយចំមេដឹកនាំសំខាន់ (Trump, Powell, Warsh, Musk, Meloni, Putin, Xi Jinping, Netanyahu, Zelenskyy, Macron, Starmer, Lagarde, Ueda, Modi) ប្រើប្រាស់រូបថតពិតច្បាស់ផ្លូវការ។
+    4. **រូបភាពពិតផ្ទាល់ពីអត្ថបទសារព័ត៌មាន (Direct Verified Article Photo)**: ទាញយករូបភាពពិត Ultra-HD ពីគេហទំព័រផ្ទាល់ (`og:image`, `twitter:image`, `enclosure`) ដែលផ្ទៀងផ្ទាត់មិនមែនជា Logo ឬរូបតូច។
+    5. **រូបភាពប្រធានបទសេដ្ឋកិច្ចស្នូល Ultra-HD (Core Topic Photo)**: ផ្គូផ្គងរូបថតពិតតាមប្រធានបទជាក់ស្តែង (Federal Reserve, Gold Bullion ដុំមាស, Crude Oil ប្រេងកាត, Semiconductor Chips បន្ទះឈីប AI, Bitcoin Crypto, Geopolitics កងទ័ពជើងទឹក/ច្រក Hormuz, Wall Street/NYSE)។
+    6. **ទង់ជាតិប្រទេសគោល (Single Country Flag Canvas)**: សម្រាប់ព័ត៌មានដែលផ្តោតលើប្រទេសជាក់លាក់មួយហើយគ្មានរូបថតផ្ទាល់ (ឧ. GDP Singapore, Yen Japan) បង្ហាញទង់ជាតិប្រទេសនោះយ៉ាងស្រស់ស្អាត។
   - **ហាមដាច់ខាតរូបភាពមិនត្រូវសាច់រឿង ឬរូបភាព Logo កំប៉ិកកំប៉ុក**: ប្រសិនបើគ្មានរូបភាពពិតដែលត្រូវនឹងសាច់រឿងទេ ត្រូវផ្សាយជា MODE B (អត្ថបទសុទ្ធ Plain Text) ហាមដាច់ខាតមិនយក Logo ស្ថាប័ន, Favicon, ឬរូបភាពផ្តេសផ្តាសមកបង្ហោះឡើយ។
   - **ចន្លោះបន្ទាត់ស្អាតបាត (Clean Blank Line Spacing — បញ្ជាផ្ទាល់)**: ត្រូវចុះបន្ទាត់ទទេ `\n\n` មួយជួរស្អាតនៅចន្លោះ Headline, Summary, Impact, និង Source។
   - **ស្តង់ដារប្រវែងអត្ថបទល្មមស្អាត មិនវែងខ្លាំងពេក ងាយយល់ពីសាច់រឿង (Concise, Clean & Balanced Narrative — ៥០ ដល់ ៨០ ពាក្យ / ២-៣ ប្រយោគច្បាស់ៗ — បញ្ជាផ្ទាល់)**:
@@ -76,8 +78,8 @@ description: "Core rules and design standards for Telegram Channel Broadcasts (D
     - ផ្សាយតែព័ត៌មានដែលមានសារៈសំខាន់ខ្លាំងចំពោះទីផ្សារហិរញ្ញវត្ថុ សេដ្ឋកិច្ចសកល ឬភូមិសាស្ត្រនយោបាយប៉ុណ្ណោះ (អត្រាការប្រាក់ Fed/FOMC, សុន្ទរកថា Jerome Powell/Kevin Warsh, អតិផរណា CPI, ការងារ NFP, GDP, សង្គ្រាម/ជម្លោះភូមិសាស្ត្រនយោបាយ, ប្រេង OPEC, បន្ទះឈីប AI យុទ្ធសាស្ត្រ, បម្រុង Bitcoin រដ្ឋាភិបាល)។
     - ព័ត៌មានទូទៅតូចតាច, ការព្យាករណ៍តម្លៃប្រចាំថ្ងៃរបស់ Analyst, ព័ត៌មានផ្ទាល់ខ្លួន, ឬព័ត៌មានគ្មានឥទ្ធិពលលើទីផ្សារ ត្រូវច្រានចោលភ្លាមៗ (Drop/Skip)។
   - ហាមដាច់ខាតមិនឱ្យខ្លឹមសាររៀបរាប់ (Narrative) ចម្លងពាក្យដដែលៗពីចំណងជើងឡើយ (Strict Narrative Deduplication)។
-- **ចន្លោះពេលផ្សាយសមរម្យ និងទប់ស្កាត់ការផ្សាយជាន់គ្នាដាច់ខាត (Cadence & Cluster Cooldown)**:
-  - គម្លាតផ្សាយទូទៅ: ៣ នាទី (១៨០ វិនាទី) យ៉ាងតិចរវាងសារនីមួយៗ (VIP Critical: ៩០ វិនាទី) ការពារការបាញ់សារ Spam ជាន់ៗគ្នា ៥ សារក្នុង ១ នាទី។
+- **ល្បឿនផ្សាយទាន់ហេតុការណ៍លឿនរហ័សបំផុត (Ultra-Fast Cadence & Zero Lag)**:
+  - គម្លាតផ្សាយទូទៅ: ត្រឹមតែ ៥ វិនាទី (VIP Critical: ៣ វិនាទី) ធានាឱ្យសារព័ត៌មាន និងទិន្នន័យសេដ្ឋកិច្ចទាំងអស់បាញ់ចូល Channel ភ្លាមៗលឿនបំផុត ដោយគ្មានការពន្យារពេលឡើយ។
 ### 3. 🚨 ស្តង់ដារផ្សាយទិន្នន័យសេដ្ឋកិច្ចជាក់ស្តែង (Point 3: Flash Update | Actual Release Standard — គំរូថ្មី VIP)
 - **ទម្រង់គំរូថ្មី VIP សុទ្ធសាធ (Strict VIP Actual Release Template — បញ្ជាផ្ទាល់)**:
   - ឈប់ប្រើប្រាស់គំរូចាស់ទាំងស្រុង («ចំនុចទី៣ប្រើគំរូនេះគំរូចាស់មិនយក»)។
@@ -109,12 +111,10 @@ description: "Core rules and design standards for Telegram Channel Broadcasts (D
 🔹 US10Y Yields: {ផលប៉ះពាល់លើប័ណ្ណបំណុល ដូចជា ស្ទុះងើបឡើងខ្ពស់}
 🔸 XAUUSD (មាស): {ផលប៉ះពាល់លើតម្លៃមាស ដូចជា ប្រឈមសម្ពាធធ្លាក់ចុះរយៈពេលខ្លី (Bearish Pressure)}
 
-━━━━━━━━━━━━━━━━━━━
-
-⚠️ បម្រាមហានិភ័យ: ទីផ្សារប្រែប្រួលខ្លាំង! រង់ចាំការបិទទៀន M5/M15 បញ្ជាក់ទិសដៅច្បាស់លាស់ ជៀសវាង FOMO ដេញតាមតម្លៃ។
-```
-- **ភ្ជាប់រូបភាព TradingView Live Chart**:
-  - ភ្ជាប់រូបភាព TradingView Technical Chart ដែលមានព្រួញទិសដៅ AI ផ្គួបជាមួយ Caption អត្ថបទនេះ។
+- **លុបចោលបម្រាមហានិភ័យ និងរូបភាព Chart ជារៀងរហូត (Permanently Disable Warning & TradingView Charts — បញ្ជាផ្ទាល់)**:
+  - ហាមដាច់ខាតមិនឱ្យដាក់ជួរ `⚠️ បម្រាមហានិភ័យ...` នៅខាងក្រោមឡើយ (លុបចោលជាអចិន្ត្រៃយ៍)។
+  - ហាមដាច់ខាតមិនឱ្យចំណាយពេល Render ឬ Upload រូបភាព TradingView Chart ឡើយ (លុបចោលជាអចិន្ត្រៃយ៍)។
+  - ត្រូវផ្សាយជា **Instant Text Message** ភ្លាមៗ ដើម្បីឱ្យទិន្នន័យជាក់ស្តែងទៅដល់ Telegram Channel លឿនបំផុតកម្រិត Sub-Second (ក្រោម ១ វិនាទី) ឱ្យទាន់ពេលទីផ្សារប្រែប្រួល!
 
 ### 4. 🏛️ ស្តង់ដារផ្សាយសុន្ទរកថា Fed / Leader Speech (Point 4: Live Speech Interpretation Standard — គំរូថ្មី VIP)
 - **ទម្រង់គំរូថ្មី VIP សុទ្ធសាធ (Strict VIP Speech Template — បញ្ជាផ្ទាល់)**:
