@@ -131,6 +131,14 @@ def sanitize_khmer_spelling(text: str) -> str:
         (r"ច្រកសមុទ្រ\s*(?:ហ័រមូស|Strait of Hormuz)", "ច្រកសមុទ្រ Strait of Hormuz"),
         (r"សហភាព\s*អឺប(?![រ៉ុ])|សហភាព\s*អឺរុប|សហភាព\s*អ៊ឺរ៉ុប", "សហភាពអឺរ៉ុប"),
         (r"\bអឺប\b", "អឺរ៉ុប"),
+        (r"មេដឹកនាំ\s+សហភាពអឺរ៉ុប", "មេដឹកនាំសហភាពអឺរ៉ុប"),
+        (r"សហភាព\s+អឺរ៉ុប", "សហភាពអឺរ៉ុប"),
+        (r"ដល់\s+(ក្រុង|រាជធានី|ទីក្រុង)", r"ដល់\1"),
+        (r"នៅ\s+(អឺរ៉ុប|អាស៊ី|អាមេរិក|កម្ពុជា)", r"នៅ\1"),
+        (r"សម្ដែង", "សម្តែង"),
+        (r"ប្រធានាធិបតី\s+សហរដ្ឋអាមេរិក\s+(?:លោក\s+)?", "ប្រធានាធិបតីសហរដ្ឋអាមេរិក "),
+        (r"លោក\s+Donald Trump", "Donald Trump"),
+        (r"តម្លៃប្រេងឆៅនិងឧស្ម័នធម្មជាតិ", "តម្លៃប្រេងឆៅ និងឧស្ម័នធម្មជាតិ"),
         (r"សាអូឌីហាំឌី|សាអ៊ូឌី\s*អារ៉ាប់|សាអូឌី\s*អារ៉ាប៊ី|ប្រទេស\s*សាអូឌី", "អារ៉ាប៊ីសាអ៊ូឌីត"),
         (r"(?:(?:Tehran|តេអ៊ែរ៉ង់|តេហេរ៉ង់|តេអេរ៉ង់)\s*[\(\)]*\s*)+", "តេហេរ៉ង់"),
         (r"(?:(?:Yemen|យេមែន|យេម៉ែន)\s*[\(\)]*\s*)+", "យេម៉ែន"),
@@ -547,6 +555,8 @@ class KhmerFormatter:
             key_event = (analysis.get("key_event") or "").strip()
             impact_raw = (analysis.get("impact") or "").strip()
             if impact_raw:
+                # Merge detached label lines e.g. "🔸 ហានិភ័យទីផ្សារ៖\nភាពមិនប្រាកដប្រជា..." -> "🔸 ហានិភ័យទីផ្សារ៖ ភាពមិនប្រាកដប្រជា..."
+                impact_raw = re.sub(r'([🔹🔸🔴🟢]\s*(?:ផលវិជ្ជមាន|ផលអវិជ្ជមាន/ហានិភ័យ|ហានិភ័យទីផ្សារ|ផលអវិជ្ជមាន|ហានិភ័យ)[\s៖:]*)\n+\s*', r'\1 ', impact_raw.strip())
                 # Pre-split if multiple impacts were squished on one line without newline
                 impact_raw = re.sub(r'([^\n\r])\s+([🔸🔴🔹🟢]\s*(?:ផលវិជ្ជមាន|ផលអវិជ្ជមាន|ហានិភ័យ))', r'\1\n\2', impact_raw)
                 parsed_impact_lines = []
@@ -625,7 +635,14 @@ class KhmerFormatter:
             key_event = (news_item.get("description") or news_item.get("title") or "").strip()
 
         # Flag mapping per user directive (Header only)
-        full_search = f"{news_item.get('title', '')} {news_item.get('source', '')} {key_event}".lower()
+        headline_priority = f"{headline_km} {news_item.get('title', '')}".lower()
+        full_search = f"{headline_priority} {key_event}".lower()
+        
+        # Strip common news agencies from full_search to prevent false country flags
+        for ag in [r"\bchina military online\b", r"\btimes of india\b", r"\bal jazeera\b", r"\beuromaidan press\b", r"\bkyodo news\b", r"\bsouth china morning post\b"]:
+            full_search = re.sub(ag, "", full_search, flags=re.IGNORECASE)
+            headline_priority = re.sub(ag, "", headline_priority, flags=re.IGNORECASE)
+
         country_flags = []
         flag_rules = [
             (r"\b(us|usa|united states|america|fed|biden|trump|powell)\b|អាមេរិក|សហរដ្ឋអាមេរិក", "🇺🇸"),
@@ -636,7 +653,7 @@ class KhmerFormatter:
             (r"\b(ukraine|kyiv|zelenskyy|zelensky)\b|អ៊ុយក្រែន", "🇺🇦"),
             (r"\b(china|beijing|pboc|xi jinping)\b|ចិន", "🇨🇳"),
             (r"\b(japan|tokyo|boj|yen)\b|ជប៉ុន", "🇯🇵"),
-            (r"\b(india|indian|delhi|mumbai|modi|rbi|rupee|times of india)\b|ឥណ្ឌា", "🇮🇳"),
+            (r"\b(india|indian|delhi|mumbai|modi|rbi|rupee)\b|ឥណ្ឌា", "🇮🇳"),
             (r"\b(germany|german|berlin|bundesbank|scholz)\b|អាល្លឺម៉ង់", "🇩🇪"),
             (r"\b(france|french|paris|macron)\b|បារាំង", "🇫🇷"),
             (r"\b(eu|europe|european|ecb)\b|អឺរ៉ុប", "🇪🇺"),
@@ -644,7 +661,7 @@ class KhmerFormatter:
             (r"\b(taiwan|taiwanese|taipei|tsmc)\b|តៃវ៉ាន់", "🇹🇼"),
             (r"\b(australia|australian|sydney|rba|canberra)\b|អូស្ត្រាលី", "🇦🇺"),
             (r"\b(switzerland|swiss|snb|zurich|geneva)\b|ស្វីស", "🇨🇭"),
-            (r"\b(singapore|straits times|mas)\b|សិង្ហបុរី", "🇸🇬"),
+            (r"\b(singapore|mas)\b|សិង្ហបុរី", "🇸🇬"),
             (r"\b(saudi|opec|riyadh|jeddah|aramco)\b|អារ៉ាប៊ីសាអ៊ូឌីត", "🇸🇦"),
             (r"\b(canada|canadian|boc|toronto|canadian tire)\b|កាណាដា", "🇨🇦"),
             (r"\b(uae|dubai|abu dhabi|emirates)\b|អេមីរ៉ាត|ឌូបៃ", "🇦🇪"),
@@ -660,9 +677,18 @@ class KhmerFormatter:
             (r"\b(iraq|iraqi|baghdad)\b|អ៊ីរ៉ាក់", "🇮🇶"),
             (r"\b(yemen|yemeni|houthi|sanaa)\b|យេម៉ែន", "🇾🇪"),
         ]
+        matched_flags = []
         for pattern, flag in flag_rules:
-            if re.search(pattern, full_search, re.IGNORECASE) and flag not in country_flags:
-                country_flags.append(flag)
+            m = re.search(pattern, full_search, re.IGNORECASE)
+            if m:
+                m_head = re.search(pattern, headline_priority, re.IGNORECASE)
+                pos = m_head.start() if m_head else 99999 + m.start()
+                matched_flags.append((flag, pos))
+
+        matched_flags.sort(key=lambda x: x[1])
+        for f, _ in matched_flags:
+            if f not in country_flags:
+                country_flags.append(f)
 
         if isinstance(analysis, dict):
             c_flag = (analysis.get("country_flag") or "").strip()
@@ -839,6 +865,11 @@ class KhmerFormatter:
                     impact_line = "🔸 ហានិភ័យទីផ្សារ៖ បង្កើនភាពតានតឹងផ្នែកភូមិសាស្ត្រនយោបាយ និងបង្កើនការប្រុងប្រយ័ត្នខ្ពស់ក្នុងទីផ្សារហិរញ្ញវត្ថុសកល"
 
         if impact_line:
+            # Flatten multi-line impact where label was separated from description by newline
+            impact_line = re.sub(r'([🔹🔸🔴🟢]\s*(?:ផលវិជ្ជមាន|ផលអវិជ្ជមាន/ហានិភ័យ|ហានិភ័យទីផ្សារ|ផលអវិជ្ជមាន|ហានិភ័យ)[\s៖:]*)\n+\s*', r'\1 ', impact_line.strip())
+            # Strip trailing period from impact line
+            impact_line = re.sub(r'[។\.]\s*$', '', impact_line.strip())
+
             impact_lines = []
             for iline in impact_line.split("\n"):
                 iline = iline.strip()
@@ -854,6 +885,7 @@ class KhmerFormatter:
                 # Strict No Parentheses Rule in impact line
                 iline = re.sub(r'[\(\)]', '', iline)
                 iline = sanitize_khmer_spelling(iline)
+                iline = re.sub(r'[។\.]\s*$', '', iline).strip()
                 impact_lines.append(iline)
             impact_line = "\n".join(impact_lines)
 
