@@ -511,9 +511,7 @@ class KhmerFormatter:
             f"⚡ ផលប៉ះពាល់ទីផ្សារ (Market Impact)\n\n"
             f"🔹 USD: {raw_usd}\n\n"
             f"🔹 US10Y Yields: {raw_yield}\n\n"
-            f"🔸 XAUUSD (មាស): {raw_xau}\n\n"
-            f"{div}\n\n"
-            f"⚠️ បម្រាមហានិភ័យ: ទីផ្សារប្រែប្រួលខ្លាំង! រង់ចាំការបិទទៀន M5/M15 បញ្ជាក់ទិសដៅច្បាស់លាស់ ជៀសវាង FOMO ដេញតាមតម្លៃ។"
+            f"🔸 XAUUSD (មាស): {raw_xau}"
         )
         return msg
 
