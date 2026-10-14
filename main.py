@@ -1520,17 +1520,14 @@ class XAUUSDNewsAssistantBot:
                 self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                 continue
 
-            # Macro Cluster Deduplication & Cooldown Shield (Prevents repeated NFP, Oil, AI, or Fed floods across feeds)
+            # Macro Cluster Cadence: Prevents burst clustering on the exact same topic within 60-120s
             cluster = GoldNewsFilter.get_news_cluster(title + " " + desc)
             if cluster:
                 last_cluster_ts = float(database.get_state(f"cluster_last_ts_{cluster}") or "0")
-                # Cooldowns: 4 hours for economic reports (jobs, inflation), 2 hours for Fed, 60 mins for tech/energy/crypto
-                cluster_cooldown = 14400.0 if cluster in ("us_jobs", "inflation") else (7200.0 if cluster == "fed_rates" else 3600.0)
+                cluster_cooldown = 120.0 if cluster in ("us_jobs", "inflation") else 60.0
                 if (now - last_cluster_ts) < cluster_cooldown:
-                    logger.info(f"[CLUSTER COOLDOWN] Dropping '{title}' (Cluster: {cluster}, {(now - last_cluster_ts)/60:.1f}m ago < {cluster_cooldown/60}m required).")
-                    self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
-                    database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
-                    continue
+                    logger.debug(f"[CLUSTER CADENCE] Deferring '{title}' (Cluster: {cluster}, {now - last_cluster_ts:.1f}s < {cluster_cooldown}s required).")
+                    break
 
             if GoldNewsFilter.is_duplicate_or_similar(title, recent_sent_titles):
                 self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
