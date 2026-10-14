@@ -827,11 +827,16 @@ class KhmerFormatter:
             txt_check = f"{news_item.get('title', '')} {key_event} {impact_line} {headline_km}".lower()
             is_threat = any(k in txt_check for k in threat_kh) or any(re.search(pat, txt_check) for pat in threat_en)
             if is_threat and ("ផលវិជ្ជមាន" in impact_line or "អស្ថិរភាពសន្តិសុខសកល" in impact_line or "សន្ទុះកំណើនទីផ្សារ" in impact_line):
+                is_oil = any(k in txt_check for k in ["oil", "crude", "diesel", "gas", "energy", "petroleum", "aramco", "iea", "opec", "ប្រេង", "ប្រេងកាត", "ប្រេងឆៅ", "ម៉ាស៊ូត", "ឧស្ម័ន", "ថាមពល"])
                 is_strait = any(k in txt_check for k in ["mandab", "bab al-mandab", "red sea", "strait", "straits", "hormuz", "ច្រកសមុទ្រ", "សមុទ្រក្រហម"])
-                if is_strait:
-                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ ភាពតានតឹងនៅច្រកសមុទ្រក្រហមអាចគំរាមកំហែងដល់ផ្លូវដឹកជញ្ជូនថាមពលសកល ដែលអាចរុញច្រានតម្លៃប្រេងឆៅ និងមាសឱ្យកើនឡើង"
+                if is_oil:
+                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ ការរំខានការផ្គត់ផ្គង់ ឬភាពតានតឹងថាមពល រុញសម្ពាធតម្លៃប្រេងឆៅសកលឱ្យឡើងថ្លៃ"
+                elif is_strait:
+                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ ភាពតានតឹងនៅច្រកសមុទ្រយុទ្ធសាស្ត្រ គំរាមកំហែងដល់ផ្លូវដឹកជញ្ជូន និងរុញសម្ពាធថ្លៃដឹកជញ្ជូនសកលឱ្យហក់ឡើង"
+                elif any(k in txt_check for k in ["gold", "xau", "bullion", "មាស"]):
+                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ បង្កើនតម្រូវការទិញមាស XAUUSD ក្នុងនាមជាទ្រព្យសុវត្ថិភាព"
                 else:
-                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ បង្កើនភាពតានតឹងផ្នែកភូមិសាស្ត្រនយោបាយ ដែលអាចជំរុញឱ្យតម្រូវការទិញមាស XAUUSD ហក់ឡើងខ្ពស់ក្នុងនាមជាទ្រព្យសុវត្ថិភាព"
+                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ បង្កើនភាពតានតឹងផ្នែកភូមិសាស្ត្រនយោបាយ និងបង្កើនការប្រុងប្រយ័ត្នខ្ពស់ក្នុងទីផ្សារហិរញ្ញវត្ថុសកល"
 
         if impact_line:
             impact_lines = []
@@ -866,21 +871,23 @@ class KhmerFormatter:
             ]
             if any(p in impact_line for p in generic_phrases):
                 is_neg = "ផលអវិជ្ជមាន" in impact_line or "ឥទ្ធិពលអវិជ្ជមាន" in impact_line or "ហានិភ័យ" in impact_line
-                if any(k in full_search for k in ["gold", "xau", "មាស", "bullion"]):
-                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ ដាក់សម្ពាធលើទិសដៅតម្លៃមាស XAUUSD" if is_neg else "🔹 ផលវិជ្ជមាន៖ គាំទ្រដល់និន្នាការកើនឡើងនៃតម្លៃមាស XAUUSD"
-                elif any(k in full_search for k in ["oil", "crude", "energy", "opec", "ប្រេង", "ប្រេងកាត", "ថាមពល"]):
-                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ ការធ្លាក់ចុះស្តុកប្រេង ឬការរំខានការផ្គត់ផ្គង់ រុញសម្ពាធតម្លៃប្រេងឡើងថ្លៃ និងបង្កើនហានិភ័យអតិផរណា" if is_neg else "🔹 ផលវិជ្ជមាន៖ ការកើនឡើងការផ្គត់ផ្គង់ប្រេង ជួយកាត់បន្ថយសម្ពាធថ្លៃដើមថាមពលសកល"
-                elif any(k in full_search for k in ["ai", "chip", "semiconductor", "tech", "nvidia", "tsmc", "apple", "microsoft", "google", "meta", "បច្ចេកវិទ្យា", "បន្ទះឈីប"]):
+                if any(k in full_search for k in ["oil", "crude", "energy", "petroleum", "diesel", "gas", "aramco", "opec", "iea", "ប្រេង", "ប្រេងកាត", "ប្រេងឆៅ", "ម៉ាស៊ូត", "ឧស្ម័ន", "ថាមពល"]):
+                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ ការរំខានការផ្គត់ផ្គង់ ឬភាពតានតឹងថាមពល រុញសម្ពាធតម្លៃប្រេងឆៅសកលឱ្យឡើងថ្លៃ" if is_neg else "🔹 ផលវិជ្ជមាន៖ ការកើនឡើងការផ្គត់ផ្គង់ប្រេង ជួយកាត់បន្ថយសម្ពាធថ្លៃដើមថាមពលសកល"
+                elif any(k in full_search for k in ["ai", "chip", "semiconductor", "tech", "nvidia", "tsmc", "apple", "microsoft", "google", "meta", "intel", "បច្ចេកវិទ្យា", "បន្ទះឈីប"]):
                     impact_line = "🔸 ហានិភ័យទីផ្សារ៖ បង្កផលរំខានដល់ខ្សែច្រវាក់ផ្គត់ផ្គង់បន្ទះឈីប ដែលអាចដាក់សម្ពាធលើទីផ្សារភាគហ៊ុនបច្ចេកវិទ្យា" if is_neg else "🔹 ផលវិជ្ជមាន៖ ជំរុញកំណើនភាគហ៊ុនបច្ចេកវិទ្យា Big Tech និងទាក់ទាញលំហូរទុនវិនិយោគសកល"
-                elif any(k in full_search for k in ["fed", "rate", "powell", "fomc", "cpi", "inflation", "អត្រាការប្រាក់", "អតិផរណា", "ecb", "boj"]):
-                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ អត្រាការប្រាក់កម្រិតខ្ពស់យូរអង្វែង រុញ USD និង Yields ឡើងថ្លៃ ព្រមទាំងដាក់សម្ពាធលើតម្លៃមាស XAUUSD" if is_neg else "🔹 ផលវិជ្ជមាន៖ ការបន្ធូរបន្ថយអត្រាការប្រាក់ ដាក់សម្ពាធលើ USD និងគាំទ្រដល់ការហក់ឡើងនៃតម្លៃមាស XAUUSD"
+                elif any(k in full_search for k in ["tariff", "trade war", "customs", "sanction", "export control", "ពន្ធគយ", "ទណ្ឌកម្ម", "សង្គ្រាមពាណិជ្ជកម្ម"]):
+                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ វិធានការពន្ធគយ និងទណ្ឌកម្ម បង្កើនថ្លៃដើមនាំចូល និងដាក់សម្ពាធលើចរន្តពាណិជ្ជកម្មសកល" if is_neg else "🔹 ផលវិជ្ជមាន៖ កិច្ចព្រមព្រៀងពាណិជ្ជកម្មជួយសម្រួលដល់ខ្សែច្រវាក់នាំចេញ និងកំណើនសេដ្ឋកិច្ច"
+                elif any(k in full_search for k in ["fed", "rate", "powell", "fomc", "cpi", "inflation", "yield", "bond", "អត្រាការប្រាក់", "អតិផរណា", "ecb", "boj", "pboc"]):
+                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ អត្រាការប្រាក់កម្រិតខ្ពស់យូរអង្វែង រុញ USD និង Yields ឡើងថ្លៃ ព្រមទាំងដាក់សម្ពាធលើកំណើនសេដ្ឋកិច្ច" if is_neg else "🔹 ផលវិជ្ជមាន៖ ការបន្ធូរបន្ថយអត្រាការប្រាក់ ជួយកាត់បន្ថយថ្លៃដើមកម្ចី និងជំរុញសកម្មភាពសេដ្ឋកិច្ច"
                 elif any(k in full_search for k in ["bitcoin", "crypto", "etf", "sec", "គ្រីបតូ", "ប៊ីតខយ", "btc"]):
                     impact_line = "🔸 ហានិភ័យទីផ្សារ៖ បង្កើនសម្ពាធលក់ និងការប្រុងប្រយ័ត្នខ្ពស់ក្នុងទីផ្សារទ្រព្យសកម្មឌីជីថល Crypto" if is_neg else "🔹 ផលវិជ្ជមាន៖ លំហូរទុនវិនិយោគស្ថាប័នក្នុង Spot ETF គាំទ្រដល់ស្ថិរភាព និងកំណើនទីផ្សារ Bitcoin BTC"
+                elif any(k in full_search for k in ["gold", "xau", "bullion", "មាស"]):
+                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ ដាក់សម្ពាធលើទិសដៅតម្លៃមាស XAUUSD" if is_neg else "🔹 ផលវិជ្ជមាន៖ គាំទ្រដល់និន្នាការកើនឡើងនៃតម្លៃមាស XAUUSD"
                 elif any(k in full_search for k in ["war", "strike", "attack", "drone", "missile", "military", "army", "troops", "strait", "mandab", "yemen", "houthi", "សង្គ្រាម", "វាយប្រហារ", "កងទ័ព", "យោធា", "ច្រកសមុទ្រ"]):
                     if any(k in full_search for k in ["mandab", "bab al-mandab", "red sea", "strait", "straits", "hormuz", "ច្រកសមុទ្រ", "សមុទ្រក្រហម"]):
-                        impact_line = "🔸 ហានិភ័យទីផ្សារ៖ ភាពតានតឹងនៅច្រកសមុទ្រក្រហមអាចគំរាមកំហែងដល់ផ្លូវដឹកជញ្ជូនថាមពលសកល ដែលអាចរុញច្រានតម្លៃប្រេងឆៅ និងមាសឱ្យកើនឡើង"
+                        impact_line = "🔸 ហានិភ័យទីផ្សារ៖ ភាពតានតឹងនៅច្រកសមុទ្រយុទ្ធសាស្ត្រ គំរាមកំហែងដល់ផ្លូវដឹកជញ្ជូន និងរុញសម្ពាធថ្លៃដឹកជញ្ជូនសកលឱ្យហក់ឡើង"
                     else:
-                        impact_line = "🔸 ហានិភ័យទីផ្សារ៖ បង្កើនភាពតានតឹងផ្នែកភូមិសាស្ត្រនយោបាយ ដែលអាចជំរុញឱ្យតម្រូវការទិញមាស XAUUSD ហក់ឡើងខ្ពស់ក្នុងនាមជាទ្រព្យសុវត្ថិភាព"
+                        impact_line = "🔸 ហានិភ័យទីផ្សារ៖ បង្កើនភាពតានតឹងផ្នែកភូមិសាស្ត្រនយោបាយ និងបង្កើនការប្រុងប្រយ័ត្នខ្ពស់ក្នុងទីផ្សារហិរញ្ញវត្ថុសកល"
                 else:
                     impact_line = "🔸 ផលអវិជ្ជមាន/ហានិភ័យ៖ ការរឹតបន្តឹងគោលនយោបាយរូបិយវត្ថុយូរអង្វែង អាចដាក់សម្ពាធលើកំណើនសេដ្ឋកិច្ច" if is_neg else "🔹 ផលវិជ្ជមាន៖ ជួយពង្រឹងកិច្ចសហប្រតិបត្តិការអន្តរជាតិក្នុងការរក្សាស្ថិរភាពលំហូរសាច់ប្រាក់"
                 impact_line = re.sub(r'[\(\)]', '', impact_line)
