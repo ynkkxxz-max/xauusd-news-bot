@@ -100,11 +100,16 @@ def breaking_prompt(title: str, description: str) -> str:
         f"     * High-Impact Energy shocks: OPEC production policy changes, crude oil supply crises.\n"
         f"     * Major Crypto milestones: Strategic Bitcoin reserve policy, SEC regulatory approvals/lawsuits, massive market shocks.\n"
         f"   - If this news is ROUTINE, MINOR, TRIVIAL, repetitive daily chatter, small company earnings, minor local news, speculative opinion, or personal affairs: You MUST set `is_clear: false` to DROP IT IMMEDIATELY.\n\n"
-        f"4. SENTIMENT & ASSET TARGETING (STRICTLY ONE DOMINANT DIRECTION):\n"
-        f"   - Exactly ONE impact line tailored specifically to the real asset involved (Gold/XAUUSD, USD, Oil, Bond Yields, Tech stocks, Crypto):\n"
+        f"4. REAL ASSET & ECONOMIC IMPACT TARGETING (ហាមមិនឱ្យផ្តោតលើមាសគ្រប់ពេលឡើយ):\n"
+        f"   - Tailor the impact line directly to the REAL asset or sector in the news (Crude Oil, Energy, Big Tech/AI, Global Trade, Tariffs, USD, Bond Yields, or Crypto):\n"
+        f"     • For Oil & Energy (e.g. Aramco, OPEC, Diesel, Middle East energy): Explain concrete impact on crude oil prices (ថ្លៃប្រេងកាត/ប្រេងឆៅ) and global energy supply — DO NOT mention Gold!\n"
+        f"     • For Tech & AI (e.g. Nvidia, TSMC, Chips, AI): Explain concrete impact on chip supply and tech stocks (ភាគហ៊ុនបច្ចេកវិទ្យា) — DO NOT mention Gold!\n"
+        f"     • For Trade & Tariffs (e.g. US/China tariffs, EU trade): Explain concrete impact on global trade costs (ថ្លៃដើមនាំចូល និងខ្សែច្រវាក់ពាណិជ្ជកម្ម) — DO NOT mention Gold!\n"
+        f"     • For Central Banks & Rates (e.g. Fed, Powell, CPI, NFP): Explain concrete impact on USD, bond yields, or borrowing costs!\n"
+        f"     • For Gold (XAUUSD): ONLY mention Gold if the news is specifically about precious metals, gold reserves, or direct precious metals trading!\n"
         f"     • Positive/Bullish: 🔹 ផលវិជ្ជមាន៖ [ការពន្យល់ផលវិជ្ជមានចំទ្រព្យសកម្ម]\n"
         f"     • Negative/Market Risk: 🔸 ហានិភ័យទីផ្សារ៖ [ការពន្យល់ហានិភ័យចំទ្រព្យសកម្ម]\n"
-        f"   - NEVER include both 🔹 and 🔸 together. NEVER prefix with 'វា'. NEVER use parentheses (). Military conflicts/wars are strictly 🔸 ហានិភ័យទីផ្សារ.\n\n"
+        f"   - NEVER include both 🔹 and 🔸 together. NEVER prefix with 'វា'. NEVER use parentheses ().\n\n"
         f"ត្រឡប់ JSON ដែលមាន fields ដូចតទៅ:\n"
         f"- headline_km: ចំណងជើងព័ត៌មានខ្លីទាន់ហេតុការណ៍ជាភាសាខ្មែរ (ប្រយោគពេញលេញ មានន័យស្តាប់បានត្រឹមត្រូវ ១០០% ហាមដាច់ខាតកុំប្រើ ... ឬ : នៅខាងចុង)\n"
         f"- key_event: ខ្លឹមសាររៀបរាប់ដំណើររឿងល្មមស្អាត ២-៣ ប្រយោគខ្លីខ្លឹមច្បាស់លាស់ ងាយយល់ (មិនវែងខ្លាំងពេក និងមិនចម្លងពាក្យដដែលៗពី headline_km)\n"
@@ -300,24 +305,31 @@ def normalize_analysis(raw: dict) -> dict:
     is_combat = any(w in narrative_full for w in combat_words)
 
     # Guarantee impact line is valid Khmer per user directive
-    imp = out.get("impact", "")
-    if is_combat:
-        is_strait = any(w in narrative_full for w in ["mandab", "bab al-mandab", "red sea", "strait", "straits", "hormuz", "ច្រកសមុទ្រ", "សមុទ្រក្រហម"])
-        if is_strait:
-            out["impact"] = "🔸 ហានិភ័យទីផ្សារ៖ ភាពតានតឹងនៅច្រកសមុទ្រក្រហមអាចគំរាមកំហែងដល់ផ្លូវដឹកជញ្ជូនថាមពលសកល ដែលអាចរុញច្រានតម្លៃប្រេងឆៅ និងមាសឱ្យកើនឡើង"
-        else:
-            out["impact"] = "🔸 ហានិភ័យទីផ្សារ៖ បង្កើនភាពតានតឹងផ្នែកភូមិសាស្ត្រនយោបាយ ដែលអាចជំរុញឱ្យតម្រូវការទិញមាស (XAUUSD) ហក់ឡើងខ្ពស់ក្នុងនាមជាទ្រព្យសុវត្ថិភាព"
-        out["bias"] = "🔴 Bearish"
-    elif not imp or imp == "កំពុងតាមដាន។" or ("វិជ្ជមាន" not in imp and "អវិជ្ជមាន" not in imp and "ហានិភ័យ" not in imp):
-        b = str(raw.get("bias", "")).lower()
-        if "វិជ្ជមាន" in b or ("bullish" in b and "xau" not in b):
-            out["impact"] = "🔹 ផលវិជ្ជមាន៖ ជំរុញសន្ទុះកំណើនទីផ្សារ"
-        else:
-            out["impact"] = "🔸 ផលអវិជ្ជមាន៖ បង្កើនសម្ពាធលើទីផ្សារ"
-    else:
+    imp = (out.get("impact") or "").strip()
+    if imp and imp != "កំពុងតាមដាន។" and ("វិជ្ជមាន" in imp or "អវិជ្ជមាន" in imp or "ហានិភ័យ" in imp or "🔹" in imp or "🔸" in imp):
+        # Gemini provided a concrete story-specific asset impact! Preserve it!
         imp = re.sub(r'[\r\n]+', ' ', imp).strip()
-        imp = re.sub(r'^(ផលវិជ្ជមាន|ផលអវិជ្ជមាន|ផលអព្យាក្រឹត)[\s៖:]+', r'\1៖ ', imp)
+        if is_combat and ("វិជ្ជមាន" in imp or "🔹" in imp) and "ហានិភ័យ" not in imp and "អវិជ្ជមាន" not in imp:
+            imp = re.sub(r'^[🔹🟢\s]*(?:ផលវិជ្ជមាន|ឥទ្ធិពលវិជ្ជមាន)[\s៖:]*', '🔸 ហានិភ័យទីផ្សារ៖ ', imp)
         out["impact"] = imp
+    else:
+        # Fallback tailored to the actual sector/asset (Never force Gold onto non-gold news)
+        if any(w in narrative_full for w in ["oil", "crude", "energy", "petroleum", "diesel", "aramco", "opec", "ប្រេង", "ប្រេងកាត", "ថាមពល"]):
+            out["impact"] = "🔸 ហានិភ័យទីផ្សារ៖ ដាក់សម្ពាធលើថ្លៃដើមថាមពលសកល និងរុញតម្លៃប្រេងឆៅឱ្យឡើងថ្លៃ"
+        elif any(w in narrative_full for w in ["chip", "semiconductor", "ai", "nvidia", "tsmc", "tech", "បន្ទះឈីប", "បច្ចេកវិទ្យា"]):
+            out["impact"] = "🔸 ហានិភ័យទីផ្សារ៖ បង្កផលរំខានដល់ខ្សែច្រវាក់ផ្គត់ផ្គង់ និងដាក់សម្ពាធលើភាគហ៊ុនបច្ចេកវិទ្យា"
+        elif any(w in narrative_full for w in ["tariff", "trade", "tax", "export", "import", "ពន្ធគយ", "ពាណិជ្ជកម្ម"]):
+            out["impact"] = "🔸 ហានិភ័យទីផ្សារ៖ បង្កើនថ្លៃដើមនាំចូល និងដាក់សម្ពាធលើខ្សែច្រវាក់ពាណិជ្ជកម្មសកល"
+        elif any(w in narrative_full for w in ["gold", "xau", "bullion", "មាស"]):
+            out["impact"] = "🔸 ហានិភ័យទីផ្សារ៖ បង្កើនភាពមិនប្រាកដប្រជា និងរុញច្រានតម្រូវការទិញមាស XAUUSD"
+        elif is_combat:
+            out["impact"] = "🔸 ហានិភ័យទីផ្សារ៖ ភាពតានតឹងភូមិសាស្ត្រនយោបាយកើនឡើង បង្កើនការប្រុងប្រយ័ត្នខ្ពស់ក្នុងទីផ្សារហិរញ្ញវត្ថុសកល"
+        else:
+            b = str(raw.get("bias", "")).lower()
+            if "វិជ្ជមាន" in b or ("bullish" in b and "xau" not in b):
+                out["impact"] = "🔹 ផលវិជ្ជមាន៖ ជំរុញសន្ទុះកំណើនទីផ្សារ"
+            else:
+                out["impact"] = "🔸 ផលអវិជ្ជមាន៖ បង្កើនសម្ពាធលើទីផ្សារ"
 
     out["impact"] = sanitize_khmer_spelling(out["impact"])
     return out
