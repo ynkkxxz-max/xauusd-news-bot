@@ -30,6 +30,10 @@ class StoryImageBuilder:
         ("apple", r"\b(apple|iphone)\b|អាប់ផល"),
         ("openai", r"\b(openai|chatgpt)\b|អូផឹនអេអាយ"),
         ("microsoft", r"\b(microsoft)\b|ម៉ៃក្រូសូហ្វ"),
+        ("google", r"\b(google|alphabet)\b|ហ្គូហ្គល"),
+        ("intel", r"\b(intel)\b|អ៊ីនធែល"),
+        ("amazon", r"\b(amazon|aws)\b|អាម៉ាហ្សូន"),
+        ("blackrock", r"\b(blackrock)\b|ប៊្លែករ៉ក់"),
     ]
 
     LEADER_PATTERNS = [
