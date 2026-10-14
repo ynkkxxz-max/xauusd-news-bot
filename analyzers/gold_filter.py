@@ -338,21 +338,13 @@ class GoldNewsFilter:
         return ""
 
     @staticmethod
-    def is_duplicate_or_similar(new_title: str, existing_titles: list, threshold: float = 0.35) -> bool:
+    def is_duplicate_or_similar(new_title: str, existing_titles: list, threshold: float = 0.55) -> bool:
         """
-        Semantic Deduplication: Checks if the new news article is covering the same topic/event
-        as any article broadcasted recently (e.g. within the last 4 hours) across different RSS feeds.
-        Returns True if a similar article was already broadcasted.
+        Semantic Deduplication: Checks if the new news article is covering the EXACT same event
+        as any article broadcasted recently across different RSS feeds (e.g. Reuters vs CNBC on same event).
+        Returns True ONLY if a genuinely duplicate article was already broadcasted.
         """
         import re
-
-        # Fast Macro Cluster Match: If an article from the same specific cluster was already sent recently
-        new_cluster = GoldNewsFilter.get_news_cluster(new_title)
-        if new_cluster:
-            for past_title in existing_titles:
-                past_cluster = GoldNewsFilter.get_news_cluster(past_title)
-                if new_cluster == past_cluster:
-                    return True
 
         def _stem(w: str) -> str:
             w = w.lower()
@@ -385,18 +377,6 @@ class GoldNewsFilter:
         if not new_tokens:
             return False
 
-        entities_list = [
-            "israel", "lebanon", "russia", "ukraine", "iran", "trump", "biden",
-            "opec", "china", "boe", "fed", "england", "us", "usa", "america",
-            "japan", "jera", "sec", "nvidia", "intel", "amd", "tesla", "apple"
-        ]
-        topics_list = [
-            "ai", "strike", "tariff", "sanction", "war", "rate", "inflation",
-            "blackwell", "chip", "job", "jobs", "payroll", "nfp", "employment",
-            "unemployment", "oil", "crude", "brent", "lng", "diesel", "gas",
-            "energy", "crypto", "bitcoin", "btc", "hiring", "datacenter"
-        ]
-
         for past_title in existing_titles:
             past_tokens = _tokenize(past_title)
             if not past_tokens:
@@ -407,14 +387,8 @@ class GoldNewsFilter:
             similarity = len(intersection) / len(union) if union else 0.0
             overlap_ratio = len(intersection) / min(len(new_tokens), len(past_tokens)) if min(len(new_tokens), len(past_tokens)) else 0.0
 
-            # 1. Exact or High token overlap
-            if similarity >= 0.45 or (overlap_ratio >= 0.35 and len(intersection) >= 3):
-                return True
-
-            # 2. Entity + Topic co-occurrence
-            has_common_entity = any(e in intersection for e in entities_list) or ("england" in new_tokens and "england" in past_tokens)
-            has_common_topic = any(t in intersection for t in topics_list)
-            if has_common_entity and has_common_topic and len(intersection) >= 2:
+            # Exact or High token overlap between wire feeds reporting the same story
+            if similarity >= 0.55 or (overlap_ratio >= 0.65 and len(intersection) >= 4):
                 return True
 
         return False
