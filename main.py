@@ -1480,9 +1480,9 @@ class XAUUSDNewsAssistantBot:
             if title.lower() in self._broadcasted_titles_cache:
                 continue
 
-            # Freshness Gate: strictly reject stale items older than 4 hours
+            # Freshness Gate: strictly reject stale items older than 2 hours (ensures truly fresh breaking news)
             item_ts = self._news_ts(item)
-            if item_ts > 0 and (now - item_ts) > 4 * 3600:
+            if item_ts > 0 and (now - item_ts) > 2 * 3600:
                 database.record_news_sent(news_id, title, item.get("source", ""), is_broadcasted=0)
                 continue
 
