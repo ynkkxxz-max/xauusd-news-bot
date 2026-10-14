@@ -21,6 +21,16 @@ class StoryImageBuilder:
     LEADERS_DIR = "assets/speakers"
     FLAGS_DIR = "assets/flags"
     TOPICS_DIR = "assets/topics"
+    BRANDS_DIR = "assets/brands"
+
+    BRAND_PATTERNS = [
+        ("spacex", r"\b(spacex|starlink)\b|ស្ប៉េសអ៊ិច|ស្តាលីង"),
+        ("tesla", r"\b(tesla)\b|ថេសឡា"),
+        ("nvidia", r"\b(nvidia)\b|អិនវីឌា"),
+        ("apple", r"\b(apple|iphone)\b|អាប់ផល"),
+        ("openai", r"\b(openai|chatgpt)\b|អូផឹនអេអាយ"),
+        ("microsoft", r"\b(microsoft)\b|ម៉ៃក្រូសូហ្វ"),
+    ]
 
     LEADER_PATTERNS = [
         ("giorgia_meloni", r"\b(meloni|giorgia meloni)\b|ម៉េឡូនី|មេឡូនី"),
@@ -107,6 +117,25 @@ class StoryImageBuilder:
             l1, path1 = detected_leaders[0]
             l2, path2 = detected_leaders[1]
             logger.info(f"[StoryImageBuilder] Synthesizing Dual-Leader Split Image: {l1} + {l2}")
+            split_bytes = cls.create_split_image(path1, path2)
+            if split_bytes:
+                return split_bytes
+
+        # Step 1.5: Detect Brands / Tech Giants involved
+        detected_brands = []
+        for brand_key, pat in cls.BRAND_PATTERNS:
+            if re.search(pat, comb_text, re.IGNORECASE):
+                b_path = os.path.join(cls.BRANDS_DIR, f"{brand_key}_dark.jpg")
+                if not os.path.exists(b_path):
+                    b_path = os.path.join(cls.BRANDS_DIR, f"{brand_key}.png")
+                if os.path.exists(b_path):
+                    detected_brands.append((brand_key, b_path))
+
+        # If ONE leader and ONE brand are involved (e.g. Zelenskyy + SpaceX / Starlink), synthesize Split Image!
+        if len(detected_leaders) == 1 and len(detected_brands) >= 1:
+            l1, path1 = detected_leaders[0]
+            b1, path2 = detected_brands[0]
+            logger.info(f"[StoryImageBuilder] Synthesizing Leader + Brand Split Image: {l1} + {b1}")
             split_bytes = cls.create_split_image(path1, path2)
             if split_bytes:
                 return split_bytes
