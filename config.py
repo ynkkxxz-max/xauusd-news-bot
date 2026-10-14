@@ -34,9 +34,9 @@ USE_GEMINI = os.getenv("USE_GEMINI", "true").lower() in ("true", "1", "yes")
 GEMINI_MIN_INTERVAL = float(os.getenv("GEMINI_MIN_INTERVAL", "20"))
 GEMINI_COOLDOWN = float(os.getenv("GEMINI_COOLDOWN", "900"))
 
-# Minimum seconds between two breaking-news alerts (Balanced 3-minute gap: 180s)
-# Prevents channel flood and rapid-fire spamming while maintaining responsive delivery.
-BREAKING_ALERT_MIN_GAP = float(os.getenv("BREAKING_ALERT_MIN_GAP", "180"))
+# Minimum seconds between two breaking-news alerts (Optimized for ultra-fast sub-second delivery: 5s)
+# Prevents channel flood while ensuring instant dispatch the moment news breaks.
+BREAKING_ALERT_MIN_GAP = float(os.getenv("BREAKING_ALERT_MIN_GAP", "5"))
 
 # Timezone (Cambodia Time UTC+7)
 CAMBODIA_TZ_NAME = os.getenv("TIMEZONE", "Asia/Phnom_Penh")
@@ -67,5 +67,5 @@ DAMLUNG_TO_OZ_RATIO = GRAMS_PER_DAMLUNG / GRAMS_PER_TROY_OUNCE
 
 # Monitoring Interval timings (in seconds)
 INTERVAL_NORMAL = 60 * 60     # Mode 1: 1 hour normal checks
-INTERVAL_UPCOMING = 60 * 2     # Mode 2: 2 minutes when high-impact event is within 30m
-INTERVAL_HIGH_IMPACT = 30      # Mode 3: 30 seconds when within 5 mins or waiting for actual data
+INTERVAL_UPCOMING = 60         # Mode 2: 1 minute when high-impact event is within 30m
+INTERVAL_HIGH_IMPACT = 10      # Mode 3: 10 seconds when within 5 mins or waiting for actual data
