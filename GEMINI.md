@@ -63,9 +63,8 @@ This repository is governed by the 5 Golden Principles established by the system
 - **ប្រព័ន្ធការពារការផ្ញើសារជាន់គ្នា ៣ ជាន់ដាច់ខាត (Triple Anti-Duplicate Shield — Zero Spam Guarantee)**:
   1. **ត្រួតពិនិត្យ Telegram Channel Feed ជាក់ស្តែង (`_is_already_in_telegram_channel`)**: មុននឹងចេញផ្សាយ ត្រូវ Scan មើលសារក្នុង Channel `@GoldMarketKH8888` ជាមុនសិន។ ប្រសិនបើមានព័ត៌មាននេះរួចហើយ ទោះបី Server restart ឬមាន Instance ច្រើនប៉ុនណាក៏ដោយ ក៏ **ហាមដាច់ខាតមិនឱ្យផ្សាយជាន់គ្នាជាលើកទី ២ ឡើយ**។
   2. **In-Memory Process Cache & SQLite Deduplication**: កត់ត្រាចំណងជើង និង ID ក្នុង Memory និង Database SQLite ភ្លាមៗមុនពេលផ្ញើ។
-  3. **ចន្លោះពេលផ្សាយទាន់ហេតុការណ៍សមរម្យ មិនស្ទួន និងមិន Spam (`BREAKING_ALERT_MIN_GAP = 180s` (3 នាទី), VIP Critical = 90s — បញ្ជាផ្ទាល់)**:
-     - ផ្សាយព័ត៌មានទាន់ហេតុការណ៍ដោយរក្សាគម្លាត ៣ នាទី (១៨០ វិនាទី) ដើម្បីការពារកុំឱ្យបាញ់សារ Spam ជាន់ៗគ្នា ៥ សារក្នុង ១ នាទី។
-     - សម្រាប់ព័ត៌មានបន្ទាន់កម្រិតខ្ពស់ (VIP Critical: សង្គ្រាម War, អត្រាការប្រាក់ Fed/FOMC, សុន្ទរកថា Fed Chair Powell/Warsh) គឺរក្សាគម្លាតយ៉ាងតិច ៩០ វិនាទី ដើម្បីការពារការ Flood សារ។
+  3. **ល្បឿនផ្សាយទាន់ហេតុការណ៍លឿនរហ័សបំផុត (`BREAKING_ALERT_MIN_GAP = 5s`, VIP Critical = 3s — បញ្ជាផ្ទាល់)**:
+     - ផ្សាយព័ត៌មានទាន់ហេតុការណ៍ឱ្យបានលឿនបំផុតចូល Channel ភ្លាមៗនៅពេលមានព័ត៌មានចេញមក ដោយរក្សាគម្លាតសុវត្ថិភាពអប្បបរមាត្រឹមតែ ៥ វិនាទី (VIP Critical ត្រឹមតែ ៣ វិនាទី) ដើម្បីការពារ Telegram Rate Limit ដោយគ្មានការពន្យារពេល ឬកកស្ទះឡើយ។
   4. **របាំងទប់ស្កាត់ប្រធានបទដដែលៗតាមវិស័យ (Macro Cluster Deduplication & Sector Cooldown Shield)**:
      - **Jobs / NFP / ការងារ**: Cooldown ៤ ម៉ោង (បើរាយការណ៍ពី NFP ឬ Jobs Report រួចហើយ ហាមដាច់ខាតមិនឱ្យផ្សាយប្រធានបទការងារដដែលៗពី Feed ផ្សេងទៀតឡើយ)។
      - **Inflation / អតិផរណា (CPI/PPI/PCE)**: Cooldown ៤ ម៉ោង។
@@ -110,12 +109,14 @@ This repository is governed by the 5 Golden Principles established by the system
     - ហាមដាច់ខាតមិនឱ្យផ្សាយព័ត៌មានទាក់ទងនឹងរឿងរ៉ាវផ្ទាល់ខ្លួន ឬជីវិតឯកជនរបស់បុគ្គល (រឿងស្នេហា អាពាហ៍ពិពាហ៍ លែងលះ ជម្លោះគ្រួសារ សៀវភៅជីវប្រវត្តិ/អនុស្សាវរីយ៍ Memoir/Biography របៀបរស់នៅ ទ្រព្យសម្បត្តិផ្ទាល់ខ្លួន វិស្សមកាល ការដើរលេង ឬការសារភាពរឿងផ្ទាល់ខ្លួនរបស់ CEO/បុគ្គលល្បី ដែលគ្មានឥទ្ធិពលផ្ទាល់លើសេដ្ឋកិច្ច ឬទីផ្សារហិរញ្ញវត្ថុស្ថាប័នឡើយ)។ ឱ្យតែជួបព័ត៌មានប្រភេទនេះ ប្រព័ន្ធត្រូវ Drop/Skip ចោលភ្លាមៗ (`is_clear = false`) ហាមមិនឱ្យផ្សាយដាច់ខាត។
   - ជួរប្រភពព័ត៌មានខាងក្រោមស្អាត (ហាមដាច់ខាតមិនប្រើសញ្ញា 🌐 — បញ្ជាផ្ទាល់)៖ `ប្រភព | <a href="{link}">{source_name}</a>`។
   - គ្មានប៊ូតុង Inline Buttons ខាងក្រោមឡើយ (`reply_markup=None`)។
-  - **ស្តង់ដាររូបភាពពិតប្រាកដ និងត្រូវនឹងអត្ថបទ (Authentic Ultra-HD News Photo Standard — បញ្ជាផ្ទាល់)**:
-    - ប្រព័ន្ធស្វែងរក និងផ្គូផ្គងរូបភាពពិត ៤ ជាន់ (4-Tier Authentic Real Image Pipeline)៖
-      1. **Direct Article Photo**: ទាញយករូបភាពពិត Ultra-HD ពី Article Feed ផ្ទាល់ (`media:content`, `media:thumbnail`, `enclosure`)។
-      2. **Publisher Webpage Photo**: ទាញយករូបភាពពិតចេញពីគេហទំព័រសារព័ត៌មានផ្ទាល់ (`og:image`, `twitter:image`, JSON-LD schema)។
-      3. **Official Speaker Portrait**: សម្រាប់ព័ត៌មានដែលនិយាយចំមេដឹកនាំសំខាន់ៗ ប្រើប្រាស់រូបថតពិតច្បាស់ Ultra-HD ផ្លូវការ (Donald Trump, Elon Musk, Jerome Powell, Kevin Warsh)។
-      4. **Core Topic Ultra-HD Photo**: សម្រាប់ព័ត៌មានសេដ្ឋកិច្ចស្នូលដែលគ្មានរូបផ្ទាល់ ផ្គូផ្គងរូបថតពិតតាមប្រធានបទជាក់ស្តែង (Federal Reserve, Gold Bullion ដុំមាស, Crude Oil ប្រេងកាត, Silicon Wafer បន្ទះឈីប AI/Semiconductor, Bitcoin Crypto, Geopolitics កងទ័ពជើងទឹក/ច្រក Hormuz, Wall Street/NYSE)។
+  - **ស្តង់ដាររូបភាពពិតប្រាកដ និងកែសម្រួលត្រូវតាមដំណើររឿង (Story-Accurate VIP Image Pipeline — បញ្ជាផ្ទាល់)**:
+    - ប្រព័ន្ធបង្កើត និងផ្គូផ្គងរូបភាពឆ្លាតវៃតាមដំណើររឿង ៦ ជាន់ (6-Tier Story-Accurate Image Pipeline)៖
+      1. **រូបភាពផ្គួបថ្នាក់ដឹកនាំសងខាង (Dual-Leader Split Image)**: ប្រសិនបើសាច់រឿងនិយាយពីទំនាក់ទំនង ជម្លោះ ឬកិច្ចព្រមព្រៀងរវាងថ្នាក់ដឹកនាំ ២ រូប (ឧ. Meloni និង Trump, Trump និង Putin, Trump និង Xi Jinping, Trump និង Musk, Putin និង Zelenskyy) ប្រព័ន្ធត្រូវកាត់តផ្គួបរូបថតច្បាស់ៗនៃថ្នាក់ដឹកនាំទាំងពីរជា Split Image 50/50 ក្នុង Canvas តែមួយភ្លាមៗ។
+      2. **រូបភាពផ្គួបទង់ជាតិប្រទេសសងខាង (Dual-Country Flag Split Image)**: ប្រសិនបើសាច់រឿងជាទំនាក់ទំនង ឬបញ្ហាទ្វេភាគីរវាងប្រទេស ២ (ឧ. ឥណ្ឌា និង កាណាដា, អាមេរិក និង ចិន, អាមេរិក និង តៃវ៉ាន់, អ៊ីស្រាអែល និង អ៊ីរ៉ង់) ប្រព័ន្ធត្រូវបង្កើតផ្ទាំងរូបភាពផ្គួបទង់ជាតិប្រទេសទាំងពីរជា Split Image 50/50 ច្បាស់ត្រដែត។
+      3. **រូបថតផ្លូវការមេដឹកនាំទោល (Single Leader Official Portrait)**: ព័ត៌មានដែលនិយាយចំមេដឹកនាំសំខាន់ (Trump, Powell, Warsh, Musk, Meloni, Putin, Xi Jinping, Netanyahu, Zelenskyy, Macron, Starmer, Lagarde, Ueda, Modi) ប្រើប្រាស់រូបថតពិតច្បាស់ផ្លូវការ។
+      4. **រូបភាពពិតផ្ទាល់ពីអត្ថបទសារព័ត៌មាន (Direct Verified Article Photo)**: ទាញយករូបភាពពិត Ultra-HD ពីគេហទំព័រផ្ទាល់ (`og:image`, `twitter:image`, `enclosure`) ដែលផ្ទៀងផ្ទាត់មិនមែនជា Logo ឬរូបតូច។
+      5. **រូបភាពប្រធានបទសេដ្ឋកិច្ចស្នូល Ultra-HD (Core Topic Photo)**: ផ្គូផ្គងរូបថតពិតតាមប្រធានបទជាក់ស្តែង (Federal Reserve, Gold Bullion ដុំមាស, Crude Oil ប្រេងកាត, Semiconductor Chips បន្ទះឈីប AI, Bitcoin Crypto, Geopolitics កងទ័ពជើងទឹក/ច្រក Hormuz, Wall Street/NYSE)។
+      6. **ទង់ជាតិប្រទេសគោល (Single Country Flag Canvas)**: សម្រាប់ព័ត៌មានដែលផ្តោតលើប្រទេសជាក់លាក់មួយហើយគ្មានរូបថតផ្ទាល់ (ឧ. GDP Singapore, Yen Japan) បង្ហាញទង់ជាតិប្រទេសនោះយ៉ាងស្រស់ស្អាត។
     - **ហាមដាច់ខាតរូបភាពមិនត្រូវសាច់រឿង ឬរូបភាព Logo កំប៉ិកកំប៉ុក**: ប្រសិនបើគ្មានរូបភាពពិតដែលត្រូវនឹងសាច់រឿងទេ ត្រូវផ្សាយជា MODE B (អត្ថបទសុទ្ធ Plain Text) ហាមដាច់ខាតមិនយក Logo ស្ថាប័ន, Favicon, ឬរូបភាពផ្តេសផ្តាសមកបង្ហោះឡើយ។
   - **ចន្លោះបន្ទាត់ស្អាតបាត (Clean Blank Line Spacing — បញ្ជាផ្ទាល់)**: ត្រូវចុះបន្ទាត់ទទេ `\n\n` មួយជួរស្អាតនៅចន្លោះ Headline, Summary, Impact, និង Source។
   - **ស្តង់ដារប្រវែងអត្ថបទល្មមស្អាត មិនវែងខ្លាំងពេក ងាយយល់ពីសាច់រឿង (Concise, Clean & Balanced Narrative — ៥០ ដល់ ៨០ ពាក្យ / ២-៣ ប្រយោគច្បាស់ៗ — បញ្ជាផ្ទាល់)**:
@@ -169,12 +170,10 @@ This repository is governed by the 5 Golden Principles established by the system
 🔹 US10Y Yields: {ផលប៉ះពាល់លើប័ណ្ណបំណុល ដូចជា ស្ទុះងើបឡើងខ្ពស់}
 🔸 XAUUSD (មាស): {ផលប៉ះពាល់លើតម្លៃមាស ដូចជា ប្រឈមសម្ពាធធ្លាក់ចុះរយៈពេលខ្លី (Bearish Pressure)}
 
-━━━━━━━━━━━━━━━━━━━
-
-⚠️ បម្រាមហានិភ័យ: ទីផ្សារប្រែប្រួលខ្លាំង! រង់ចាំការបិទទៀន M5/M15 បញ្ជាក់ទិសដៅច្បាស់លាស់ ជៀសវាង FOMO ដេញតាមតម្លៃ។
-```
-- **ភ្ជាប់រូបភាព TradingView Live Chart**:
-  - ភ្ជាប់រូបភាព TradingView Technical Chart ដែលមានព្រួញទិសដៅ AI ផ្គួបជាមួយ Caption អត្ថបទនេះ។
+- **លុបចោលបម្រាមហានិភ័យ និងរូបភាព Chart ជារៀងរហូត (Permanently Disable Warning & TradingView Charts — បញ្ជាផ្ទាល់)**:
+  - ហាមដាច់ខាតមិនឱ្យដាក់ជួរ `⚠️ បម្រាមហានិភ័យ...` នៅខាងក្រោមឡើយ (លុបចោលជាអចិន្ត្រៃយ៍)។
+  - ហាមដាច់ខាតមិនឱ្យចំណាយពេល Render ឬ Upload រូបភាព TradingView Chart ឡើយ (លុបចោលជាអចិន្ត្រៃយ៍)។
+  - ត្រូវផ្សាយជា **Instant Text Message** ភ្លាមៗ ដើម្បីឱ្យទិន្នន័យជាក់ស្តែងទៅដល់ Telegram Channel លឿនបំផុតកម្រិត Sub-Second (ក្រោម ១ វិនាទី) ឱ្យទាន់ពេលទីផ្សារប្រែប្រួល!
 
 ### 9. 🚫 លុបចោលសាររំញ័រតម្លៃមាស (Disable Volatility Spike Alerts Permanently)
 - មិនត្រូវផ្ញើសារប្រភេទ `🚨 XAUUSD VOLATILITY ALERT — បម្រែបម្រួលតម្លៃមាសខុសប្រក្រតី` (Bullish Spike / Flash Dump) ចូល Channel/Group ឡើយ។
