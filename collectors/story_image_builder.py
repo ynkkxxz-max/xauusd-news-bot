@@ -23,7 +23,7 @@ class StoryImageBuilder:
     TOPICS_DIR = "assets/topics"
 
     LEADER_PATTERNS = [
-        ("meloni", r"\b(meloni|giorgia meloni)\b|ម៉េឡូនី|មេឡូនី"),
+        ("giorgia_meloni", r"\b(meloni|giorgia meloni)\b|ម៉េឡូនី|មេឡូនី"),
         ("donald_trump", r"\b(trump|donald trump)\b|ត្រាំ|ដូណាល់ ត្រាំ"),
         ("vladimir_putin", r"\b(putin|vladimir putin)\b|ពូទីន|វ្ល៉ាឌីមៀ ពូទីន"),
         ("xi_jinping", r"\b(xi jinping|president xi)\b|ស៊ី ជីនពីង"),
