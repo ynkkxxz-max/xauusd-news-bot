@@ -123,27 +123,32 @@ def is_news_sent(news_id: str) -> bool:
     conn.close()
     return exists
 
-def record_news_sent(news_id: str, title: str, source: str, is_broadcasted: int = 0):
+def record_news_sent(news_id: str, title: str, source: str, is_broadcasted: int = 0, headline_km: str = ""):
     conn = get_db_connection()
     cursor = conn.cursor()
+    try:
+        cursor.execute("ALTER TABLE sent_news ADD COLUMN headline_km TEXT DEFAULT ''")
+    except Exception:
+        pass
     cursor.execute("""
-    INSERT INTO sent_news (news_id, title, source, is_broadcasted, sent_at)
-    VALUES (?, ?, ?, ?, datetime('now'))
+    INSERT INTO sent_news (news_id, title, source, is_broadcasted, headline_km, sent_at)
+    VALUES (?, ?, ?, ?, ?, datetime('now'))
     ON CONFLICT(news_id) DO UPDATE SET 
         title = excluded.title,
         source = excluded.source,
         is_broadcasted = CASE WHEN excluded.is_broadcasted = 1 THEN 1 ELSE sent_news.is_broadcasted END,
+        headline_km = CASE WHEN excluded.headline_km != '' THEN excluded.headline_km ELSE sent_news.headline_km END,
         sent_at = datetime('now')
-    """, (news_id, title, source, is_broadcasted))
+    """, (news_id, title, source, is_broadcasted, headline_km))
     conn.commit()
     conn.close()
 
-def clear_news_from_data(news_id: str, title: str = "", source: str = ""):
+def clear_news_from_data(news_id: str, title: str = "", source: str = "", headline_km: str = ""):
     """
     Explicitly clears a news item from data pool right after broadcast.
     Marks it as broadcasted (is_broadcasted=1) and permanently records it so it can never be processed again.
     """
-    record_news_sent(news_id, title, source, is_broadcasted=1)
+    record_news_sent(news_id, title, source, is_broadcasted=1, headline_km=headline_km)
 
 def get_recent_news_titles(hours: int = 24) -> list:
     """Returns a list of titles actually broadcasted in the last N hours for similarity/duplicate checking."""
@@ -156,6 +161,22 @@ def get_recent_news_titles(hours: int = 24) -> list:
     rows = cursor.fetchall()
     conn.close()
     return [r[0] for r in rows if r[0]]
+
+def get_recent_khmer_headlines(hours: int = 24) -> list:
+    """Returns a list of Khmer headlines broadcasted in the last N hours for Khmer semantic deduplication."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+        SELECT headline_km FROM sent_news 
+        WHERE is_broadcasted = 1 AND headline_km IS NOT NULL AND headline_km != '' AND sent_at >= datetime('now', ?)
+        """, (f"-{hours} hours",))
+        rows = cursor.fetchall()
+        conn.close()
+        return [r[0] for r in rows if r[0]]
+    except Exception:
+        conn.close()
+        return []
 
 def is_title_already_broadcasted(title: str, hours: int = 48) -> bool:
     """Checks whether the exact title or stem-identical title was already broadcasted in the last N hours."""
