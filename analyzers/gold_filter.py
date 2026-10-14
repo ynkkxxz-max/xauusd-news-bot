@@ -309,40 +309,40 @@ class GoldNewsFilter:
         """Categorizes news into a high-level macro cluster for semantic cross-feed deduplication."""
         t = text.lower()
         # 1. US Jobs / Payrolls / Labor Market
-        if any(k in t for k in ["non-farm", "nonfarm", "payroll", "payrolls", "unemployment", "job growth", "jobs report", "hiring", "labor market", "workforce"]) or ("job" in t and any(w in t for w in ["us", "fed", "report", "cool", "slow", "data", "cut", "rise", "fall", "jump", "stall"])):
+        if any(k in t for k in ["non-farm", "nonfarm", "payroll", "payrolls", "unemployment", "job growth", "jobs report", "hiring", "labor market", "workforce", "ការងារ", "អត្រាគ្មានការងារ", "nfp"]) or ("job" in t and any(w in t for w in ["us", "fed", "report", "cool", "slow", "data", "cut", "rise", "fall", "jump", "stall"])):
             return "us_jobs"
         # 2. Inflation & CPI
-        if any(k in t for k in ["cpi", "inflation", "pce", "producer price", "consumer price", "cost of living"]):
+        if any(k in t for k in ["cpi", "inflation", "pce", "producer price", "consumer price", "cost of living", "អតិផរណា"]):
             return "inflation"
         # 3. Fed & Central Bank Rates
-        if any(k in t for k in ["fomc", "powell", "kevin warsh", "rate cut", "rate hike", "interest rate", "basis point", "federal reserve"]) or ("fed " in t and any(w in t for w in ["rate", "policy", "pause", "hike", "cut"])):
+        if any(k in t for k in ["fomc", "powell", "kevin warsh", "rate cut", "rate hike", "interest rate", "basis point", "federal reserve", "អត្រាការប្រាក់", "ធនាគារកណ្តាល"]) or ("fed " in t and any(w in t for w in ["rate", "policy", "pause", "hike", "cut"])):
             return "fed_rates"
         # 4. Energy & Crude Oil & Gas
-        if any(k in t for k in ["crude oil", "brent", "wti", "oil price", "oil drop", "oil rise", "diesel", "gasoline", "lng", "fuel", "opec"]):
+        if any(k in t for k in ["crude oil", "brent", "wti", "oil price", "oil drop", "oil rise", "diesel", "gasoline", "lng", "fuel", "opec", "ប្រេងឆៅ", "ប្រេងកាត", "ថាមពល"]):
             return "energy_oil"
         # 5. Technology & AI & Semiconductors
-        if any(k in t for k in ["nvidia", "semiconductor", "chipmaker", "tsmc", "intel", "amd", "blackwell", "artificial intelligence", "data center", "datacenter"]) or ("ai " in t and any(w in t for w in ["chip", "tech", "job", "model", "cloud", "server", "wall street"])):
+        if any(k in t for k in ["nvidia", "semiconductor", "chipmaker", "tsmc", "intel", "amd", "blackwell", "artificial intelligence", "data center", "datacenter", "បន្ទះឈីប", "បញ្ញាសិប្បនិម្មិត"]) or ("ai " in t and any(w in t for w in ["chip", "tech", "job", "model", "cloud", "server", "wall street"])):
             return "tech_ai"
         # 6. Crypto & Digital Assets
-        if any(k in t for k in ["bitcoin", "btc", "ethereum", "crypto", "cryptocurrency", "stablecoin", "tether", "binance", "coinbase"]):
+        if any(k in t for k in ["bitcoin", "btc", "ethereum", "crypto", "cryptocurrency", "stablecoin", "tether", "binance", "coinbase", "ប៊ីតខយ", "គ្រីបតូ"]):
             return "crypto_assets"
-        # 7. Middle East Geopolitics
-        if any(k in t for k in ["gaza", "israel", "tel aviv", "lebanon", "beirut", "hezbollah", "houthi", "strait of hormuz", "red sea"]):
+        # 7. Middle East & Yemen Geopolitics
+        if any(k in t for k in ["gaza", "israel", "tel aviv", "lebanon", "beirut", "hezbollah", "houthi", "strait of hormuz", "red sea", "yemen", "yemeni", "sanaa", "bab al-mandab", "syria", "iraq", "iran", "tehran", "damascus", "យេមែន", "យេម៉ែន", "ហូទី", "អ៊ីរ៉ង់", "អ៊ីស្រាអែល", "ហ្កាហ្សា", "លីបង់", "ច្រកសមុទ្រ"]):
             return "middle_east"
         # 8. Russia & Ukraine
-        if any(k in t for k in ["russia", "ukraine", "kyiv", "moscow", "kremlin", "zelensky", "putin"]):
+        if any(k in t for k in ["russia", "ukraine", "kyiv", "moscow", "kremlin", "zelensky", "putin", "រុស្ស៊ី", "អ៊ុយក្រែន", "ម៉ូស្គូ", "គៀវ"]):
             return "russia_ukraine"
         # 9. Tariffs & Trade Wars
-        if any(k in t for k in ["tariff", "tariffs", "sanction", "sanctions", "trade war", "embargo"]):
+        if any(k in t for k in ["tariff", "tariffs", "sanction", "sanctions", "trade war", "embargo", "ពន្ធគយ", "ទណ្ឌកម្ម", "សង្គ្រាមពាណិជ្ជកម្ម"]):
             return "tariffs_trade"
         return ""
 
     @staticmethod
-    def is_duplicate_or_similar(new_title: str, existing_titles: list, threshold: float = 0.55) -> bool:
+    def is_duplicate_or_similar(new_title: str, existing_titles: list, threshold: float = 0.35) -> bool:
         """
         Semantic Deduplication: Checks if the new news article is covering the EXACT same event
         as any article broadcasted recently across different RSS feeds (e.g. Reuters vs CNBC on same event).
-        Returns True ONLY if a genuinely duplicate article was already broadcasted.
+        Strictly prevents repeating stories on the same topic.
         """
         import re
 
@@ -352,7 +352,7 @@ class GoldNewsFilter:
                 "israeli": "israel", "british": "britain", "russian": "russia",
                 "lebanese": "lebanon", "mexican": "mexico", "canadian": "canada",
                 "ukrainian": "ukraine", "iranian": "iran", "chinese": "china",
-                "japanese": "japan", "american": "america"
+                "japanese": "japan", "american": "america", "yemeni": "yemen"
             }
             if w in demonyms:
                 return demonyms[w]
@@ -373,9 +373,18 @@ class GoldNewsFilter:
             }
             return {_stem(w) for w in words if w not in stop_words}
 
+        KEY_ENTITIES = {
+            "yemen", "houthi", "sanaa", "gaza", "hezbollah", "lebanon", "iran", "israel",
+            "cpi", "nfp", "fomc", "powell", "warsh", "kevin", "nvidia", "tsmc", "opec",
+            "spacex", "starlink", "apple", "tesla", "putin", "zelensky", "russia", "ukraine",
+            "deepseek", "bitcoin", "tether", "binance", "brent", "hormuz"
+        }
+
         new_tokens = _tokenize(new_title)
         if not new_tokens:
             return False
+
+        new_entities = new_tokens.intersection(KEY_ENTITIES)
 
         for past_title in existing_titles:
             past_tokens = _tokenize(past_title)
@@ -385,10 +394,58 @@ class GoldNewsFilter:
             intersection = new_tokens.intersection(past_tokens)
             union = new_tokens.union(past_tokens)
             similarity = len(intersection) / len(union) if union else 0.0
-            overlap_ratio = len(intersection) / min(len(new_tokens), len(past_tokens)) if min(len(new_tokens), len(past_tokens)) else 0.0
+            min_len = min(len(new_tokens), len(past_tokens))
+            overlap_ratio = len(intersection) / min_len if min_len else 0.0
 
-            # Exact or High token overlap between wire feeds reporting the same story
-            if similarity >= 0.55 or (overlap_ratio >= 0.65 and len(intersection) >= 4):
+            # 1. Strong Key Entity Overlap (e.g. both articles discuss 'yemen' or 'kevin warsh' with >= 1 other common word)
+            past_entities = past_tokens.intersection(KEY_ENTITIES)
+            shared_entities = new_entities.intersection(past_entities)
+            if shared_entities and len(intersection) >= 2:
                 return True
+
+            # 2. General token overlap across news wires
+            if similarity >= 0.35 or (overlap_ratio >= 0.40 and len(intersection) >= 3):
+                return True
+
+        return False
+
+    @staticmethod
+    def is_khmer_duplicate_or_similar(new_headline_km: str, existing_khmer_headlines: list) -> bool:
+        """
+        Direct Khmer Headline Deduplication: Checks if the new Khmer headline is repeating
+        an event that was already broadcasted in Khmer within the cooldown window.
+        """
+        if not new_headline_km or not existing_khmer_headlines:
+            return False
+
+        import re
+        KHMER_TOPIC_WORDS = [
+            "យេមែន", "យេម៉ែន", "ហូទី", "អ៊ីរ៉ង់", "អ៊ីស្រាអែល", "ហ្កាហ្សា", "លីបង់", "រុស្ស៊ី",
+            "អ៊ុយក្រែន", "ប្រេងឆៅ", "អតិផរណា", "ការងារ", "អត្រាការប្រាក់", "ពន្ធគយ", "ចិន", "តៃវ៉ាន់",
+            "ជម្លោះ", "សង្គ្រាម", "មនុស្សធម៌", "កាត់ផ្តាច់", "ផ្ទុះ", "ប្រដាប់អាវុធ", "ទណ្ឌកម្ម",
+            "កងទ័ព", "មីស៊ីល", "ដ្រូន", "វាយប្រហារ", "ធនាគារកណ្តាល", "ទុនបម្រុង", "បន្ទះឈីប",
+            "ប៊ីតខយ", "គ្រីបតូ", "វិបត្តិ", "សម្ពាធ", "កើនឡើង", "ធ្លាក់ចុះ", "បាញ់ប្រហារ"
+        ]
+
+        new_kw = {k for k in KHMER_TOPIC_WORDS if k in new_headline_km}
+        norm_new = re.sub(r'[\s\W_]+', '', new_headline_km).lower()
+
+        for past_hl in existing_khmer_headlines:
+            if not past_hl:
+                continue
+
+            past_kw = {k for k in KHMER_TOPIC_WORDS if k in past_hl}
+            common_kw = new_kw.intersection(past_kw)
+
+            # 1. Matches >= 2 topic keywords (e.g. យេមែន + ជម្លោះ or មនុស្សធម៌ + យេមែន)
+            if len(common_kw) >= 2:
+                return True
+
+            # 2. Long identical substring match (>= 15 characters, e.g. "ជម្លោះប្រដាប់អាវុធនៅយេមែន")
+            norm_past = re.sub(r'[\s\W_]+', '', past_hl).lower()
+            if len(norm_new) >= 20 and len(norm_past) >= 20:
+                for i in range(0, min(len(norm_new) - 15, 45), 5):
+                    if norm_new[i:i+15] in norm_past:
+                        return True
 
         return False
