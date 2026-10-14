@@ -1433,6 +1433,8 @@ class XAUUSDNewsAssistantBot:
                 return True
             if cluster == "fed_rates" and re.search(r'fomc|អត្រាការប្រាក់|powell|kevin warsh', channel_html, re.I):
                 return True
+            if cluster == "middle_east" and re.search(r'យេមែន|យេម៉ែន|ហូទី|yemen|houthi|bab al-mandab', channel_html, re.I) and any(w in title.lower() for w in ["yemen", "houthi", "sanaa", "humanitarian"]):
+                return True
         except Exception as e:
             logger.debug(f"[Channel Feed Check] {e}")
         return False
@@ -1520,17 +1522,34 @@ class XAUUSDNewsAssistantBot:
                 self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                 continue
 
-            # Macro Cluster Cadence: Prevents burst clustering on the exact same topic within 60-120s
+            # Macro Cluster Deduplication & Sector Cooldown Shield per User Directive
             cluster = GoldNewsFilter.get_news_cluster(title + " " + desc)
             if cluster:
                 last_cluster_ts = float(database.get_state(f"cluster_last_ts_{cluster}") or "0")
-                cluster_cooldown = 120.0 if cluster in ("us_jobs", "inflation") else 60.0
+                CLUSTER_COOLDOWNS = {
+                    "us_jobs": 14400.0,       # 4 hours
+                    "inflation": 14400.0,     # 4 hours
+                    "fed_rates": 7200.0,      # 2 hours
+                    "energy_oil": 3600.0,     # 1 hour
+                    "tech_ai": 3600.0,        # 1 hour
+                    "crypto_assets": 3600.0,  # 1 hour
+                    "middle_east": 5400.0,    # 1.5 hours
+                    "russia_ukraine": 5400.0, # 1.5 hours
+                    "tariffs_trade": 3600.0,  # 1 hour
+                }
+                cluster_cooldown = CLUSTER_COOLDOWNS.get(cluster, 3600.0)
                 if (now - last_cluster_ts) < cluster_cooldown:
-                    logger.debug(f"[CLUSTER CADENCE] Deferring '{title}' (Cluster: {cluster}, {now - last_cluster_ts:.1f}s < {cluster_cooldown}s required).")
-                    break
+                    # Drop unless it is an extreme emergency catalyst with urgency score >= 3
+                    if not GoldNewsFilter.is_immediate_alert(title, desc) or GoldNewsFilter.urgency_score(title) < 3:
+                        logger.info(f"[SECTOR COOLDOWN DEDUPLICATION] Dropping '{title}' in cluster '{cluster}' ({now - last_cluster_ts:.0f}s < {cluster_cooldown:.0f}s required).")
+                        self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
+                        database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
+                        continue
 
             if GoldNewsFilter.is_duplicate_or_similar(title, recent_sent_titles):
+                logger.info(f"[CROSS-FEED DEDUPLICATION] Dropping '{title}' (Similar to recent broadcast).")
                 self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
+                database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
                 continue
 
             # TRIPLE SHIELD: Check if ALREADY in Telegram channel @GoldMarketKH8888 live feed
@@ -1554,6 +1573,15 @@ class XAUUSDNewsAssistantBot:
             if isinstance(analysis, dict) and analysis.get("is_clear") is False:
                 self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                 database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
+                continue
+
+            # Direct Khmer Headline Deduplication Shield
+            hl_km = (analysis.get("headline_km") or "").strip() if isinstance(analysis, dict) else ""
+            recent_kh_headlines = database.get_recent_khmer_headlines(hours=24)
+            if hl_km and GoldNewsFilter.is_khmer_duplicate_or_similar(hl_km, recent_kh_headlines):
+                logger.info(f"[KHMER HEADLINE DEDUPLICATION] Dropping '{title}' - Khmer headline '{hl_km}' repeats recent story.")
+                self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
+                database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0, headline_km=hl_km)
                 continue
 
             impact = ""
@@ -1616,7 +1644,7 @@ class XAUUSDNewsAssistantBot:
                 break
 
             # Lock in-memory and database atomically BEFORE dispatching
-            database.clear_news_from_data(it["id"], title, it.get("source", ""))
+            database.clear_news_from_data(it["id"], title, it.get("source", ""), headline_km=hl_km)
             self._broadcasted_titles_cache.add(title.lower())
             database.set_state("last_breaking_alert_ts", str(time.time()))
             self._last_breaking_sent_ts = time.time()
@@ -1634,7 +1662,7 @@ class XAUUSDNewsAssistantBot:
 
             # 💥 USER DIRECTIVE: CLEAR FROM DATA IMMEDIATELY AFTER SENDING
             self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
-            database.clear_news_from_data(it["id"], title, it.get("source", ""))
+            database.clear_news_from_data(it["id"], title, it.get("source", ""), headline_km=hl_km)
             self._broadcasted_titles_cache.add(title.lower())
             pending.clear()
 
