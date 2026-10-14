@@ -43,6 +43,14 @@ except ImportError:
         TradingViewChartBuilder = None
 
 try:
+    from story_image_builder import StoryImageBuilder
+except ImportError:
+    try:
+        from collectors.story_image_builder import StoryImageBuilder
+    except ImportError:
+        StoryImageBuilder = None
+
+try:
     from gold_filter import GoldNewsFilter
 except ImportError:
     from analyzers.gold_filter import GoldNewsFilter
@@ -261,18 +269,20 @@ class XAUUSDNewsAssistantBot:
                 link = item.get("link", "")
                 item_ts = self._news_ts(item)
                 
-                # Check if older than 30 minutes, or already in channel, or part of startup backlog
+                # Only seed items that are genuinely stale (> 30 mins) or already in Telegram channel
                 is_stale = item_ts == 0.0 or (now - item_ts) > 1800.0
                 is_in_channel = self._is_already_in_telegram_channel(title, link) if channel_html else False
                 
-                # Seed all startup backlog items to ensure zero spam/repeats on reboot
-                if title:
-                    self._broadcasted_titles_cache.add(title.lower())
-                self.news_collector.clear_item(news_id=news_id, link=link, title=title)
-                if news_id and not database.is_news_sent(news_id):
-                    database.record_news_sent(news_id, title, item.get("source", ""), is_broadcasted=1 if is_in_channel else 0)
-                bootstrapped_count += 1
-            logger.info(f"[Startup News Sync] Seeded {bootstrapped_count} initial backlog headlines to prevent restart floods.")
+                if is_stale or is_in_channel:
+                    if title:
+                        self._broadcasted_titles_cache.add(title.lower())
+                    self.news_collector.clear_item(news_id=news_id, link=link, title=title)
+                    if news_id and not database.is_news_sent(news_id):
+                        database.record_news_sent(news_id, title, item.get("source", ""), is_broadcasted=1 if is_in_channel else 0)
+                    bootstrapped_count += 1
+                else:
+                    logger.info(f"[Startup News Sync] Preserving fresh active breaking news: '{title}'")
+            logger.info(f"[Startup News Sync] Seeded {bootstrapped_count} initial backlog headlines (fresh news preserved).")
         except Exception as e:
             logger.warning(f"[Startup News Sync] Warning: {e}")
 
@@ -1044,11 +1054,10 @@ class XAUUSDNewsAssistantBot:
         return desc
 
     @staticmethod
-    def _fetch_news_image(item: dict) -> bytes:
+    def _fetch_direct_publisher_image(item: dict) -> bytes:
         """
-        Downloads the genuine photo attached to the news article.
-        Strictly NEVER accepts generic logos (Google News logo, site icons, placeholders).
-        If no genuine news photo is found, returns None so the message is sent cleanly as text per Rule 8.
+        Extracts genuine direct article image from feed or deep article webpage (og:image / twitter:image / json-ld).
+        Strictly rejects generic logos, site icons, and small thumbnails.
         """
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -1077,9 +1086,6 @@ class XAUUSDNewsAssistantBot:
                 import io
                 with Image.open(io.BytesIO(img_bytes)) as im:
                     w, h = im.size
-                    # Accept any genuine news photo: landscape, portrait, or square.
-                    # Block only tiny icons/logos (< 280px in both dimensions).
-                    # Min short-side=180 to avoid tiny badge/icon images.
                     min_side = min(w, h)
                     max_side = max(w, h)
                     if max_side >= 380 and min_side >= 180:
@@ -1091,21 +1097,20 @@ class XAUUSDNewsAssistantBot:
         # 1. Try direct article image from feed
         if _is_valid_article_img(url):
             try:
-                resp = requests.get(url, headers=headers, timeout=8)
+                resp = requests.get(url, headers=headers, timeout=2.5)
                 if resp.status_code == 200 and _verify_image_bytes(resp.content):
                     return resp.content
             except Exception as e:
                 logger.warning(f"Direct news image fetch failed: {e}")
 
-        # 2. Extract genuine article image directly from the publisher's web page (og:image / twitter:image / json-ld)
-        # Must be a specific deep article URL (not a generic section homepage like /world or /news)
+        # 2. Extract genuine article image directly from the publisher's web page
         is_deep_article = (
             link.count("/") >= 4 and
             not any(link.rstrip("/").endswith(sec) for sec in ["/world", "/news", "/politics", "/markets", "/business", "/economy", "/home"])
         )
         if link and link.startswith("http") and "news.google.com" not in link and is_deep_article:
             try:
-                art_resp = requests.get(link, headers=headers, timeout=6)
+                art_resp = requests.get(link, headers=headers, timeout=2.5)
                 if art_resp.status_code == 200:
                     patterns = [
                         r'<meta[^>]+property=[\'"]og:image[\'"][^>]+content=[\'"]([^\'"]+)[\'"]',
@@ -1123,29 +1128,53 @@ class XAUUSDNewsAssistantBot:
                             if _is_valid_article_img(raw_img_url):
                                 from urllib.parse import urljoin
                                 full_img_url = urljoin(link, raw_img_url)
-                                img_resp = requests.get(full_img_url, headers=headers, timeout=8)
+                                img_resp = requests.get(full_img_url, headers=headers, timeout=2.5)
                                 if img_resp.status_code == 200 and _verify_image_bytes(img_resp.content):
                                     return img_resp.content
             except Exception as e:
                 logger.debug(f"Webpage og:image fetch failed for {link}: {e}")
 
-        # 3. Fallback to authentic portraits for key leaders/speakers if article specifically mentions them
-        comb_text = f"{item.get('title', '')} {item.get('description', '')}".lower()
-        speaker_img = XAUUSDNewsAssistantBot._get_speaker_photo(comb_text)
-        if speaker_img:
-            return speaker_img
+        return None
 
-        # 4. Fallback to authentic Ultra-HD topic photos for core macroeconomic pillars
+    @staticmethod
+    def _fetch_news_image(item: dict, analysis: dict = None) -> bytes:
+        """
+        Retrieves or synthesizes the most authentic, story-accurate image matching the narrative:
+        1. Dual-Leader Split Image (Meloni + Trump, Trump + Putin, etc.)
+        2. Dual-Country Flag Split Image (India + Canada, US + China, etc.)
+        3. Single Leader Official Portrait
+        4. Direct Verified Publisher Article Photo
+        5. Macro Topic Authentic Ultra-HD Photo
+        6. Single Country High-Res Flag Canvas
+        """
+        if StoryImageBuilder:
+            try:
+                img_bytes = StoryImageBuilder.get_image_for_news(
+                    item,
+                    analysis=analysis,
+                    default_fetcher=XAUUSDNewsAssistantBot._fetch_direct_publisher_image
+                )
+                if img_bytes:
+                    return img_bytes
+            except Exception as e:
+                logger.warning(f"[StoryImageBuilder] Error in get_image_for_news: {e}")
+
+        # Fallback to direct publisher photo if builder is unavailable
+        direct = XAUUSDNewsAssistantBot._fetch_direct_publisher_image(item)
+        if direct:
+            return direct
+
+        # Fallback to topic photo
+        comb_text = f"{item.get('title', '')} {item.get('description', '')}".lower()
         topic_img = XAUUSDNewsAssistantBot._get_topic_photo(comb_text)
         if topic_img:
             return topic_img
 
-        # Strictly return None - NEVER use random, fake, or unrelated placeholder images
         return None
 
     @staticmethod
     def _get_speaker_photo(text_low: str) -> bytes:
-        """Returns official portrait bytes for key leaders/speakers (Trump, Musk, Powell, Warsh)."""
+        """Returns official portrait bytes for key leaders/speakers."""
         photo_path = None
         if "warsh" in text_low or "kevin warsh" in text_low:
             photo_path = "assets/speakers/kevin_warsh.jpg"
@@ -1155,6 +1184,26 @@ class XAUUSDNewsAssistantBot:
             photo_path = "assets/speakers/donald_trump.jpg"
         elif "musk" in text_low or "elon musk" in text_low:
             photo_path = "assets/speakers/elon_musk.jpg"
+        elif "meloni" in text_low or "giorgia meloni" in text_low:
+            photo_path = "assets/speakers/giorgia_meloni.jpg"
+        elif "putin" in text_low or "vladimir putin" in text_low:
+            photo_path = "assets/speakers/vladimir_putin.jpg"
+        elif "xi jinping" in text_low or "president xi" in text_low:
+            photo_path = "assets/speakers/xi_jinping.jpg"
+        elif "netanyahu" in text_low or "benjamin netanyahu" in text_low:
+            photo_path = "assets/speakers/benjamin_netanyahu.jpg"
+        elif "zelensky" in text_low or "volodymyr zelensky" in text_low:
+            photo_path = "assets/speakers/volodymyr_zelenskyy.jpg"
+        elif "macron" in text_low or "emmanuel macron" in text_low:
+            photo_path = "assets/speakers/emmanuel_macron.jpg"
+        elif "starmer" in text_low or "keir starmer" in text_low:
+            photo_path = "assets/speakers/keir_starmer.jpg"
+        elif "lagarde" in text_low or "christine lagarde" in text_low:
+            photo_path = "assets/speakers/christine_lagarde.jpg"
+        elif "ueda" in text_low or "kazuo ueda" in text_low:
+            photo_path = "assets/speakers/kazuo_ueda.jpg"
+        elif "modi" in text_low or "narendra modi" in text_low:
+            photo_path = "assets/speakers/narendra_modi.jpg"
 
         if photo_path and os.path.exists(photo_path):
             try:
@@ -1219,7 +1268,7 @@ class XAUUSDNewsAssistantBot:
         Returns recommended sleep interval.
         """
         now_kh = datetime.now(CAMBODIA_TZ)
-        events = self.calendar_collector.fetch_events()
+        events = self.calendar_collector.fetch_events(max_age=15.0)
         
         has_imminent_event = False
         has_waiting_actual = False
@@ -1251,26 +1300,8 @@ class XAUUSDNewsAssistantBot:
                         )
                         msg = KhmerFormatter.format_actual_release_alert(ev, analysis)
 
-                        # Generate TradingView Live Chart with AI direction arrow
-                        chart_png = None
-                        if self.tv_chart_builder:
-                            try:
-                                chart_png = self.tv_chart_builder.build_chart_image(
-                                    event_title=f"{ev['title']} (Actual: {actual_val} vs F: {ev.get('forecast', 'N/A')})",
-                                    bias=analysis.get("bias", "Bullish"),
-                                    target_desc=analysis.get("xau_pressure", "")[:60]
-                                )
-                            except Exception as e:
-                                logger.warning(f"Failed to generate TradingView chart: {e}")
-
-
-                        if chart_png:
-                            caption_text = msg
-                            if not self._caption_fits(caption_text, limit=1024):
-                                caption_text = caption_text[:1000] + "..."
-                            self.notifier.send_photo(chart_png, caption=caption_text)
-                        else:
-                            self.notifier.send_message(msg)
+                        # Ultra-fast sub-second text alert (Zero chart rendering latency per user directive)
+                        self.notifier.send_message(msg)
 
                         database.record_event_stage(
                             ev_id, ev["title"], ev["currency"], ev["release_time_str"], 
@@ -1285,13 +1316,13 @@ class XAUUSDNewsAssistantBot:
         elif has_imminent_event:
             return INTERVAL_UPCOMING
         else:
-            return INTERVAL_NORMAL
+            return 30  # Responsive 30s cadence to never miss timely actual release updates
 
     def _channel_time_since_last_post(self) -> float:
         """Returns elapsed seconds since the latest message was published in @GoldMarketKH8888 live channel feed."""
         try:
             import datetime
-            channel_html = self._fetch_channel_html(max_cache_age=180.0)
+            channel_html = self._fetch_channel_html(max_cache_age=15.0)
             times = re.findall(r'<time[^>]*datetime="([^"]+)"', channel_html)
             if times:
                 last_dt = datetime.datetime.fromisoformat(times[-1])
@@ -1418,8 +1449,8 @@ class XAUUSDNewsAssistantBot:
         last_alert_ts = float(database.get_state("last_breaking_alert_ts") or "0")
         channel_time_since_last = self._channel_time_since_last_post()
         time_since_last = min(now - last_alert_ts, now - self._last_breaking_sent_ts, channel_time_since_last)
-        # Fast-track gate: if less than 90s passed, wait to protect against Telegram flood
-        if time_since_last < 90.0:
+        # Fast-track gate: minimal 3-second safety gap to prevent Telegram flood
+        if time_since_last < 3.0:
             return
 
         pending = []
@@ -1475,12 +1506,12 @@ class XAUUSDNewsAssistantBot:
                 channel_time_since_last = self._channel_time_since_last_post()
                 time_since_last = channel_time_since_last
 
-            # Fast-track priority check: critical news gets 90s gap, regular gets BREAKING_ALERT_MIN_GAP (180s = 3m)
+            # Fast-track priority check: critical news gets 3s gap, regular gets BREAKING_ALERT_MIN_GAP (5s)
             is_critical = any(k in (title + " " + desc).lower() for k in [
                 "war", "attack", "missile", "airstrike", "fomc", "rate cut", "rate hike",
                 "interest rate", "powell", "kevin warsh", "cpi", "nfp", "emergency", "nuclear"
             ])
-            required_gap = 90.0 if is_critical else BREAKING_ALERT_MIN_GAP
+            required_gap = 3.0 if is_critical else BREAKING_ALERT_MIN_GAP
             if time_since_last < required_gap:
                 logger.debug(f"[BREAKING GAP] {time_since_last:.1f}s elapsed < {required_gap}s required. Deferring to next cycle.")
                 break
@@ -1569,9 +1600,8 @@ class XAUUSDNewsAssistantBot:
                 database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
                 continue
 
-            # Anti-Collision Jitter: Breaks race condition if multiple containers evaluate news simultaneously
-            import random
-            time.sleep(random.uniform(0.8, 2.2))
+            # Minimal micro-jitter to prevent concurrency race
+            time.sleep(0.05)
 
             # Re-verify channel feed right before dispatch (with fresh real-time web check)
             if self._is_already_in_telegram_channel(title, it.get("link", ""), khmer_text=msg, fresh=True):
@@ -1582,7 +1612,7 @@ class XAUUSDNewsAssistantBot:
 
             # Pre-flight channel cooldown check: ensure another container did not just post in the last required_gap seconds
             fresh_elapsed = self._channel_time_since_last_post()
-            if fresh_elapsed < (required_gap - 10.0):
+            if fresh_elapsed < (required_gap - 1.0):
                 logger.info(f"[CHANNEL COLLISION PREVENTED] Channel has a post from {fresh_elapsed:.1f}s ago (< {required_gap}s required). Deferring.")
                 break
 
@@ -1594,7 +1624,7 @@ class XAUUSDNewsAssistantBot:
             if cluster:
                 database.set_state(f"cluster_last_ts_{cluster}", str(time.time()))
             self._cached_channel_html = "" # Invalidate channel cache
-            photo = self._fetch_news_image(it)
+            photo = self._fetch_news_image(it, analysis=analysis)
             if photo:
                 msg_photo = KhmerFormatter.format_breaking_event_alert(it, analysis, has_photo=True)
                 caption_text = self._truncate_html_caption(msg_photo, max_visible_chars=950)
@@ -1701,9 +1731,9 @@ class XAUUSDNewsAssistantBot:
         cache_thread.start()
 
         last_background_check = 0.0
-        background_interval = 60  # Initial background check interval
+        background_interval = 30  # Responsive background check interval (30s)
         last_breaking_check = 0.0
-        breaking_interval = 10.0  # Ultra-fast real-time breaking news monitor (every 10s)
+        breaking_interval = 2.0   # Ultra-fast sub-second breaking news monitor (every 2s)
         last_signal_check = 0.0
         signal_interval = 30.0    # Real-time high-speed signals & trade trailing monitor (every 30s)
 
@@ -1732,12 +1762,12 @@ class XAUUSDNewsAssistantBot:
                         background_interval = self.check_economic_events()
                     except Exception as err:
                         logger.error(f"Error during background task check: {err}", exc_info=True)
-                        background_interval = 60
+                        background_interval = 30
 
 
 
                 # Micro-sleep to ensure near-zero CPU usage while maintaining instant responsiveness
-                time.sleep(1.0)
+                time.sleep(0.5)
             except KeyboardInterrupt:
                 logger.info("Bot stopped by user.")
                 break
