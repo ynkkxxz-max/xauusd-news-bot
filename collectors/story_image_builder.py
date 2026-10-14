@@ -100,26 +100,46 @@ class StoryImageBuilder:
         """
         title = item.get("title", "")
         desc = item.get("description", "")
+        source_name = item.get("source", "")
         headline_km = ""
         key_event = ""
         if isinstance(analysis, dict):
             headline_km = analysis.get("headline_km", "")
             key_event = analysis.get("key_event", "")
 
-        comb_text = f"{title} {desc} {headline_km} {key_event}".lower()
+        # Strict publisher source stripping to avoid false country matching (e.g. "China Military Online", "Times of India")
+        clean_desc = desc
+        if source_name:
+            clean_desc = re.sub(re.escape(source_name), "", clean_desc, flags=re.IGNORECASE)
+        # Strip common news agencies from country matching
+        news_agencies = [
+            r"\bchina military online\b", r"\btimes of india\b", r"\bal jazeera\b",
+            r"\beuromaidan press\b", r"\bsouth china morning post\b", r"\bkyodo news\b",
+            r"\bxinhua\b", r"\btass\b", r"\bsputnik\b", r"\bbbc\b", r"\bcnn\b", r"\bcnbc\b"
+        ]
+        for ag in news_agencies:
+            clean_desc = re.sub(ag, "", clean_desc, flags=re.IGNORECASE)
 
-        # Step 1: Detect Leaders involved
+        comb_text = f"{title} {clean_desc} {headline_km} {key_event}".lower()
+        headline_text = f"{headline_km} {title}".lower()
+
+        # Step 1: Detect Leaders involved (Priority to headline occurrence)
         detected_leaders = []
         for leader_key, pat in cls.LEADER_PATTERNS:
-            if re.search(pat, comb_text, re.IGNORECASE):
+            m = re.search(pat, comb_text, re.IGNORECASE)
+            if m:
                 img_path = os.path.join(cls.LEADERS_DIR, f"{leader_key}.jpg")
                 if os.path.exists(img_path):
-                    detected_leaders.append((leader_key, img_path))
+                    m_head = re.search(pat, headline_text, re.IGNORECASE)
+                    head_pos = m_head.start() if m_head else 99999
+                    detected_leaders.append((leader_key, img_path, head_pos))
+
+        detected_leaders.sort(key=lambda x: x[2])
 
         # If TWO leaders are involved, synthesize dual-leader split image!
         if len(detected_leaders) >= 2:
-            l1, path1 = detected_leaders[0]
-            l2, path2 = detected_leaders[1]
+            l1, path1, _ = detected_leaders[0]
+            l2, path2, _ = detected_leaders[1]
             logger.info(f"[StoryImageBuilder] Synthesizing Dual-Leader Split Image: {l1} + {l2}")
             split_bytes = cls.create_split_image(path1, path2)
             if split_bytes:
@@ -137,39 +157,44 @@ class StoryImageBuilder:
 
         # If ONE leader and ONE brand are involved (e.g. Zelenskyy + SpaceX / Starlink), synthesize Split Image!
         if len(detected_leaders) == 1 and len(detected_brands) >= 1:
-            l1, path1 = detected_leaders[0]
+            l1, path1, _ = detected_leaders[0]
             b1, path2 = detected_brands[0]
             logger.info(f"[StoryImageBuilder] Synthesizing Leader + Brand Split Image: {l1} + {b1}")
             split_bytes = cls.create_split_image(path1, path2)
             if split_bytes:
                 return split_bytes
 
-        # Step 2: Detect Countries / Flags involved
-        detected_countries = []
-        for c_code, pat in cls.COUNTRY_PATTERNS:
-            if re.search(pat, comb_text, re.IGNORECASE):
-                flag_path = os.path.join(cls.FLAGS_DIR, f"{c_code}.png")
-                if os.path.exists(flag_path):
-                    detected_countries.append((c_code, flag_path))
-
-        # If TWO countries are involved (and no dual leader), synthesize dual-flag split image!
-        if len(detected_countries) >= 2:
-            c1, path1 = detected_countries[0]
-            c2, path2 = detected_countries[1]
-            logger.info(f"[StoryImageBuilder] Synthesizing Dual-Country Flag Split Image: {c1} + {c2}")
-            split_bytes = cls.create_split_image(path1, path2, is_flags=True)
-            if split_bytes:
-                return split_bytes
-
-        # Step 3: Single Leader Official Portrait
+        # Step 2: Single Leader Official Portrait (Always prefer real leader photo over generic flags!)
         if len(detected_leaders) == 1:
-            l1, path1 = detected_leaders[0]
+            l1, path1, _ = detected_leaders[0]
             logger.info(f"[StoryImageBuilder] Using Single Leader Portrait: {l1}")
             try:
                 with open(path1, "rb") as f:
                     return f.read()
             except Exception as e:
                 logger.warning(f"Failed to read leader image {path1}: {e}")
+
+        # Step 3: Detect Countries / Flags involved (ranked by headline position)
+        detected_countries = []
+        for c_code, pat in cls.COUNTRY_PATTERNS:
+            m = re.search(pat, comb_text, re.IGNORECASE)
+            if m:
+                flag_path = os.path.join(cls.FLAGS_DIR, f"{c_code}.png")
+                if os.path.exists(flag_path):
+                    m_head = re.search(pat, headline_text, re.IGNORECASE)
+                    head_pos = m_head.start() if m_head else 99999
+                    detected_countries.append((c_code, flag_path, head_pos))
+
+        detected_countries.sort(key=lambda x: x[2])
+
+        # If TWO countries are involved (and no leader photo), synthesize dual-flag split image!
+        if len(detected_countries) >= 2:
+            c1, path1, _ = detected_countries[0]
+            c2, path2, _ = detected_countries[1]
+            logger.info(f"[StoryImageBuilder] Synthesizing Dual-Country Flag Split Image: {c1} + {c2}")
+            split_bytes = cls.create_split_image(path1, path2, is_flags=True)
+            if split_bytes:
+                return split_bytes
 
         # Step 4: Direct Genuine Article Image from Publisher
         if default_fetcher:
