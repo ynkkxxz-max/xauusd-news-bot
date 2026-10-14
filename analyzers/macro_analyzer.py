@@ -262,11 +262,27 @@ class MacroAnalyzer:
         is_military = any(re.search(rf"\b{w}\b", text) for w in war_words) or ("strike" in text and any(k in text for k in ["israel", "gaza", "russia", "ukraine", "iran", "yemen", "kyiv", "beirut", "tel aviv"]))
 
         if is_military:
+            is_energy = any(k in text for k in ["oil", "aramco", "petroleum", "energy", "crude", "diesel", "gas", "pipeline"])
+            is_strait = any(k in text for k in ["hormuz", "red sea", "bab al-mandab", "strait", "straits"])
+            is_gold_mentioned = any(k in text for k in ["gold", "xau", "bullion"])
+            if is_energy:
+                why_matters = "ការវាយប្រហារ ឬភាពតានតឹងយោធា បង្កហានិភ័យរំខានការផ្គត់ផ្គង់ថាមពលសកល និងរុញសម្ពាធតម្លៃប្រេងឱ្យឡើងខ្ពស់"
+                impact_text = "🔸 ហានិភ័យទីផ្សារ៖ ការរំខានការផ្គត់ផ្គង់ ឬភាពតានតឹងថាមពល រុញសម្ពាធតម្លៃប្រេងឆៅសកលឱ្យឡើងថ្លៃ"
+            elif is_strait:
+                why_matters = "ភាពតានតឹងនៅច្រកសមុទ្រយុទ្ធសាស្ត្រ គំរាមកំហែងដល់ផ្លូវដឹកជញ្ជូនថាមពល និងទំនិញសកល"
+                impact_text = "🔸 ហានិភ័យទីផ្សារ៖ ភាពតានតឹងនៅច្រកសមុទ្រយុទ្ធសាស្ត្រ គំរាមកំហែងដល់ផ្លូវដឹកជញ្ជូន និងរុញសម្ពាធថ្លៃដឹកជញ្ជូនសកលឱ្យហក់ឡើង"
+            elif is_gold_mentioned:
+                why_matters = "បង្កើនហានិភ័យភូមិសាស្ត្រនយោបាយ ដែលអាចជំរុញឱ្យតម្រូវការទិញមាស (XAUUSD) ហក់ឡើងខ្ពស់ក្នុងនាមជាទ្រព្យសុវត្ថិភាព"
+                impact_text = "🔸 ហានិភ័យទីផ្សារ៖ បង្កើនតម្រូវការទិញមាស XAUUSD ក្នុងនាមជាទ្រព្យសុវត្ថិភាព"
+            else:
+                why_matters = "បង្កើនហានិភ័យភូមិសាស្ត្រនយោបាយ និងបង្កើនការប្រុងប្រយ័ត្នខ្ពស់ក្នុងទីផ្សារហិរញ្ញវត្ថុសកល"
+                impact_text = "🔸 ហានិភ័យទីផ្សារ៖ បង្កើនភាពតានតឹងផ្នែកភូមិសាស្ត្រនយោបាយ និងបង្កើនការប្រុងប្រយ័ត្នខ្ពស់ក្នុងទីផ្សារហិរញ្ញវត្ថុសកល"
+
             return _make_res({
                 "key_event": km_story,
                 "what_happened": km_story,
-                "why_it_matters": "បង្កើនហានិភ័យភូមិសាស្ត្រនយោបាយ ដែលអាចជំរុញឱ្យតម្រូវការទិញមាស (XAUUSD) ហក់ឡើងខ្ពស់ក្នុងនាមជាទ្រព្យសុវត្ថិភាព",
-                "impact": "🔸 ហានិភ័យទីផ្សារ៖ បង្កើនភាពតានតឹងផ្នែកភូមិសាស្ត្រនយោបាយ ដែលអាចជំរុញឱ្យតម្រូវការទិញមាស (XAUUSD) ហក់ឡើងខ្ពស់ក្នុងនាមជាទ្រព្យសុវត្ថិភាព",
+                "why_it_matters": why_matters,
+                "impact": impact_text,
                 "usd_impact": "USD អាចឡើងថ្លៃក្នុងនាមជា Safe Haven ប៉ុន្តែមាស (Gold) ទទួលបានអត្ថប្រយោជន៍ និងទំហំទិញខ្លាំងជាង។",
                 "rate_yield_impact": "វិនិយោគិនសម្រុកទិញសញ្ញាប័ណ្ណរដ្ឋាភិបាល (Bonds) ធ្វើឱ្យ Bond Yields ធ្លាក់ចុះ។",
                 "xau_pressure": "🟢 Bullish (តម្រូវការទិញមាស Safe-Haven កើនឡើងខ្ពស់)",
