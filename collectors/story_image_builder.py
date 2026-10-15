@@ -54,7 +54,7 @@ class StoryImageBuilder:
     ]
 
     COUNTRY_PATTERNS = [
-        ("us", r"\b(us|usa|united states|america)\b|អាមេរិក|សហរដ្ឋអាមេរិក"),
+        ("us", r"\b(u\.s\.|u\.s|usa|united states|america|american|wall street)\b|អាមេរិក|សហរដ្ឋអាមេរិក"),
         ("ca", r"\b(canada|canadian)\b|កាណាដា"),
         ("in", r"\b(india|indian)\b|ឥណ្ឌា"),
         ("cn", r"\b(china|chinese|beijing)\b|ចិន"),
@@ -80,7 +80,7 @@ class StoryImageBuilder:
         ("vn", r"\b(vietnam|vietnamese|hanoi)\b|វៀតណាម"),
         ("mx", r"\b(mexico|mexican)\b|ម៉ិកស៊ិក"),
         ("id", r"\b(indonesia|indonesian|jakarta)\b|ឥណ្ឌូនេស៊ី"),
-        ("qa", r"\b(qatar|doha)\b|កាតា"),
+        ("qa", r"\b(qatar|doha)\b|(?:ប្រទេស|រដ្ឋ)?\s*កាតា(?![លក\u1780-\u17D3])"),
         ("eg", r"\b(egypt|egyptian|cairo)\b|អេហ្ស៊ីប"),
     ]
 
@@ -169,23 +169,35 @@ class StoryImageBuilder:
         detected_countries = []
         for c_code, pat in cls.COUNTRY_PATTERNS:
             m = re.search(pat, comb_text, re.IGNORECASE)
+            # Special check for uppercase 'US' in original text (prevents false positive from lowercase 'us' pronoun)
+            if not m and c_code == "us":
+                if re.search(r'\b(US|USA)\b', f"{title} {clean_desc}"):
+                    m = True
             if m:
                 flag_path = os.path.join(cls.FLAGS_DIR, f"{c_code}.png")
                 if os.path.exists(flag_path):
                     m_head = re.search(pat, headline_text, re.IGNORECASE)
-                    head_pos = m_head.start() if m_head else 99999
+                    if not m_head and c_code == "us" and re.search(r'\b(US|USA)\b', title):
+                        m_head = True
+                    head_pos = m_head.start() if (m_head and hasattr(m_head, 'start')) else (0 if m_head else 99999)
                     detected_countries.append((c_code, flag_path, head_pos))
 
         detected_countries.sort(key=lambda x: x[2])
 
-        # If TWO countries are involved (and no leader photo), synthesize dual-flag split image!
+        # If TWO countries are involved (and no leader photo), synthesize dual-flag split image ONLY IF:
+        # 1. BOTH countries are prominently in the headline (bilateral event), OR
+        # 2. There are explicit bilateral interaction keywords in the headline (conflict, trade war, talks, deal).
         if len(detected_leaders) == 0 and len(detected_countries) >= 2:
-            c1, path1, _ = detected_countries[0]
-            c2, path2, _ = detected_countries[1]
-            logger.info(f"[StoryImageBuilder] Synthesizing Dual-Country Flag Split Image: {c1} + {c2}")
-            split_bytes = cls.create_split_image(path1, path2, is_flags=True)
-            if split_bytes:
-                return split_bytes
+            c1, path1, pos1 = detected_countries[0]
+            c2, path2, pos2 = detected_countries[1]
+            both_in_headline = (pos1 < 90000 and pos2 < 90000)
+            bilateral_keywords = r"\b(relations|bilateral|talks|summit|dispute|conflict|war|clash|deal with|sanctions on|versus|vs|and)\b|សង្គ្រាម|ជម្លោះ|ទំនាក់ទំនង|ទ្វេភាគី|កិច្ចចរចា|ទណ្ឌកម្ម|និង"
+            has_bilateral = bool(re.search(bilateral_keywords, headline_text, re.IGNORECASE))
+            if both_in_headline or (pos1 < 90000 and has_bilateral):
+                logger.info(f"[StoryImageBuilder] Synthesizing Dual-Country Flag Split Image: {c1} + {c2}")
+                split_bytes = cls.create_split_image(path1, path2, is_flags=True)
+                if split_bytes:
+                    return split_bytes
 
         # Step 3: Direct Genuine Article Image from Publisher (Fresh, Up-to-Date, Non-Repetitive)
         # Prioritize live press photos from Reuters, Bloomberg, etc., so readers always see fresh visuals and never get bored!
@@ -218,8 +230,8 @@ class StoryImageBuilder:
                         logger.warning(f"Failed to read topic image {topic_path}: {e}")
 
         # Step 6: Single Country High-Res Flag / Visual
-        if len(detected_countries) == 1:
-            c1, path1 = detected_countries[0]
+        if detected_countries:
+            c1, path1, _ = detected_countries[0]
             logger.info(f"[StoryImageBuilder] Using Single Country Flag Canvas: {c1}")
             flag_canvas = cls.create_single_flag_canvas(path1)
             if flag_canvas:
