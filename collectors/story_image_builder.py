@@ -124,27 +124,41 @@ class StoryImageBuilder:
         comb_text = f"{title} {clean_desc} {headline_km} {key_event}".lower()
         headline_text = f"{headline_km} {title}".lower()
 
-        # Step 1: Detect Leaders involved (Priority to headline occurrence)
-        detected_leaders = []
+        # Step 1: Detect Leaders involved (Priority to Khmer and English headline occurrence)
+        headline_leaders = []
         for leader_key, pat in cls.LEADER_PATTERNS:
-            m = re.search(pat, comb_text, re.IGNORECASE)
-            if m:
+            if re.search(pat, headline_text, re.IGNORECASE):
                 img_path = os.path.join(cls.LEADERS_DIR, f"{leader_key}.jpg")
                 if os.path.exists(img_path):
+                    m_km = re.search(pat, headline_km, re.IGNORECASE) if headline_km else None
                     m_head = re.search(pat, headline_text, re.IGNORECASE)
-                    head_pos = m_head.start() if m_head else 99999
-                    detected_leaders.append((leader_key, img_path, head_pos))
+                    pos = m_km.start() if m_km else (m_head.start() if m_head else 99999)
+                    headline_leaders.append((leader_key, img_path, pos, bool(m_km)))
 
-        detected_leaders.sort(key=lambda x: x[2])
+        headline_leaders.sort(key=lambda x: x[2])
 
-        # If TWO leaders are involved, synthesize dual-leader split image!
-        if len(detected_leaders) >= 2:
-            l1, path1, _ = detected_leaders[0]
-            l2, path2, _ = detected_leaders[1]
-            logger.info(f"[StoryImageBuilder] Synthesizing Dual-Leader Split Image: {l1} + {l2}")
-            split_bytes = cls.create_split_image(path1, path2)
-            if split_bytes:
-                return split_bytes
+        # Dual-Leader Split Image Rule: ONLY allowed if BOTH leaders are prominently featured in the HEADLINE!
+        # If headline_km exists, the 2nd leader MUST be present in headline_km as well to prevent image/text contradiction!
+        if len(headline_leaders) >= 2:
+            l1, path1, _, km1 = headline_leaders[0]
+            l2, path2, _, km2 = headline_leaders[1]
+            if not headline_km or (km1 and km2):
+                logger.info(f"[StoryImageBuilder] Synthesizing Dual-Leader Split Image from headline: {l1} + {l2}")
+                split_bytes = cls.create_split_image(path1, path2)
+                if split_bytes:
+                    return split_bytes
+
+        # If exactly ONE leader is in the headline, strictly use SINGLE leader portrait (NEVER drag 2nd leader from body!)
+        if len(headline_leaders) >= 1:
+            l1, path1, _, _ = headline_leaders[0]
+            logger.info(f"[StoryImageBuilder] Using Single Leader Portrait from headline: {l1}")
+            try:
+                with open(path1, "rb") as f:
+                    return f.read()
+            except Exception as e:
+                logger.warning(f"[StoryImageBuilder] Failed reading single leader image {path1}: {e}")
+
+        detected_leaders = headline_leaders
 
         # Step 1.5: Detect Brands / Tech Giants involved
         detected_brands = []
