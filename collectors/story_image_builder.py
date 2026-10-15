@@ -165,17 +165,7 @@ class StoryImageBuilder:
             if split_bytes:
                 return split_bytes
 
-        # Step 2: Single Leader Official Portrait (Always prefer real leader photo over generic flags!)
-        if len(detected_leaders) == 1:
-            l1, path1, _ = detected_leaders[0]
-            logger.info(f"[StoryImageBuilder] Using Single Leader Portrait: {l1}")
-            try:
-                with open(path1, "rb") as f:
-                    return f.read()
-            except Exception as e:
-                logger.warning(f"Failed to read leader image {path1}: {e}")
-
-        # Step 3: Detect Countries / Flags involved (ranked by headline position)
+        # Step 2: Dual-Country Flags (if no leader is involved)
         detected_countries = []
         for c_code, pat in cls.COUNTRY_PATTERNS:
             m = re.search(pat, comb_text, re.IGNORECASE)
@@ -189,7 +179,7 @@ class StoryImageBuilder:
         detected_countries.sort(key=lambda x: x[2])
 
         # If TWO countries are involved (and no leader photo), synthesize dual-flag split image!
-        if len(detected_countries) >= 2:
+        if len(detected_leaders) == 0 and len(detected_countries) >= 2:
             c1, path1, _ = detected_countries[0]
             c2, path2, _ = detected_countries[1]
             logger.info(f"[StoryImageBuilder] Synthesizing Dual-Country Flag Split Image: {c1} + {c2}")
@@ -197,12 +187,23 @@ class StoryImageBuilder:
             if split_bytes:
                 return split_bytes
 
-        # Step 4: Direct Genuine Article Image from Publisher
+        # Step 3: Direct Genuine Article Image from Publisher (Fresh, Up-to-Date, Non-Repetitive)
+        # Prioritize live press photos from Reuters, Bloomberg, etc., so readers always see fresh visuals and never get bored!
         if default_fetcher:
             direct_photo = default_fetcher(item)
             if direct_photo:
-                logger.info(f"[StoryImageBuilder] Using verified direct publisher article photo.")
-                return direct_photo
+                logger.info(f"[StoryImageBuilder] Using verified direct publisher article photo (enhanced for VIP).")
+                return cls.enhance_image_for_vip(direct_photo)
+
+        # Step 4: Single Leader Official Portrait (High-Res Fallback when direct article photo is missing)
+        if len(detected_leaders) >= 1:
+            l1, path1, _ = detected_leaders[0]
+            logger.info(f"[StoryImageBuilder] Using Single Leader Portrait Fallback: {l1}")
+            try:
+                with open(path1, "rb") as f:
+                    return cls.enhance_image_for_vip(f.read())
+            except Exception as e:
+                logger.warning(f"Failed to read leader image {path1}: {e}")
 
         # Step 5: Macro Topic Authentic Ultra-HD Photo
         for topic_key, pat in cls.TOPIC_PATTERNS:
@@ -212,7 +213,7 @@ class StoryImageBuilder:
                     logger.info(f"[StoryImageBuilder] Using Macro Topic Photo: {topic_key}")
                     try:
                         with open(topic_path, "rb") as f:
-                            return f.read()
+                            return cls.enhance_image_for_vip(f.read())
                     except Exception as e:
                         logger.warning(f"Failed to read topic image {topic_path}: {e}")
 
@@ -222,9 +223,45 @@ class StoryImageBuilder:
             logger.info(f"[StoryImageBuilder] Using Single Country Flag Canvas: {c1}")
             flag_canvas = cls.create_single_flag_canvas(path1)
             if flag_canvas:
-                return flag_canvas
+                return cls.enhance_image_for_vip(flag_canvas)
 
         return None
+
+    @classmethod
+    def enhance_image_for_vip(cls, img_bytes: bytes, target_w: int = 1200, target_h: int = 800) -> bytes:
+        """
+        Elevates images to 10/10 VIP editorial quality:
+        - LANCZOS fit to optimal widescreen standard.
+        - Dynamic range polish: contrast +4%, saturation +5%, sharpness +12%.
+        - Output pristine JPEG (quality 95).
+        """
+        if not img_bytes:
+            return None
+        try:
+            from PIL import ImageEnhance
+            im = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+            w, h = im.size
+
+            # If reasonably wide (landscape), fit cleanly to 1200x800
+            aspect = w / max(h, 1)
+            if 1.2 <= aspect <= 1.95:
+                fitted = ImageOps.fit(im, (target_w, target_h), method=Image.Resampling.LANCZOS, centering=(0.5, 0.38))
+            else:
+                # Resize proportionally to fit inside 1200x800 bounds
+                im.thumbnail((target_w, target_h), Image.Resampling.LANCZOS)
+                fitted = im
+
+            # Editorial enhancement: crisp sharpness and punchy colors
+            fitted = ImageEnhance.Contrast(fitted).enhance(1.04)
+            fitted = ImageEnhance.Color(fitted).enhance(1.05)
+            fitted = ImageEnhance.Sharpness(fitted).enhance(1.12)
+
+            out_io = io.BytesIO()
+            fitted.save(out_io, format="JPEG", quality=95, optimize=True)
+            return out_io.getvalue()
+        except Exception as e:
+            logger.warning(f"Error enhancing image for VIP: {e}")
+            return img_bytes
 
     @classmethod
     def create_split_image(cls, img_path1: str, img_path2: str, width: int = 1200, height: int = 800, divider_width: int = 4, is_flags: bool = False) -> bytes:
