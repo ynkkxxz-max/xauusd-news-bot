@@ -996,10 +996,18 @@ class XAUUSDNewsAssistantBot:
 
     @staticmethod
     def _news_ts(item: dict) -> float:
-        try:
-            return parsedate_to_datetime(item.get("pub_date", "")).timestamp()
-        except Exception:
+        pd = item.get("pub_date", "")
+        if not pd:
             return 0.0
+        try:
+            from collectors.breaking_news import BreakingNewsCollector
+            return BreakingNewsCollector.parse_pub_date(pd)
+        except Exception:
+            try:
+                from email.utils import parsedate_to_datetime
+                return parsedate_to_datetime(pd).timestamp()
+            except Exception:
+                return 0.0
 
     @staticmethod
     def _enrich_article_description(item: dict) -> str:
@@ -1482,9 +1490,13 @@ class XAUUSDNewsAssistantBot:
             if title.lower() in self._broadcasted_titles_cache:
                 continue
 
-            # Freshness Gate: strictly reject stale items older than 2 hours (ensures truly fresh breaking news)
+            # STRICT FRESHNESS SHIELD (Zero Old News Guarantee):
+            # Strictly reject stale items older than 60 minutes (3600s) or items with unknown/unverified age.
+            MAX_NEWS_AGE = 3600.0  # Strictly 1 hour maximum for breaking news
             item_ts = self._news_ts(item)
-            if item_ts > 0 and (now - item_ts) > 2 * 3600:
+            if item_ts == 0.0 or (now - item_ts) > MAX_NEWS_AGE:
+                logger.info(f"[STALE NEWS SHIELD] Dropping old/unverified news '{title}' (Age: {(now - item_ts)/60:.1f}m if item_ts > 0 else 'Unknown').")
+                self.news_collector.clear_item(news_id=news_id, link=item.get("link", ""), title=title)
                 database.record_news_sent(news_id, title, item.get("source", ""), is_broadcasted=0)
                 continue
 
