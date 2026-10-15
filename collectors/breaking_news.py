@@ -80,7 +80,8 @@ class BreakingNewsCollector:
         "united24", "moscow times", "france24", "ua.news", "tnglobal", "morningstar",
         "middle east eye", "blogger", "substack", "medium", "dailystar", "the sun", 
         "daily mail", "mirror", "pr newswire", "globenewswire", "business wire", "press release",
-        "biggo", "hawaii", "tz", "vietnam", "tribune", "kalkine"
+        "biggo", "hawaii", "tz", "vietnam", "tribune", "kalkine", "pluang", "cryptonews",
+        "ambcrypto", "coingape", "u.today", "coinpedia", "cryptopotato", "decrypt", "blockonomi", "beincrypto"
     ]
 
     def __init__(self):
