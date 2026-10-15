@@ -772,22 +772,6 @@ class KhmerFormatter:
         headline_km = re.sub(r'\s+(?:នៃ|របស់|និង|ពី|ក្នុង|ដើម្បី|លើ|អំពី)\s*$', '', headline_km).strip()
         headline_km = re.sub(r'[\s.,;:៖–—_…]+$', '', headline_km).strip()
 
-        # Smart Topic Badge fallback if no specific country flag was detected:
-        if not country_flags:
-            topic_search = f"{news_item.get('title', '')} {headline_km} {key_event}".lower()
-            if any(k in topic_search for k in ["ai", "tech", "chip", "semiconductor", "software", "nvidia", "apple", "microsoft", "google", "meta", "intel", "openai", "cloud", "data cent", "បច្ចេកវិទ្យា", "បន្ទះឈីប", "ទិន្នន័យ"]):
-                country_flags = ["💻"]
-            elif any(k in topic_search for k in ["oil", "crude", "energy", "opec", "diesel", "gas", "brent", "wti", "ប្រេង", "ថាមពល"]):
-                country_flags = ["🛢️"]
-            elif any(k in topic_search for k in ["bitcoin", "crypto", "ether", "btc", "eth", "binance", "coinbase", "គ្រីបតូ"]):
-                country_flags = ["🪙"]
-            elif any(k in topic_search for k in ["gold", "bullion", "xau", "មាស"]):
-                country_flags = ["🥇"]
-            elif any(k in topic_search for k in ["fed", "rate", "inflation", "cpi", "pce", "gdp", "central bank", "ធនាគារកណ្តាល", "អតិផរណា", "អត្រាការប្រាក់", "បំណុល"]):
-                country_flags = ["🏦"]
-            else:
-                country_flags = ["🌐"]
-
         flag_prefix = (" ".join(country_flags[:2]) + " ") if country_flags else ""
         header = f"{flag_prefix}<b>{headline_km}</b>".strip()
 
