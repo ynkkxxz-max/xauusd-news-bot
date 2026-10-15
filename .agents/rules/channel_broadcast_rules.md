@@ -30,6 +30,11 @@ description: "Core rules and design standards for Telegram Channel Broadcasts (D
 - **របាំងការពារព័ត៌មានចាស់ហួសសម័យកាល (Strict Freshness Shield — Zero Old News Guarantee — បញ្ជាផ្ទាល់)**:
   - ផ្សាយតែព័ត៌មានដែលទើបតែចេញផ្សាយថ្មីៗស្រស់ៗមិនលើសពី ៤៥ ទៅ ៦០ នាទី (Strictly under 1 hour max, `MAX_NEWS_AGE = 3600s`) ប៉ុណ្ណោះ។
   - ហាមដាច់ខាតមិនឱ្យទាញយក ឬផ្សាយព័ត៌មានចាស់ (អាយុកាលលើសពី ១ ម៉ោង ឬព័ត៌មានកាលពីម្សិលមិញ/ថ្ងៃមុន) មកផ្សាយចូល Channel ជាដាច់ខាត។ រាល់ព័ត៌មានដែលគ្មានម៉ោងច្បាស់លាស់ ឬអាយុកាលលើសពី ១ ម៉ោង ត្រូវ Drop/Skip ចោលភ្លាមៗដោយស្វ័យប្រវត្តិ។
+- **របាំងបង្វិលវិស័យ មិនឱ្យផ្សាយប្រធានបទដដែលៗជាប់គ្នា (Consecutive Sector Diversity Shield — បញ្ជាផ្ទាល់)**:
+  - ហាមដាច់ខាតមិនឱ្យផ្សាយ ២ ព័ត៌មានជាប់គ្នាក្នុងវិស័យ ឬប្រធានបទដដែលក្នុងរយៈពេល ៣០ នាទី (ឧ. បើទើបតែចេញព័ត៌មានប្រេងកាតរួច ហាមមិនឱ្យចេញព័ត៌មានប្រេងកាតមួយទៀតភ្លាមៗនោះទេ ទោះបីជាចំណងជើងខុសគ្នាក៏ដោយ) ដើម្បីរក្សាភាពសម្បូរបែបនៃព័ត៌មាន និងការពារកុំឱ្យអ្នកអានធុញទ្រាន់។
+- **ប្រព័ន្ធចាក់សោ Cooldown ច្រើនវិស័យព្រមគ្នា (Multi-Cluster Cooldown Locking — បញ្ជាផ្ទាល់)**:
+  - ប្រសិនបើព័ត៌មានមួយពាក់ព័ន្ធនឹងច្រើនវិស័យ (ឧ. ជម្លោះរុស្ស៊ី-អ៊ុយក្រែន វាយប្រហារលើរោងចក្រចម្រាញ់ប្រេង) ប្រព័ន្ធនឹងចាត់ថ្នាក់ចូលទាំង `energy_oil` និង `russia_ukraine` ដោយចាក់សោ Cooldown គ្រប់វិស័យទាំងអស់ ការពារកុំឱ្យព័ត៌មានសាច់រឿងប្រហាក់ប្រហែលគ្នារបូតចេញមកបាន។
+- **Enhanced Semantic Duplicate Stemming**: បង្រួមពាក្យមានន័យដូចគ្នា (Synonyms: attacks/strikes/hit $\rightarrow$ strike, refinery/petroleum/crude/diesel/tanker $\rightarrow$ oil, chips/semiconductor $\rightarrow$ chip) ដើម្បីចាប់ semantic duplication បាន ១០០%។
 - **ខ្លឹមសាររៀបរាប់ក្បោះក្បាយត្រឹមត្រូវ**:
   - សាច់រឿងព័ត៌មានក្បោះក្បាយ ត្រឹមត្រូវតាមដំណើររឿងពិតជាភាសាខ្មែរសុទ្ធសាធ (គ្មានចំណងជើងភាសាអង់គ្លេសនៅខាងមុខឡើយ)។
   - **ឈ្មោះក្រុមហ៊ុន និងឈ្មោះមនុស្ស/មេដឹកនាំ (Original English/Latin Names — បញ្ជាផ្ទាល់)**: ត្រូវរក្សាទុកជាភាសាដើម (English/Latin) ជានិច្ច ហាមដាច់ខាតកុំបកប្រែ ឬសរសេរកាឡៃជាភាសាខ្មែរឡើយ (ឧ. Apple, Microsoft, NVIDIA, Tesla, Google, Amazon, Meta, Tether, BlackRock, TSMC, Intel, Elon Musk, Donald Trump, Kevin Warsh, Jerome Powell, Xi Jinping, Warren Buffett ជាដើម)។
