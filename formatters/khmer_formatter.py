@@ -248,6 +248,20 @@ def sanitize_khmer_spelling(text: str) -> str:
         (r"កាត់បន្ថយអត្រា(?!ការប្រាក់)", "កាត់បន្ថយអត្រាការប្រាក់"),
         (r"ការដំឡើងអត្រា(?!ការប្រាក់)", "ការដំឡើងអត្រាការប្រាក់"),
 
+        # Crude Oil Barrel Terminology & Verbs (Strict 'បារ៉ែល' - NEVER mistranslate as 'បារ' or 'មួយបារ')
+        (r"ហាក់ឡើង(?=ដល់|ខ្ពស់|ខ្លាំង|\s)", "ហក់ឡើង"),
+        (r"ហាក់ឡើង", "ហក់ឡើង"),
+        (r"ដុល្លារ\s*ក្នុង\s*មួយ\s*បារ(?![៉ែលាំងម្ភ])", "ដុល្លារក្នុងមួយបារ៉ែល"),
+        (r"ក្នុង\s*មួយ\s*បារ(?![៉ែលាំងម្ភ])", "ក្នុងមួយបារ៉ែល"),
+        (r"មួយ\s*បារ(?![៉ែលាំងម្ភ])", "មួយបារ៉ែល"),
+        (r"បារប្រេង", "បារ៉ែលប្រេង"),
+        (r"ដុល្លារ\s*ក្នុង\s*មួយ\s*ធុង(?:\s*ប្រេង)?", "ដុល្លារក្នុងមួយបារ៉ែល"),
+        (r"ក្នុង\s*មួយ\s*ធុង(?:\s*ប្រេង)?", "ក្នុងមួយបារ៉ែល"),
+        (r"ដុល្លារ\s*/\s*បារ(?![៉ែលាំងម្ភ])", "ដុល្លារក្នុងមួយបារ៉ែល"),
+        (r"ដុល្លារ\s*/\s*បារ៉ែល", "ដុល្លារក្នុងមួយបារ៉ែល"),
+        (r"/បារ(?![៉ែលាំងម្ភ])", "/បារ៉ែល"),
+        (r"បារ៉ែល(?:\s*បារ៉ែល)+", "បារ៉ែល"),
+
         # Typography & spacing cleanup (preserve newlines \n)
         (r"\([ \t]+", "("),
         (r"[ \t]+\)", ")"),
@@ -299,8 +313,15 @@ def sanitize_khmer_spelling(text: str) -> str:
         latin_num = "".join(_khmer_digits_map.get(ch, ch) for ch in raw_num)
         return f"{latin_num}%"
 
+    def _to_latin_currency(m):
+        raw_num = m.group(1)
+        suffix = m.group(2)
+        latin_num = "".join(_khmer_digits_map.get(ch, ch) for ch in raw_num)
+        return f"{latin_num} {suffix}"
+
     res = re.sub(r'កូដេន\s*', 'កាក់ឌីជីថល ', res)
     res = re.sub(r'([០-៩0-9]+(?:\.[០-៩0-9]+)?)\s*(?:ភាគរយ|percent|%)', _to_latin_pct, res)
+    res = re.sub(r'([០-៩]+(?:\.[០-៩]+)?)\s*(ដុល្លារ|រៀល|\$|€|£|¥|បារ៉ែល)', _to_latin_currency, res)
     res = re.sub(r'(%)([\u1780-\u17D3])', r'\1 \2', res)
     res = re.sub(r'([\u1780-\u17D3])(\d+(?:\.\d+)?%)', r'\1 \2', res)
 
