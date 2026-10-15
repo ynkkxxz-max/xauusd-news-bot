@@ -1233,7 +1233,7 @@ class XAUUSDNewsAssistantBot:
             photo_path = "assets/topics/crude_oil.jpg"
         elif any(w in text_low for w in ["semiconductor", "chip", "chips", "wafer", "tsmc", "nvidia", "intel"]):
             photo_path = "assets/topics/semiconductor_chips.jpg"
-        elif any(w in text_low for w in ["bitcoin", "btc", "cryptocurrency", "crypto reserve", "crypto", "stablecoin"]):
+        elif any(w in text_low for w in ["bitcoin", "btc"]):
             photo_path = "assets/topics/bitcoin_crypto.jpg"
         elif any(w in text_low for w in ["hormuz", "strait of hormuz", "red sea", "naval", "warship", "persian gulf"]):
             photo_path = "assets/topics/geopolitics_naval.jpg"
