@@ -92,6 +92,9 @@ TRIVIAL_AND_LOW_IMPACT_PATTERNS = [
     r"\b(morning brief|podcast episode|listen now|webinar|q&a with|interview transcript)\b",
     r"\b(why .+ (?:fell|dropped|rose|jumped) today|here's why|is it time to buy)\b",
     r"\b(daily horoscope|lottery numbers|jackpot)\b",
+    # Trivial altcoins, memecoins, presales, airdrops, and low-cap retail tokens (Pillar 8 strict standard)
+    r"\b(bitway|memecoin|memecoins|meme coin|meme coins|shiba|shib|pepe|floki|doge|bonk|wif|bome)\b",
+    r"\b(airdrop|airdrops|token unlock|presale|ico|ido|meme token|altcoin rally|altcoin season)\b",
 ]
 
 def _matches_any_keyword(text: str, keywords: list) -> bool:
