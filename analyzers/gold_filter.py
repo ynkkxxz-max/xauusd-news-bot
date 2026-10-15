@@ -346,6 +346,33 @@ class GoldNewsFilter:
         return clusters[0] if clusters else ""
 
     @staticmethod
+    def get_news_entities(text: str) -> list:
+        """Extracts key individual leaders, officials, and top corporate entities for Entity Deduplication Shield."""
+        t = text.lower()
+        entities = []
+        entity_map = {
+            "kevin warsh": "kevin_warsh", "warsh": "kevin_warsh",
+            "jerome powell": "jerome_powell", "powell": "jerome_powell",
+            "donald trump": "donald_trump", "trump": "donald_trump",
+            "elon musk": "elon_musk", "musk": "elon_musk",
+            "vladimir putin": "vladimir_putin", "putin": "vladimir_putin",
+            "volodymyr zelensky": "zelenskyy", "zelensky": "zelenskyy", "zelenskyy": "zelenskyy",
+            "benjamin netanyahu": "netanyahu", "netanyahu": "netanyahu",
+            "xi jinping": "xi_jinping",
+            "scott bessent": "scott_bessent", "bessent": "scott_bessent",
+            "christine lagarde": "lagarde", "lagarde": "lagarde",
+            "kazuo ueda": "kazuo_ueda", "ueda": "kazuo_ueda",
+            "narendra modi": "modi", "modi": "modi",
+            "giorgia meloni": "meloni", "meloni": "meloni",
+            "nvidia": "nvidia", "tsmc": "tsmc", "blackrock": "blackrock",
+            "boeing": "boeing", "intel": "intel", "tesla": "tesla", "aramco": "aramco"
+        }
+        for kw, ent in entity_map.items():
+            if kw in t and ent not in entities:
+                entities.append(ent)
+        return entities
+
+    @staticmethod
     def is_duplicate_or_similar(new_title: str, existing_titles: list, threshold: float = 0.35) -> bool:
         """
         Semantic Deduplication: Checks if the new news article is covering the EXACT same event
