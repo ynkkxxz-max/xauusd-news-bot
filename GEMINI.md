@@ -72,6 +72,9 @@ This repository is governed by the 5 Golden Principles established by the system
      - **ថាមពល ប្រេងកាត (Energy/Oil/LNG)**: Cooldown ១ ម៉ោង (មិនឱ្យចេញព័ត៌មានប្រេង ឬ LNG ជាន់គ្នាឡើយ)។
      - **បច្ចេកវិទ្យា & AI**: Cooldown ១ ម៉ោង (មិនឱ្យចេញព័ត៌មាន AI ជាន់គ្នា ២ សារក្នុង ១ នាទីឡើយ)។
      - **Crypto**: Cooldown ១ ម៉ោង។
+     - **Multi-Cluster Cooldown Locking (ចាក់សោច្រើនវិស័យព្រមគ្នា — បញ្ជាផ្ទាល់)**: ប្រសិនបើព័ត៌មានមួយពាក់ព័ន្ធនឹងច្រើនវិស័យ (ឧ. ជម្លោះរុស្ស៊ី-អ៊ុយក្រែន វាយប្រហារលើរោងចក្រចម្រាញ់ប្រេង) ប្រព័ន្ធនឹងចាត់ថ្នាក់ចូលទាំង `energy_oil` និង `russia_ukraine` ដោយចាក់សោ Cooldown គ្រប់វិស័យទាំងអស់ ការពារកុំឱ្យព័ត៌មានសាច់រឿងប្រហាក់ប្រហែលគ្នារបូតចេញមកបាន។
+     - **របាំងបង្វិលវិស័យ មិនឱ្យផ្សាយប្រធានបទដដែលៗជាប់គ្នា (Consecutive Sector Diversity Shield — បញ្ជាផ្ទាល់)**: ហាមដាច់ខាតមិនឱ្យផ្សាយ ២ ព័ត៌មានជាប់គ្នាក្នុងវិស័យ ឬប្រធានបទដដែលក្នុងរយៈពេល ៣០ នាទី (ទោះបីជាចំណងជើងខុសគ្នាក៏ដោយ) ដើម្បីរក្សាភាពសម្បូរបែបនៃព័ត៌មាន មិនធ្វើឱ្យអ្នកអានធុញទ្រាន់។
+     - **Enhanced Semantic Duplicate Stemming**: បង្រួមពាក្យមានន័យដូចគ្នា (Synonyms: attacks/strikes/hit $\rightarrow$ strike, refinery/petroleum/crude/diesel/tanker $\rightarrow$ oil, chips/semiconductor $\rightarrow$ chip) ដើម្បីចាប់ semantic duplication បាន ១០០%។
   5. **ឃ្លាចេញពី Data ភ្លាមៗបន្ទាប់ពីផ្ញើសាររួច (Mandatory Post-Broadcast Data Eviction)**: ភ្លាមៗបន្ទាប់ពីសារមួយត្រូវបានផ្ញើចេញ ឬត្រូវបានច្រានចោល (Drop) ប្រព័ន្ធត្រូវតែហៅ `news_collector.clear_item(...)` ដើម្បីកម្ចាត់ និង Blacklist ចោលភ្លាមៗចេញពី Data Pool, ហៅ `database.clear_news_from_data(...)` ដើម្បីចាក់សោក្នុង SQLite និង `pending.clear()` សម្អាត Queue ចោលភ្លាម ដើម្បីកុំឱ្យមានទិន្នន័យចាស់សេសសល់ក្នុង Loop ឡើយ។
   6. **របាំងការពារព័ត៌មានចាស់ហួសសម័យកាល (Strict Freshness Shield — Zero Old News Guarantee — បញ្ជាផ្ទាល់)**:
      - ផ្សាយតែព័ត៌មានដែលទើបតែចេញផ្សាយថ្មីៗស្រស់ៗមិនលើសពី ៤៥ ទៅ ៦០ នាទី (Strictly under 1 hour max, `MAX_NEWS_AGE = 3600s`) ប៉ុណ្ណោះ។
