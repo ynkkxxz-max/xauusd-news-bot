@@ -1341,6 +1341,39 @@ class XAUUSDNewsAssistantBot:
             logger.debug(f"[Channel Post Time Check] {e}")
         return 999999.0
 
+    def _get_channel_live_feed_state(self):
+        """
+        Extracts live channel state directly from @GoldMarketKH8888 HTML feed.
+        Returns (channel_elapsed_seconds, latest_clusters, latest_entities).
+        Provides an indestructible shield across Render container restarts!
+        """
+        try:
+            import datetime
+            import html as html_module
+            channel_html = self._fetch_channel_html(max_cache_age=30.0)
+            if not channel_html:
+                return (999999.0, [], [])
+            
+            times = re.findall(r'<time[^>]*datetime="([^"]+)"', channel_html)
+            elapsed = 999999.0
+            if times:
+                last_dt = datetime.datetime.fromisoformat(times[-1])
+                now_utc = datetime.datetime.now(datetime.timezone.utc)
+                elapsed = max(0.0, (now_utc - last_dt).total_seconds())
+            
+            posts_raw = re.findall(r'<div class="tgme_widget_message_(?:text|caption)[^"]*"[^>]*>(.*?)</div>', channel_html, re.DOTALL)
+            latest_clusters = []
+            latest_entities = []
+            if posts_raw:
+                last_txt = html_module.unescape(re.sub(r'<[^>]+>', ' ', posts_raw[-1])).strip()
+                latest_clusters = GoldNewsFilter.get_news_clusters(last_txt)
+                latest_entities = GoldNewsFilter.get_news_entities(last_txt)
+            
+            return (elapsed, latest_clusters, latest_entities)
+        except Exception as e:
+            logger.debug(f"[Channel Live State Check] {e}")
+            return (999999.0, [], [])
+
     def _is_already_in_telegram_channel(self, title: str, link: str = "", khmer_text: str = "", fresh: bool = False) -> bool:
         """Inspects the public Telegram channel feed to prevent duplicate broadcasts across distributed containers."""
         try:
@@ -1534,6 +1567,10 @@ class XAUUSDNewsAssistantBot:
                 self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                 continue
 
+            # Live Channel Inspection: Extract latest channel post state directly
+            ch_elapsed, ch_latest_clusters, ch_latest_entities = self._get_channel_live_feed_state()
+            effective_elapsed = min(time_since_last, ch_elapsed)
+
             # Macro Multi-Cluster Deduplication & Consecutive Sector Diversity Shield
             clusters = GoldNewsFilter.get_news_clusters(title + " " + desc)
             if clusters:
@@ -1552,8 +1589,20 @@ class XAUUSDNewsAssistantBot:
                 # 1. Consecutive Sector Diversity Shield: Never post 2 consecutive articles on the same topic within 30m
                 last_cluster = database.get_state("last_broadcasted_cluster") or ""
                 last_sent_ts = float(database.get_state("last_breaking_alert_ts") or "0")
+                is_consecutive_sector = False
+                matched_sec = ""
                 if last_cluster and (now - last_sent_ts) < 1800.0 and last_cluster in clusters:
-                    logger.info(f"[SECTOR DIVERSITY SHIELD] Dropping '{title}' - sector '{last_cluster}' was just broadcasted {now - last_sent_ts:.0f}s ago. Rotating to preserve variety.")
+                    is_consecutive_sector = True
+                    matched_sec = last_cluster
+                # Live Channel Feed fallback: If channel's actual latest post matches any cluster within 30m
+                if not is_consecutive_sector and ch_latest_clusters and ch_elapsed < 1800.0:
+                    common_cl = [c for c in clusters if c in ch_latest_clusters]
+                    if common_cl:
+                        is_consecutive_sector = True
+                        matched_sec = common_cl[0]
+
+                if is_consecutive_sector:
+                    logger.info(f"[SECTOR DIVERSITY SHIELD] Dropping '{title}' - sector '{matched_sec}' was just broadcasted {effective_elapsed:.0f}s ago. Rotating to preserve variety.")
                     self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                     database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
                     continue
@@ -1564,7 +1613,7 @@ class XAUUSDNewsAssistantBot:
                 for cl in clusters:
                     last_cl_ts = float(database.get_state(f"cluster_last_ts_{cl}") or "0")
                     cd = CLUSTER_COOLDOWNS.get(cl, 3600.0)
-                    if (now - last_cl_ts) < cd:
+                    if (now - last_cl_ts) < cd or (cl in ch_latest_clusters and ch_elapsed < cd):
                         defcon1_words = ["nuclear", "outbreak of war", "declares war", "martial law", "assassination"]
                         if not any(dw in (title + " " + desc).lower() for dw in defcon1_words):
                             is_in_cooldown = True
@@ -1583,8 +1632,20 @@ class XAUUSDNewsAssistantBot:
                 # A. Consecutive Entity Diversity: Never post 2 consecutive articles about the same key leader/entity within 30m
                 last_entity = database.get_state("last_broadcasted_entity") or ""
                 last_sent_ts = float(database.get_state("last_breaking_alert_ts") or "0")
+                is_consecutive_entity = False
+                matched_ent_name = ""
                 if last_entity and (now - last_sent_ts) < 1800.0 and last_entity in entities:
-                    logger.info(f"[ENTITY DIVERSITY SHIELD] Dropping '{title}' - entity '{last_entity}' was just featured {now - last_sent_ts:.0f}s ago. Rotating to preserve variety.")
+                    is_consecutive_entity = True
+                    matched_ent_name = last_entity
+                # Live Channel Feed fallback: If channel's actual latest post features the same entity within 30m
+                if not is_consecutive_entity and ch_latest_entities and ch_elapsed < 1800.0:
+                    common_ent = [e for e in entities if e in ch_latest_entities]
+                    if common_ent:
+                        is_consecutive_entity = True
+                        matched_ent_name = common_ent[0]
+
+                if is_consecutive_entity:
+                    logger.info(f"[ENTITY DIVERSITY SHIELD] Dropping '{title}' - entity '{matched_ent_name}' was just featured {effective_elapsed:.0f}s ago. Rotating to preserve variety.")
                     self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                     database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
                     continue
@@ -1594,7 +1655,7 @@ class XAUUSDNewsAssistantBot:
                 blocked_entity = ""
                 for ent in entities:
                     last_ent_ts = float(database.get_state(f"entity_last_ts_{ent}") or "0")
-                    if (now - last_ent_ts) < 3600.0:
+                    if (now - last_ent_ts) < 3600.0 or (ent in ch_latest_entities and ch_elapsed < 3600.0):
                         defcon1_words = ["nuclear", "outbreak of war", "declares war", "martial law", "assassination"]
                         if not any(dw in (title + " " + desc).lower() for dw in defcon1_words):
                             is_entity_in_cooldown = True
