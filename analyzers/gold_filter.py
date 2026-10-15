@@ -305,37 +305,45 @@ class GoldNewsFilter:
         return False
 
     @staticmethod
-    def get_news_cluster(text: str) -> str:
-        """Categorizes news into a high-level macro cluster for semantic cross-feed deduplication."""
+    @staticmethod
+    def get_news_clusters(text: str) -> list:
+        """Returns ALL matching macro clusters for a given news story (multi-domain classification)."""
         t = text.lower()
+        clusters = []
         # 1. US Jobs / Payrolls / Labor Market
         if any(k in t for k in ["non-farm", "nonfarm", "payroll", "payrolls", "unemployment", "job growth", "jobs report", "hiring", "labor market", "workforce", "ការងារ", "អត្រាគ្មានការងារ", "nfp"]) or ("job" in t and any(w in t for w in ["us", "fed", "report", "cool", "slow", "data", "cut", "rise", "fall", "jump", "stall"])):
-            return "us_jobs"
+            clusters.append("us_jobs")
         # 2. Inflation & CPI
         if any(k in t for k in ["cpi", "inflation", "pce", "producer price", "consumer price", "cost of living", "អតិផរណា"]):
-            return "inflation"
+            clusters.append("inflation")
         # 3. Fed & Central Bank Rates
         if any(k in t for k in ["fomc", "powell", "kevin warsh", "rate cut", "rate hike", "interest rate", "basis point", "federal reserve", "អត្រាការប្រាក់", "ធនាគារកណ្តាល"]) or ("fed " in t and any(w in t for w in ["rate", "policy", "pause", "hike", "cut"])):
-            return "fed_rates"
-        # 4. Energy & Crude Oil & Gas
-        if any(k in t for k in ["crude oil", "brent", "wti", "oil price", "oil drop", "oil rise", "diesel", "gasoline", "lng", "fuel", "opec", "ប្រេងឆៅ", "ប្រេងកាត", "ថាមពល"]):
-            return "energy_oil"
+            clusters.append("fed_rates")
+        # 4. Energy & Crude Oil & Gas & Refineries
+        if any(k in t for k in ["crude oil", "brent", "wti", "oil price", "oil drop", "oil rise", "diesel", "gasoline", "lng", "fuel", "opec", "refinery", "refineries", "oil infrastructure", "energy target", "energy infrastructure", "shadow fleet", "oil tanker", "tankers", "ប្រេងឆៅ", "ប្រេងកាត", "ថាមពល", "រោងចក្រចម្រាញ់ប្រេង"]):
+            clusters.append("energy_oil")
         # 5. Technology & AI & Semiconductors
         if any(k in t for k in ["nvidia", "semiconductor", "chipmaker", "tsmc", "intel", "amd", "blackwell", "artificial intelligence", "data center", "datacenter", "បន្ទះឈីប", "បញ្ញាសិប្បនិម្មិត"]) or ("ai " in t and any(w in t for w in ["chip", "tech", "job", "model", "cloud", "server", "wall street"])):
-            return "tech_ai"
+            clusters.append("tech_ai")
         # 6. Crypto & Digital Assets
         if any(k in t for k in ["bitcoin", "btc", "ethereum", "crypto", "cryptocurrency", "stablecoin", "tether", "binance", "coinbase", "ប៊ីតខយ", "គ្រីបតូ"]):
-            return "crypto_assets"
+            clusters.append("crypto_assets")
         # 7. Middle East & Yemen Geopolitics
-        if any(k in t for k in ["gaza", "israel", "tel aviv", "lebanon", "beirut", "hezbollah", "houthi", "strait of hormuz", "red sea", "yemen", "yemeni", "sanaa", "bab al-mandab", "syria", "iraq", "iran", "tehran", "damascus", "យេមែន", "យេម៉ែន", "ហូទី", "អ៊ីរ៉ង់", "អ៊ីស្រាអែល", "ហ្កាហ្សា", "លីបង់", "ច្រកសមុទ្រ"]):
-            return "middle_east"
+        if any(k in t for k in ["gaza", "israel", "tel aviv", "lebanon", "beirut", "hezbollah", "houthi", "strait of hormuz", "red sea", "yemen", "yemeni", "sanaa", "bab al-mandab", "syria", "iraq", "iran", "tehran", "damascus", "saudi", "aramco", "riyadh", "យេមែន", "យេម៉ែន", "ហូទី", "អ៊ីរ៉ង់", "អ៊ីស្រាអែល", "ហ្កាហ្សា", "លីបង់", "ច្រកសមុទ្រ", "អារ៉ាប៊ីសាអ៊ូឌីត"]):
+            clusters.append("middle_east")
         # 8. Russia & Ukraine
         if any(k in t for k in ["russia", "ukraine", "kyiv", "moscow", "kremlin", "zelensky", "putin", "រុស្ស៊ី", "អ៊ុយក្រែន", "ម៉ូស្គូ", "គៀវ"]):
-            return "russia_ukraine"
+            clusters.append("russia_ukraine")
         # 9. Tariffs & Trade Wars
         if any(k in t for k in ["tariff", "tariffs", "sanction", "sanctions", "trade war", "embargo", "ពន្ធគយ", "ទណ្ឌកម្ម", "សង្គ្រាមពាណិជ្ជកម្ម"]):
-            return "tariffs_trade"
-        return ""
+            clusters.append("tariffs_trade")
+        return clusters
+
+    @staticmethod
+    def get_news_cluster(text: str) -> str:
+        """Returns primary macro cluster for backward compatibility."""
+        clusters = GoldNewsFilter.get_news_clusters(text)
+        return clusters[0] if clusters else ""
 
     @staticmethod
     def is_duplicate_or_similar(new_title: str, existing_titles: list, threshold: float = 0.35) -> bool:
@@ -348,16 +356,19 @@ class GoldNewsFilter:
 
         def _stem(w: str) -> str:
             w = w.lower()
-            demonyms = {
+            synonyms = {
                 "israeli": "israel", "british": "britain", "russian": "russia",
                 "lebanese": "lebanon", "mexican": "mexico", "canadian": "canada",
                 "ukrainian": "ukraine", "iranian": "iran", "chinese": "china",
-                "japanese": "japan", "american": "america", "yemeni": "yemen"
+                "japanese": "japan", "american": "america", "yemeni": "yemen",
+                "saudi": "saudi",
+                "attacks": "strike", "attack": "strike", "strikes": "strike", "bombing": "strike", "bombed": "strike", "hit": "strike", "targeted": "strike", "targeting": "strike",
+                "refinery": "oil", "refineries": "oil", "petroleum": "oil", "crude": "oil", "fuel": "oil", "diesel": "oil", "gasoline": "oil", "tanker": "oil", "tankers": "oil",
+                "semiconductor": "chip", "semiconductors": "chip", "chips": "chip", "wafer": "chip",
+                "warns": "warn", "warning": "warn", "warnings": "warn", "threatens": "warn", "threat": "warn",
             }
-            if w in demonyms:
-                return demonyms[w]
-            if "strike" in w:
-                return "strike"
+            if w in synonyms:
+                return synonyms[w]
             for suffix in ("ing", "tion", "ions", "ment", "ments", "ies", "es", "ed", "s"):
                 if w.endswith(suffix) and len(w) > len(suffix) + 3:
                     return w[:-len(suffix)]
@@ -377,7 +388,7 @@ class GoldNewsFilter:
             "yemen", "houthi", "sanaa", "gaza", "hezbollah", "lebanon", "iran", "israel",
             "cpi", "nfp", "fomc", "powell", "warsh", "kevin", "nvidia", "tsmc", "opec",
             "spacex", "starlink", "apple", "tesla", "putin", "zelensky", "russia", "ukraine",
-            "deepseek", "bitcoin", "tether", "binance", "brent", "hormuz"
+            "deepseek", "bitcoin", "tether", "binance", "brent", "hormuz", "oil", "strike", "saudi", "tariff"
         }
 
         new_tokens = _tokenize(new_title)
@@ -397,7 +408,7 @@ class GoldNewsFilter:
             min_len = min(len(new_tokens), len(past_tokens))
             overlap_ratio = len(intersection) / min_len if min_len else 0.0
 
-            # 1. Strong Key Entity Overlap (e.g. both articles discuss 'yemen' or 'kevin warsh' with >= 1 other common word)
+            # 1. Strong Key Entity Overlap (e.g. both articles discuss 'yemen' or 'kevin warsh' or 'ukraine' + 'oil' / 'strike')
             past_entities = past_tokens.intersection(KEY_ENTITIES)
             shared_entities = new_entities.intersection(past_entities)
             if shared_entities and len(intersection) >= 2:
