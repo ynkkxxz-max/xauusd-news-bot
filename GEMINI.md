@@ -73,6 +73,9 @@ This repository is governed by the 5 Golden Principles established by the system
      - **បច្ចេកវិទ្យា & AI**: Cooldown ១ ម៉ោង (មិនឱ្យចេញព័ត៌មាន AI ជាន់គ្នា ២ សារក្នុង ១ នាទីឡើយ)។
      - **Crypto**: Cooldown ១ ម៉ោង។
   5. **ឃ្លាចេញពី Data ភ្លាមៗបន្ទាប់ពីផ្ញើសាររួច (Mandatory Post-Broadcast Data Eviction)**: ភ្លាមៗបន្ទាប់ពីសារមួយត្រូវបានផ្ញើចេញ ឬត្រូវបានច្រានចោល (Drop) ប្រព័ន្ធត្រូវតែហៅ `news_collector.clear_item(...)` ដើម្បីកម្ចាត់ និង Blacklist ចោលភ្លាមៗចេញពី Data Pool, ហៅ `database.clear_news_from_data(...)` ដើម្បីចាក់សោក្នុង SQLite និង `pending.clear()` សម្អាត Queue ចោលភ្លាម ដើម្បីកុំឱ្យមានទិន្នន័យចាស់សេសសល់ក្នុង Loop ឡើយ។
+  6. **របាំងការពារព័ត៌មានចាស់ហួសសម័យកាល (Strict Freshness Shield — Zero Old News Guarantee — បញ្ជាផ្ទាល់)**:
+     - ផ្សាយតែព័ត៌មានដែលទើបតែចេញផ្សាយថ្មីៗស្រស់ៗមិនលើសពី ៤៥ ទៅ ៦០ នាទី (Strictly under 1 hour max, `MAX_NEWS_AGE = 3600s`) ប៉ុណ្ណោះ។
+     - ហាមដាច់ខាតមិនឱ្យទាញយក ឬផ្សាយព័ត៌មានចាស់ (អាយុកាលលើសពី ១ ម៉ោង ឬព័ត៌មានកាលពីម្សិលមិញ/ថ្ងៃមុន) មកផ្សាយចូល Channel ជាដាច់ខាត។ រាល់ព័ត៌មានដែលគ្មានម៉ោងច្បាស់លាស់ ឬអាយុកាលលើសពី ១ ម៉ោង ត្រូវ Drop/Skip ចោលភ្លាមៗដោយស្វ័យប្រវត្តិ។
 - **វិស័យស្នូលទាំង ៧ នៃព័ត៌មាន (The 7 Core News Pillars)**:
   1. 🌐 **សេដ្ឋកិច្ច (Economy)**: GDP, CPI, អតិផរណា, NFP, ការងារ, Retail Sales, PMI, កំណើនសេដ្ឋកិច្ច។
   2. ⚔️ **នយោបាយភូមិសាស្ត្រ (Geopolitics)**: សង្គ្រាម, ជម្លោះ, មជ្ឈិមបូព៌ា, អ៊ុយក្រែន, ច្រកសមុទ្រយុទ្ធសាស្ត្រ។
