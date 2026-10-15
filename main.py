@@ -1534,10 +1534,9 @@ class XAUUSDNewsAssistantBot:
                 self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                 continue
 
-            # Macro Cluster Deduplication & Sector Cooldown Shield per User Directive
-            cluster = GoldNewsFilter.get_news_cluster(title + " " + desc)
-            if cluster:
-                last_cluster_ts = float(database.get_state(f"cluster_last_ts_{cluster}") or "0")
+            # Macro Multi-Cluster Deduplication & Consecutive Sector Diversity Shield
+            clusters = GoldNewsFilter.get_news_clusters(title + " " + desc)
+            if clusters:
                 CLUSTER_COOLDOWNS = {
                     "us_jobs": 14400.0,       # 4 hours
                     "inflation": 14400.0,     # 4 hours
@@ -1549,14 +1548,34 @@ class XAUUSDNewsAssistantBot:
                     "russia_ukraine": 5400.0, # 1.5 hours
                     "tariffs_trade": 3600.0,  # 1 hour
                 }
-                cluster_cooldown = CLUSTER_COOLDOWNS.get(cluster, 3600.0)
-                if (now - last_cluster_ts) < cluster_cooldown:
-                    # Drop unless it is an extreme emergency catalyst with urgency score >= 3
-                    if not GoldNewsFilter.is_immediate_alert(title, desc) or GoldNewsFilter.urgency_score(title) < 3:
-                        logger.info(f"[SECTOR COOLDOWN DEDUPLICATION] Dropping '{title}' in cluster '{cluster}' ({now - last_cluster_ts:.0f}s < {cluster_cooldown:.0f}s required).")
-                        self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
-                        database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
-                        continue
+
+                # 1. Consecutive Sector Diversity Shield: Never post 2 consecutive articles on the same topic within 30m
+                last_cluster = database.get_state("last_broadcasted_cluster") or ""
+                last_sent_ts = float(database.get_state("last_breaking_alert_ts") or "0")
+                if last_cluster and (now - last_sent_ts) < 1800.0 and last_cluster in clusters:
+                    logger.info(f"[SECTOR DIVERSITY SHIELD] Dropping '{title}' - sector '{last_cluster}' was just broadcasted {now - last_sent_ts:.0f}s ago. Rotating to preserve variety.")
+                    self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
+                    database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
+                    continue
+
+                # 2. Check each matched cluster against cooldown
+                is_in_cooldown = False
+                blocked_cluster = ""
+                for cl in clusters:
+                    last_cl_ts = float(database.get_state(f"cluster_last_ts_{cl}") or "0")
+                    cd = CLUSTER_COOLDOWNS.get(cl, 3600.0)
+                    if (now - last_cl_ts) < cd:
+                        defcon1_words = ["nuclear", "outbreak of war", "declares war", "martial law", "assassination"]
+                        if not any(dw in (title + " " + desc).lower() for dw in defcon1_words):
+                            is_in_cooldown = True
+                            blocked_cluster = cl
+                            break
+
+                if is_in_cooldown:
+                    logger.info(f"[SECTOR COOLDOWN DEDUPLICATION] Dropping '{title}' in cluster '{blocked_cluster}'.")
+                    self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
+                    database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
+                    continue
 
             if GoldNewsFilter.is_duplicate_or_similar(title, recent_sent_titles):
                 logger.info(f"[CROSS-FEED DEDUPLICATION] Dropping '{title}' (Similar to recent broadcast).")
@@ -1660,8 +1679,10 @@ class XAUUSDNewsAssistantBot:
             self._broadcasted_titles_cache.add(title.lower())
             database.set_state("last_breaking_alert_ts", str(time.time()))
             self._last_breaking_sent_ts = time.time()
-            if cluster:
-                database.set_state(f"cluster_last_ts_{cluster}", str(time.time()))
+            if clusters:
+                for cl in clusters:
+                    database.set_state(f"cluster_last_ts_{cl}", str(time.time()))
+                database.set_state("last_broadcasted_cluster", clusters[0])
             self._cached_channel_html = "" # Invalidate channel cache
             photo = self._fetch_news_image(it, analysis=analysis)
             if photo:
