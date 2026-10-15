@@ -74,6 +74,8 @@ description: "Core rules and design standards for Telegram Channel Broadcasts (D
     - «ពាក់ទង» (ពាក្យខុសដែលគ្មានក្នុងវចនានុក្រម) $\rightarrow$ «ពាក់ព័ន្ធ» ឬ «ទាក់ទង»
     - «ស្ថានភាពនេះឱ្យឃើញ» (កាត់ខ្វះកិរិយាសព្ទ) $\rightarrow$ «ស្ថានភាពនេះបង្ហាញឱ្យឃើញ»
     - «យោលយោគ» (សម្រាប់ទំនុកចិត្តទីផ្សារ) $\rightarrow$ «រង្គោះរង្គើ» ឬ «ចុះខ្សោយ/ធ្លាក់ចុះ» (Confidence wobbles)
+    - «បារ» ឬ «មួយបារ» (សម្រាប់ប្រេងកាត Crude Oil Barrel) $\rightarrow$ «បារ៉ែល» ឬ «ក្នុងមួយបារ៉ែល» (Barrel / Dollars a barrel / Per barrel — ហាមដាច់ខាតមិនឱ្យបកប្រែកាត់ ឬខុសជា «បារ» ឬ «មួយបារ» ឡើយ)
+    - «ហាក់ឡើង» (Typo សម្រាប់ Surge/Jump) $\rightarrow$ «ហក់ឡើង»
     - Default insurance $\rightarrow$ «ថ្លៃធានារ៉ាប់រងហានិភ័យបំណុល (CDS)»
 - **ការបែងចែកកូរ៉េខាងជើង និងកូរ៉េខាងត្បូងឱ្យបានត្រឹមត្រូវ ១០០% (Strict North vs South Korea Distinction — បញ្ជាផ្ទាល់)**:
   - **កូរ៉េខាងជើង (North Korea / DPRK — ទង់ជាតិ 🇰🇵)**: មេដឹកនាំ Kim Jong Un, រដ្ឋធានី Pyongyang, មីស៊ីលយោធា ត្រូវសរសេរ «កូរ៉េខាងជើង» និងប្រើទង់ជាតិ 🇰🇵 ជានិច្ច។ ហាមដាច់ខាតមិនឱ្យច្រឡំ ឬបកប្រែជា «កូរ៉េខាងត្បូង» ឡើយ។
