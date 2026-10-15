@@ -686,7 +686,7 @@ class KhmerFormatter:
 
         country_flags = []
         flag_rules = [
-            (r"\b(us|usa|united states|america|fed|biden|trump|powell)\b|អាមេរិក|សហរដ្ឋអាមេរិក", "🇺🇸"),
+            (r"\b(u\.s\.|u\.s|usa|united states|america|american|fed|biden|trump|powell)\b|អាមេរិក|សហរដ្ឋអាមេរិក", "🇺🇸"),
             (r"\b(uk|britain|british|london|england|boe|starmer)\b|អង់គ្លេស|ចក្រភពអង់គ្លេស", "🇬🇧"),
             (r"\b(iran|tehran|persian)\b|អ៊ីរ៉ង់|អ៊ីរ៉ាន", "🇮🇷"),
             (r"\b(israel|tel aviv|gaza|netanyahu)\b|អ៊ីស្រាអែល", "🇮🇱"),
@@ -709,7 +709,7 @@ class KhmerFormatter:
             (r"\b(uae|dubai|abu dhabi|emirates)\b|អេមីរ៉ាត|ឌូបៃ", "🇦🇪"),
             (r"\b(turkey|turkish|turkiye|ankara|istanbul|erdogan|cbrt)\b|តួកគី|អ៊ីស្តង់ប៊ុល", "🇹🇷"),
             (r"\b(brazil|brazilian|lula)\b|ប្រេស៊ីល", "🇧🇷"),
-            (r"\b(qatar|doha)\b|កាតា", "🇶🇦"),
+            (r"\b(qatar|doha)\b|(?:ប្រទេស|រដ្ឋ)?\s*កាតា(?![លក\u1780-\u17D3])", "🇶🇦"),
             (r"\b(egypt|cairo)\b|អេហ្ស៊ីប", "🇪🇬"),
             (r"\b(mexico|mexican|banxico)\b|ម៉ិកស៊ិក", "🇲🇽"),
             (r"\b(vietnam|vietnamese|hanoi)\b|វៀតណាម", "🇻🇳"),
@@ -722,9 +722,14 @@ class KhmerFormatter:
         matched_flags = []
         for pattern, flag in flag_rules:
             m = re.search(pattern, full_search, re.IGNORECASE)
+            if not m and flag == "🇺🇸":
+                if re.search(r'\b(US|USA)\b', f"{news_item.get('title', '')} {news_item.get('description', '')}"):
+                    m = True
             if m:
                 m_head = re.search(pattern, headline_priority, re.IGNORECASE)
-                pos = m_head.start() if m_head else 99999 + m.start()
+                if not m_head and flag == "🇺🇸" and re.search(r'\b(US|USA)\b', headline_priority):
+                    m_head = True
+                pos = m_head.start() if (m_head and hasattr(m_head, 'start')) else (99999 + (m.start() if hasattr(m, 'start') else 0))
                 matched_flags.append((flag, pos))
 
         matched_flags.sort(key=lambda x: x[1])
@@ -736,6 +741,15 @@ class KhmerFormatter:
             c_flag = (analysis.get("country_flag") or "").strip()
             if c_flag and c_flag not in country_flags:
                 country_flags.insert(0, c_flag)
+
+        # STRICT BILATERAL FLAG RULE: A 2nd flag is ONLY permitted if BOTH nations are prominently in the headline
+        # (e.g. US-China trade talks, Russia-Ukraine war). Never contaminate a single-country headline with a 2nd background flag!
+        if len(country_flags) >= 2:
+            second_flag = country_flags[1]
+            sec_pat = next((p for p, fl in flag_rules if fl == second_flag), None)
+            is_sec_in_headline = bool(sec_pat and re.search(sec_pat, headline_priority, re.IGNORECASE))
+            if not is_sec_in_headline:
+                country_flags = country_flags[:1]
 
         # Build headline: use AI-generated headline_km, fallback to shortened title / what_happened / key_event
         if not headline_km or headline_km == "កំពុងតាមដាន។":
@@ -769,23 +783,27 @@ class KhmerFormatter:
         headline_km = re.sub(r'[\U0001F1E0-\U0001F1FF]{2}', '', headline_km).strip()
         headline_km = re.sub(r'[\U0001F300-\U0001FFFF]', '', headline_km).strip()
 
-        # STRICT NO-ELLIPSIS DIRECTIVE: Strictly strip any trailing dots, ellipsis, colons, hyphens, and whitespace (NO "..." allowed!)
-        headline_km = re.sub(r'[\s.,;:៖–—_…]+$', '', headline_km).strip()
+        # STRICT ZERO-TRAILING PUNCTUATION & ZERO-ELLIPSIS DIRECTIVE:
+        # Strip all trailing dots, ellipsis, colons, Khmer colons, invisible unicode zero-width spaces (\u200B-\u200D, \uFEFF)
+        _trailing_punct_regex = r'[\s\u200B\u200C\u200D\uFEFF\u00A0.,;:៖–—_…\uFF1A\uFE13\uFE55\u2236]+$'
+        headline_km = re.sub(_trailing_punct_regex, '', headline_km).strip()
         headline_km = re.sub(r'\.{2,}', '', headline_km).strip()
         headline_km = re.sub(r'…+', '', headline_km).strip()
-        headline_km = re.sub(r'[\s.,;:៖–—_…]+$', '', headline_km).strip()
+        headline_km = re.sub(r'\s+(?:នៃ|របស់|និង|ពី|ក្នុង|ដើម្បី|លើ|អំពី)\s*$', '', headline_km).strip()
+        headline_km = re.sub(_trailing_punct_regex, '', headline_km).strip()
 
         # Sanitize spelling
         headline_km = sanitize_khmer_spelling(headline_km)
 
         # Final pass to ensure absolutely zero trailing dots, colons, or cut-off prepositions
-        headline_km = re.sub(r'[\s.,;:៖–—_…]+$', '', headline_km).strip()
+        headline_km = re.sub(_trailing_punct_regex, '', headline_km).strip()
         headline_km = re.sub(r'\.{2,}', '', headline_km).strip()
         headline_km = re.sub(r'…+', '', headline_km).strip()
         headline_km = re.sub(r'\s+(?:នៃ|របស់|និង|ពី|ក្នុង|ដើម្បី|លើ|អំពី)\s*$', '', headline_km).strip()
-        headline_km = re.sub(r'[\s.,;:៖–—_…]+$', '', headline_km).strip()
+        headline_km = re.sub(_trailing_punct_regex, '', headline_km).strip()
 
         flag_prefix = (" ".join(country_flags[:2]) + " ") if country_flags else ""
+        headline_km = re.sub(_trailing_punct_regex, '', headline_km).strip()
         header = f"{flag_prefix}<b>{headline_km}</b>".strip()
 
         # Strip any country flag emojis from body key_event
@@ -1015,6 +1033,7 @@ class KhmerFormatter:
                 elif what and re.sub(r'[\s\u200b]+', '', what).lower() != norm_hl:
                     key_event = what
 
+        headline_km = re.sub(r'[\s\u200B\u200C\u200D\uFEFF\u00A0.,;:៖–—_…\uFF1A\uFE13\uFE55\u2236]+$', '', headline_km).strip()
         header_bold = f"{flag_prefix}<b>{headline_km}</b>".strip()
 
         if not has_photo:
