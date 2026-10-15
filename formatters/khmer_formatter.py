@@ -150,6 +150,13 @@ def sanitize_khmer_spelling(text: str) -> str:
         (r"ជៀស(?=[វផុត])", "ចៀស"),
         (r"កាត់ផ្ដាច់", "កាត់ផ្តាច់"),
         (r"ផ្ដាច់", "ផ្តាច់"),
+        (r"ដែលបាន\s+ពាក់ទង(?:នឹង)?", "ដែលពាក់ព័ន្ធនឹង"),
+        (r"ពាក់ទងនឹង", "ពាក់ព័ន្ធនឹង"),
+        (r"ពាក់ទង", "ពាក់ព័ន្ធ"),
+        (r"ស្ថានភាពនេះឱ្យឃើញ", "ស្ថានភាពនេះបង្ហាញឱ្យឃើញ"),
+        (r"នេះឱ្យឃើញពី", "នេះបង្ហាញឱ្យឃើញពី"),
+        (r"ចាប់ផ្តើមយោលយោគ", "ចាប់ផ្តើមរង្គោះរង្គើ"),
+        (r"យោលយោគ", "រង្គោះរង្គើ"),
         (r"(យេមែន|រុស្ស៊ី|អ៊ុយក្រែន|ចិន|អាមេរិក|បារាំង|អាល្លឺម៉ង់|អ៊ីរ៉ង់|អ៊ីស្រាអែល|តួកគី|ជប៉ុន|កូរ៉េខាងត្បូង|កូរ៉េខាងជើង|តៃវ៉ាន់|កាណាដា|អង់គ្លេស|ឥណ្ឌា)\s*(កំពុង|បាន|ត្រូវបាន|អាច|នឹង|គ្រោង|ប្រកាស)", r"\1 \2"),
         # Strictly remove unnatural spacing between Khmer prepositions/prefixes and country names
         (r"(របស់|នៅ|ពី|ដល់|ប្រទេស|ចំពោះ|លើ|រវាង)\s+(រុស្ស៊ី|អ៊ុយក្រែន|ចិន|អាមេរិក|បារាំង|អាល្លឺម៉ង់|អ៊ីរ៉ង់|អ៊ីស្រាអែល|តួកគី|ជប៉ុន|កូរ៉េខាងត្បូង|កូរ៉េខាងជើង|តៃវ៉ាន់|កាណាដា|អង់គ្លេស|ឥណ្ឌា|យេមែន|មជ្ឈិមបូព៌ា)", r"\1\2"),
@@ -294,6 +301,9 @@ def sanitize_khmer_spelling(text: str) -> str:
 
     # 9. Ensure clean space after Khmer full stop (។) and Bariyoosan (៕)
     res = re.sub(r'([។៕])(?!\s|$)', r'\1 ', res)
+
+    # 10. Strictly collapse multiple consecutive spaces (e.g. "  " -> " ")
+    res = re.sub(r'[\t ]{2,}', ' ', res)
 
     return res.strip()
 
@@ -761,6 +771,22 @@ class KhmerFormatter:
         headline_km = re.sub(r'…+', '', headline_km).strip()
         headline_km = re.sub(r'\s+(?:នៃ|របស់|និង|ពី|ក្នុង|ដើម្បី|លើ|អំពី)\s*$', '', headline_km).strip()
         headline_km = re.sub(r'[\s.,;:៖–—_…]+$', '', headline_km).strip()
+
+        # Smart Topic Badge fallback if no specific country flag was detected:
+        if not country_flags:
+            topic_search = f"{news_item.get('title', '')} {headline_km} {key_event}".lower()
+            if any(k in topic_search for k in ["ai", "tech", "chip", "semiconductor", "software", "nvidia", "apple", "microsoft", "google", "meta", "intel", "openai", "cloud", "data cent", "បច្ចេកវិទ្យា", "បន្ទះឈីប", "ទិន្នន័យ"]):
+                country_flags = ["💻"]
+            elif any(k in topic_search for k in ["oil", "crude", "energy", "opec", "diesel", "gas", "brent", "wti", "ប្រេង", "ថាមពល"]):
+                country_flags = ["🛢️"]
+            elif any(k in topic_search for k in ["bitcoin", "crypto", "ether", "btc", "eth", "binance", "coinbase", "គ្រីបតូ"]):
+                country_flags = ["🪙"]
+            elif any(k in topic_search for k in ["gold", "bullion", "xau", "មាស"]):
+                country_flags = ["🥇"]
+            elif any(k in topic_search for k in ["fed", "rate", "inflation", "cpi", "pce", "gdp", "central bank", "ធនាគារកណ្តាល", "អតិផរណា", "អត្រាការប្រាក់", "បំណុល"]):
+                country_flags = ["🏦"]
+            else:
+                country_flags = ["🌐"]
 
         flag_prefix = (" ".join(country_flags[:2]) + " ") if country_flags else ""
         header = f"{flag_prefix}<b>{headline_km}</b>".strip()
