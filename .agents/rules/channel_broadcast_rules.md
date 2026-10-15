@@ -35,6 +35,9 @@ description: "Core rules and design standards for Telegram Channel Broadcasts (D
 - **ប្រព័ន្ធចាក់សោ Cooldown ច្រើនវិស័យព្រមគ្នា (Multi-Cluster Cooldown Locking — បញ្ជាផ្ទាល់)**:
   - ប្រសិនបើព័ត៌មានមួយពាក់ព័ន្ធនឹងច្រើនវិស័យ (ឧ. ជម្លោះរុស្ស៊ី-អ៊ុយក្រែន វាយប្រហារលើរោងចក្រចម្រាញ់ប្រេង) ប្រព័ន្ធនឹងចាត់ថ្នាក់ចូលទាំង `energy_oil` និង `russia_ukraine` ដោយចាក់សោ Cooldown គ្រប់វិស័យទាំងអស់ ការពារកុំឱ្យព័ត៌មានសាច់រឿងប្រហាក់ប្រហែលគ្នារបូតចេញមកបាន។
 - **Enhanced Semantic Duplicate Stemming**: បង្រួមពាក្យមានន័យដូចគ្នា (Synonyms: attacks/strikes/hit $\rightarrow$ strike, refinery/petroleum/crude/diesel/tanker $\rightarrow$ oil, chips/semiconductor $\rightarrow$ chip) ដើម្បីចាប់ semantic duplication បាន ១០០%។
+- **របាំងទប់ស្កាត់ការផ្សាយឈ្មោះបុគ្គល ឬមេដឹកនាំដដែលៗ (Entity & Key Figure Deduplication Shield — បញ្ជាផ្ទាល់)**:
+  - ហាមដាច់ខាតមិនឱ្យផ្សាយ ២ ព័ត៌មានជាប់គ្នានិយាយពីបុគ្គល ឬមេដឹកនាំដដែល (ឧ. Kevin Warsh, Donald Trump, Jerome Powell, Elon Musk, Putin, Zelenskyy, Netanyahu, TSMC, Nvidia, BlackRock ល) ក្នុងរយៈពេល ៣០ នាទី (Consecutive Entity Diversity)។
+  - ចាក់សោ Cooldown រយៈពេល ១ ម៉ោង (3600s) សម្រាប់បុគ្គល ឬស្ថាប័នដដែល ការពារកុំឱ្យព័ត៌មានដែលនិយាយពីសាច់រឿង ឬលេខទិន្នន័យស្រដៀងគ្នា (ឧ. ឱកាស 42% របស់ Kevin Warsh) អាចឆ្លៀតចេញផ្សាយជាន់គ្នាជាលើកទី ២ បានឡើយ។
 - **ខ្លឹមសាររៀបរាប់ក្បោះក្បាយត្រឹមត្រូវ**:
   - សាច់រឿងព័ត៌មានក្បោះក្បាយ ត្រឹមត្រូវតាមដំណើររឿងពិតជាភាសាខ្មែរសុទ្ធសាធ (គ្មានចំណងជើងភាសាអង់គ្លេសនៅខាងមុខឡើយ)។
   - **ឈ្មោះក្រុមហ៊ុន និងឈ្មោះមនុស្ស/មេដឹកនាំ (Original English/Latin Names — បញ្ជាផ្ទាល់)**: ត្រូវរក្សាទុកជាភាសាដើម (English/Latin) ជានិច្ច ហាមដាច់ខាតកុំបកប្រែ ឬសរសេរកាឡៃជាភាសាខ្មែរឡើយ (ឧ. Apple, Microsoft, NVIDIA, Tesla, Google, Amazon, Meta, Tether, BlackRock, TSMC, Intel, Elon Musk, Donald Trump, Kevin Warsh, Jerome Powell, Xi Jinping, Warren Buffett ជាដើម)។
