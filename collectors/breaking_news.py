@@ -1,9 +1,12 @@
 import html
 import re
+import time
 import logging
 import hashlib
 import concurrent.futures
 import xml.etree.ElementTree as ET
+from email.utils import parsedate_to_datetime
+from datetime import datetime, timezone
 import requests
 
 logger = logging.getLogger(__name__)
@@ -121,6 +124,40 @@ class BreakingNewsCollector:
                 return True
         return False
 
+    @staticmethod
+    def parse_pub_date(pub_date_str: str) -> float:
+        """Robustly parses RSS publication date into UNIX timestamp across RFC 2822, ISO 8601, and custom formats."""
+        if not pub_date_str:
+            return 0.0
+        pub_date_str = pub_date_str.strip()
+        # 1. Try RFC 2822 (e.g. 'Thu, 15 Oct 2026 07:44:35 +0000')
+        try:
+            return parsedate_to_datetime(pub_date_str).timestamp()
+        except Exception:
+            pass
+
+        # 2. Try ISO 8601 (e.g. '2026-10-15T07:44:35Z')
+        try:
+            clean_iso = pub_date_str.replace("Z", "+00:00")
+            return datetime.fromisoformat(clean_iso).timestamp()
+        except Exception:
+            pass
+
+        # 3. Try standard formats
+        for fmt in (
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%dT%H:%M:%S",
+            "%a, %d %b %Y %H:%M:%S",
+            "%d %b %Y %H:%M:%S",
+            "%Y/%m/%d %H:%M:%S",
+        ):
+            try:
+                return datetime.strptime(pub_date_str[:19], fmt).replace(tzinfo=timezone.utc).timestamp()
+            except Exception:
+                pass
+
+        return 0.0
+
     def _extract_image(self, entry) -> str:
         """Pulls the highest-resolution authentic article image from RSS entry (media:content, media:thumbnail, enclosure, encoded)."""
         candidates = []
@@ -182,7 +219,15 @@ class BreakingNewsCollector:
                         title = entry.findtext("title", "").strip()
                         link = entry.findtext("link", "").strip()
                         pub_date = entry.findtext("pubDate", "").strip()
+                        if not pub_date:
+                            pub_date = entry.findtext("{http://www.w3.org/2005/Atom}published", "").strip() or entry.findtext("{http://www.w3.org/2005/Atom}updated", "").strip() or entry.findtext("dc:date", "").strip()
                         desc = entry.findtext("description", "").strip()
+
+                        # STRICT FRESHNESS SHIELD: Reject any article older than 60 minutes (3600 seconds)
+                        pub_ts = self.parse_pub_date(pub_date)
+                        now_ts = time.time()
+                        if pub_ts > 0 and (now_ts - pub_ts) > 3600.0:
+                            continue
 
                         # Clean title and description of raw HTML and HTML entities
                         title = re.sub(r'<[^>]+>', ' ', title)
