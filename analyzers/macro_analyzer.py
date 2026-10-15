@@ -335,8 +335,8 @@ class MacroAnalyzer:
                 "is_clear": True
             })
 
-        # Gate 5: Environment & Natural Resources (OPEC, Crude Oil, Gas)
-        if any(re.search(rf"\b{w}\b", text) for w in ["opec", "crude", "oil production", "crude oil", "fuel exports", "gas pipeline"]):
+        # Gate 5: Environment & Natural Resources (OPEC, Crude Oil, Gas, Energy)
+        if any(re.search(rf"\b{w}\b", text) for w in ["opec", "crude", "oil", "brent", "wti", "barrel", "barrels", "oil production", "crude oil", "fuel exports", "gas pipeline"]):
             return _make_res({
                 "key_event": km_story,
                 "impact": "🔸 ហានិភ័យទីផ្សារ៖ ការធ្លាក់ចុះស្តុកប្រេង ឬការរំខានការផ្គត់ផ្គង់ រុញសម្ពាធតម្លៃប្រេងឡើងថ្លៃ និងបង្កើនហានិភ័យអតិផរណា",
