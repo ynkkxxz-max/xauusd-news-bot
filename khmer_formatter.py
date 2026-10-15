@@ -262,6 +262,14 @@ def sanitize_khmer_spelling(text: str) -> str:
         (r"/បារ(?![៉ែលាំងម្ភ])", "/បារ៉ែល"),
         (r"បារ៉ែល(?:\s*បារ៉ែល)+", "បារ៉ែល"),
 
+        # Natural Spacing & Preposition Cleanup
+        (r"មជ្ឈិមបូព៌ា\s*(រយៈពេល|បាន|កំពុង|ត្រូវ|ដែល)", r"មជ្ឈិមបូព៌ា \1"),
+        (r"([0-9]+)\s*ឆ្នាំ\s*របស់", r"\1 ឆ្នាំ របស់"),
+        (r"([A-Za-z0-9]+)\s*ត្រូវបាន", r"\1 ត្រូវបាន"),
+        (r"🔶", "🔸"),
+        (r"ភាពមិនប្រាកដប្រជាផ្នែកភូមិសាស្ត្រនយោបាយអាចបង្កើនភាពងាយរងគ្រោះដល់", "ហានិភ័យភូមិសាស្ត្រនយោបាយដាក់សម្ពាធប្រែប្រួលខ្លាំងលើ"),
+        (r"ភាពមិនប្រាកដប្រជានៃសេដ្ឋកិច្ច\s*អាចដាក់សម្ពាធលើ", "សម្ពាធសេដ្ឋកិច្ចបង្កើនការប្រុងប្រយ័ត្នលើ"),
+
         # Typography & spacing cleanup (preserve newlines \n)
         (r"\([ \t]+", "("),
         (r"[ \t]+\)", ")"),
@@ -322,6 +330,8 @@ def sanitize_khmer_spelling(text: str) -> str:
     res = re.sub(r'កូដេន\s*', 'កាក់ឌីជីថល ', res)
     res = re.sub(r'([០-៩0-9]+(?:\.[០-៩0-9]+)?)\s*(?:ភាគរយ|percent|%)', _to_latin_pct, res)
     res = re.sub(r'([០-៩]+(?:\.[០-៩]+)?)\s*(ដុល្លារ|រៀល|\$|€|£|¥|បារ៉ែល)', _to_latin_currency, res)
+    # Convert all remaining Khmer digits to Latin digits (e.g. ២ ឆ្នាំ -> 2 ឆ្នាំ, ១០៨ -> 108)
+    res = re.sub(r'([០-៩]+(?:\.[០-៩]+)?)', lambda m: "".join(_khmer_digits_map.get(ch, ch) for ch in m.group(1)), res)
     res = re.sub(r'(%)([\u1780-\u17D3])', r'\1 \2', res)
     res = re.sub(r'([\u1780-\u17D3])(\d+(?:\.\d+)?%)', r'\1 \2', res)
 
@@ -618,6 +628,7 @@ class KhmerFormatter:
             impact_raw = (analysis.get("impact") or "").strip()
             if impact_raw:
                 # Merge detached label lines e.g. "🔸 ហានិភ័យទីផ្សារ៖\nភាពមិនប្រាកដប្រជា..." -> "🔸 ហានិភ័យទីផ្សារ៖ ភាពមិនប្រាកដប្រជា..."
+                impact_raw = impact_raw.replace("🔶", "🔸")
                 impact_raw = re.sub(r'([🔹🔸🔴🟢]\s*(?:ផលវិជ្ជមាន|ផលអវិជ្ជមាន/ហានិភ័យ|ហានិភ័យទីផ្សារ|ផលអវិជ្ជមាន|ហានិភ័យ)[\s៖:]*)\n+\s*', r'\1 ', impact_raw.strip())
                 # Pre-split if multiple impacts were squished on one line without newline
                 impact_raw = re.sub(r'([^\n\r])\s+([🔸🔴🔹🟢]\s*(?:ផលវិជ្ជមាន|ផលអវិជ្ជមាន|ហានិភ័យ))', r'\1\n\2', impact_raw)
@@ -628,7 +639,8 @@ class KhmerFormatter:
                         continue
                     # Remove any lingering secondary inline impact clause
                     imp_segment = re.sub(r'\s+[🔸🔴🔹🟢]\s*(?:ផលវិជ្ជមាន|ផលអវិជ្ជមាន|ហានិភ័យ).*$', '', imp_segment).strip()
-                    imp_clean = re.sub(r'^[💡🔴🟢🟡:\s]+', '', imp_segment).strip()
+                    imp_clean = re.sub(r'^[💡🔴🟢🟡🔶:\s]+', '', imp_segment).strip()
+                    imp_clean = re.sub(r'\n+\s*', ' ', imp_clean).strip()
                     # Strictly strip leading "វា" or "វាផល" per user directive
                     if imp_clean.startswith("វាផលវិជ្ជមាន"):
                         imp_clean = imp_clean[2:]
