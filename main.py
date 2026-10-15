@@ -1577,6 +1577,36 @@ class XAUUSDNewsAssistantBot:
                     database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
                     continue
 
+            # Key Leader & Entity Deduplication Shield (Prevents repeating same figure/leader/company)
+            entities = GoldNewsFilter.get_news_entities(title + " " + desc)
+            if entities:
+                # A. Consecutive Entity Diversity: Never post 2 consecutive articles about the same key leader/entity within 30m
+                last_entity = database.get_state("last_broadcasted_entity") or ""
+                last_sent_ts = float(database.get_state("last_breaking_alert_ts") or "0")
+                if last_entity and (now - last_sent_ts) < 1800.0 and last_entity in entities:
+                    logger.info(f"[ENTITY DIVERSITY SHIELD] Dropping '{title}' - entity '{last_entity}' was just featured {now - last_sent_ts:.0f}s ago. Rotating to preserve variety.")
+                    self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
+                    database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
+                    continue
+
+                # B. Entity Cooldown: Prevent repeating the same key person/entity within 3600s (1 hour)
+                is_entity_in_cooldown = False
+                blocked_entity = ""
+                for ent in entities:
+                    last_ent_ts = float(database.get_state(f"entity_last_ts_{ent}") or "0")
+                    if (now - last_ent_ts) < 3600.0:
+                        defcon1_words = ["nuclear", "outbreak of war", "declares war", "martial law", "assassination"]
+                        if not any(dw in (title + " " + desc).lower() for dw in defcon1_words):
+                            is_entity_in_cooldown = True
+                            blocked_entity = ent
+                            break
+
+                if is_entity_in_cooldown:
+                    logger.info(f"[ENTITY COOLDOWN DEDUPLICATION] Dropping '{title}' - entity '{blocked_entity}' was recently featured.")
+                    self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
+                    database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
+                    continue
+
             if GoldNewsFilter.is_duplicate_or_similar(title, recent_sent_titles):
                 logger.info(f"[CROSS-FEED DEDUPLICATION] Dropping '{title}' (Similar to recent broadcast).")
                 self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
@@ -1683,6 +1713,10 @@ class XAUUSDNewsAssistantBot:
                 for cl in clusters:
                     database.set_state(f"cluster_last_ts_{cl}", str(time.time()))
                 database.set_state("last_broadcasted_cluster", clusters[0])
+            if entities:
+                for ent in entities:
+                    database.set_state(f"entity_last_ts_{ent}", str(time.time()))
+                database.set_state("last_broadcasted_entity", entities[0])
             self._cached_channel_html = "" # Invalidate channel cache
             photo = self._fetch_news_image(it, analysis=analysis)
             if photo:
