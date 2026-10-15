@@ -291,18 +291,31 @@ def sanitize_khmer_spelling(text: str) -> str:
     for _ in range(2):
         res = re.sub(r'([\u1780-\u17D3\u17B6-\u17C5]{3,})\s*\1', r'\1', res)
 
-    # 7. Ensure clean spacing between Khmer letters and Latin (English) characters (e.g. 'កងទ័ព Yemen', 'Houthi បាន')
+    # 7. Percentage & Financial Number Formatting (Convert Khmer/Latin digits + ភាគរយ/percent to clean Latin %)
+    # e.g. ២២ ភាគរយ -> 22%, ២២.២៤ ភាគរយ -> 22.24%, 42 ភាគរយ -> 42%, 15% -> 15%
+    _khmer_digits_map = {'០': '0', '១': '1', '២': '2', '៣': '3', '៤': '4', '៥': '5', '៦': '6', '៧': '7', '៨': '8', '៩': '9'}
+    def _to_latin_pct(m):
+        raw_num = m.group(1)
+        latin_num = "".join(_khmer_digits_map.get(ch, ch) for ch in raw_num)
+        return f"{latin_num}%"
+
+    res = re.sub(r'កូដេន\s*', 'កាក់ឌីជីថល ', res)
+    res = re.sub(r'([០-៩0-9]+(?:\.[០-៩0-9]+)?)\s*(?:ភាគរយ|percent|%)', _to_latin_pct, res)
+    res = re.sub(r'(%)([\u1780-\u17D3])', r'\1 \2', res)
+    res = re.sub(r'([\u1780-\u17D3])(\d+(?:\.\d+)?%)', r'\1 \2', res)
+
+    # 8. Ensure clean spacing between Khmer letters and Latin (English) characters (e.g. 'កងទ័ព Yemen', 'Houthi បាន')
     # Use letters/vowels [\u1780-\u17D3] only to exclude punctuation marks [\u17D4-\u17DA] (។, ៕, ៖, ៗ)
     res = re.sub(r'([\u1780-\u17D3])([A-Za-z0-9])', r'\1 \2', res)
     res = re.sub(r'([A-Za-z0-9])([\u1780-\u17D3])', r'\1 \2', res)
 
-    # 8. Ensure no awkward whitespace before Khmer punctuation marks (។, ៕, ៖, ៗ, ៘)
+    # 9. Ensure no awkward whitespace before Khmer punctuation marks (។, ៕, ៖, ៗ, ៘)
     res = re.sub(r'\s+([។៕៖ៗ៘])', r'\1', res)
 
-    # 9. Ensure clean space after Khmer full stop (។) and Bariyoosan (៕)
+    # 10. Ensure clean space after Khmer full stop (។) and Bariyoosan (៕)
     res = re.sub(r'([។៕])(?!\s|$)', r'\1 ', res)
 
-    # 10. Strictly collapse multiple consecutive spaces (e.g. "  " -> " ")
+    # 11. Strictly collapse multiple consecutive spaces (e.g. "  " -> " ")
     res = re.sub(r'[\t ]{2,}', ' ', res)
 
     return res.strip()
