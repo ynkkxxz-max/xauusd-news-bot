@@ -207,14 +207,20 @@ class StoryImageBuilder:
             l1, path1, _, km1 = headline_leaders[0]
             l2, path2, _, km2 = headline_leaders[1]
             if not headline_km or (km1 and km2):
-                logger.info(f"[StoryImageBuilder] Synthesizing Dual-Leader Split Image from headline: {l1} + {l2}")
-                split_bytes = cls.create_split_image(path1, path2)
-                if split_bytes:
-                    return split_bytes
+                if not cls.is_asset_on_cooldown(f"leader_{l1}") and not cls.is_asset_on_cooldown(f"leader_{l2}"):
+                    logger.info(f"[StoryImageBuilder] Synthesizing Dual-Leader Split Image from headline: {l1} + {l2}")
+                    split_bytes = cls.create_split_image(path1, path2)
+                    if split_bytes:
+                        cls.record_asset_used(f"leader_{l1}")
+                        cls.record_asset_used(f"leader_{l2}")
+                        return split_bytes
+                else:
+                    logger.info(f"[StoryImageBuilder] Dual leaders '{l1}' or '{l2}' on 4h cooldown. Skipping split image.")
 
         # Step 4: CEO + Product Dual Split Image Standard (USER MANDATORY DIRECTIVE)
         # When a CEO/Leader and their product/vehicle are featured (e.g. Elon Musk + Roadster/Optimus/Starship),
         # ALWAYS synthesize a clean 50/50 Dual Split Image: Left = CEO, Right = Product/Innovation!
+        # STRICT ZERO REPETITION: Enforce 4-hour cooldown on both Leader photo and Product visual!
         PRODUCT_PATTERNS = [
             ("tesla_roadster_spacex", r"\b(roadster|spacex thruster|cold gas thruster|rocket thruster)\b|រ៉ូតស្ទ័រ"),
             ("cybertruck", r"\b(cybertruck)\b|ស៊ីបឺត្រាក់"),
@@ -231,10 +237,15 @@ class StoryImageBuilder:
                         prod_path = os.path.join(cls.BRANDS_DIR, f"{prod_key}.png")
                     if os.path.exists(prod_path):
                         l1, path1, _, _ = headline_leaders[0]
-                        logger.info(f"[StoryImageBuilder] Synthesizing CEO + Product Dual Split Image: {l1} + {prod_key}")
-                        split_bytes = cls.create_split_image(path1, prod_path)
-                        if split_bytes:
-                            return split_bytes
+                        if not cls.is_asset_on_cooldown(f"leader_{l1}") and not cls.is_asset_on_cooldown(f"prod_{prod_key}"):
+                            logger.info(f"[StoryImageBuilder] Synthesizing CEO + Product Dual Split Image: {l1} + {prod_key}")
+                            split_bytes = cls.create_split_image(path1, prod_path)
+                            if split_bytes:
+                                cls.record_asset_used(f"leader_{l1}")
+                                cls.record_asset_used(f"prod_{prod_key}")
+                                return split_bytes
+                        else:
+                            logger.info(f"[StoryImageBuilder] CEO '{l1}' or Product '{prod_key}' on 4h cooldown. Skipping to preserve visual diversity.")
 
         # Step 4.2: Detect Brands / Tech Giants involved
         detected_brands = []
@@ -247,13 +258,19 @@ class StoryImageBuilder:
                     detected_brands.append((brand_key, b_path))
 
         # If ONE leader and ONE brand are involved (e.g. Zelenskyy + SpaceX / Starlink), synthesize Split Image!
+        # STRICT ZERO REPETITION: Enforce 4-hour cooldown on both Leader photo and Brand visual!
         if len(headline_leaders) == 1 and len(detected_brands) >= 1:
             l1, path1, _, _ = headline_leaders[0]
             b1, path2 = detected_brands[0]
-            logger.info(f"[StoryImageBuilder] Synthesizing Leader + Brand Split Image: {l1} + {b1}")
-            split_bytes = cls.create_split_image(path1, path2)
-            if split_bytes:
-                return split_bytes
+            if not cls.is_asset_on_cooldown(f"leader_{l1}") and not cls.is_asset_on_cooldown(f"brand_{b1}"):
+                logger.info(f"[StoryImageBuilder] Synthesizing Leader + Brand Split Image: {l1} + {b1}")
+                split_bytes = cls.create_split_image(path1, path2)
+                if split_bytes:
+                    cls.record_asset_used(f"leader_{l1}")
+                    cls.record_asset_used(f"brand_{b1}")
+                    return split_bytes
+            else:
+                logger.info(f"[StoryImageBuilder] Leader '{l1}' or Brand '{b1}' on 4h cooldown. Skipping to preserve visual diversity.")
 
         # Step 5: Single Leader Official Portrait
         # ONLY if the leader is the primary subject in headline and NOT just a casual mention in market/economic news
