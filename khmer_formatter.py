@@ -1121,10 +1121,10 @@ class KhmerFormatter:
                     impact_line = "🔸 ផលអវិជ្ជមាន/ហានិភ័យ៖ ការរឹតបន្តឹងគោលនយោបាយរូបិយវត្ថុយូរអង្វែង អាចដាក់សម្ពាធលើកំណើនសេដ្ឋកិច្ច" if is_neg else "🔹 ផលវិជ្ជមាន៖ ជួយពង្រឹងកិច្ចសហប្រតិបត្តិការអន្តរជាតិក្នុងការរក្សាស្ថិរភាពលំហូរសាច់ប្រាក់"
 
         # Strictly enforce a SINGLE impact block per user directive in the 2-line layout:
-        # 🔶 ហានិភ័យទីផ្សារ (ការវិភាគ)
+        # 🔶 ហានិភ័យទីផ្សារ៖
         # {detail}
         # OR
-        # 🔹 ផលវិជ្ជមាន (ការវិភាគ)
+        # 🔹 ផលវិជ្ជមាន៖
         # {detail}
         if impact_line:
             # Also clean any inline leakage where 🔸 and 🔹 were squished together on the same line
@@ -1153,9 +1153,9 @@ class KhmerFormatter:
             if imp_detail:
                 imp_detail += "។"
                 if is_threat_or_negative or "ហានិភ័យ" in impact_line or "អវិជ្ជមាន" in impact_line:
-                    impact_line = f"🔶 ហានិភ័យទីផ្សារ (ការវិភាគ)\n{imp_detail}"
+                    impact_line = f"🔶 ហានិភ័យទីផ្សារ៖\n{imp_detail}"
                 else:
-                    impact_line = f"🔹 ផលវិជ្ជមាន (ការវិភាគ)\n{imp_detail}"
+                    impact_line = f"🔹 ផលវិជ្ជមាន៖\n{imp_detail}"
             else:
                 impact_line = ""
 
