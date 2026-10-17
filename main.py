@@ -1172,80 +1172,24 @@ class XAUUSDNewsAssistantBot:
         if direct:
             return direct
 
-        # Fallback to topic photo
-        comb_text = f"{item.get('title', '')} {item.get('description', '')}".lower()
-        topic_img = XAUUSDNewsAssistantBot._get_topic_photo(comb_text)
-        if topic_img:
-            return topic_img
-
+        # MODE B GUARANTEE: If no authentic article photo from publisher or dynamic canvas exists,
+        # return None so the message broadcasts cleanly in MODE B (Clean VIP Text Mode)!
+        # NEVER return repetitive generic static stock photos (like wafer die or generic bullions).
+        logger.info("[_fetch_news_image] No authentic direct photo. Defaulting to MODE B (Clean VIP Text Mode).")
         return None
 
     @staticmethod
     def _get_speaker_photo(text_low: str) -> bytes:
-        """Returns official portrait bytes for key leaders/speakers."""
-        photo_path = None
-        if "warsh" in text_low or "kevin warsh" in text_low:
-            photo_path = "assets/speakers/kevin_warsh.jpg"
-        elif "powell" in text_low or "jerome powell" in text_low:
-            photo_path = "assets/speakers/jerome_powell.jpg"
-        elif "trump" in text_low or "donald trump" in text_low:
-            photo_path = "assets/speakers/donald_trump.jpg"
-        elif "musk" in text_low or "elon musk" in text_low:
-            photo_path = "assets/speakers/elon_musk.jpg"
-        elif "meloni" in text_low or "giorgia meloni" in text_low:
-            photo_path = "assets/speakers/giorgia_meloni.jpg"
-        elif "putin" in text_low or "vladimir putin" in text_low:
-            photo_path = "assets/speakers/vladimir_putin.jpg"
-        elif "xi jinping" in text_low or "president xi" in text_low:
-            photo_path = "assets/speakers/xi_jinping.jpg"
-        elif "netanyahu" in text_low or "benjamin netanyahu" in text_low:
-            photo_path = "assets/speakers/benjamin_netanyahu.jpg"
-        elif "zelensky" in text_low or "volodymyr zelensky" in text_low:
-            photo_path = "assets/speakers/volodymyr_zelenskyy.jpg"
-        elif "macron" in text_low or "emmanuel macron" in text_low:
-            photo_path = "assets/speakers/emmanuel_macron.jpg"
-        elif "starmer" in text_low or "keir starmer" in text_low:
-            photo_path = "assets/speakers/keir_starmer.jpg"
-        elif "lagarde" in text_low or "christine lagarde" in text_low:
-            photo_path = "assets/speakers/christine_lagarde.jpg"
-        elif "ueda" in text_low or "kazuo ueda" in text_low:
-            photo_path = "assets/speakers/kazuo_ueda.jpg"
-        elif "modi" in text_low or "narendra modi" in text_low:
-            photo_path = "assets/speakers/narendra_modi.jpg"
-
-        if photo_path and os.path.exists(photo_path):
-            try:
-                with open(photo_path, "rb") as f:
-                    return f.read()
-            except Exception as e:
-                logger.warning(f"Failed to load speaker portrait {photo_path}: {e}")
+        """Returns official portrait bytes for key leaders/speakers if available."""
         return None
 
     @staticmethod
     def _get_topic_photo(text_low: str) -> bytes:
-        """Returns authentic Ultra-HD topic photo for core macroeconomic pillars."""
-        photo_path = None
-        if any(w in text_low for w in ["federal reserve", "fed ", "fomc", "eccles building", "central bank"]):
-            photo_path = "assets/topics/federal_reserve.jpg"
-        elif any(w in text_low for w in ["gold", "bullion", "xauusd", "precious metal"]):
-            photo_path = "assets/topics/gold_bullion.jpg"
-        elif any(w in text_low for w in ["crude oil", "brent", "wti", "opec", "petroleum", "oil price"]):
-            photo_path = "assets/topics/crude_oil.jpg"
-        elif any(w in text_low for w in ["semiconductor", "chip", "chips", "wafer", "tsmc", "nvidia", "intel"]):
-            photo_path = "assets/topics/semiconductor_chips.jpg"
-        elif any(w in text_low for w in ["bitcoin", "btc"]):
-            photo_path = "assets/topics/bitcoin_crypto.jpg"
-        elif any(w in text_low for w in ["hormuz", "strait of hormuz", "red sea", "naval", "warship", "persian gulf"]):
-            photo_path = "assets/topics/geopolitics_naval.jpg"
-        elif any(w in text_low for w in ["wall street", "nyse", "nasdaq", "s&p 500", "stock market"]):
-            photo_path = "assets/topics/wall_street.jpg"
-
-        if photo_path and os.path.exists(photo_path):
-            try:
-                with open(photo_path, "rb") as f:
-                    return f.read()
-            except Exception as e:
-                logger.warning(f"Failed to load topic photo {photo_path}: {e}")
+        """
+        Permanently disabled: Static topic stock photos (semiconductor_chips, etc.)
+        are completely banned to prevent repeating the same generic images 20-30 times.
+        Always returns None to enforce Mode B clean text broadcast.
+        """
         return None
 
     def _build_calendar_png(self) -> bytes:
@@ -1629,16 +1573,16 @@ class XAUUSDNewsAssistantBot:
             # Key Leader & Entity Deduplication Shield (Prevents repeating same figure/leader/company)
             entities = GoldNewsFilter.get_news_entities(title + " " + desc)
             if entities:
-                # A. Consecutive Entity Diversity: Never post 2 consecutive articles about the same key leader/entity within 30m
+                # A. Consecutive Entity Diversity: Never post 2 consecutive articles about the same key leader/entity within 1 hour (3600s)
                 last_entity = database.get_state("last_broadcasted_entity") or ""
                 last_sent_ts = float(database.get_state("last_breaking_alert_ts") or "0")
                 is_consecutive_entity = False
                 matched_ent_name = ""
-                if last_entity and (now - last_sent_ts) < 1800.0 and last_entity in entities:
+                if last_entity and (now - last_sent_ts) < 3600.0 and last_entity in entities:
                     is_consecutive_entity = True
                     matched_ent_name = last_entity
-                # Live Channel Feed fallback: If channel's actual latest post features the same entity within 30m
-                if not is_consecutive_entity and ch_latest_entities and ch_elapsed < 1800.0:
+                # Live Channel Feed fallback: If channel's actual latest post features the same entity within 1 hour
+                if not is_consecutive_entity and ch_latest_entities and ch_elapsed < 3600.0:
                     common_ent = [e for e in entities if e in ch_latest_entities]
                     if common_ent:
                         is_consecutive_entity = True
@@ -1650,12 +1594,12 @@ class XAUUSDNewsAssistantBot:
                     database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
                     continue
 
-                # B. Entity Cooldown: Prevent repeating the same key person/entity within 3600s (1 hour)
+                # B. Entity Cooldown: Prevent repeating the same key person/entity within 14400s (4 hours - Strict Anti-Fatigue Shield)
                 is_entity_in_cooldown = False
                 blocked_entity = ""
                 for ent in entities:
                     last_ent_ts = float(database.get_state(f"entity_last_ts_{ent}") or "0")
-                    if (now - last_ent_ts) < 3600.0 or (ent in ch_latest_entities and ch_elapsed < 3600.0):
+                    if (now - last_ent_ts) < 14400.0 or (ent in ch_latest_entities and ch_elapsed < 14400.0):
                         defcon1_words = ["nuclear", "outbreak of war", "declares war", "martial law", "assassination"]
                         if not any(dw in (title + " " + desc).lower() for dw in defcon1_words):
                             is_entity_in_cooldown = True
@@ -1663,7 +1607,7 @@ class XAUUSDNewsAssistantBot:
                             break
 
                 if is_entity_in_cooldown:
-                    logger.info(f"[ENTITY COOLDOWN DEDUPLICATION] Dropping '{title}' - entity '{blocked_entity}' was recently featured.")
+                    logger.info(f"[ENTITY COOLDOWN DEDUPLICATION] Dropping '{title}' - entity '{blocked_entity}' was recently featured within 4 hours.")
                     self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                     database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
                     continue
@@ -1748,6 +1692,27 @@ class XAUUSDNewsAssistantBot:
                 self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                 database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
                 continue
+
+            # Post-Analysis Entity Guard: Check entities in translated Khmer headline & body to catch any unflagged leaders
+            post_entities = GoldNewsFilter.get_news_entities(f"{title} {desc} {hl_km} {final_body}")
+            if post_entities:
+                is_post_entity_blocked = False
+                blocked_post_ent = ""
+                for ent in post_entities:
+                    last_ent_ts = float(database.get_state(f"entity_last_ts_{ent}") or "0")
+                    if (now - last_ent_ts) < 14400.0:  # 4 hours strict cooldown
+                        is_post_entity_blocked = True
+                        blocked_post_ent = ent
+                        break
+                if is_post_entity_blocked:
+                    logger.info(f"[POST-ANALYSIS ENTITY SHIELD] Dropping '{title}' - entity '{blocked_post_ent}' was recently featured within 4h.")
+                    self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
+                    database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
+                    continue
+                # Merge entities so all detected entities are locked into cooldown
+                for pe in post_entities:
+                    if pe not in entities:
+                        entities.append(pe)
 
             # Minimal micro-jitter to prevent concurrency race
             time.sleep(0.05)
