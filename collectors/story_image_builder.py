@@ -132,21 +132,31 @@ class StoryImageBuilder:
             headline_km = analysis.get("headline_km", "")
             key_event = analysis.get("key_event", "")
 
-        # Strict publisher source stripping to avoid false country matching (e.g. "China Military Online", "Times of India")
+        # Strict publisher source stripping to avoid false country matching (e.g. "China Military Online", "Times of India", "France 24")
         clean_desc = desc
         if source_name:
             clean_desc = re.sub(re.escape(source_name), "", clean_desc, flags=re.IGNORECASE)
         # Strip common news agencies from country matching
         news_agencies = [
+            r"\bfrance\s*24\b", r"\bfrance24\b", r"\bafp\b", r"\bdeutsche\s*welle\b", r"\bdw\b",
             r"\bchina military online\b", r"\btimes of india\b", r"\bal jazeera\b",
             r"\beuromaidan press\b", r"\bsouth china morning post\b", r"\bkyodo news\b",
-            r"\bxinhua\b", r"\btass\b", r"\bsputnik\b", r"\bbbc\b", r"\bcnn\b", r"\bcnbc\b"
+            r"\bxinhua\b", r"\btass\b", r"\bsputnik\b", r"\bbbc\b", r"\bcnn\b", r"\bcnbc\b",
+            r"\breuters\b", r"\bbloomberg\b", r"\bseeking\s*alpha\b", r"\bthe\s*hill\b",
+            r"\bmarketwatch\b", r"\bfinancial\s*times\b", r"\bwsj\b", r"\bwall\s*street\s*journal\b"
         ]
         for ag in news_agencies:
             clean_desc = re.sub(ag, "", clean_desc, flags=re.IGNORECASE)
 
         comb_text = f"{title} {clean_desc} {headline_km} {key_event}".lower()
+        if source_name:
+            comb_text = re.sub(re.escape(source_name.lower()), "", comb_text)
+        for ag in news_agencies:
+            comb_text = re.sub(ag, "", comb_text, flags=re.IGNORECASE)
+
         headline_text = f"{headline_km} {title}".lower()
+        if source_name:
+            headline_text = re.sub(re.escape(source_name.lower()), "", headline_text)
 
         # Step 1: Detect Leaders involved (Priority to Khmer and English headline occurrence)
         headline_leaders = []
@@ -224,7 +234,8 @@ class StoryImageBuilder:
             else:
                 logger.info(f"[StoryImageBuilder] Leader portrait '{l1}' is on 4h cooldown. Skipping to preserve visual variety.")
 
-        # Step 6: Dual-Country Flags (if no leader is involved)
+        # Step 6: Single Country High-Res Flag Canvas (ONLY for single sovereign subject)
+        # Note: Dual-Country Flag Split Image synthesis is PERMANENTLY DISABLED per user directive to eliminate mismatched/hybrid flag collages!
         detected_countries = []
         for c_code, pat in cls.COUNTRY_PATTERNS:
             m = re.search(pat, comb_text, re.IGNORECASE)
@@ -242,22 +253,10 @@ class StoryImageBuilder:
 
         detected_countries.sort(key=lambda x: x[2])
 
-        if len(headline_leaders) == 0 and len(detected_countries) >= 2:
-            c1, path1, pos1 = detected_countries[0]
-            c2, path2, pos2 = detected_countries[1]
-            both_in_headline = (pos1 < 90000 and pos2 < 90000)
-            bilateral_keywords = r"\b(relations|bilateral|talks|summit|dispute|conflict|war|clash|deal with|sanctions on|versus|vs|and)\b|សង្គ្រាម|ជម្លោះ|ទំនាក់ទំនង|ទ្វេភាគី|កិច្ចចរចា|ទណ្ឌកម្ម|និង"
-            has_bilateral = bool(re.search(bilateral_keywords, headline_text, re.IGNORECASE))
-            if both_in_headline or (pos1 < 90000 and has_bilateral):
-                logger.info(f"[StoryImageBuilder] Synthesizing Dual-Country Flag Split Image: {c1} + {c2}")
-                split_bytes = cls.create_split_image(path1, path2, is_flags=True)
-                if split_bytes:
-                    return split_bytes
-
         # Step 7: Single Country High-Res Flag Canvas (if primary country in headline)
-        if detected_countries:
+        # If there are multiple conflicting countries (e.g. Israel + France), DO NOT create split flag; fallback cleanly to MODE B!
+        if len(detected_countries) == 1:
             c1, path1, pos1 = detected_countries[0]
-            # Only use country flag canvas if country is prominently in the headline
             if pos1 < 90000 and not cls.is_asset_on_cooldown(f"flag_{c1}"):
                 logger.info(f"[StoryImageBuilder] Using Single Country Flag Canvas from headline: {c1}")
                 flag_canvas = cls.create_single_flag_canvas(path1)
@@ -268,8 +267,8 @@ class StoryImageBuilder:
                 logger.info(f"[StoryImageBuilder] Flag '{c1}' skipped (not prominent in headline or on cooldown).")
 
         # Step 8: Mode B Fallback Guarantee
-        # If no authentic direct publisher photo or dynamic canvas exists, return None!
-        # main.py will automatically broadcast in MODE B (Clean VIP Text Mode), preventing ANY image repetition!
+        # If no authentic direct publisher photo or verified single asset exists, return None!
+        # main.py will automatically broadcast in MODE B (Clean VIP Text Mode), preventing ANY image error or repetition!
         logger.info("[StoryImageBuilder] No authentic direct photo or dynamic canvas. Falling back to MODE B (VIP Text Mode).")
         return None
 
