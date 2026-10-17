@@ -20,7 +20,6 @@ class StoryImageBuilder:
 
     LEADERS_DIR = "assets/speakers"
     FLAGS_DIR = "assets/flags"
-    TOPICS_DIR = "assets/topics"
     BRANDS_DIR = "assets/brands"
 
     BRAND_PATTERNS = [
@@ -82,23 +81,48 @@ class StoryImageBuilder:
         ("id", r"\b(indonesia|indonesian|jakarta)\b|ឥណ្ឌូនេស៊ី"),
         ("qa", r"\b(qatar|doha)\b|(?:ប្រទេស|រដ្ឋ)?\s*កាតា(?![លក\u1780-\u17D3])"),
         ("eg", r"\b(egypt|egyptian|cairo)\b|អេហ្ស៊ីប"),
+        ("ps", r"\b(palestine|palestinian|west bank|ramallah|gaza)\b|ប៉ាឡេស្ទីន|វេសប៊ែង|ហ្កាហ្សា"),
     ]
 
-    TOPIC_PATTERNS = [
-        ("federal_reserve", r"\b(federal reserve|fed\b|fomc|rate cut|rate hike|central bank|eccles building)\b|ធនាគារកណ្តាល|អត្រាការប្រាក់"),
-        ("gold_bullion", r"\b(gold|bullion|xauusd|spot gold|gold reserve|gold price)\b|មាស|ហាងឆេងមាស"),
-        ("crude_oil", r"\b(crude oil|brent|wti|opec|petroleum|oil price|energy market|diesel|gasoline)\b|ប្រេងកាត|ប្រេងម៉ាស៊ូត|ប្រេងឆៅ"),
-        ("semiconductor_chips", r"\b(semiconductor|chip|chips|wafer|tsmc|nvidia|intel|artificial intelligence|ai)\b|បន្ទះឈីប|បច្ចេកវិទ្យា ai"),
-        ("bitcoin_crypto", r"\b(bitcoin|btc|cryptocurrency|crypto reserve|crypto|stablecoin|ethereum|eth)\b|គ្រីបតូ|ប្រាក់ឌីជីថល"),
-        ("geopolitics_naval", r"\b(hormuz|strait of hormuz|red sea|naval|warship|persian gulf|military strike|war)\b|សង្គ្រាម|ច្រកសមុទ្រ"),
-        ("wall_street", r"\b(wall street|nyse|nasdaq|s&p 500|stock market|equities)\b|ទីផ្សារភាគហ៊ុន"),
-    ]
+    IMAGE_COOLDOWN_SECONDS = 14400.0  # 4 hours strict cooldown for ANY static asset
+    _RECENT_USED_ASSETS = {}
+
+    @classmethod
+    def is_asset_on_cooldown(cls, asset_key: str) -> bool:
+        """Checks if a static visual asset was already used in recent broadcasts."""
+        import time
+        now = time.time()
+        last_mem = cls._RECENT_USED_ASSETS.get(asset_key, 0)
+        if (now - last_mem) < cls.IMAGE_COOLDOWN_SECONDS:
+            return True
+        try:
+            import database
+            db_ts = float(database.get_state(f"img_used_ts_{asset_key}") or "0")
+            if (now - db_ts) < cls.IMAGE_COOLDOWN_SECONDS:
+                return True
+        except Exception:
+            pass
+        return False
+
+    @classmethod
+    def record_asset_used(cls, asset_key: str):
+        """Records an asset as used both in memory and persistently in SQLite database."""
+        import time
+        now = time.time()
+        cls._RECENT_USED_ASSETS[asset_key] = now
+        try:
+            import database
+            database.set_state(f"img_used_ts_{asset_key}", str(now))
+        except Exception:
+            pass
 
     @classmethod
     def get_image_for_news(cls, item: dict, analysis: dict = None, default_fetcher=None) -> bytes:
         """
         Main entry point to determine and generate the most accurate image for the news item.
+        Enforces strict Anti-Repetition Shield: No static stock asset can repeat within 4 hours!
         """
+        import hashlib
         title = item.get("title", "")
         desc = item.get("description", "")
         source_name = item.get("source", "")
@@ -137,8 +161,26 @@ class StoryImageBuilder:
 
         headline_leaders.sort(key=lambda x: x[2])
 
-        # Dual-Leader Split Image Rule: ONLY allowed if BOTH leaders are prominently featured in the HEADLINE!
-        # If headline_km exists, the 2nd leader MUST be present in headline_km as well to prevent image/text contradiction!
+        # Step 1: Direct Genuine Article Image from Publisher (Fresh, Authentic, Non-Repetitive)
+        # Prioritize live press photos from Reuters, Bloomberg, etc., so readers always see fresh visuals and never get bored!
+        if default_fetcher:
+            try:
+                direct_photo = default_fetcher(item)
+                if direct_photo:
+                    direct_hash = hashlib.md5(direct_photo[:1000]).hexdigest()
+                    if not cls.is_asset_on_cooldown(f"direct_{direct_hash}"):
+                        cls.record_asset_used(f"direct_{direct_hash}")
+                        logger.info(f"[StoryImageBuilder] Using verified direct publisher article photo (enhanced for VIP).")
+                        return cls.enhance_image_for_vip(direct_photo)
+            except Exception as e:
+                logger.debug(f"[StoryImageBuilder] Direct fetcher exception: {e}")
+
+        # Step 2: Market & Macro Topic Guard (Financial/Commodity news should NEVER show politician portraits)
+        is_market_index = bool(re.search(r"\b(dow jones|s&p 500|s&p|nasdaq|wall street|stock market|equities|stocks rally|stocks plunge)\b|ទីផ្សារភាគហ៊ុន|សន្ទស្សន៍", headline_text, re.IGNORECASE))
+        if is_market_index:
+            headline_leaders.clear()  # Strictly prevent politician portraits on stock/index news
+
+        # Step 3: Dual-Leader Split Image Rule: ONLY allowed if BOTH leaders are prominently featured in the HEADLINE!
         if len(headline_leaders) >= 2:
             l1, path1, _, km1 = headline_leaders[0]
             l2, path2, _, km2 = headline_leaders[1]
@@ -148,19 +190,7 @@ class StoryImageBuilder:
                 if split_bytes:
                     return split_bytes
 
-        # If exactly ONE leader is in the headline, strictly use SINGLE leader portrait (NEVER drag 2nd leader from body!)
-        if len(headline_leaders) >= 1:
-            l1, path1, _, _ = headline_leaders[0]
-            logger.info(f"[StoryImageBuilder] Using Single Leader Portrait from headline: {l1}")
-            try:
-                with open(path1, "rb") as f:
-                    return f.read()
-            except Exception as e:
-                logger.warning(f"[StoryImageBuilder] Failed reading single leader image {path1}: {e}")
-
-        detected_leaders = headline_leaders
-
-        # Step 1.5: Detect Brands / Tech Giants involved
+        # Step 4: Detect Brands / Tech Giants involved
         detected_brands = []
         for brand_key, pat in cls.BRAND_PATTERNS:
             if re.search(pat, comb_text, re.IGNORECASE):
@@ -171,19 +201,33 @@ class StoryImageBuilder:
                     detected_brands.append((brand_key, b_path))
 
         # If ONE leader and ONE brand are involved (e.g. Zelenskyy + SpaceX / Starlink), synthesize Split Image!
-        if len(detected_leaders) == 1 and len(detected_brands) >= 1:
-            l1, path1, _ = detected_leaders[0]
+        if len(headline_leaders) == 1 and len(detected_brands) >= 1:
+            l1, path1, _, _ = headline_leaders[0]
             b1, path2 = detected_brands[0]
             logger.info(f"[StoryImageBuilder] Synthesizing Leader + Brand Split Image: {l1} + {b1}")
             split_bytes = cls.create_split_image(path1, path2)
             if split_bytes:
                 return split_bytes
 
-        # Step 2: Dual-Country Flags (if no leader is involved)
+        # Step 5: Single Leader Official Portrait
+        # ONLY if the leader is the primary subject in headline and NOT just a casual mention in market/economic news
+        if len(headline_leaders) >= 1 and not is_market_index:
+            l1, path1, _, _ = headline_leaders[0]
+            if not cls.is_asset_on_cooldown(f"leader_{l1}"):
+                logger.info(f"[StoryImageBuilder] Using Single Leader Portrait from headline: {l1}")
+                try:
+                    cls.record_asset_used(f"leader_{l1}")
+                    with open(path1, "rb") as f:
+                        return cls.enhance_image_for_vip(f.read())
+                except Exception as e:
+                    logger.warning(f"[StoryImageBuilder] Failed reading single leader image {path1}: {e}")
+            else:
+                logger.info(f"[StoryImageBuilder] Leader portrait '{l1}' is on 4h cooldown. Skipping to preserve visual variety.")
+
+        # Step 6: Dual-Country Flags (if no leader is involved)
         detected_countries = []
         for c_code, pat in cls.COUNTRY_PATTERNS:
             m = re.search(pat, comb_text, re.IGNORECASE)
-            # Special check for uppercase 'US' in original text (prevents false positive from lowercase 'us' pronoun)
             if not m and c_code == "us":
                 if re.search(r'\b(US|USA)\b', f"{title} {clean_desc}"):
                     m = True
@@ -198,10 +242,7 @@ class StoryImageBuilder:
 
         detected_countries.sort(key=lambda x: x[2])
 
-        # If TWO countries are involved (and no leader photo), synthesize dual-flag split image ONLY IF:
-        # 1. BOTH countries are prominently in the headline (bilateral event), OR
-        # 2. There are explicit bilateral interaction keywords in the headline (conflict, trade war, talks, deal).
-        if len(detected_leaders) == 0 and len(detected_countries) >= 2:
+        if len(headline_leaders) == 0 and len(detected_countries) >= 2:
             c1, path1, pos1 = detected_countries[0]
             c2, path2, pos2 = detected_countries[1]
             both_in_headline = (pos1 < 90000 and pos2 < 90000)
@@ -213,44 +254,23 @@ class StoryImageBuilder:
                 if split_bytes:
                     return split_bytes
 
-        # Step 3: Direct Genuine Article Image from Publisher (Fresh, Up-to-Date, Non-Repetitive)
-        # Prioritize live press photos from Reuters, Bloomberg, etc., so readers always see fresh visuals and never get bored!
-        if default_fetcher:
-            direct_photo = default_fetcher(item)
-            if direct_photo:
-                logger.info(f"[StoryImageBuilder] Using verified direct publisher article photo (enhanced for VIP).")
-                return cls.enhance_image_for_vip(direct_photo)
-
-        # Step 4: Single Leader Official Portrait (High-Res Fallback when direct article photo is missing)
-        if len(detected_leaders) >= 1:
-            l1, path1, _ = detected_leaders[0]
-            logger.info(f"[StoryImageBuilder] Using Single Leader Portrait Fallback: {l1}")
-            try:
-                with open(path1, "rb") as f:
-                    return cls.enhance_image_for_vip(f.read())
-            except Exception as e:
-                logger.warning(f"Failed to read leader image {path1}: {e}")
-
-        # Step 5: Macro Topic Authentic Ultra-HD Photo
-        for topic_key, pat in cls.TOPIC_PATTERNS:
-            if re.search(pat, comb_text, re.IGNORECASE):
-                topic_path = os.path.join(cls.TOPICS_DIR, f"{topic_key}.jpg")
-                if os.path.exists(topic_path):
-                    logger.info(f"[StoryImageBuilder] Using Macro Topic Photo: {topic_key}")
-                    try:
-                        with open(topic_path, "rb") as f:
-                            return cls.enhance_image_for_vip(f.read())
-                    except Exception as e:
-                        logger.warning(f"Failed to read topic image {topic_path}: {e}")
-
-        # Step 6: Single Country High-Res Flag / Visual
+        # Step 7: Single Country High-Res Flag Canvas (if primary country in headline)
         if detected_countries:
-            c1, path1, _ = detected_countries[0]
-            logger.info(f"[StoryImageBuilder] Using Single Country Flag Canvas: {c1}")
-            flag_canvas = cls.create_single_flag_canvas(path1)
-            if flag_canvas:
-                return cls.enhance_image_for_vip(flag_canvas)
+            c1, path1, pos1 = detected_countries[0]
+            # Only use country flag canvas if country is prominently in the headline
+            if pos1 < 90000 and not cls.is_asset_on_cooldown(f"flag_{c1}"):
+                logger.info(f"[StoryImageBuilder] Using Single Country Flag Canvas from headline: {c1}")
+                flag_canvas = cls.create_single_flag_canvas(path1)
+                if flag_canvas:
+                    cls.record_asset_used(f"flag_{c1}")
+                    return cls.enhance_image_for_vip(flag_canvas)
+            else:
+                logger.info(f"[StoryImageBuilder] Flag '{c1}' skipped (not prominent in headline or on cooldown).")
 
+        # Step 8: Mode B Fallback Guarantee
+        # If no authentic direct publisher photo or dynamic canvas exists, return None!
+        # main.py will automatically broadcast in MODE B (Clean VIP Text Mode), preventing ANY image repetition!
+        logger.info("[StoryImageBuilder] No authentic direct photo or dynamic canvas. Falling back to MODE B (VIP Text Mode).")
         return None
 
     @classmethod
