@@ -38,10 +38,15 @@ RSS_FEEDS = [
     ("Politico World", "https://rss.politico.com/politics-news.xml"),
     ("CNBC World News", "https://www.cnbc.com/id/100727362/device/rss/rss.html"),
 
-    # --- Pillar 3: Technology / AI / Semiconductor ---
+    # --- Pillar 3: Technology / AI / Frontier Innovation / EV & Aerospace ---
     ("CNBC Tech", "https://www.cnbc.com/id/19854910/device/rss/rss.html"),
     ("TechCrunch", "https://techcrunch.com/feed/"),
     ("Ars Technica", "https://feeds.arstechnica.com/arstechnica/index"),
+    ("Electrek EV & Energy", "https://electrek.co/feed/"),
+    ("Teslarati Frontier Tech", "https://www.teslarati.com/feed/"),
+    ("SpaceNews Aerospace", "https://spacenews.com/feed/"),
+    ("Google News Elon & Tesla 1h", "https://news.google.com/rss/search?q=(Elon+Musk+OR+Tesla+OR+SpaceX+OR+Starship+OR+Roadster+OR+Cybertruck)+when:1h&hl=en-US&gl=US&ceid=US:en"),
+    ("Google News AI & Frontier 1h", "https://news.google.com/rss/search?q=(Optimus+OR+Neuralink+OR+xAI+OR+Grok+OR+Anthropic+OR+Nvidia)+when:1h&hl=en-US&gl=US&ceid=US:en"),
 
     # --- Pillar 4: Monetary Policy & Central Banks ---
     ("Federal Reserve Press", "https://www.federalreserve.gov/feeds/press_monetary.xml"),
