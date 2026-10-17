@@ -1,3 +1,4 @@
+import os
 import logging
 import requests
 from config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
@@ -78,9 +79,12 @@ class TelegramNotifier:
             return {"ok": False, "error": str(e)}
 
     def send_photo(self, photo_bytes: bytes, caption: str = "", parse_mode: str = "HTML", reply_markup: dict = None, chat_id: str = None) -> dict:
-        """Uploads a PNG image to the chat via the sendPhoto API."""
+        if isinstance(photo_bytes, str) and os.path.isfile(photo_bytes):
+            with open(photo_bytes, "rb") as f:
+                photo_bytes = f.read()
+
         if not self.is_configured():
-            logger.warning(f"[TelegramNotifier] Credentials not set. Simulated photo upload ({len(photo_bytes)} bytes).")
+            logger.warning(f"[TelegramNotifier] Credentials not set. Simulated photo upload ({len(photo_bytes) if photo_bytes else 0} bytes).")
             return {"ok": True, "result": {"message_id": 999998, "simulated": True}}
 
         target_chat = str(chat_id or self.chat_id)
