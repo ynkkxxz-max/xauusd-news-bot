@@ -334,8 +334,9 @@ def sanitize_khmer_spelling(text: str) -> str:
         res = re.sub(pat, rep, res)
 
     # General algorithmic deduplication of Khmer word/syllable repeats (length >= 3)
+    # Strictly require whitespace (\s+) to prevent corrupting compound words like 'ការថារថយន្ត'
     for _ in range(2):
-        res = re.sub(r'([\u1780-\u17D3\u17B6-\u17C5]{3,})\s*\1', r'\1', res)
+        res = re.sub(r'([\u1780-\u17D3\u17B6-\u17C5]{3,})\s+\1', r'\1', res)
 
     # 7. Percentage & Financial Number Formatting (Convert Khmer/Latin digits + ភាគរយ/percent to clean Latin %)
     # e.g. ២២ ភាគរយ -> 22%, ២២.២៤ ភាគរយ -> 22.24%, 42 ភាគរយ -> 42%, 15% -> 15%
