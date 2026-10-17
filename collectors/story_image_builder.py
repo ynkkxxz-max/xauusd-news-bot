@@ -200,7 +200,31 @@ class StoryImageBuilder:
                 if split_bytes:
                     return split_bytes
 
-        # Step 4: Detect Brands / Tech Giants involved
+        # Step 4: CEO + Product Dual Split Image Standard (USER MANDATORY DIRECTIVE)
+        # When a CEO/Leader and their product/vehicle are featured (e.g. Elon Musk + Roadster/Optimus/Starship),
+        # ALWAYS synthesize a clean 50/50 Dual Split Image: Left = CEO, Right = Product/Innovation!
+        PRODUCT_PATTERNS = [
+            ("tesla_roadster_spacex", r"\b(roadster|spacex thruster|cold gas thruster|rocket thruster)\b|រ៉ូតស្ទ័រ"),
+            ("cybertruck", r"\b(cybertruck)\b|ស៊ីបឺត្រាក់"),
+            ("optimus", r"\b(optimus|tesla bot)\b|អុបទិមូស"),
+            ("starship", r"\b(starship|super heavy)\b|ស្តាស៊ីប"),
+            ("iphone", r"\b(iphone|vision pro)\b|អាយហ្វូន"),
+            ("blackwell", r"\b(blackwell|b200|gb200|h100)\b"),
+        ]
+        if len(headline_leaders) >= 1:
+            for prod_key, pat in PRODUCT_PATTERNS:
+                if re.search(pat, comb_text, re.IGNORECASE):
+                    prod_path = os.path.join(cls.BRANDS_DIR, f"{prod_key}.jpg")
+                    if not os.path.exists(prod_path):
+                        prod_path = os.path.join(cls.BRANDS_DIR, f"{prod_key}.png")
+                    if os.path.exists(prod_path):
+                        l1, path1, _, _ = headline_leaders[0]
+                        logger.info(f"[StoryImageBuilder] Synthesizing CEO + Product Dual Split Image: {l1} + {prod_key}")
+                        split_bytes = cls.create_split_image(path1, prod_path)
+                        if split_bytes:
+                            return split_bytes
+
+        # Step 4.2: Detect Brands / Tech Giants involved
         detected_brands = []
         for brand_key, pat in cls.BRAND_PATTERNS:
             if re.search(pat, comb_text, re.IGNORECASE):
