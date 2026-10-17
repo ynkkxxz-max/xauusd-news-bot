@@ -21,6 +21,17 @@ class StoryImageBuilder:
     LEADERS_DIR = "assets/speakers"
     FLAGS_DIR = "assets/flags"
     BRANDS_DIR = "assets/brands"
+    TOPICS_DIR = "assets/topics"
+
+    TOPIC_PATTERNS = [
+        ("ai_data_center", r"\b(data center|data centers|cooling|liquid cooling|wastewater|supercomputer|compute|gpu cluster|ai infrastructure)\b|មជ្ឈមណ្ឌលទិន្នន័យ|កម្ដៅម៉ាស៊ីនមេ|ម៉ាស៊ីនមេ"),
+        ("gold_bullion", r"\b(gold|gold price|bullion|xauusd|xau|precious metals)\b|មាស|ហាងឆេងមាស|តម្លៃមាស"),
+        ("crude_oil", r"\b(oil|crude|brent|wti|opec|refinery|refineries|petroleum|fuel|gasoline|natural gas|lng|permian basin)\b|ប្រេង|ប្រេងកាត|ប្រេងឆៅ|ឧស្ម័នធម្មជាតិ"),
+        ("federal_reserve", r"\b(federal reserve|fed|fomc|interest rate|rate hike|rate cut|monetary policy)\b|ធនាគារកណ្តាលអាមេរិក|អត្រាការប្រាក់"),
+        ("wall_street", r"\b(wall street|dow jones|s&p 500|nasdaq|nyse|stock market|equities|stocks rally|stocks plunge)\b|ទីផ្សារភាគហ៊ុន|សន្ទស្សន៍"),
+        ("bitcoin_crypto", r"\b(bitcoin|btc|cryptocurrency|crypto|ethereum|eth|stablecoin|tether|usdt)\b|កាក់ឌីជីថល|ប៊ីតខញ"),
+        ("geopolitics_naval", r"\b(naval|warship|destroyer|aircraft carrier|strait of hormuz|red sea|bab al-mandab)\b|កងទ័ពជើងទឹក|នាវាចម្បាំង|ច្រកសមុទ្រ"),
+    ]
 
     BRAND_PATTERNS = [
         ("spacex", r"\b(spacex|starlink)\b|ស្ប៉េសអ៊ិច|ស្តាលីង"),
@@ -289,6 +300,23 @@ class StoryImageBuilder:
                     return cls.enhance_image_for_vip(flag_canvas)
             else:
                 logger.info(f"[StoryImageBuilder] Flag '{c1}' skipped (not prominent in headline or on cooldown).")
+
+        # Step 7.5: Macro Topic Authentic Ultra-HD Photo (Gold, Oil, AI Data Center, Wall St, Fed, Crypto, Naval)
+        # Matches against verified high-resolution editorial topic assets
+        for topic_key, pat in cls.TOPIC_PATTERNS:
+            if re.search(pat, comb_text, re.IGNORECASE):
+                topic_path = os.path.join(cls.TOPICS_DIR, f"{topic_key}.jpg")
+                if os.path.exists(topic_path):
+                    if not cls.is_asset_on_cooldown(f"topic_{topic_key}"):
+                        logger.info(f"[StoryImageBuilder] Using Authentic Macro Topic Photo: {topic_key}")
+                        try:
+                            cls.record_asset_used(f"topic_{topic_key}")
+                            with open(topic_path, "rb") as f:
+                                return cls.enhance_image_for_vip(f.read())
+                        except Exception as e:
+                            logger.warning(f"[StoryImageBuilder] Failed reading topic image {topic_path}: {e}")
+                    else:
+                        logger.info(f"[StoryImageBuilder] Topic '{topic_key}' is on 4h cooldown. Skipping to preserve visual variety.")
 
         # Step 8: Mode B Fallback Guarantee
         # If no authentic direct publisher photo or verified single asset exists, return None!
