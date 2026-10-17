@@ -95,6 +95,10 @@ TRIVIAL_AND_LOW_IMPACT_PATTERNS = [
     # Trivial altcoins, memecoins, presales, airdrops, and low-cap retail tokens (Pillar 8 strict standard)
     r"\b(bitway|memecoin|memecoins|meme coin|meme coins|shiba|shib|pepe|floki|doge|bonk|wif|bome)\b",
     r"\b(airdrop|airdrops|token unlock|presale|ico|ido|meme token|altcoin rally|altcoin season)\b",
+    # Vague op-eds, speculative opinion columns, and non-actionable political commentary
+    r"\b(opinion\b|editorial\b|column\b|perspective\b|op-ed\b|commentary\b|viewpoint\b)\b",
+    r"\b(analysts say|critics say|experts debate|could face|may face|uncertain future|remains unclear)\b",
+    r"\b(what to know|five things to know|3 things to know|here's what|here is what)\b",
 ]
 
 def _matches_any_keyword(text: str, keywords: list) -> bool:
@@ -354,18 +358,18 @@ class GoldNewsFilter:
         t = text.lower()
         entities = []
         entity_map = {
-            "kevin warsh": "kevin_warsh", "warsh": "kevin_warsh",
-            "jerome powell": "jerome_powell", "powell": "jerome_powell",
-            "donald trump": "donald_trump", "trump": "donald_trump",
-            "elon musk": "elon_musk", "musk": "elon_musk",
-            "vladimir putin": "vladimir_putin", "putin": "vladimir_putin",
-            "volodymyr zelensky": "zelenskyy", "zelensky": "zelenskyy", "zelenskyy": "zelenskyy",
-            "benjamin netanyahu": "netanyahu", "netanyahu": "netanyahu",
-            "xi jinping": "xi_jinping",
-            "scott bessent": "scott_bessent", "bessent": "scott_bessent",
-            "christine lagarde": "lagarde", "lagarde": "lagarde",
-            "kazuo ueda": "kazuo_ueda", "ueda": "kazuo_ueda",
-            "narendra modi": "modi", "modi": "modi",
+            "kevin warsh": "kevin_warsh", "warsh": "kevin_warsh", "វ៉ាស": "kevin_warsh",
+            "jerome powell": "jerome_powell", "powell": "jerome_powell", "ផៅវែល": "jerome_powell",
+            "donald trump": "donald_trump", "trump": "donald_trump", "ដូណាល់ ត្រាំ": "donald_trump", "ត្រាំ": "donald_trump",
+            "elon musk": "elon_musk", "musk": "elon_musk", "ម៉ាស": "elon_musk",
+            "vladimir putin": "vladimir_putin", "putin": "vladimir_putin", "ពូទីន": "vladimir_putin",
+            "volodymyr zelensky": "zelenskyy", "zelensky": "zelenskyy", "zelenskyy": "zelenskyy", "ហ្សេលេនស្គី": "zelenskyy",
+            "benjamin netanyahu": "netanyahu", "netanyahu": "netanyahu", "ណេតាន់យ៉ាហ៊ូ": "netanyahu",
+            "xi jinping": "xi_jinping", "ស៊ី ជីនពីង": "xi_jinping",
+            "scott bessent": "scott_bessent", "bessent": "scott_bessent", "បេសសិន": "scott_bessent",
+            "christine lagarde": "lagarde", "lagarde": "lagarde", "ឡាហ្កាដ": "lagarde",
+            "kazuo ueda": "kazuo_ueda", "ueda": "kazuo_ueda", "អ៊ូអេដា": "kazuo_ueda",
+            "narendra modi": "modi", "modi": "modi", "ម៉ូឌី": "modi",
             "giorgia meloni": "meloni", "meloni": "meloni",
             "nvidia": "nvidia", "tsmc": "tsmc", "blackrock": "blackrock",
             "boeing": "boeing", "intel": "intel", "tesla": "tesla", "aramco": "aramco"
@@ -416,9 +420,10 @@ class GoldNewsFilter:
 
         KEY_ENTITIES = {
             "yemen", "houthi", "sanaa", "gaza", "hezbollah", "lebanon", "iran", "israel",
-            "cpi", "nfp", "fomc", "powell", "warsh", "kevin", "nvidia", "tsmc", "opec",
+            "palestine", "palestinian", "cpi", "nfp", "fomc", "powell", "warsh", "kevin",
+            "trump", "donald", "nvidia", "tsmc", "opec", "anthropic", "amodei",
             "spacex", "starlink", "apple", "tesla", "putin", "zelensky", "russia", "ukraine",
-            "deepseek", "bitcoin", "tether", "binance", "brent", "hormuz", "oil", "strike", "saudi", "tariff"
+            "deepseek", "bitcoin", "tether", "binance", "brent", "hormuz", "oil", "strike", "saudi", "tariff", "dow"
         }
 
         new_tokens = _tokenize(new_title)
@@ -461,8 +466,9 @@ class GoldNewsFilter:
 
         import re
         KHMER_TOPIC_WORDS = [
-            "យេមែន", "យេម៉ែន", "ហូទី", "អ៊ីរ៉ង់", "អ៊ីស្រាអែល", "ហ្កាហ្សា", "លីបង់", "រុស្ស៊ី",
+            "យេមែន", "យេម៉ែន", "ហូទី", "អ៊ីរ៉ង់", "អ៊ីស្រាអែល", "ហ្កាហ្សា", "ប៉ាឡេស្ទីន", "លីបង់", "រុស្ស៊ី",
             "អ៊ុយក្រែន", "ប្រេងឆៅ", "អតិផរណា", "ការងារ", "អត្រាការប្រាក់", "ពន្ធគយ", "ចិន", "តៃវ៉ាន់",
+            "ត្រាំ", "ដូណាល់ ត្រាំ", "ផៅវែល", "វ៉ាស", "Anthropic", "អូលីវ",
             "ជម្លោះ", "សង្គ្រាម", "មនុស្សធម៌", "កាត់ផ្តាច់", "ផ្ទុះ", "ប្រដាប់អាវុធ", "ទណ្ឌកម្ម",
             "កងទ័ព", "មីស៊ីល", "ដ្រូន", "វាយប្រហារ", "ធនាគារកណ្តាល", "ទុនបម្រុង", "បន្ទះឈីប",
             "ប៊ីតខយ", "គ្រីបតូ", "វិបត្តិ", "សម្ពាធ", "កើនឡើង", "ធ្លាក់ចុះ", "បាញ់ប្រហារ"
