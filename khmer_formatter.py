@@ -228,6 +228,11 @@ def sanitize_khmer_spelling(text: str) -> str:
         # Natural Journalistic Style & Accurate Spelling Corrections per user directive
         (r"ពួក\s*រុស្ស៊ីម៉ាត់|ក្រុម\s*រុស្ស៊ីម៉ាត់|រុស្ស៊ីម៉ាត់|រុស្សីម៉ាត់", "ក្រុមអ្នកតាំងលំនៅជ្រុលនិយម"),
         (r"ពួក\s*អ្នកតាំងលំនៅ", "ក្រុមអ្នកតាំងលំនៅ"),
+        (r"ជនស៊ីវិលអ៊ីស្រាអែល(?=.*(?:វាយប្រហារ|West Bank|តាំងលំនៅ|ប៉ាឡេស្ទីន|អំពើហិង្សា|ក្បួន))", "ក្រុមអ្នកតាំងលំនៅជ្រុលនិយមអ៊ីស្រាអែល"),
+        (r"ជនស៊ីវិលអ៊ីស្រាអែល", "ក្រុមអ្នកតាំងលំនៅអ៊ីស្រាអែល"),
+        (r"អភិបាលក្រុងប៉ារាំង(?:\s*(?:ម្នាក់|មួយរូប))?", "អភិបាលក្រុងជនជាតិបារាំងមួយរូប"),
+        (r"ក្បួនដំណើររថយន្ត", "ក្បួនរថយន្ត"),
+        (r"ក្បួនតំណាងអឺរ៉ុប", "ក្បួនរថយន្តប្រតិភូសហភាពអឺរ៉ុប"),
         (r"កន្លែងសន្តិសុខរើសើប|តំបន់សន្តិសុខរើសើប|ទីតាំងសន្តិសុខរើសើប|កន្លែងសន្តិសុខរសើប|កន្លែងរសើប", "ទីតាំងសន្តិសុខរសើប"),
         (r"រើសើប", "រសើប"),
         (r"តម្លើង", "ដំឡើង"),
@@ -636,7 +641,7 @@ class KhmerFormatter:
         if isinstance(analysis, dict):
             headline_km = (analysis.get("headline_km") or "").strip()
             key_event = (analysis.get("key_event") or "").strip()
-            impact_raw = (analysis.get("impact") or "").strip()
+            impact_raw = (analysis.get("impact") or analysis.get("market_impact") or "").strip()
             if impact_raw:
                 # Merge detached label lines e.g. "🔸 ហានិភ័យទីផ្សារ៖\nភាពមិនប្រាកដប្រជា..." -> "🔸 ហានិភ័យទីផ្សារ៖ ភាពមិនប្រាកដប្រជា..."
                 impact_raw = impact_raw.replace("🔶", "🔸")
@@ -723,8 +728,19 @@ class KhmerFormatter:
         headline_priority = f"{headline_km} {news_item.get('title', '')}".lower()
         full_search = f"{headline_priority} {key_event}".lower()
         
-        # Strip common news agencies from full_search to prevent false country flags
-        for ag in [r"\bchina military online\b", r"\btimes of india\b", r"\bal jazeera\b", r"\beuromaidan press\b", r"\bkyodo news\b", r"\bsouth china morning post\b"]:
+        # Strip common news agencies and source name from search to prevent false country flags (e.g. France 24 -> France flag)
+        source_val = (news_item.get("source") or "").strip()
+        if source_val:
+            full_search = re.sub(re.escape(source_val), "", full_search, flags=re.IGNORECASE)
+            headline_priority = re.sub(re.escape(source_val), "", headline_priority, flags=re.IGNORECASE)
+
+        for ag in [
+            r"\bfrance\s*24\b", r"\bfrance24\b", r"\bafp\b", r"\bdeutsche\s*welle\b", r"\bdw\b",
+            r"\bchina military online\b", r"\btimes of india\b", r"\bal jazeera\b",
+            r"\beuromaidan press\b", r"\bkyodo news\b", r"\bsouth china morning post\b",
+            r"\bxinhua\b", r"\btass\b", r"\bsputnik\b", r"\bbbc\b", r"\bcnn\b", r"\bcnbc\b",
+            r"\breuters\b", r"\bbloomberg\b", r"\bseeking\s*alpha\b", r"\bthe\s*hill\b"
+        ]:
             full_search = re.sub(ag, "", full_search, flags=re.IGNORECASE)
             headline_priority = re.sub(ag, "", headline_priority, flags=re.IGNORECASE)
 
@@ -788,8 +804,13 @@ class KhmerFormatter:
             if c_flag and c_flag not in country_flags:
                 country_flags.insert(0, c_flag)
 
+        # Palestine / West Bank Priority (Strict rule: West Bank, Gaza, Ramallah strictly get Flag 🇵🇸)
+        if re.search(r"\b(palestine|palestinian|west bank|ramallah|gaza)\b|ប៉ាឡេស្ទីន|វេសប៊ែង|ហ្កាហ្សា", f"{headline_priority} {news_item.get('title', '')}", re.IGNORECASE):
+            country_flags = ["🇵🇸"]
+
         # STRICT BILATERAL FLAG RULE: A 2nd flag is ONLY permitted if BOTH nations are prominently in the headline
-        # (e.g. US-China trade talks, Russia-Ukraine war). Never contaminate a single-country headline with a 2nd background flag!
+        # AND it is an official bilateral state summit or war (e.g. US-China trade talks, Russia-Ukraine war).
+        # Never contaminate a single-country headline with a 2nd background flag!
         if len(country_flags) >= 2:
             second_flag = country_flags[1]
             sec_pat = next((p for p, fl in flag_rules if fl == second_flag), None)
@@ -972,26 +993,33 @@ class KhmerFormatter:
 
         if impact_line:
             # Flatten multi-line impact where label was separated from description by newline
-            impact_line = re.sub(r'([🔹🔸🔴🟢]\s*(?:ផលវិជ្ជមាន|ផលអវិជ្ជមាន/ហានិភ័យ|ហានិភ័យទីផ្សារ|ផលអវិជ្ជមាន|ហានិភ័យ)[\s៖:]*)\n+\s*', r'\1 ', impact_line.strip())
-            # Strip trailing period from impact line
-            impact_line = re.sub(r'[។\.]\s*$', '', impact_line.strip())
+            impact_line = re.sub(r'([🔹🔸🔴🟢]?\s*(?:ផលវិជ្ជមាន|ផលអវិជ្ជមាន/ហានិភ័យ|ហានិភ័យទីផ្សារ|ផលអវិជ្ជមាន|ហានិភ័យ|ឥទ្ធិពលវិជ្ជមាន|ឥទ្ធិពលអវិជ្ជមាន)[\s៖:]*)\n+\s*', r'\1 ', impact_line.strip())
 
+            raw_lines = [l.strip() for l in impact_line.split("\n") if l.strip()]
             impact_lines = []
-            for iline in impact_line.split("\n"):
-                iline = iline.strip()
-                if not iline:
-                    continue
+            for iline in raw_lines:
                 if "ផលវិជ្ជមាន" in iline or "ឥទ្ធិពលវិជ្ជមាន" in iline:
                     if not iline.startswith("🔹"):
                         iline = "🔹 " + re.sub(r'^[🔹🟢\s]*', '', iline)
                 elif any(k in iline for k in ["ផលអវិជ្ជមាន", "ហានិភ័យទីផ្សារ", "ហានិភ័យ", "ឥទ្ធិពលអវិជ្ជមាន"]):
                     if not iline.startswith("🔸"):
                         iline = "🔸 " + re.sub(r'^[🔸🔴\s]*', '', iline)
+                else:
+                    # If this line is an orphaned description from a broken newline, merge with previous line!
+                    if impact_lines:
+                        impact_lines[-1] = re.sub(r'[។\.]\s*$', '', impact_lines[-1]).strip() + " " + iline.strip()
+                        if not impact_lines[-1].endswith("។"):
+                            impact_lines[-1] += "។"
+                        continue
+                    iline = "🔸 ហានិភ័យទីផ្សារ៖ " + iline
+
                 iline = re.sub(r'^(🔹|🔸)?\s*(ផលវិជ្ជមាន|ផលអវិជ្ជមាន/ហានិភ័យ|ហានិភ័យទីផ្សារ|ផលអវិជ្ជមាន|ផលអព្យាក្រឹត)[\s៖:]+', r'\1 \2៖ ', iline).strip()
                 # Strict No Parentheses Rule in impact line
                 iline = re.sub(r'[\(\)]', '', iline)
                 iline = sanitize_khmer_spelling(iline)
                 iline = re.sub(r'[។\.]\s*$', '', iline).strip()
+                if iline and not iline.endswith("។"):
+                    iline += "។"
                 impact_lines.append(iline)
             impact_line = "\n".join(impact_lines)
 
