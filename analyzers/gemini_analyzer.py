@@ -138,7 +138,7 @@ def breaking_prompt(title: str, description: str) -> str:
         f"     * Punctuation must be pristine: zero trailing colons (:, ៖, ：) or hanging commas.\n\n"
         f"2. CONCISE, CLEAN, & ORDERLY NARRATIVE (អត្ថបទត្រូវតែមានរបៀបរៀបរយ ស្អាតបាត បែប VIP):\n"
         f"   - DO NOT WRITE BULKY WALLS OF TEXT! Telegram users demand crisp, impactful, impeccably structured prose.\n"
-        f"   - Length: Strictly 2 to 3 concise, high-impact sentences (50 to 80 Khmer words / 200 to 350 characters total).\n"
+        f"   - Length: Strictly 2 concise paragraphs total around 80 to 95 Khmer words (ប្រវែងប្រហែល ៨០-៩៥ ពាក្យ ខ្លី ខ្លឹម ចំប្រធានបទ និងងាយយល់បំផុត)។\n"
         f"     • Sentence 1: ព្រឹត្តិការណ៍ស្នូលដែលបានកើតឡើង (The core breaking event clearly stated).\n"
         f"     • Sentence 2: មូលហេតុ ឬបរិបទជំរុញសំខាន់ (The primary driver or economic/geopolitical context).\n"
         f"     • Sentence 3 (optional): ជំហរស្ថាប័ន ឬការវិវត្តបន្ត (Institutional response, market implication, or next step).\n"
