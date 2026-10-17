@@ -37,10 +37,13 @@ MACRO_KEYWORDS = [
     "geopolitical", "safe haven", "safe-haven", "middle east", "iran", "israel", "red sea",
     "strait of hormuz", "russia", "ukraine", "taiwan", "war", "missile", "airstrike",
     "military attack", "escalation", "conflict",
-    # 3. បច្ចេកវិទ្យា (Technology & AI)
+    # 3. បច្ចេកវិទ្យា (Technology, AI, Frontier Innovation & Aerospace)
     "artificial intelligence", "ai revolution", "nvidia", "big tech", "semiconductor",
     "datacenter energy", "tech rally", "liquidity surge", "openai", "chip export controls",
-    "super intelligence", "quantum computing", "cyberattack",
+    "super intelligence", "quantum computing", "cyberattack", "elon musk", "musk", "tesla",
+    "spacex", "starship", "roadster", "optimus", "cybertruck", "robotaxi", "falcon heavy",
+    "neuralink", "xai", "grok", "cold gas thruster", "rocket thruster", "rocket thrusters",
+    "frontier tech", "supercomputing", "autonomous vehicle", "autonomous driving",
     # 4. គោលនយោបាយរូបិយវត្ថុ និងធនាគារកណ្តាល (Monetary Policy & Central Banks)
     "fed", "federal reserve", "powell", "warsh", "kevin warsh", "fomc", "interest rate",
     "rate cut", "rate hike", "fomc statement", "fomc minutes", "fed speech", "monetary policy",
@@ -93,7 +96,7 @@ TRIVIAL_AND_LOW_IMPACT_PATTERNS = [
     r"\b(why .+ (?:fell|dropped|rose|jumped) today|here's why|is it time to buy)\b",
     r"\b(daily horoscope|lottery numbers|jackpot)\b",
     # Trivial altcoins, memecoins, presales, airdrops, and low-cap retail tokens (Pillar 8 strict standard)
-    r"\b(bitway|memecoin|memecoins|meme coin|meme coins|shiba|shib|pepe|floki|doge|bonk|wif|bome)\b",
+    r"\b(bitway|memecoin|memecoins|meme coin|meme coins|shiba|shib|pepe|floki|dogecoin|bonk|wif|bome)\b",
     r"\b(airdrop|airdrops|token unlock|presale|ico|ido|meme token|altcoin rally|altcoin season)\b",
     # Vague op-eds, speculative opinion columns, and non-actionable political commentary
     r"\b(opinion\b|editorial\b|column\b|perspective\b|op-ed\b|commentary\b|viewpoint\b)\b",
@@ -202,10 +205,12 @@ class GoldNewsFilter:
         if _matches_any_keyword(full_text, energy_core):
             return True
 
-        # 6. Big Tech & AI Infrastructure Shifts (Tier 1)
+        # 6. Big Tech, AI & Frontier Innovation (Tier 1)
         tech_core = [
             "nvidia", "tsmc", "semiconductor export", "chip export controls", "chip ban",
-            "artificial intelligence", "big tech antitrust", "cyberattack"
+            "artificial intelligence", "big tech antitrust", "cyberattack",
+            "elon musk", "tesla", "spacex", "starship", "roadster", "optimus", "cybertruck",
+            "robotaxi", "neuralink", "xai", "grok", "cold gas thruster", "rocket thruster"
         ]
         if _matches_any_keyword(full_text, tech_core):
             return True
@@ -344,6 +349,9 @@ class GoldNewsFilter:
         # 9. Tariffs & Trade Wars
         if any(k in t for k in ["tariff", "tariffs", "sanction", "sanctions", "trade war", "embargo", "ពន្ធគយ", "ទណ្ឌកម្ម", "សង្គ្រាមពាណិជ្ជកម្ម"]):
             clusters.append("tariffs_trade")
+        # 10. Frontier Tech, Tesla & SpaceX Innovation
+        if any(k in t for k in ["elon musk", "musk", "tesla", "spacex", "starship", "roadster", "optimus", "cybertruck", "robotaxi", "neuralink", "xai", "grok", "cold gas thruster", "rocket thruster", "falcon heavy", "thruster", "thrusters"]):
+            clusters.append("frontier_tech")
         return clusters
 
     @staticmethod
@@ -372,7 +380,8 @@ class GoldNewsFilter:
             "narendra modi": "modi", "modi": "modi", "ម៉ូឌី": "modi",
             "giorgia meloni": "meloni", "meloni": "meloni",
             "nvidia": "nvidia", "tsmc": "tsmc", "blackrock": "blackrock",
-            "boeing": "boeing", "intel": "intel", "tesla": "tesla", "aramco": "aramco"
+            "boeing": "boeing", "intel": "intel", "tesla": "tesla", "aramco": "aramco",
+            "spacex": "spacex", "starship": "spacex", "roadster": "tesla"
         }
         for kw, ent in entity_map.items():
             if kw in t and ent not in entities:
