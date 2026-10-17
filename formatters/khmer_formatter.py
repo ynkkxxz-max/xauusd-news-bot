@@ -756,7 +756,7 @@ class KhmerFormatter:
         country_flags = []
         flag_rules = [
             (r"\b(bolivia|bolivian|la paz)\b|បូលីវី", "🇧🇴"),
-            (r"\b(u\.s\.|u\.s|usa|united states|america|american|fed|biden|trump|powell)\b|អាមេរិក|សហរដ្ឋអាមេរិក", "🇺🇸"),
+            (r"\b(u\.s\.|u\.s|usa|united states|america|american|fed|biden|trump|powell|yellen|bessent|texas|california|new york|florida|washington|alaska|ohio|pennsylvania|georgia|illinois|michigan|arizona|nevada|virginia|colorado|massachusetts|north carolina|tennessee|missouri|indiana|wisconsin|minnesota|louisiana|alabama|kentucky|oregon|oklahoma|connecticut|utah|iowa|kansas|arkansas|mississippi|new mexico|nebraska|idaho|west virginia|hawaii|permian|silicon valley|wall street|pentagon|white house|congress|capitol|senate|eia|bls|sec|treasury|nvidia|apple|tesla|spacex|openai|amazon|google|microsoft|intel|blackrock|goldman sachs|jpmorgan)\b|អាមេរិក|សហរដ្ឋអាមេរិក|តិចសាស់|រដ្ឋ\s*Texas|រដ្ឋតិចសាស់|កាលីហ្វ័រញ៉ា|ញូវយ៉ក|វ៉ាស៊ីនតោន|ហ្ល្វរីដា|អាឡាស្កា|ហាវ៉ៃ|ស៊ីលីខនវ៉ាលី", "🇺🇸"),
             (r"\b(uk|britain|british|london|england|boe|starmer)\b|អង់គ្លេស|ចក្រភពអង់គ្លេស", "🇬🇧"),
             (r"\b(iran|tehran|persian)\b|អ៊ីរ៉ង់|អ៊ីរ៉ាន", "🇮🇷"),
             (r"\b(israel|tel aviv|netanyahu)\b|អ៊ីស្រាអែល", "🇮🇱"),
@@ -839,6 +839,28 @@ class KhmerFormatter:
             c_flag = (analysis.get("country_flag") or "").strip()
             if c_flag:
                 country_flags.append(c_flag)
+
+        # ABSOLUTE ZERO-MISSING FLAG GUARANTEE (User Constitutional Directive):
+        # Every broadcasted headline MUST strictly begin with a country or macro flag emoji!
+        # If no specific country was matched, auto-detect by region/topic or default to 🌐 (Global Macro Pulse).
+        if not country_flags:
+            comb_lower = f"{headline_priority} {news_item.get('title', '')} {key_event}".lower()
+            if any(w in comb_lower for w in ["u.s.", "usa", "america", "dollar", "fed", "treasury", "sec", "texas", "california", "york", "florida", "wall st", "nvidia", "apple", "tesla", "spacex", "openai", "amazon", "google", "microsoft", "intel", "blackrock"]):
+                country_flags = ["🇺🇸"]
+            elif any(w in comb_lower for w in ["china", "chinese", "beijing", "pboc", "yuan", "chongqing", "shanghai", "shenzhen"]):
+                country_flags = ["🇨🇳"]
+            elif any(w in comb_lower for w in ["russia", "russian", "moscow", "kremlin", "ruble", "gazprom"]):
+                country_flags = ["🇷🇺"]
+            elif any(w in comb_lower for w in ["uk", "britain", "british", "london", "pound", "boe", "ftse"]):
+                country_flags = ["🇬🇧"]
+            elif any(w in comb_lower for w in ["eu", "europe", "european", "ecb", "euro", "eurozone", "brussels"]):
+                country_flags = ["🇪🇺"]
+            elif any(w in comb_lower for w in ["japan", "japanese", "tokyo", "yen", "boj", "nikkei"]):
+                country_flags = ["🇯🇵"]
+            elif any(w in comb_lower for w in ["oil", "crude", "opec", "gold", "bullion", "silver", "bitcoin", "crypto", "commodity", "energy", "inflation", "recession", "gdp", "pmi"]):
+                country_flags = ["🌐"]  # Global Commodity / Macro Pulse indicator
+            else:
+                country_flags = ["🌐"]
 
         # STRICT BILATERAL FLAG RULE: A 2nd flag is ONLY permitted if BOTH nations are prominently in the headline
         # AND it is an official bilateral state summit or war (e.g. US-China trade talks, Russia-Ukraine war).
