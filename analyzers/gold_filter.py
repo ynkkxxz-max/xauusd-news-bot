@@ -336,7 +336,7 @@ class GoldNewsFilter:
         if any(k in t for k in ["bitcoin", "btc", "ethereum", "crypto", "cryptocurrency", "stablecoin", "tether", "binance", "coinbase", "ប៊ីតខយ", "គ្រីបតូ"]):
             clusters.append("crypto_assets")
         # 7. Middle East & Yemen Geopolitics
-        if any(k in t for k in ["gaza", "israel", "tel aviv", "lebanon", "beirut", "hezbollah", "houthi", "strait of hormuz", "red sea", "yemen", "yemeni", "sanaa", "bab al-mandab", "syria", "iraq", "iran", "tehran", "damascus", "saudi", "aramco", "riyadh", "យេមែន", "យេម៉ែន", "ហូទី", "អ៊ីរ៉ង់", "អ៊ីស្រាអែល", "ហ្កាហ្សា", "លីបង់", "ច្រកសមុទ្រ", "អារ៉ាប៊ីសាអ៊ូឌីត"]):
+        if any(k in t for k in ["gaza", "israel", "tel aviv", "lebanon", "beirut", "hezbollah", "houthi", "strait of hormuz", "red sea", "yemen", "yemeni", "sanaa", "bab al-mandab", "syria", "iraq", "iran", "tehran", "damascus", "saudi", "aramco", "riyadh", "west bank", "palestine", "palestinian", "ramallah", "settler", "settlers", "settlement", "settlements", "យេមែន", "យេម៉ែន", "ហូទី", "អ៊ីរ៉ង់", "អ៊ីស្រាអែល", "ហ្កាហ្សា", "លីបង់", "ច្រកសមុទ្រ", "អារ៉ាប៊ីសាអ៊ូឌីត", "ប៉ាឡេស្ទីន", "វេសប៊ែង", "ក្រុមអ្នកតាំងលំនៅ"]):
             clusters.append("middle_east")
         # 8. Russia & Ukraine
         if any(k in t for k in ["russia", "ukraine", "kyiv", "moscow", "kremlin", "zelensky", "putin", "រុស្ស៊ី", "អ៊ុយក្រែន", "ម៉ូស្គូ", "គៀវ"]):
@@ -400,6 +400,8 @@ class GoldNewsFilter:
                 "refinery": "oil", "refineries": "oil", "petroleum": "oil", "crude": "oil", "fuel": "oil", "diesel": "oil", "gasoline": "oil", "tanker": "oil", "tankers": "oil",
                 "semiconductor": "chip", "semiconductors": "chip", "chips": "chip", "wafer": "chip",
                 "warns": "warn", "warning": "warn", "warnings": "warn", "threatens": "warn", "threat": "warn",
+                "settlers": "settler", "settlement": "settler", "settlements": "settler",
+                "convoys": "convoy", "delegations": "delegation", "diplomats": "delegation", "diplomat": "delegation",
             }
             if w in synonyms:
                 return synonyms[w]
@@ -423,7 +425,8 @@ class GoldNewsFilter:
             "palestine", "palestinian", "cpi", "nfp", "fomc", "powell", "warsh", "kevin",
             "trump", "donald", "nvidia", "tsmc", "opec", "anthropic", "amodei",
             "spacex", "starlink", "apple", "tesla", "putin", "zelensky", "russia", "ukraine",
-            "deepseek", "bitcoin", "tether", "binance", "brent", "hormuz", "oil", "strike", "saudi", "tariff", "dow"
+            "deepseek", "bitcoin", "tether", "binance", "brent", "hormuz", "oil", "strike", "saudi", "tariff", "dow",
+            "settler", "settlers", "convoy", "delegation", "bolivia"
         }
 
         new_tokens = _tokenize(new_title)
@@ -466,25 +469,35 @@ class GoldNewsFilter:
 
         import re
         KHMER_TOPIC_WORDS = [
-            "យេមែន", "យេម៉ែន", "ហូទី", "អ៊ីរ៉ង់", "អ៊ីស្រាអែល", "ហ្កាហ្សា", "ប៉ាឡេស្ទីន", "លីបង់", "រុស្ស៊ី",
+            "យេមែន", "យេម៉ែន", "ហូទី", "អ៊ីរ៉ង់", "អ៊ីស្រាអែល", "ហ្កាហ្សា", "ប៉ាឡេស្ទីន", "វេសប៊ែង", "West Bank", "លីបង់", "រុស្ស៊ី",
             "អ៊ុយក្រែន", "ប្រេងឆៅ", "អតិផរណា", "ការងារ", "អត្រាការប្រាក់", "ពន្ធគយ", "ចិន", "តៃវ៉ាន់",
-            "ត្រាំ", "ដូណាល់ ត្រាំ", "ផៅវែល", "វ៉ាស", "Anthropic", "អូលីវ",
+            "ត្រាំ", "ដូណាល់ ត្រាំ", "ផៅវែល", "វ៉ាស", "Anthropic", "អូលីវ", "បូលីវី", "ឧស្ម័នធម្មជាតិ",
+            "ក្រុមអ្នកតាំងលំនៅ", "គណៈប្រតិភូ", "ក្បួនរថយន្ត", "សហភាពអឺរ៉ុប", "បារាំង", "ប៊ែលហ្ស៊ិក",
             "ជម្លោះ", "សង្គ្រាម", "មនុស្សធម៌", "កាត់ផ្តាច់", "ផ្ទុះ", "ប្រដាប់អាវុធ", "ទណ្ឌកម្ម",
             "កងទ័ព", "មីស៊ីល", "ដ្រូន", "វាយប្រហារ", "ធនាគារកណ្តាល", "ទុនបម្រុង", "បន្ទះឈីប",
             "ប៊ីតខយ", "គ្រីបតូ", "វិបត្តិ", "សម្ពាធ", "កើនឡើង", "ធ្លាក់ចុះ", "បាញ់ប្រហារ"
         ]
 
-        new_kw = {k for k in KHMER_TOPIC_WORDS if k in new_headline_km}
+        # Specific distinct subjects where even 1 shared keyword indicates identical story
+        HIGH_SPECIFICITY_KEYWORDS = {
+            "ក្រុមអ្នកតាំងលំនៅ", "វេសប៊ែង", "west bank", "បូលីវី", "anthropic", "tsmc", "nvidia", "tether", "ប៊ែលហ្ស៊ិក"
+        }
+
+        new_kw = {k for k in KHMER_TOPIC_WORDS if k.lower() in new_headline_km.lower()}
         norm_new = re.sub(r'[\s\W_]+', '', new_headline_km).lower()
 
         for past_hl in existing_khmer_headlines:
             if not past_hl:
                 continue
 
-            past_kw = {k for k in KHMER_TOPIC_WORDS if k in past_hl}
+            past_kw = {k for k in KHMER_TOPIC_WORDS if k.lower() in past_hl.lower()}
             common_kw = new_kw.intersection(past_kw)
 
-            # 1. Matches >= 2 topic keywords (e.g. យេមែន + ជម្លោះ or មនុស្សធម៌ + យេមែន)
+            # 1. High-specificity single keyword duplicate match
+            if any(kw.lower() in {c.lower() for c in common_kw} for kw in HIGH_SPECIFICITY_KEYWORDS):
+                return True
+
+            # 2. Matches >= 2 topic keywords (e.g. យេមែន + ជម្លោះ or មនុស្សធម៌ + យេមែន)
             if len(common_kw) >= 2:
                 return True
 
