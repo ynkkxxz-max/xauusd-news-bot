@@ -1274,7 +1274,7 @@ class XAUUSDNewsAssistantBot:
         """Returns elapsed seconds since the latest message was published in @GoldMarketKH8888 live channel feed."""
         try:
             import datetime
-            channel_html = self._fetch_channel_html(max_cache_age=15.0)
+            channel_html = self._fetch_channel_html(max_cache_age=0.0)
             times = re.findall(r'<time[^>]*datetime="([^"]+)"', channel_html)
             if times:
                 last_dt = datetime.datetime.fromisoformat(times[-1])
@@ -1294,7 +1294,7 @@ class XAUUSDNewsAssistantBot:
         try:
             import datetime
             import html as html_module
-            channel_html = self._fetch_channel_html(max_cache_age=30.0)
+            channel_html = self._fetch_channel_html(max_cache_age=15.0)
             if not channel_html:
                 return (999999.0, [], [])
             
@@ -1323,7 +1323,7 @@ class XAUUSDNewsAssistantBot:
         try:
             import urllib.parse
             import html as html_module
-            max_age = 30.0 if fresh else 180.0
+            max_age = 0.0 if fresh else 60.0
             channel_html = self._fetch_channel_html(max_cache_age=max_age)
             if not channel_html:
                 return False
@@ -1724,10 +1724,11 @@ class XAUUSDNewsAssistantBot:
                 self._broadcasted_titles_cache.add(title.lower())
                 continue
 
-            # Pre-flight channel cooldown check: ensure another container did not just post in the last required_gap seconds
+            # Pre-flight channel cooldown check: ensure another container did not just post in the last 20 seconds
             fresh_elapsed = self._channel_time_since_last_post()
-            if fresh_elapsed < (required_gap - 1.0):
-                logger.info(f"[CHANNEL COLLISION PREVENTED] Channel has a post from {fresh_elapsed:.1f}s ago (< {required_gap}s required). Deferring.")
+            min_post_gap = max(required_gap, 20.0)
+            if fresh_elapsed < min_post_gap:
+                logger.info(f"[CHANNEL COLLISION PREVENTED] Channel has a post from {fresh_elapsed:.1f}s ago (< {min_post_gap}s required). Deferring.")
                 break
 
             # Lock in-memory and database atomically BEFORE dispatching
