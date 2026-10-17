@@ -167,9 +167,13 @@ def sanitize_khmer_spelling(text: str) -> str:
         (r"([\u1780-\u17D3])ដើម្បី", r"\1 ដើម្បី"),
         (r"([\u1780-\u17D3])ប៉ុន្តែ", r"\1 ប៉ុន្តែ"),
         (r"([\u1780-\u17D3])ដោយសារ", r"\1 ដោយសារ"),
-        (r"(?:(?:Iran|អ៊ីរ៉ាន|អ៊ីរ៉ង់)\s*[\(\)]*\s*)+", "អ៊ីរ៉ង់"),
-        (r"(?:(?:Israel|អ៊ីស្រាអែល|អ៊ីស្រាអ៊ែល)\s*[\(\)]*\s*)+", "អ៊ីស្រាអែល"),
-        (r"(?:(?:Ukraine|អ៊ុយក្រែន)\s*[\(\)]*\s*)+", "អ៊ុយក្រែន"),
+        (r"សង្គ្រាមនៅមជ្ឈិមបូព៌ា\s*\(\s*អ៊ីរ៉ង់\s*\)", "សង្គ្រាមនៅមជ្ឈិមបូព៌ា"),
+        (r"(?:Iran|អ៊ីរ៉ង់)\s*\(\s*(?:Iran|អ៊ីរ៉ង់)\s*\)", "អ៊ីរ៉ង់"),
+        (r"(?:Israel|អ៊ីស្រាអែល)\s*\(\s*(?:Israel|អ៊ីស្រាអែល)\s*\)", "អ៊ីស្រាអែល"),
+        (r"(?:Ukraine|អ៊ុយក្រែន)\s*\(\s*(?:Ukraine|អ៊ុយក្រែន)\s*\)", "អ៊ុយក្រែន"),
+        (r"\bIran\b|អ៊ីរ៉ាន", "អ៊ីរ៉ង់"),
+        (r"\bIsrael\b|អ៊ីស្រាអ៊ែល", "អ៊ីស្រាអែល"),
+        (r"\bUkraine\b", "អ៊ុយក្រែន"),
         (r"រុស្សី(?![៊ី])", "រុស្ស៊ី"),
         (r"មជ្ឈឹមបូព៌ា|មជ្ឍឹមបូព៌ា", "មជ្ឈិមបូព៌ា"),
         (r"តុលាការព្រហ្មទណ្ឌអន្តរជាតិ\s*(?:ICC|\(ICC\))?", "តុលាការព្រហ្មទណ្ឌអន្តរជាតិ (ICC)"),
@@ -746,6 +750,7 @@ class KhmerFormatter:
 
         country_flags = []
         flag_rules = [
+            (r"\b(bolivia|bolivian|la paz)\b|បូលីវី", "🇧🇴"),
             (r"\b(u\.s\.|u\.s|usa|united states|america|american|fed|biden|trump|powell)\b|អាមេរិក|សហរដ្ឋអាមេរិក", "🇺🇸"),
             (r"\b(uk|britain|british|london|england|boe|starmer)\b|អង់គ្លេស|ចក្រភពអង់គ្លេស", "🇬🇧"),
             (r"\b(iran|tehran|persian)\b|អ៊ីរ៉ង់|អ៊ីរ៉ាន", "🇮🇷"),
@@ -759,6 +764,14 @@ class KhmerFormatter:
             (r"\b(germany|german|berlin|bundesbank|scholz)\b|អាល្លឺម៉ង់", "🇩🇪"),
             (r"\b(france|french|paris|macron)\b|បារាំង", "🇫🇷"),
             (r"\b(eu|europe|european|ecb)\b|អឺរ៉ុប", "🇪🇺"),
+            (r"\b(venezuela|venezuelan|caracas|maduro)\b|វ៉េណេស៊ុយអេឡា|វេណេស៊ុយអេឡា", "🇻🇪"),
+            (r"\b(argentina|argentine|buenos aires|milei)\b|អាហ្សង់ទីន", "🇦🇷"),
+            (r"\b(colombia|colombian|bogota)\b|កូឡុំប៊ី", "🇨🇴"),
+            (r"\b(peru|peruvian|lima)\b|ប៉េរូ", "🇵🇪"),
+            (r"\b(chile|chilean|santiago)\b|ឈីលី", "🇨🇱"),
+            (r"\b(cuba|cuban|havana)\b|គុយបា", "🇨🇺"),
+            (r"\b(brazil|brazilian|lula)\b|ប្រេស៊ីល", "🇧🇷"),
+            (r"\b(mexico|mexican|banxico)\b|ម៉ិកស៊ិក", "🇲🇽"),
             (r"\b(north korea|dprk|pyongyang|kim jong un|kim jong-un|kim jong)\b|កូរ៉េខាងជើង", "🇰🇵"),
             (r"\b(south korea|seoul|bok)\b|(?<!north\s)(?<!dprk\s)\bkorean?\b|កូរ៉េ(?!\s*ខាងជើង)", "🇰🇷"),
             (r"\b(taiwan|taiwanese|taipei|tsmc)\b|តៃវ៉ាន់", "🇹🇼"),
@@ -769,10 +782,22 @@ class KhmerFormatter:
             (r"\b(canada|canadian|boc|toronto|canadian tire)\b|កាណាដា", "🇨🇦"),
             (r"\b(uae|dubai|abu dhabi|emirates)\b|អេមីរ៉ាត|ឌូបៃ", "🇦🇪"),
             (r"\b(turkey|turkish|turkiye|ankara|istanbul|erdogan|cbrt)\b|តួកគី|អ៊ីស្តង់ប៊ុល", "🇹🇷"),
-            (r"\b(brazil|brazilian|lula)\b|ប្រេស៊ីល", "🇧🇷"),
             (r"\b(qatar|doha)\b|(?:ប្រទេស|រដ្ឋ)?\s*កាតា(?![លក\u1780-\u17D3])", "🇶🇦"),
             (r"\b(egypt|cairo)\b|អេហ្ស៊ីប", "🇪🇬"),
-            (r"\b(mexico|mexican|banxico)\b|ម៉ិកស៊ិក", "🇲🇽"),
+            (r"\b(south africa|south african|pretoria|johannesburg)\b|អាហ្វ្រិកខាងត្បូង", "🇿🇦"),
+            (r"\b(nigeria|nigerian|abuja|lagos)\b|នីហ្សេរីយ៉ា", "🇳🇬"),
+            (r"\b(norway|norwegian|oslo)\b|ន័រវែស", "🇳🇴"),
+            (r"\b(sweden|swedish|stockholm)\b|ស៊ុយអែត", "🇸🇪"),
+            (r"\b(poland|polish|warsaw)\b|ប៉ូឡូញ", "🇵🇱"),
+            (r"\b(spain|spanish|madrid)\b|អេស្ប៉ាញ", "🇪🇸"),
+            (r"\b(italy|italian|rome)\b|អ៊ីតាលី", "🇮🇹"),
+            (r"\b(netherlands|dutch|amsterdam)\b|ហូឡង់", "🇳🇱"),
+            (r"\b(belgium|belgian|brussels)\b|បែលហ្ស៊ិក", "🇧🇪"),
+            (r"\b(kazakhstan|kazakh|astana)\b|កាហ្សាក់ស្ថាន", "🇰🇿"),
+            (r"\b(kuwait|kuwaiti)\b|គុយវ៉ែត", "🇰🇼"),
+            (r"\b(oman|omani|muscat)\b|អូម៉ង់", "🇴🇲"),
+            (r"\b(bahrain|bahraini|manama)\b|បារ៉ែន", "🇧🇭"),
+            (r"\b(jordan|jordanian|amman)\b|ហ្ស៊កដានី", "🇯🇴"),
             (r"\b(vietnam|vietnamese|hanoi)\b|វៀតណាម", "🇻🇳"),
             (r"\b(pakistan|pakistani|islamabad)\b|ប៉ាគីស្ថាន", "🇵🇰"),
             (r"\b(syria|syrian|damascus)\b|ស៊ីរី", "🇸🇾"),
@@ -781,17 +806,18 @@ class KhmerFormatter:
             (r"\b(yemen|yemeni|houthi|sanaa)\b|យេមែន|យេម៉ែន", "🇾🇪"),
             (r"\b(un|united nations|imf|world bank|wto|who|global|worldwide|international)\b|អង្គការសហប្រជាជាតិ|សកលលោក|អន្តរជាតិ|ទូទាំងពិភពលោក", "🌐"),
         ]
+        
+        # STRICT HEADLINE-FIRST OCCURRENCE RULE:
+        # A flag is ONLY valid if that country ACTUALLY appears in the headline!
+        # Background countries mentioned casually in the narrative body (e.g. "due to war in Iran")
+        # MUST NEVER contaminate the header flag of another sovereign nation!
         matched_flags = []
         for pattern, flag in flag_rules:
-            m = re.search(pattern, full_search, re.IGNORECASE)
-            if not m and flag == "🇺🇸":
-                if re.search(r'\b(US|USA)\b', f"{news_item.get('title', '')} {news_item.get('description', '')}"):
-                    m = True
-            if m:
-                m_head = re.search(pattern, headline_priority, re.IGNORECASE)
-                if not m_head and flag == "🇺🇸" and re.search(r'\b(US|USA)\b', headline_priority):
-                    m_head = True
-                pos = m_head.start() if (m_head and hasattr(m_head, 'start')) else (99999 + (m.start() if hasattr(m, 'start') else 0))
+            m_head = re.search(pattern, headline_priority, re.IGNORECASE)
+            if not m_head and flag == "🇺🇸" and re.search(r'\b(US|USA)\b', headline_priority):
+                m_head = True
+            if m_head:
+                pos = m_head.start() if hasattr(m_head, 'start') else 0
                 matched_flags.append((flag, pos))
 
         matched_flags.sort(key=lambda x: x[1])
@@ -799,14 +825,15 @@ class KhmerFormatter:
             if f not in country_flags:
                 country_flags.append(f)
 
-        if isinstance(analysis, dict):
-            c_flag = (analysis.get("country_flag") or "").strip()
-            if c_flag and c_flag not in country_flags:
-                country_flags.insert(0, c_flag)
-
         # Palestine / West Bank Priority (Strict rule: West Bank, Gaza, Ramallah strictly get Flag 🇵🇸)
         if re.search(r"\b(palestine|palestinian|west bank|ramallah|gaza)\b|ប៉ាឡេស្ទីន|វេសប៊ែង|ហ្កាហ្សា", f"{headline_priority} {news_item.get('title', '')}", re.IGNORECASE):
             country_flags = ["🇵🇸"]
+
+        # If no country flag was found in headline from rules, check analysis country_flag
+        if not country_flags and isinstance(analysis, dict):
+            c_flag = (analysis.get("country_flag") or "").strip()
+            if c_flag:
+                country_flags.append(c_flag)
 
         # STRICT BILATERAL FLAG RULE: A 2nd flag is ONLY permitted if BOTH nations are prominently in the headline
         # AND it is an official bilateral state summit or war (e.g. US-China trade talks, Russia-Ukraine war).
