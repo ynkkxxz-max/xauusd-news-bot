@@ -61,6 +61,7 @@ class StoryImageBuilder:
         ("christine_lagarde", r"\b(lagarde|christine lagarde)\b|ឡាការដ៍"),
         ("kazuo_ueda", r"\b(ueda|kazuo ueda)\b|អ៊ូអេដា"),
         ("narendra_modi", r"\b(modi|narendra modi)\b|ម៉ូឌី"),
+        ("abdel_fattah_elsisi", r"\b(sisi|el-sisi|abdel fattah)\b|ស៊ីស៊ី|អាប់ដែល ហ្វាតា"),
     ]
 
     COUNTRY_PATTERNS = [
