@@ -81,7 +81,13 @@ class BreakingNewsCollector:
         "middle east eye", "blogger", "substack", "medium", "dailystar", "the sun", 
         "daily mail", "mirror", "pr newswire", "globenewswire", "business wire", "press release",
         "biggo", "hawaii", "tz", "vietnam", "tribune", "kalkine", "pluang", "cryptonews",
-        "ambcrypto", "coingape", "u.today", "coinpedia", "cryptopotato", "decrypt", "blockonomi", "beincrypto"
+        "ambcrypto", "coingape", "u.today", "coinpedia", "cryptopotato", "decrypt", "blockonomi", "beincrypto",
+        # Partisan blogs, local lifestyle outlets, and speculative op-ed aggregators
+        "masslive", "truthout", "marketforces", "marketforces africa", "salon", "rawstory",
+        "huffpost", "dailykos", "commondreams", "breitbart", "newsmax", "thegatewaypundit", "slate",
+        "mankato", "mankato free press", "centralalbertaonline", "cleveland.com", "ponoka", 
+        "energy news beat", "the tech buzz", "pa environment", "express.co.uk", "triblive", "herald",
+        "patch.com", "chronicle", "gazette", "post-gazette", "ledger", "bulletin", "sentinel"
     ]
 
     def __init__(self):
