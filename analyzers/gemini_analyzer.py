@@ -123,6 +123,7 @@ def breaking_prompt(title: str, description: str) -> str:
         f"     * 'ចំណាយលើសង្គ្រាម' ឬ 'ផ្គត់ផ្គង់សង្គ្រាម' (for financing/funding war — NEVER write 'ឧបត្ថម្ភដល់សង្គ្រាម')!\n"
         f"     * 'កងនាវាស្រមោល' ឬ 'នាវាដឹកប្រេងគេចទណ្ឌកម្ម' (for Shadow Fleet) និងប្រើពាក្យ 'នាវា' (NEVER ordinary 'កប៉ាល់' for oil tankers)!\n"
         f"     * 'តែងតាំង' (Appoint — NEVER 'ដាក់ឈ្មោះ'), 'កង្វះខាតសាច់ប្រាក់ងាយស្រួល' (Cash crunch), 'ការសម្រុកបញ្ចេញទុនវិនិយោគ' (Funding rush)!\n"
+        f"     * 'អ៊ីរ៉ង់' (Iran) និង 'តេហេរ៉ង់' (Tehran) — STRICTLY spell 'អ៊ីរ៉ង់' with 'អ' (NEVER drop 'អ' as 'រ៉ង់' or '៊ីរ៉ង់')! When writing causation, STRICTLY write 'ធ្វើឱ្យ...' (e.g. 'ធ្វើឱ្យអ៊ីរ៉ង់...', 'ធ្វើឱ្យរុស្ស៊ី...') — NEVER write 'ធ្វើ៊ីរ៉ង់', 'ធ្វើឿរ៉ង់', 'ធ្វើអោយ', or omit 'ឱ្យ'!\n"
         f"     * 'settlers' / 'settler violence' MUST STRICTLY be translated as 'ក្រុមអ្នកតាំងលំនៅ' ឬ 'ក្រុមអ្នកតាំងលំនៅជ្រុលនិយម' — NEVER translate as 'ជនស៊ីវិល' (civilians) or 'ប្រជាជន'!\n"
         f"     * 'French mayor' / 'visiting mayor' MUST STRICTLY be translated as 'អភិបាលក្រុងជនជាតិបារាំងមួយរូប' or 'អភិបាលក្រុងបារាំងមួយរូប' — NEVER translate as 'អភិបាលក្រុងប៉ារាំង' (which falsely implies Mayor of Paris)!\n"
         f"     * 'European delegation convoy' MUST STRICTLY be translated as 'ក្បួនរថយន្តប្រតិភូសហភាពអឺរ៉ុប' or 'ក្បួនរថយន្តគណៈប្រតិភូអឺរ៉ុប' — NEVER clumsy 'ក្បួនដំណើររថយន្ត' or 'ក្បួនតំណាងអឺរ៉ុប'!\n"
