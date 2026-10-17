@@ -177,12 +177,15 @@ def sanitize_khmer_spelling(text: str) -> str:
         (r"(អ៊ីស្រាអែល|អ៊ីរ៉ង់|អ៊ុយក្រែន|រុស្ស៊ី|ចិន|អាមេរិក|តួកគី|សហភាពអឺរ៉ុប|Houthi|ICC)និង", r"\1 និង"),
         (r"(\S)និង(អ៊ីស្រាអែល|អ៊ីរ៉ង់|អ៊ុយក្រែន|រុស្ស៊ី|ចិន|អាមេរិក|តួកគី|សហភាពអឺរ៉ុប|អារ៉ាប៊ីសាអ៊ូឌីត|Houthi|ICC)", r"\1 និង \2"),
         
-        # Financial & Market Terms
+        # Financial & Macro-Economic Terms (GATE 1: LEXICAL INTEGRITY)
         (r"ប៊ូលីស", "Bullish"),
         (r"ប៊ែរីស", "Bearish"),
         (r"សាយវ៉េ", "Sideway"),
         (r"សេហ្វហេវិន", "Safe-Haven"),
         (r"\(ទ្រព្យសកម្មសុវត្ថិភាព\s*\(Safe-Haven\)\)|ទ្រព្យសកម្មសុវត្ថិភាព\s*\(Safe-Haven\)", "ទ្រព្យសុវត្ថិភាព (Safe-Haven)"),
+        (r"គម្លាតសាច់ប្រាក់", "កង្វះខាតសាច់ប្រាក់ងាយស្រួល"),
+        (r"ទិន្នផលប័ណ្ណបំណុល", "ទិន្នផលមូលបត្របំណុល"),
+        (r"ប័ណ្ណបំណុល(?!\s*រដ្ឋ)", "មូលបត្របំណុល"),
         (r"សម្ពាធអតិផរណា និងប្រាក់រូពីផ្ដល់បន្ទប់សម្រាប់ការរឹតបន្តឹងអត្រាការប្រាក់បន្ថែមទៀត", "សម្ពាធអតិផរណា និងប្រាក់រូពីផ្ដល់លទ្ធភាព និងបើកផ្លូវឱ្យមានការរឹតបន្តឹងអត្រាការប្រាក់បន្ថែមទៀត"),
         (r"ផ្ដល់បន្ទប់សម្រាប់ការរឹតបន្តឹង(?:អត្រាការប្រាក់)?", "ផ្ដល់លទ្ធភាព និងបើកផ្លូវឱ្យមានការរឹតបន្តឹងអត្រាការប្រាក់"),
         (r"ផ្ដល់បន្ទប់", "ផ្ដល់លទ្ធភាព និងបើកផ្លូវ"),
@@ -223,6 +226,8 @@ def sanitize_khmer_spelling(text: str) -> str:
         (r"ស្តាលីង|ស្តាលីង្គ|ស្តារលីង", "Starlink"),
 
         # Natural Journalistic Style & Accurate Spelling Corrections per user directive
+        (r"ពួក\s*រុស្ស៊ីម៉ាត់|ក្រុម\s*រុស្ស៊ីម៉ាត់|រុស្ស៊ីម៉ាត់|រុស្សីម៉ាត់", "ក្រុមអ្នកតាំងលំនៅជ្រុលនិយម"),
+        (r"ពួក\s*អ្នកតាំងលំនៅ", "ក្រុមអ្នកតាំងលំនៅ"),
         (r"កន្លែងសន្តិសុខរើសើប|តំបន់សន្តិសុខរើសើប|ទីតាំងសន្តិសុខរើសើប|កន្លែងសន្តិសុខរសើប|កន្លែងរសើប", "ទីតាំងសន្តិសុខរសើប"),
         (r"រើសើប", "រសើប"),
         (r"តម្លើង", "ដំឡើង"),
@@ -261,6 +266,12 @@ def sanitize_khmer_spelling(text: str) -> str:
         (r"ដុល្លារ\s*/\s*បារ៉ែល", "ដុល្លារក្នុងមួយបារ៉ែល"),
         (r"/បារ(?![៉ែលាំងម្ភ])", "/បារ៉ែល"),
         (r"បារ៉ែល(?:\s*បារ៉ែល)+", "បារ៉ែល"),
+
+        # Olive Harvest & Crops Terminology (Strict 'អូលីវ' - NEVER mistranslate or hallucinate as 'អង្វរ')
+        (r"ផលដំណាំអង្វរ|ដំណាំអង្វរ|ផ្លែអង្វរ|ដើមអង្វរ", "ផលដំណាំអូលីវ"),
+        (r"អង្វរ(?=\s*ពីប្រជាជន|\s*ប៉ាឡេស្ទីន|\s*របស់ប្រជាជន|\s*នៅលើដី)", "អូលីវ"),
+        (r"ប្រេងអង្វរ", "ប្រេងអូលីវ"),
+        (r"\bolives?\b", "អូលីវ"),
 
         # Natural Spacing & Preposition Cleanup
         (r"មជ្ឈិមបូព៌ា\s*(រយៈពេល|បាន|កំពុង|ត្រូវ|ដែល)", r"មជ្ឈិមបូព៌ា \1"),
@@ -722,7 +733,8 @@ class KhmerFormatter:
             (r"\b(u\.s\.|u\.s|usa|united states|america|american|fed|biden|trump|powell)\b|អាមេរិក|សហរដ្ឋអាមេរិក", "🇺🇸"),
             (r"\b(uk|britain|british|london|england|boe|starmer)\b|អង់គ្លេស|ចក្រភពអង់គ្លេស", "🇬🇧"),
             (r"\b(iran|tehran|persian)\b|អ៊ីរ៉ង់|អ៊ីរ៉ាន", "🇮🇷"),
-            (r"\b(israel|tel aviv|gaza|netanyahu)\b|អ៊ីស្រាអែល", "🇮🇱"),
+            (r"\b(israel|tel aviv|netanyahu)\b|អ៊ីស្រាអែល", "🇮🇱"),
+            (r"\b(palestine|palestinian|west bank|ramallah|gaza)\b|ប៉ាឡេស្ទីន|វេសប៊ែង|ហ្កាហ្សា", "🇵🇸"),
             (r"\b(russia|moscow|kremlin|putin)\b|រុស្ស៊ី|រុស្សី", "🇷🇺"),
             (r"\b(ukraine|kyiv|zelenskyy|zelensky)\b|អ៊ុយក្រែន", "🇺🇦"),
             (r"\b(china|beijing|pboc|xi jinping)\b|ចិន", "🇨🇳"),
@@ -751,6 +763,7 @@ class KhmerFormatter:
             (r"\b(lebanon|lebanese|beirut|hezbollah)\b|លីបង់", "🇱🇧"),
             (r"\b(iraq|iraqi|baghdad)\b|អ៊ីរ៉ាក់", "🇮🇶"),
             (r"\b(yemen|yemeni|houthi|sanaa)\b|យេមែន|យេម៉ែន", "🇾🇪"),
+            (r"\b(un|united nations|imf|world bank|wto|who|global|worldwide|international)\b|អង្គការសហប្រជាជាតិ|សកលលោក|អន្តរជាតិ|ទូទាំងពិភពលោក", "🌐"),
         ]
         matched_flags = []
         for pattern, flag in flag_rules:
