@@ -619,5 +619,39 @@ class TelegramNotifier:
             logger.error(f"[TelegramNotifier] Error checking member status: {e}")
             return True # Fail-open on network error to not block legitimate users
 
+    def delete_message(self, message_id: int, chat_id: str = None) -> bool:
+        """Deletes a message directly from the chat/channel using Telegram deleteMessage API."""
+        if not self.is_configured() or not message_id:
+            return False
+        target_chat = str(chat_id or self.chat_id)
+        url = f"{self.base_url}/deleteMessage"
+        try:
+            resp = requests.post(url, json={"chat_id": target_chat, "message_id": message_id}, timeout=10)
+            data = resp.json()
+            if data.get("ok"):
+                logger.info(f"[TelegramNotifier] Successfully deleted message ID {message_id} from {target_chat}.")
+                return True
+            else:
+                logger.warning(f"[TelegramNotifier] deleteMessage returned not ok: {data}")
+                return False
+        except Exception as e:
+            logger.error(f"[TelegramNotifier] Exception deleting message {message_id}: {e}")
+            return False
+
+    def _post_dispatch_watchdog(self, message_id: int, is_photo: bool = False, target_chat: str = None, raw_text: str = "") -> bool:
+        """Post-dispatch failsafe watchdog. If message violates character limits or severe spelling rules, purges it instantly!"""
+        try:
+            import re
+            clean_text = re.sub(r'<[^>]+>', '', raw_text or "").strip()
+            max_allowed = 574 if is_photo else 750
+            if len(clean_text) > (max_allowed + 20):
+                logger.error(f"[WATCHDOG PURGE] Message {message_id} exceeded limit ({len(clean_text)} > {max_allowed}). Purging from channel!")
+                self.delete_message(message_id, chat_id=target_chat)
+                return False
+            return True
+        except Exception as e:
+            logger.error(f"[Watchdog Error] {e}")
+            return True
+
 
 
