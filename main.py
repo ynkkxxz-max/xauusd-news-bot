@@ -1324,8 +1324,8 @@ class XAUUSDNewsAssistantBot:
 
     def _get_channel_live_feed_state(self):
         """
-        Extracts live channel state directly from @GoldMarketKH8888 HTML feed.
-        Returns (channel_elapsed_seconds, latest_clusters, latest_entities).
+        Extracts live channel state directly from @GoldMarketKH8888 HTML feed across multiple posts.
+        Returns (channel_elapsed_seconds, latest_clusters, latest_entities, recent_clusters_dict, recent_entities_dict).
         Provides an indestructible shield across Render container restarts!
         """
         try:
@@ -1333,27 +1333,56 @@ class XAUUSDNewsAssistantBot:
             import html as html_module
             channel_html = self._fetch_channel_html(max_cache_age=15.0)
             if not channel_html:
-                return (999999.0, [], [])
-            
-            times = re.findall(r'<time[^>]*datetime="([^"]+)"', channel_html)
-            elapsed = 999999.0
-            if times:
-                last_dt = datetime.datetime.fromisoformat(times[-1])
-                now_utc = datetime.datetime.now(datetime.timezone.utc)
-                elapsed = max(0.0, (now_utc - last_dt).total_seconds())
-            
-            posts_raw = re.findall(r'<div class="tgme_widget_message_(?:text|caption)[^"]*"[^>]*>(.*?)</div>', channel_html, re.DOTALL)
-            latest_clusters = []
-            latest_entities = []
-            if posts_raw:
-                last_txt = html_module.unescape(re.sub(r'<[^>]+>', ' ', posts_raw[-1])).strip()
-                latest_clusters = GoldNewsFilter.get_news_clusters(last_txt)
-                latest_entities = GoldNewsFilter.get_news_entities(last_txt)
-            
-            return (elapsed, latest_clusters, latest_entities)
+                return (999999.0, [], [], {}, {})
+
+            now_utc = datetime.datetime.now(datetime.timezone.utc)
+            pattern = re.compile(
+                r'<div class="tgme_widget_message_wrap[^"]*"[^>]*>.*?'
+                r'data-post="GoldMarketKH8888/(\d+)".*?'
+                r'<time datetime="([^"]+)".*?'
+                r'<div class="tgme_widget_message_(?:text|caption)[^"]*"[^>]*>(.*?)</div>',
+                re.DOTALL
+            )
+            matches = pattern.findall(channel_html)
+
+            ch_elapsed = 999999.0
+            ch_latest_clusters = []
+            ch_latest_entities = []
+            ch_recent_clusters = {}
+            ch_recent_entities = {}
+
+            if matches:
+                last_pid, last_time, last_text = matches[-1]
+                try:
+                    last_dt = datetime.datetime.fromisoformat(last_time)
+                    ch_elapsed = max(0.0, (now_utc - last_dt).total_seconds())
+                except Exception:
+                    pass
+                clean_last = html_module.unescape(re.sub(r'<[^>]+>', ' ', last_text)).strip()
+                ch_latest_clusters = GoldNewsFilter.get_news_clusters(clean_last)
+                ch_latest_entities = GoldNewsFilter.get_news_entities(clean_last)
+
+                for pid, ptime, ptext in matches:
+                    try:
+                        p_dt = datetime.datetime.fromisoformat(ptime)
+                        p_elapsed = max(0.0, (now_utc - p_dt).total_seconds())
+                    except Exception:
+                        continue
+                    clean_p = html_module.unescape(re.sub(r'<[^>]+>', ' ', ptext)).strip()
+                    p_clusters = GoldNewsFilter.get_news_clusters(clean_p)
+                    p_entities = GoldNewsFilter.get_news_entities(clean_p)
+
+                    if p_elapsed < 14400.0:  # 4 hours
+                        for ent in p_entities:
+                            ch_recent_entities[ent] = min(ch_recent_entities.get(ent, 999999.0), p_elapsed)
+                    if p_elapsed < 7200.0:   # 2 hours
+                        for cl in p_clusters:
+                            ch_recent_clusters[cl] = min(ch_recent_clusters.get(cl, 999999.0), p_elapsed)
+
+            return (ch_elapsed, ch_latest_clusters, ch_latest_entities, ch_recent_clusters, ch_recent_entities)
         except Exception as e:
             logger.debug(f"[Channel Live State Check] {e}")
-            return (999999.0, [], [])
+            return (999999.0, [], [], {}, {})
 
     def _is_already_in_telegram_channel(self, title: str, link: str = "", khmer_text: str = "", fresh: bool = False) -> bool:
         """Inspects the public Telegram channel feed to prevent duplicate broadcasts across distributed containers."""
@@ -1547,8 +1576,8 @@ class XAUUSDNewsAssistantBot:
                 self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                 continue
 
-            # Live Channel Inspection: Extract latest channel post state directly
-            ch_elapsed, ch_latest_clusters, ch_latest_entities = self._get_channel_live_feed_state()
+            # Live Channel Inspection: Extract latest channel post state directly across multiple posts
+            ch_elapsed, ch_latest_clusters, ch_latest_entities, ch_recent_clusters, ch_recent_entities = self._get_channel_live_feed_state()
             effective_elapsed = min(time_since_last, ch_elapsed)
 
             # Macro Multi-Cluster Deduplication & Consecutive Sector Diversity Shield
@@ -1587,13 +1616,14 @@ class XAUUSDNewsAssistantBot:
                     database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
                     continue
 
-                # 2. Check each matched cluster against cooldown
+                # 2. Check each matched cluster against cooldown (persistent SQLite + live Telegram feed history)
                 is_in_cooldown = False
                 blocked_cluster = ""
                 for cl in clusters:
                     last_cl_ts = float(database.get_state(f"cluster_last_ts_{cl}") or "0")
                     cd = CLUSTER_COOLDOWNS.get(cl, 3600.0)
-                    if (now - last_cl_ts) < cd or (cl in ch_latest_clusters and ch_elapsed < cd):
+                    channel_cl_elapsed = ch_recent_clusters.get(cl, 999999.0)
+                    if (now - last_cl_ts) < cd or channel_cl_elapsed < cd or (cl in ch_latest_clusters and ch_elapsed < cd):
                         defcon1_words = ["nuclear", "outbreak of war", "declares war", "martial law", "assassination"]
                         if not any(dw in (title + " " + desc).lower() for dw in defcon1_words):
                             is_in_cooldown = True
@@ -1635,7 +1665,8 @@ class XAUUSDNewsAssistantBot:
                 blocked_entity = ""
                 for ent in entities:
                     last_ent_ts = float(database.get_state(f"entity_last_ts_{ent}") or "0")
-                    if (now - last_ent_ts) < 14400.0 or (ent in ch_latest_entities and ch_elapsed < 14400.0):
+                    channel_ent_elapsed = ch_recent_entities.get(ent, 999999.0)
+                    if (now - last_ent_ts) < 14400.0 or channel_ent_elapsed < 14400.0 or (ent in ch_latest_entities and ch_elapsed < 14400.0):
                         defcon1_words = ["nuclear", "outbreak of war", "declares war", "martial law", "assassination"]
                         if not any(dw in (title + " " + desc).lower() for dw in defcon1_words):
                             is_entity_in_cooldown = True
@@ -1736,7 +1767,8 @@ class XAUUSDNewsAssistantBot:
                 blocked_post_ent = ""
                 for ent in post_entities:
                     last_ent_ts = float(database.get_state(f"entity_last_ts_{ent}") or "0")
-                    if (now - last_ent_ts) < 14400.0:  # 4 hours strict cooldown
+                    channel_ent_elapsed = ch_recent_entities.get(ent, 999999.0)
+                    if (now - last_ent_ts) < 14400.0 or channel_ent_elapsed < 14400.0:  # 4 hours strict cooldown
                         is_post_entity_blocked = True
                         blocked_post_ent = ent
                         break
