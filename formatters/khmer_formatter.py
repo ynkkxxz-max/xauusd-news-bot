@@ -94,6 +94,11 @@ def sanitize_khmer_spelling(text: str) -> str:
     res = re.sub(foreign_regex, "", res)
 
     corrections = [
+        # Lexical Integrity: Fix ព្រមាន
+        (r"\bប្រមាន\b", "ព្រមាន"),
+        (r"ការប្រមាន", "ការព្រមាន"),
+        (r"បានប្រមាន", "បានព្រមាន"),
+
         # Currency & Economy Fixes (prevents orphan or duplicate 'អាមេរិក' / 'ាមេរិក')
         (r"ប្រាក់ដុល្លារ\s*\(USD\)\s*(?:អា|ា)?មេរិក", "ប្រាក់ដុល្លារ (USD)"),
         (r"\(USD\)\s*(?:អា|ា)?មេរិក", "(USD)"),
@@ -162,6 +167,10 @@ def sanitize_khmer_spelling(text: str) -> str:
         (r"(របស់|នៅ|ពី|ដល់|ប្រទេស|ចំពោះ|លើ|រវាង)\s+(រុស្ស៊ី|អ៊ុយក្រែន|ចិន|អាមេរិក|បារាំង|អាល្លឺម៉ង់|អ៊ីរ៉ង់|អ៊ីស្រាអែល|តួកគី|ជប៉ុន|កូរ៉េខាងត្បូង|កូរ៉េខាងជើង|តៃវ៉ាន់|កាណាដា|អង់គ្លេស|ឥណ្ឌា|យេមែន|មជ្ឈិមបូព៌ា)", r"\1\2"),
         (r"រដ្ឋមន្ត្រីក្រសួងហិរញ្ញវត្ថុ\s+ចក្រភពអង់គ្លេស", "រដ្ឋមន្ត្រីក្រសួងហិរញ្ញវត្ថុអង់គ្លេស"),
         (r"ឧបត្ថម្ភដល់សង្គ្រាម", "ចំណាយលើសង្គ្រាម"),
+        (r"ប្រមាន", "ព្រមាន"),
+        (r"ប្រទេស\s*កាត(?![់ាប\u1780-\u17D3])", "ប្រទេសកាតា"),
+        (r"រដ្ឋ\s*កាត(?![់ាប\u1780-\u17D3])", "រដ្ឋកាតា"),
+        (r"(?<!ប្រេង)កាត(?=\s+(?:ព្រមាន|ប្រមាន|បាន|កំពុង|ប្រកាស|ចេញ|គ្រោង|ថ្លែង|និយាយ|ជំរុញ|អំពាវនាវ|រង|បន្ត|អះអាង|ចាត់ទុក|ធ្វើ))", "កាតា"),
         (r"([\u1780-\u17D3])និង", r"\1 និង"),
         (r"([\u1780-\u17D3])ឬ(?=[\u1780-\u17D3])", r"\1 ឬ "),
         (r"([\u1780-\u17D3])ដើម្បី", r"\1 ដើម្បី"),
@@ -810,11 +819,16 @@ class KhmerFormatter:
             (r"\b(bahrain|bahraini|manama)\b|បារ៉ែន", "🇧🇭"),
             (r"\b(jordan|jordanian|amman)\b|ហ្ស៊កដានី", "🇯🇴"),
             (r"\b(vietnam|vietnamese|hanoi)\b|វៀតណាម", "🇻🇳"),
+            (r"\b(philippines|philippine|filipino|manila|bsp|bangko sentral)\b|ហ្វីលីពីន|ម៉ានីល|ប៉េសូ|ប៉េសូហ្វីលីពីន", "🇵🇭"),
+            (r"\b(thailand|thai|bangkok|bot)\b|ថៃ|បាងកក", "🇹🇭"),
+            (r"\b(indonesia|indonesian|jakarta|rupiah|bi)\b|ឥណ្ឌូណេស៊ី|ហ្សាការតា|រូព្យ៉ា", "🇮🇩"),
+            (r"\b(malaysia|malaysian|kuala lumpur|ringgit|bnm)\b|ម៉ាឡេស៊ី|គូឡាឡាំពួ|រីងហ្គីត", "🇲🇾"),
             (r"\b(pakistan|pakistani|islamabad)\b|ប៉ាគីស្ថាន", "🇵🇰"),
             (r"\b(syria|syrian|damascus)\b|ស៊ីរី", "🇸🇾"),
             (r"\b(lebanon|lebanese|beirut|hezbollah)\b|លីបង់", "🇱🇧"),
             (r"\b(iraq|iraqi|baghdad)\b|អ៊ីរ៉ាក់", "🇮🇶"),
             (r"\b(yemen|yemeni|houthi|houthis|sanaa)\b|យេមែន|យេម៉ែន|ហូទី", "🇾🇪"),
+            (r"\b(sudan|sudanese|khartoum)\b|ស៊ូដង់", "🇸🇩"),
             (r"\b(un|united nations|imf|world bank|wto|who|global|worldwide|international)\b|អង្គការសហប្រជាជាតិ|សកលលោក|អន្តរជាតិ|ទូទាំងពិភពលោក", "🌐"),
         ]
         
@@ -853,6 +867,14 @@ class KhmerFormatter:
             comb_lower = f"{headline_priority} {news_item.get('title', '')} {key_event}".lower()
             if any(w in comb_lower for w in ["u.s.", "usa", "america", "dollar", "fed", "treasury", "sec", "texas", "california", "york", "florida", "wall st", "nvidia", "apple", "tesla", "spacex", "openai", "amazon", "google", "microsoft", "intel", "blackrock"]):
                 country_flags = ["🇺🇸"]
+            elif any(w in comb_lower for w in ["philippines", "philippine", "filipino", "manila", "bsp", "ហ្វីលីពីន", "ប៉េសូ"]):
+                country_flags = ["🇵🇭"]
+            elif any(w in comb_lower for w in ["thailand", "thai", "bangkok", "bot", "ថៃ", "បាងកក"]):
+                country_flags = ["🇹🇭"]
+            elif any(w in comb_lower for w in ["indonesia", "indonesian", "jakarta", "rupiah", "bi", "ឥណ្ឌូណេស៊ី"]):
+                country_flags = ["🇮🇩"]
+            elif any(w in comb_lower for w in ["malaysia", "malaysian", "kuala lumpur", "ringgit", "bnm", "ម៉ាឡេស៊ី"]):
+                country_flags = ["🇲🇾"]
             elif any(w in comb_lower for w in ["china", "chinese", "beijing", "pboc", "yuan", "chongqing", "shanghai", "shenzhen"]):
                 country_flags = ["🇨🇳"]
             elif any(w in comb_lower for w in ["russia", "russian", "moscow", "kremlin", "ruble", "gazprom"]):
@@ -870,13 +892,20 @@ class KhmerFormatter:
 
         # STRICT BILATERAL FLAG RULE: A 2nd flag is ONLY permitted if BOTH nations are prominently in the headline
         # AND it is an official bilateral state summit or war (e.g. US-China trade talks, Russia-Ukraine war).
-        # Never contaminate a single-country headline with a 2nd background flag!
+        # Never contaminate a single-country headline with a 2nd background flag or generic globe emoji!
         if len(country_flags) >= 2:
-            second_flag = country_flags[1]
-            sec_pat = next((p for p, fl in flag_rules if fl == second_flag), None)
-            is_sec_in_headline = bool(sec_pat and re.search(sec_pat, headline_priority, re.IGNORECASE))
-            if not is_sec_in_headline:
-                country_flags = country_flags[:1]
+            # If a sovereign country flag is present, strip generic 🌐 indicator completely
+            sovereign_flags = [f for f in country_flags if f != "🌐"]
+            if sovereign_flags:
+                country_flags = sovereign_flags
+
+            if len(country_flags) >= 2:
+                second_flag = country_flags[1]
+                sec_pat = next((p for p, fl in flag_rules if fl == second_flag), None)
+                is_sec_in_headline = bool(sec_pat and re.search(sec_pat, headline_priority, re.IGNORECASE))
+                if not is_sec_in_headline or second_flag == "🌐":
+                    country_flags = country_flags[:1]
+
 
         # Build headline: use AI-generated headline_km, fallback to shortened title / what_happened / key_event
         if not headline_km or headline_km == "កំពុងតាមដាន។":
@@ -906,6 +935,11 @@ class KhmerFormatter:
                 fallback = fallback.split(" — ")[0].strip()
             headline_km = fallback
 
+        # STRICT SINGLE-LINE HEADLINE DIRECTIVE: Absolutely zero newlines in headline
+        headline_km = re.sub(r'[\r\n]+', ' ', headline_km).strip()
+        headline_km = re.sub(r'\s{2,}', ' ', headline_km)
+        headline_km = re.sub(r'^កាត\b(?!\s*ATM)', 'កាតា', headline_km)
+
         # Strip emojis and flag chars from headline (flags go in prefix, not inside bold)
         headline_km = re.sub(r'[\U0001F1E0-\U0001F1FF]{2}', '', headline_km).strip()
         headline_km = re.sub(r'[\U0001F300-\U0001FFFF]', '', headline_km).strip()
@@ -921,6 +955,19 @@ class KhmerFormatter:
 
         # Sanitize spelling
         headline_km = sanitize_khmer_spelling(headline_km)
+
+        # STRICT ZERO COLONS IN HEADLINES DIRECTIVE: Colons inside or at the end of headlines are strictly removed
+        headline_km = re.sub(r'[\s\u200b]*[៖:：][\s\u200b]*', ' ', headline_km).strip()
+        headline_km = re.sub(r'\s{2,}', ' ', headline_km)
+
+        # COMPLETE SENTENCE GUARANTEE (មានក្បាល មានកន្ទុយ ច្បាស់លាស់):
+        # Transform awkward title fragments like "ប្រទេស X និង [នាម]..." into a complete journalistic sentence
+        m_frag = re.match(r'^([^\s]+)\s+និង\s*(ដែនកំណត់|អនាគត|ទស្សនវិស័យ|បញ្ហា|ស្ថានភាព|កិច្ចព្រមព្រៀង|វិបត្តិ|គោលនយោបាយ|យុទ្ធសាស្ត្រ)(.+)$', headline_km)
+        if m_frag:
+            country_subj = m_frag.group(1).strip()
+            topic_noun = m_frag.group(2).strip()
+            rest = m_frag.group(3).strip()
+            headline_km = f"របាយការណ៍បង្ហាញពី{topic_noun}{rest}របស់{country_subj}"
 
         # Final pass to ensure absolutely zero trailing dots, colons, or cut-off prepositions
         headline_km = re.sub(_trailing_punct_regex, '', headline_km).strip()
@@ -1010,24 +1057,67 @@ class KhmerFormatter:
         # Sanitize Khmer spelling to guarantee 100% accurate spelling
         key_event = sanitize_khmer_spelling(key_event)
 
-        # Moderate narrative length: Keep it clean, balanced, and digestible across 2 distinct paragraphs per Gate 3
-        paras = [p.strip() for p in key_event.split("\n\n") if p.strip()]
-        if len(paras) >= 2:
-            p1 = paras[0]
-            p2 = paras[1]
-            if len(p1) + len(p2) > 420:
-                p2_sentences = [s.strip() for s in re.split(r'(?<=។)\s+', p2) if s.strip()]
-                if p2_sentences:
-                    p2 = p2_sentences[0]
-            key_event = f"{p1}\n\n{p2}"
-        else:
-            sentences = [s.strip() for s in re.split(r'(?<=។)\s+', key_event) if s.strip()]
-            if len(sentences) >= 2:
-                p1 = sentences[0]
-                p2 = " ".join(sentences[1:3]).strip()
-                if len(p1) + len(p2) > 420 and len(sentences) >= 3:
-                    p2 = sentences[1]
-                key_event = f"{p1}\n\n{p2}"
+        # Fix broken sentence starts (e.g. "នេះបានសម្លាប់..." -> "ការវាយប្រហារនេះបានសម្លាប់..." or "ព្រឹត្តិការណ៍នេះបានសម្លាប់...")
+        key_event = re.sub(r'^\s*នេះបាន', 'ការវាយប្រហារនេះបាន' if 'វាយប្រហារ' in headline_km else 'ព្រឹត្តិការណ៍នេះបាន', key_event)
+        key_event = re.sub(r'^\s*នេះគូស', 'ព្រឹត្តិការណ៍នេះគូស', key_event)
+        key_event = re.sub(r'^\s*នេះបង្ហាញ', 'ព្រឹត្តិការណ៍នេះបង្ហាញ', key_event)
+
+        # OPTIMAL MOBILE NARRATIVE STANDARD:
+        # With Photo: strictly 150 to 240 characters (concise, 1-2 punchy sentences)
+        # Without Photo: strictly 250 to 380 characters (clean 2 paragraphs)
+        max_narrative_cap = 240 if has_photo else 380
+        raw_sentences = [s.strip() for s in re.split(r'(?<=។)\s+|\n+', key_event) if s.strip()]
+        clean_sentences = []
+        for s in raw_sentences:
+            s_clean = sanitize_khmer_spelling(s)
+            s_clean = re.sub(r'[\s\u200b\.\,;:៖]+$', '', s_clean).strip()
+            if s_clean:
+                if not s_clean.endswith("។"):
+                    s_clean += "។"
+                clean_sentences.append(s_clean)
+
+        if clean_sentences:
+            p1 = clean_sentences[0]
+            p2 = clean_sentences[1] if len(clean_sentences) > 1 else ""
+            if has_photo:
+                # With photo: keep strictly 1 or 2 very short punchy sentences <= 240 chars
+                if len(p1) > max_narrative_cap:
+                    sub = p1[:max_narrative_cap]
+                    last_period = max(sub.rfind("។ "), sub.rfind("។\n"), sub.rfind("។"))
+                    if last_period > 30:
+                        p1 = sub[:last_period + 1].strip()
+                    else:
+                        last_space = sub.rfind(" ")
+                        p1 = (sub[:last_space].strip() if last_space > 25 else sub.strip()) + "។"
+                    key_event = p1
+                elif p2 and (len(p1) + 2 + len(p2)) <= max_narrative_cap:
+                    key_event = f"{p1}\n\n{p2}"
+                else:
+                    key_event = p1
+            else:
+                # Text-only: allow up to 380 chars
+                if p2:
+                    combined_len = len(p1) + 2 + len(p2)
+                    if combined_len > max_narrative_cap:
+                        allowed_p2 = max(max_narrative_cap - len(p1) - 2, 70)
+                        if len(p2) > allowed_p2:
+                            sub = p2[:allowed_p2].strip()
+                            last_break = max(sub.rfind(" "), sub.rfind("និង"), sub.rfind("ដែល"), sub.rfind("ដើម្បី"))
+                            p2 = (sub[:last_break].strip() if last_break > 40 else sub) + "។"
+                    key_event = f"{p1}\n\n{p2}".strip()
+                else:
+                    if len(p1) > max_narrative_cap:
+                        m_conj = re.search(r'\s+(ខណៈដែល|ខណៈ|បន្ទាប់ពី|ទន្ទឹមនឹង|ដើម្បី|ដោយសារ)\s+', p1)
+                        if m_conj and 100 < m_conj.start() < 240:
+                            p1_part = p1[:m_conj.start()].strip() + "។"
+                            p2_part = p1[m_conj.start():max_narrative_cap].strip()
+                            if not p2_part.endswith("។"):
+                                p2_part += "។"
+                            key_event = f"{p1_part}\n\n{p2_part}"
+                        else:
+                            key_event = p1[:max_narrative_cap].rsplit(" ", 1)[0].rstrip(" .…-–—") + "។"
+                    else:
+                        key_event = p1
 
         # Security / conflict / attack / drone / bomb / military / strait sentiment safety net: Military threats are strictly ហានិភ័យទីផ្សារ (🔸)
         if impact_line:
@@ -1127,16 +1217,19 @@ class KhmerFormatter:
         # 🔹 ផលវិជ្ជមាន៖
         # {detail}
         if impact_line:
+            orig_impact = impact_line
             # Also clean any inline leakage where 🔸 and 🔹 were squished together on the same line
             m_inline1 = re.search(r'([🔹🟢]\s*ផលវិជ្ជមាន[^🔸🔴\n]+)\s*([🔸🔴]\s*(?:ផលអវិជ្ជមាន|ហានិភ័យ)[^\n]+)', impact_line)
             m_inline2 = re.search(r'([🔸🔴]\s*(?:ផលអវិជ្ជមាន|ហានិភ័យ)[^🔹🟢\n]+)\s*([🔹🟢]\s*ផលវិជ្ជមាន[^\n]+)', impact_line)
             bias_str = str(analysis.get("bias", "")).lower() if isinstance(analysis, dict) else ""
-            is_threat_or_negative = "bearish" in bias_str or any(k in full_search for k in ["crisis", "war", "debt", "default", "fall", "drop", "cut", "risk", "វិបត្តិ", "សង្គ្រាម", "បំណុល", "ក្ស័យធន", "ធ្លាក់ចុះ", "ហានិភ័យ", "សម្ពាធ", "រឹតបន្តឹង"])
+
+            is_explicit_positive = bool(re.search(r'[🔹🟢]|ផលវិជ្ជមាន|ឥទ្ធិពលវិជ្ជមាន', orig_impact))
+            is_explicit_negative = bool(re.search(r'[🔸🔴🔶]|ហានិភ័យ|ផលអវិជ្ជមាន|ឥទ្ធិពលអវិជ្ជមាន', orig_impact))
 
             if m_inline1:
-                impact_line = m_inline1.group(2).strip() if is_threat_or_negative else m_inline1.group(1).strip()
+                impact_line = m_inline1.group(1).strip() if (is_explicit_positive and not is_explicit_negative) else m_inline1.group(2).strip()
             elif m_inline2:
-                impact_line = m_inline2.group(1).strip() if is_threat_or_negative else m_inline2.group(2).strip()
+                impact_line = m_inline2.group(2).strip() if (is_explicit_positive and not is_explicit_negative) else m_inline2.group(1).strip()
 
             # Clean raw detail
             imp_detail = impact_line.strip()
@@ -1152,10 +1245,17 @@ class KhmerFormatter:
 
             if imp_detail:
                 imp_detail += "។"
-                if is_threat_or_negative or "ហានិភ័យ" in impact_line or "អវិជ្ជមាន" in impact_line:
-                    impact_line = f"🔶 ហានិភ័យទីផ្សារ៖\n{imp_detail}"
-                else:
+                # Strictly harmonize badge with detail sentiment (Zero-Contradiction Guarantee)
+                pos_words = ["ជួយពង្រឹង", "ជំរុញ", "គាំទ្រ", "ងើបឡើង", "កើនឡើងលើស", "ស្ថិរភាព", "ផលវិជ្ជមាន", "ទាក់ទាញទុន", "ឱកាស", "សម្រួល", "បន្ធូរបន្ថយ"]
+                neg_words = ["ហានិភ័យ", "គំរាមកំហែង", "អវិជ្ជមាន", "ធ្លាក់ចុះ", "សម្ពាធ", "ការរំខាន", "កង្វះខាត", "អស្ថិរភាព", "វិបត្តិ", "សង្គ្រាម", "ការខាតបង់", "ការព្រមាន"]
+                
+                has_pos = any(w in imp_detail for w in pos_words) or (is_explicit_positive and not is_explicit_negative) or bias_str == "bullish"
+                has_neg = any(w in imp_detail for w in neg_words) or (is_explicit_negative and not is_explicit_positive) or bias_str == "bearish"
+                
+                if (has_pos and not any(w in imp_detail for w in neg_words[:5])) or (is_explicit_positive and not is_explicit_negative):
                     impact_line = f"🔹 ផលវិជ្ជមាន៖\n{imp_detail}"
+                else:
+                    impact_line = f"🔶 ហានិភ័យទីផ្សារ៖\n{imp_detail}"
             else:
                 impact_line = ""
 
@@ -1185,47 +1285,60 @@ class KhmerFormatter:
         headline_km = re.sub(r'[\s\u200B\u200C\u200D\uFEFF\u00A0.,;:៖–—_…\uFF1A\uFE13\uFE55\u2236]+$', '', headline_km).strip()
         header_bold = f"{flag_prefix}<b>{headline_km}</b>".strip()
 
-        if not has_photo:
-            # MODE B: TEXT-ONLY POST (When no image is attached)
-            blocks = [header_bold]
-            if key_event and key_event != headline_km:
-                blocks.append(key_event)
-            if impact_line:
-                blocks.append(impact_line)
-            blocks.append(source_line)
-            return "\n\n".join(blocks).strip()
-        else:
-            # MODE A: PHOTO CAPTION (When an image is attached)
-            blocks = [header_bold]
-            if key_event and key_event != headline_km:
-                blocks.append(key_event)
-            if impact_line:
-                blocks.append(impact_line)
-            blocks.append(source_line)
-            full_msg = "\n\n".join(blocks).strip()
+        # Assemble message blocks
+        blocks = [header_bold]
+        if key_event and key_event != headline_km:
+            blocks.append(key_event)
+        if impact_line:
+            blocks.append(impact_line)
+        blocks.append(source_line)
+        full_msg = "\n\n".join(blocks).strip()
 
-            # Strictly enforce <= 950 total characters for Mode A photo captions
-            if len(full_msg) > 950:
-                overhead = len(header_bold) + 2 + (len(impact_line) + 2 if impact_line else 0) + len(source_line) + 4
-                max_ke_len = max(950 - overhead, 100)
-                if key_event and len(key_event) > max_ke_len:
-                    sub = key_event[:max_ke_len]
-                    last_period = max(sub.rfind("។ "), sub.rfind("។\n"), sub.rfind("។"))
-                    if last_period > 50:
-                        key_event = sub[:last_period + 1].strip()
+        # STRICT USER CONSTITUTIONAL DIRECTIVE:
+        # News with photo (has_photo=True): Strictly <= 574 total characters
+        # News without photo (has_photo=False): Strictly <= 750 total characters
+        MAX_ARTICLE_CHARS = 574 if has_photo else 750
+        vis_full = len(re.sub(r"<[^>]+>", "", full_msg))
+        if vis_full > MAX_ARTICLE_CHARS:
+            overhead = len(re.sub(r"<[^>]+>", "", header_bold)) + 2 + (len(re.sub(r"<[^>]+>", "", impact_line)) + 2 if impact_line else 0) + len(re.sub(r"<[^>]+>", "", source_line)) + 4
+            max_ke_len = max(MAX_ARTICLE_CHARS - overhead, 50)
+            if key_event and len(key_event) > max_ke_len:
+                sub = key_event[:max_ke_len]
+                last_period = max(sub.rfind("។ "), sub.rfind("។\n"), sub.rfind("។"))
+                if last_period > 30:
+                    key_event = sub[:last_period + 1].strip()
+                else:
+                    last_space = sub.rfind(" ")
+                    if last_space > 25:
+                        key_event = sub[:last_space].strip() + "។"
                     else:
-                        last_space = sub.rfind(" ")
-                        if last_space > 50:
-                            key_event = sub[:last_space].strip() + "។"
-                        else:
-                            key_event = sub.strip() + "។"
-                    blocks = [header_bold, key_event]
-                    if impact_line:
-                        blocks.append(impact_line)
-                    blocks.append(source_line)
-                    full_msg = "\n\n".join(blocks).strip()
+                        key_event = sub.strip() + "។"
+                blocks = [header_bold, key_event]
+                if impact_line:
+                    blocks.append(impact_line)
+                blocks.append(source_line)
+                full_msg = "\n\n".join(blocks).strip()
 
-            return full_msg
+            # Progressive hard clamp to guarantee strictly <= MAX_ARTICLE_CHARS visible length
+            while len(re.sub(r"<[^>]+>", "", full_msg)) > MAX_ARTICLE_CHARS and len(key_event) > 30:
+                cut_target = max(len(key_event) - (len(re.sub(r"<[^>]+>", "", full_msg)) - MAX_ARTICLE_CHARS) - 5, 20)
+                sub = key_event[:cut_target]
+                last_period = max(sub.rfind("។ "), sub.rfind("។\n"), sub.rfind("។"))
+                if last_period > 20:
+                    key_event = sub[:last_period + 1].strip()
+                else:
+                    last_space = sub.rfind(" ")
+                    if last_space > 15:
+                        key_event = sub[:last_space].strip() + "។"
+                    else:
+                        key_event = sub.strip() + "។"
+                blocks = [header_bold, key_event]
+                if impact_line:
+                    blocks.append(impact_line)
+                blocks.append(source_line)
+                full_msg = "\n\n".join(blocks).strip()
+
+        return full_msg
 
     @staticmethod
     def format_whale_alert(whale_data: dict) -> str:
