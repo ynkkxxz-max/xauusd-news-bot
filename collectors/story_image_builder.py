@@ -129,6 +129,30 @@ class StoryImageBuilder:
             pass
 
     @classmethod
+    def get_available_leader_photo(cls, leader_key: str) -> str:
+        """
+        Dynamically finds the best, non-repeating leader photo from the gallery.
+        If leader has multiple photos (e.g. elon_musk.jpg, elon_musk_2.jpg, ...),
+        rotates and selects the least-recently-used one that is NOT on 4-hour cooldown!
+        """
+        import glob
+        pattern = os.path.join(cls.LEADERS_DIR, f"{leader_key}*.jpg")
+        candidates = glob.glob(pattern)
+        if not candidates:
+            return ""
+
+        candidates.sort()
+
+        # Check each photo candidate against individual cooldown
+        for c in candidates:
+            c_name = os.path.basename(c)
+            if not cls.is_asset_on_cooldown(f"photo_{c_name}"):
+                return c
+
+        logger.info(f"[StoryImageBuilder] All {len(candidates)} photo variants of '{leader_key}' are currently on 4-hour cooldown.")
+        return ""
+
+    @classmethod
     def get_image_for_news(cls, item: dict, analysis: dict = None, default_fetcher=None) -> bytes:
         """
         Main entry point to determine and generate the most accurate image for the news item.
@@ -170,12 +194,12 @@ class StoryImageBuilder:
         if source_name:
             headline_text = re.sub(re.escape(source_name.lower()), "", headline_text)
 
-        # Step 1: Detect Leaders involved (Priority to Khmer and English headline occurrence)
+        # Step 1: Detect Leaders involved (Rotational multi-variant gallery with per-photo cooldown)
         headline_leaders = []
         for leader_key, pat in cls.LEADER_PATTERNS:
             if re.search(pat, headline_text, re.IGNORECASE):
-                img_path = os.path.join(cls.LEADERS_DIR, f"{leader_key}.jpg")
-                if os.path.exists(img_path):
+                img_path = cls.get_available_leader_photo(leader_key)
+                if img_path and os.path.exists(img_path):
                     m_km = re.search(pat, headline_km, re.IGNORECASE) if headline_km else None
                     m_head = re.search(pat, headline_text, re.IGNORECASE)
                     pos = m_km.start() if m_km else (m_head.start() if m_head else 99999)
@@ -207,15 +231,17 @@ class StoryImageBuilder:
             l1, path1, _, km1 = headline_leaders[0]
             l2, path2, _, km2 = headline_leaders[1]
             if not headline_km or (km1 and km2):
-                if not cls.is_asset_on_cooldown(f"leader_{l1}") and not cls.is_asset_on_cooldown(f"leader_{l2}"):
-                    logger.info(f"[StoryImageBuilder] Synthesizing Dual-Leader Split Image from headline: {l1} + {l2}")
+                p1_name = os.path.basename(path1)
+                p2_name = os.path.basename(path2)
+                if not cls.is_asset_on_cooldown(f"photo_{p1_name}") and not cls.is_asset_on_cooldown(f"photo_{p2_name}"):
+                    logger.info(f"[StoryImageBuilder] Synthesizing Dual-Leader Split Image from headline: {p1_name} + {p2_name}")
                     split_bytes = cls.create_split_image(path1, path2)
                     if split_bytes:
-                        cls.record_asset_used(f"leader_{l1}")
-                        cls.record_asset_used(f"leader_{l2}")
+                        cls.record_asset_used(f"photo_{p1_name}")
+                        cls.record_asset_used(f"photo_{p2_name}")
                         return split_bytes
                 else:
-                    logger.info(f"[StoryImageBuilder] Dual leaders '{l1}' or '{l2}' on 4h cooldown. Skipping split image.")
+                    logger.info(f"[StoryImageBuilder] Dual leaders '{p1_name}' or '{p2_name}' on 4h cooldown. Skipping split image.")
 
         # Step 4: CEO + Product Dual Split Image Standard (USER MANDATORY DIRECTIVE)
         # When a CEO/Leader and their product/vehicle are featured (e.g. Elon Musk + Roadster/Optimus/Starship),
@@ -237,15 +263,16 @@ class StoryImageBuilder:
                         prod_path = os.path.join(cls.BRANDS_DIR, f"{prod_key}.png")
                     if os.path.exists(prod_path):
                         l1, path1, _, _ = headline_leaders[0]
-                        if not cls.is_asset_on_cooldown(f"leader_{l1}") and not cls.is_asset_on_cooldown(f"prod_{prod_key}"):
-                            logger.info(f"[StoryImageBuilder] Synthesizing CEO + Product Dual Split Image: {l1} + {prod_key}")
+                        p1_name = os.path.basename(path1)
+                        if not cls.is_asset_on_cooldown(f"photo_{p1_name}") and not cls.is_asset_on_cooldown(f"prod_{prod_key}"):
+                            logger.info(f"[StoryImageBuilder] Synthesizing CEO + Product Dual Split Image: {p1_name} + {prod_key}")
                             split_bytes = cls.create_split_image(path1, prod_path)
                             if split_bytes:
-                                cls.record_asset_used(f"leader_{l1}")
+                                cls.record_asset_used(f"photo_{p1_name}")
                                 cls.record_asset_used(f"prod_{prod_key}")
                                 return split_bytes
                         else:
-                            logger.info(f"[StoryImageBuilder] CEO '{l1}' or Product '{prod_key}' on 4h cooldown. Skipping to preserve visual diversity.")
+                            logger.info(f"[StoryImageBuilder] CEO '{p1_name}' or Product '{prod_key}' on 4h cooldown. Skipping to preserve visual diversity.")
 
         # Step 4.2: Detect Brands / Tech Giants involved
         detected_brands = []
@@ -257,35 +284,37 @@ class StoryImageBuilder:
                 if os.path.exists(b_path):
                     detected_brands.append((brand_key, b_path))
 
-        # If ONE leader and ONE brand are involved (e.g. Zelenskyy + SpaceX / Starlink), synthesize Split Image!
-        # STRICT ZERO REPETITION: Enforce 4-hour cooldown on both Leader photo and Brand visual!
+        # If ONE leader and ONE brand are involved (e.g. Elon Musk + SpaceX / Tesla), synthesize Split Image!
+        # STRICT ZERO REPETITION: Enforce 4-hour cooldown on specific leader photo variant and brand!
         if len(headline_leaders) == 1 and len(detected_brands) >= 1:
             l1, path1, _, _ = headline_leaders[0]
             b1, path2 = detected_brands[0]
-            if not cls.is_asset_on_cooldown(f"leader_{l1}") and not cls.is_asset_on_cooldown(f"brand_{b1}"):
-                logger.info(f"[StoryImageBuilder] Synthesizing Leader + Brand Split Image: {l1} + {b1}")
+            p1_name = os.path.basename(path1)
+            if not cls.is_asset_on_cooldown(f"photo_{p1_name}") and not cls.is_asset_on_cooldown(f"brand_{b1}"):
+                logger.info(f"[StoryImageBuilder] Synthesizing Leader + Brand Split Image with fresh variant: {p1_name} + {b1}")
                 split_bytes = cls.create_split_image(path1, path2)
                 if split_bytes:
-                    cls.record_asset_used(f"leader_{l1}")
+                    cls.record_asset_used(f"photo_{p1_name}")
                     cls.record_asset_used(f"brand_{b1}")
                     return split_bytes
             else:
-                logger.info(f"[StoryImageBuilder] Leader '{l1}' or Brand '{b1}' on 4h cooldown. Skipping to preserve visual diversity.")
+                logger.info(f"[StoryImageBuilder] Leader photo '{p1_name}' or Brand '{b1}' on 4h cooldown. Skipping to preserve visual diversity.")
 
         # Step 5: Single Leader Official Portrait
         # ONLY if the leader is the primary subject in headline and NOT just a casual mention in market/economic news
         if len(headline_leaders) >= 1 and not is_market_index:
             l1, path1, _, _ = headline_leaders[0]
-            if not cls.is_asset_on_cooldown(f"leader_{l1}"):
-                logger.info(f"[StoryImageBuilder] Using Single Leader Portrait from headline: {l1}")
+            p1_name = os.path.basename(path1)
+            if not cls.is_asset_on_cooldown(f"photo_{p1_name}"):
+                logger.info(f"[StoryImageBuilder] Using Single Leader Portrait with fresh variant: {p1_name}")
                 try:
-                    cls.record_asset_used(f"leader_{l1}")
+                    cls.record_asset_used(f"photo_{p1_name}")
                     with open(path1, "rb") as f:
                         return cls.enhance_image_for_vip(f.read())
                 except Exception as e:
                     logger.warning(f"[StoryImageBuilder] Failed reading single leader image {path1}: {e}")
             else:
-                logger.info(f"[StoryImageBuilder] Leader portrait '{l1}' is on 4h cooldown. Skipping to preserve visual variety.")
+                logger.info(f"[StoryImageBuilder] Leader portrait variant '{p1_name}' is on 4h cooldown. Skipping to preserve visual variety.")
 
         # Step 6: Single Country High-Res Flag Canvas (ONLY for single sovereign subject)
         # Note: Dual-Country Flag Split Image synthesis is PERMANENTLY DISABLED per user directive to eliminate mismatched/hybrid flag collages!
