@@ -123,7 +123,16 @@ except ImportError:
     except ImportError:
         DailyGoldPriceCardBuilder = None
 
+try:
+    from semantic_deduplicator import SemanticEventDeduplicator
+except ImportError:
+    try:
+        from analyzers.semantic_deduplicator import SemanticEventDeduplicator
+    except ImportError:
+        SemanticEventDeduplicator = None
+
 from telegram_notifier import TelegramNotifier
+
 
 
 # Configure logging
@@ -1350,6 +1359,7 @@ class XAUUSDNewsAssistantBot:
             ch_latest_entities = []
             ch_recent_clusters = {}
             ch_recent_entities = {}
+            ch_recent_story_texts = []
 
             if matches:
                 last_pid, last_time, last_text = matches[-1]
@@ -1378,11 +1388,13 @@ class XAUUSDNewsAssistantBot:
                     if p_elapsed < 7200.0:   # 2 hours
                         for cl in p_clusters:
                             ch_recent_clusters[cl] = min(ch_recent_clusters.get(cl, 999999.0), p_elapsed)
+                    if p_elapsed < 21600.0 and len(clean_p) >= 30:  # 6 hours of recent narrative context
+                        ch_recent_story_texts.append(clean_p)
 
-            return (ch_elapsed, ch_latest_clusters, ch_latest_entities, ch_recent_clusters, ch_recent_entities)
+            return (ch_elapsed, ch_latest_clusters, ch_latest_entities, ch_recent_clusters, ch_recent_entities, ch_recent_story_texts)
         except Exception as e:
             logger.debug(f"[Channel Live State Check] {e}")
-            return (999999.0, [], [], {}, {})
+            return (999999.0, [], [], {}, {}, [])
 
     def _is_image_already_in_channel(self, photo_bytes: bytes) -> bool:
         """Inspects recently used image hashes and channel feed to strictly guarantee ZERO repetitive images!"""
@@ -1501,8 +1513,19 @@ class XAUUSDNewsAssistantBot:
                         self.notifier.delete_message(pid)
                         continue
                     seen_stories[hl_clean] = pid
+
+            # 3. AI Semantic Event Deduplication Gate: Intercept & purge posts reporting on the exact SAME event under different headlines
+            if SemanticEventDeduplicator and len(posts) >= 2:
+                try:
+                    semantic_dups = SemanticEventDeduplicator.find_duplicate_posts_in_channel(posts)
+                    for dup_pid in semantic_dups:
+                        logger.warning(f"[AUTO-HEALING SEMANTIC PURGE] Post #{dup_pid} reports on the exact same event as an earlier post. Purging #{dup_pid}!")
+                        self.notifier.delete_message(dup_pid)
+                except Exception as e:
+                    logger.debug(f"[audit_live_channel_and_heal semantic check error] {e}")
         except Exception as e:
             logger.debug(f"[audit_live_channel_and_heal error] {e}")
+
 
     def _is_already_in_telegram_channel(self, title: str, link: str = "", khmer_text: str = "", fresh: bool = False) -> bool:
         """Inspects the public Telegram channel feed to prevent duplicate broadcasts across distributed containers."""
@@ -1697,7 +1720,7 @@ class XAUUSDNewsAssistantBot:
                 continue
 
             # Live Channel Inspection: Extract latest channel post state directly across multiple posts
-            ch_elapsed, ch_latest_clusters, ch_latest_entities, ch_recent_clusters, ch_recent_entities = self._get_channel_live_feed_state()
+            ch_elapsed, ch_latest_clusters, ch_latest_entities, ch_recent_clusters, ch_recent_entities, ch_recent_story_texts = self._get_channel_live_feed_state()
             effective_elapsed = min(time_since_last, ch_elapsed)
 
             # Macro Multi-Cluster Deduplication & Consecutive Sector Diversity Shield
@@ -1818,6 +1841,16 @@ class XAUUSDNewsAssistantBot:
             if len(desc) < 120:
                 desc = self._enrich_article_description(it)
                 it["description"] = desc
+
+            # AI SEMANTIC EVENT DEDUPLICATION SHIELD:
+            # Prevents wire agencies reporting on the SAME underlying event with different headlines!
+            if SemanticEventDeduplicator and ch_recent_story_texts:
+                is_sem_dup, sem_reason = SemanticEventDeduplicator.is_semantic_duplicate(title, desc, ch_recent_story_texts)
+                if is_sem_dup:
+                    logger.info(f"[SEMANTIC DEDUP SHIELD] Dropping '{title}' - {sem_reason}")
+                    self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
+                    database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
+                    continue
 
             analysis = self.analyzer.analyze_breaking_news(title, desc)
             if not analysis:
