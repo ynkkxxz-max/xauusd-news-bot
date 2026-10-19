@@ -340,25 +340,31 @@ class StoryImageBuilder:
         detected_countries.sort(key=lambda x: x[2])
 
         # Step 7: Live Real-Time Editorial Photo Search (Wikipedia Commons High-Res Press Wire)
-        # For genuine breaking news, search for real-time editorial photos matching the main topic/person
+        # Search ONLY for confirmed specific modern living leaders or verified modern tech corporations
         live_queries = []
         if headline_leaders:
             l_key = headline_leaders[0][0].replace("_", " ")
             if detected_brands:
-                live_queries.append(f"{l_key} {detected_brands[0][0]}")
+                b_name = "Tesla car" if detected_brands[0][0] == "tesla" else detected_brands[0][0]
+                live_queries.append(f"{l_key} {b_name}")
             live_queries.append(l_key)
         elif detected_brands:
-            live_queries.append(detected_brands[0][0])
-
-        clean_title = re.sub(r'[\'\"’“”\(\)\[\]\:\,\.\?\!]', ' ', title)
-        title_words = [w for w in clean_title.split() if len(w) > 3 and w.lower() not in ["says", "with", "from", "that", "this", "after", "over", "into", "amid", "during", "will", "have", "been", "about"]]
-        if len(title_words) >= 2:
-            live_queries.append(" ".join(title_words[:4]))
+            b_key = detected_brands[0][0]
+            if b_key == "tesla":
+                live_queries.append("Tesla, Inc.")
+            elif b_key == "spacex":
+                live_queries.append("SpaceX Starship")
+            elif b_key == "nvidia":
+                live_queries.append("Nvidia Blackwell")
+            elif b_key == "apple":
+                live_queries.append("Apple Inc.")
+            else:
+                live_queries.append(b_key)
 
         for q in live_queries:
-            live_img = cls.fetch_live_editorial_photo(q)
+            live_img = cls.fetch_live_editorial_photo(q, headline_text=headline_text)
             if live_img:
-                logger.info(f"[StoryImageBuilder] Successfully acquired live breaking editorial photo for query '{q}'.")
+                logger.info(f"[StoryImageBuilder] Successfully acquired verified editorial photo for query '{q}'.")
                 return live_img
 
         # Step 8: Mode B Fallback Guarantee
@@ -368,10 +374,12 @@ class StoryImageBuilder:
         return None
 
     @classmethod
-    def fetch_live_editorial_photo(cls, query: str) -> bytes:
+    def fetch_live_editorial_photo(cls, query: str, headline_text: str = "") -> bytes:
         """
         Dynamically fetches authentic, high-resolution editorial press images 
         from Wikimedia Commons / Wikipedia API in real time.
+        Enforces strict validation: ZERO logos, ZERO seals/emblems, ZERO SVG renders, ZERO historical Nikola Tesla,
+        and ZERO gold bars for non-gold stories.
         Enforces strict 4-hour cooldown per image hash to guarantee zero repetition!
         """
         if not query or len(query.strip()) < 3:
@@ -383,9 +391,33 @@ class StoryImageBuilder:
             with urllib.request.urlopen(req, timeout=3.5) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
             pages = data.get("query", {}).get("pages", {})
+
+            FORBIDDEN_KEYWORDS = [
+                ".svg", "svg.png", "seal", "coat_of_arms", "insignia", "emblem", "logo", "symbol",
+                "roundel", "diagram", "chart", "graph", "map", "circa_", "nikola tesla",
+                "great seal", "flag_of", "presidential seal", "badge"
+            ]
+
+            headline_is_gold = any(w in headline_text.lower() for w in ["gold", "xau", "xauusd", "bullion", "មាស"])
+
             for pid, pdata in pages.items():
+                p_title = (pdata.get("title") or "").lower()
                 thumb = pdata.get("thumbnail", {}).get("source")
-                if thumb and ("wikipedia/commons" in thumb or "upload.wikimedia" in thumb):
+                if not thumb:
+                    continue
+
+                thumb_low = thumb.lower()
+                
+                # 1. Reject logos, badges, government seals, emblems, diagrams, and historical Nikola Tesla
+                if any(bad in thumb_low or bad in p_title for bad in FORBIDDEN_KEYWORDS):
+                    continue
+
+                # 2. Reject gold bars/coins on non-gold stories (IRON LAW #1)
+                is_gold_visual = any(gw in thumb_low or gw in p_title for gw in ["gold", "bullion", "coin", "barren"])
+                if is_gold_visual and not headline_is_gold:
+                    continue
+
+                if "wikipedia/commons" in thumb or "upload.wikimedia" in thumb:
                     img_req = urllib.request.Request(thumb, headers={"User-Agent": "VIPNewsAssistant/2.0"})
                     try:
                         with urllib.request.urlopen(img_req, timeout=3.5) as img_resp:
