@@ -1384,6 +1384,126 @@ class XAUUSDNewsAssistantBot:
             logger.debug(f"[Channel Live State Check] {e}")
             return (999999.0, [], [], {}, {})
 
+    def _is_image_already_in_channel(self, photo_bytes: bytes) -> bool:
+        """Inspects recently used image hashes and channel feed to strictly guarantee ZERO repetitive images!"""
+        if not photo_bytes or len(photo_bytes) < 1000:
+            return False
+        try:
+            import hashlib
+            import io
+            import json
+            from PIL import Image
+
+            now = time.time()
+            img_hash = hashlib.md5(photo_bytes[:4000]).hexdigest()
+            last_used = float(database.get_state(f"channel_img_ts_{img_hash}") or "0")
+            if (now - last_used) < 14400.0:  # 4 hours
+                logger.info(f"[IMAGE REPETITION SHIELD] Image hash {img_hash[:8]} was already used {(now - last_used)/60:.1f}m ago. Rejecting!")
+                return True
+
+            im = Image.open(io.BytesIO(photo_bytes)).convert("L").resize((9, 8), Image.Resampling.LANCZOS)
+            pixels = list(im.getdata())
+            diff = []
+            for row in range(8):
+                for col in range(8):
+                    p_left = pixels[row * 9 + col]
+                    p_right = pixels[row * 9 + col + 1]
+                    diff.append(p_left > p_right)
+            dhash_int = 0
+            for idx, val in enumerate(diff):
+                if val:
+                    dhash_int += 2 ** idx
+            dhash_hex = hex(dhash_int)
+
+            recent_dhashes_raw = database.get_state("recent_channel_dhashes") or "{}"
+            try:
+                recent_dhashes = json.loads(recent_dhashes_raw)
+            except Exception:
+                recent_dhashes = {}
+
+            for old_hex, old_ts in list(recent_dhashes.items()):
+                if (now - old_ts) < 14400.0:
+                    old_int = int(old_hex, 16)
+                    hamming_dist = bin(dhash_int ^ old_int).count("1")
+                    if hamming_dist <= 5:  # >= 92% visual match
+                        logger.info(f"[IMAGE PERCEPTUAL SHIELD] Image visually matches a previous broadcast (Hamming dist={hamming_dist}/64, {(now - old_ts)/60:.1f}m ago). Rejecting!")
+                        return True
+
+            database.set_state(f"channel_img_ts_{img_hash}", str(now))
+            recent_dhashes[dhash_hex] = now
+            cleaned_dhashes = {k: v for k, v in recent_dhashes.items() if (now - v) < 14400.0}
+            database.set_state("recent_channel_dhashes", json.dumps(cleaned_dhashes))
+            return False
+        except Exception as e:
+            logger.debug(f"[_is_image_already_in_channel error] {e}")
+            return False
+
+    def audit_live_channel_and_heal(self):
+        """Autonomous Self-Healing Auditor: Automatically detects & purges duplicate messages or overlapping images on the channel!"""
+        now = time.time()
+        if (now - getattr(self, "_last_channel_audit_ts", 0)) < 120.0:
+            return
+        self._last_channel_audit_ts = now
+
+        try:
+            import html as html_module
+            channel_html = self._fetch_channel_html(max_cache_age=0.0)
+            if not channel_html:
+                return
+
+            parts = channel_html.split('<div class="tgme_widget_message_wrap')
+            posts = []
+            for part in parts[1:]:
+                m_id = re.search(r'data-post="GoldMarketKH8888/(\d+)"', part)
+                if not m_id:
+                    continue
+                pid = int(m_id.group(1))
+
+                m_text = re.search(r'<div class="tgme_widget_message_(?:text|caption)[^"]*"[^>]*>(.*?)</div>', part, re.DOTALL)
+                clean_text = html_module.unescape(re.sub(r'<[^>]+>', ' ', m_text.group(1))).strip() if m_text else ""
+
+                m_photos = re.findall(r'background-image:url\(\'([^\']+)\'\)', part)
+                real_photos = [p for p in m_photos if 'emoji' not in p]
+                photo_url = real_photos[0] if real_photos else None
+
+                posts.append({
+                    "id": pid,
+                    "text": clean_text,
+                    "photo_url": photo_url
+                })
+
+            # 1. Check for duplicated photo URLs among recent 15 posts
+            seen_photos = {}
+            for p in posts[-15:]:
+                pid = p["id"]
+                photo = p["photo_url"]
+                if photo:
+                    if photo in seen_photos:
+                        orig_id = seen_photos[photo]
+                        logger.warning(f"[AUTO-HEALING PURGE] Post #{pid} repeats photo from post #{orig_id}. Automatically purging #{pid}!")
+                        self.notifier.delete_message(pid)
+                        continue
+                    seen_photos[photo] = pid
+
+            # 2. Check for duplicated headlines / stories
+            seen_stories = {}
+            for p in posts[-15:]:
+                pid = p["id"]
+                txt = p["text"]
+                if not txt:
+                    continue
+                hl = txt.split('\n')[0].strip()
+                hl_clean = re.sub(r'[^\w\s\u1780-\u17FF]', '', hl).strip()
+                if len(hl_clean) >= 20:
+                    if hl_clean in seen_stories:
+                        orig_id = seen_stories[hl_clean]
+                        logger.warning(f"[AUTO-HEALING PURGE] Post #{pid} duplicates headline from post #{orig_id}. Automatically purging #{pid}!")
+                        self.notifier.delete_message(pid)
+                        continue
+                    seen_stories[hl_clean] = pid
+        except Exception as e:
+            logger.debug(f"[audit_live_channel_and_heal error] {e}")
+
     def _is_already_in_telegram_channel(self, title: str, link: str = "", khmer_text: str = "", fresh: bool = False) -> bool:
         """Inspects the public Telegram channel feed to prevent duplicate broadcasts across distributed containers."""
         try:
@@ -1815,6 +1935,25 @@ class XAUUSDNewsAssistantBot:
             self._cached_channel_html = "" # Invalidate channel cache
             photo = self._fetch_news_image(it, analysis=analysis)
             if photo:
+                # GATE 1: Strict Zero Repetition & Perceptual Overlap Shield
+                if self._is_image_already_in_channel(photo):
+                    logger.info(f"[IMAGE DUPLICATION SHIELD] Candidate photo for '{title}' was already used in recent broadcasts. Falling back to MODE B.")
+                    photo = None
+                else:
+                    # GATE 2: Supreme AI Multimodal Vision Quality Gate (Worldwide Highest Standard)
+                    try:
+                        from analyzers.vision_verifier import VisionQualityGate
+                        v_res = VisionQualityGate.verify_image(photo, headline=title, summary=it.get("description", ""))
+                        if not v_res.get("is_valid", True):
+                            logger.warning(
+                                f"[SUPREME AI VISION GATE REJECTED] Image for '{title}': "
+                                f"{v_res.get('reason')} (Subject: {v_res.get('detected_subject')}). Falling back to MODE B (VIP Text Mode)!"
+                            )
+                            photo = None
+                    except Exception as ve:
+                        logger.debug(f"[VisionQualityGate error] {ve}")
+
+            if photo:
                 msg_photo = KhmerFormatter.format_breaking_event_alert(it, analysis, has_photo=True)
                 caption_text = self._truncate_html_caption(msg_photo, max_visible_chars=574)
                 self.notifier.send_photo(photo, caption=caption_text, reply_markup=None)
@@ -1848,6 +1987,9 @@ class XAUUSDNewsAssistantBot:
 
             # 4. Breaking News Alert (Triple Anti-Duplicate Shield)
             self.check_breaking_news()
+
+            # 5. Autonomous Self-Healing Channel Auditor (Auto-purges duplicate messages/images)
+            self.audit_live_channel_and_heal()
 
             # 7. Economic Calendar & Upcoming/Actual News Check
             recommended_interval = self.check_economic_events()
