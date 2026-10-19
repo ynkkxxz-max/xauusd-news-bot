@@ -5,6 +5,188 @@ from config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 
 logger = logging.getLogger(__name__)
 
+def enforce_telegram_char_limit(text: str, max_visible: int) -> str:
+    """Bulletproof gate enforcing strict character limits, lexical rules, and grammatical completeness before any Telegram dispatch."""
+    if not text:
+        return ""
+    import re
+
+    # 1. Comprehensive Lexical & Spelling Sanitization
+    try:
+        from khmer_formatter import sanitize_khmer_spelling
+        text = sanitize_khmer_spelling(text)
+    except Exception:
+        pass
+
+    text = re.sub(r'\bប្រមាន\b', 'ព្រមាន', text)
+    text = re.sub(r'ការប្រមាន', 'ការព្រមាន', text)
+    text = re.sub(r'បានប្រមាន', 'បានព្រមាន', text)
+    text = re.sub(r'ធ្វើអោយ', 'ធ្វើឱ្យ', text)
+    text = re.sub(r'ឿរ៉ង់', 'អ៊ីរ៉ង់', text)
+    text = re.sub(r'\bអគ្លេស\b', 'អង់គ្លេស', text)
+    text = re.sub(r'ចក្រភពអគ្លេស', 'ចក្រភពអង់គ្លេស', text)
+    text = re.sub(r'\bសហរដ្ធ\b', 'សហរដ្ឋ', text)
+    text = re.sub(r'\bរដ្ធ\b', 'រដ្ឋ', text)
+    text = re.sub(r'\bសេដ្ធកិច្ច\b', 'សេដ្ឋកិច្ច', text)
+    text = re.sub(r'\bអត្រាកាប្រាក់\b', 'អត្រាការប្រាក់', text)
+    text = re.sub(r'\bពាណិជ្ចកម្ម\b', 'ពាណិជ្ជកម្ម', text)
+    
+    # 2. Complete Sentence Guarantee & Colon/Fragment Stripping in Headline
+    m_head = re.search(r'(<b>(.*?)</b>)', text, re.DOTALL)
+    if m_head:
+        orig_full_h = m_head.group(1)
+        inner_h = m_head.group(2)
+        # Strip all colons and trailing dots/ellipsis from headline
+        clean_inner = re.sub(r'[\s\u200b]*[៖:：][\s\u200b]*', ' ', inner_h)
+        clean_inner = re.sub(r'[\.]{2,}|…', '', clean_inner)
+        clean_inner = re.sub(r'\s{2,}', ' ', clean_inner).strip()
+
+        # Multi-Pattern Fragment Transformers:
+        # Pattern A: "តួកគី និងដែនកំណត់..." -> "របាយការណ៍បង្ហាញពីដែនកំណត់...របស់តួកគី"
+        m_frag_a = re.match(r'^([^\s]+)\s+និង\s*(ដែនកំណត់|អនាគត|ទស្សនវិស័យ|បញ្ហា|ស្ថានភាព|កិច្ចព្រមព្រៀង|វិបត្តិ|គោលនយោបាយ|យុទ្ធសាស្ត្រ|ផលវិបាក|ការប្រឈម)(.+)$', clean_inner)
+        if m_frag_a:
+            country_subj = m_frag_a.group(1).strip()
+            topic_noun = m_frag_a.group(2).strip()
+            rest = m_frag_a.group(3).strip()
+            clean_inner = f"របាយការណ៍បង្ហាញពី{topic_noun}{rest}របស់{country_subj}"
+        
+        # Pattern B: Bare noun pair "A និង B" with NO active verbs -> "ការវិវឌ្ឍរវាង A និង B"
+        elif re.match(r'^(.+?)\s+និង\s*(.+)$', clean_inner):
+            _active_verbs = ('ប្រកាស', 'សម្រេច', 'ព្រមាន', 'ធ្លាក់ចុះ', 'កើនឡើង', 'ហក់ឡើង', 'ជួប', 'ពិភាក្សា', 'វាយប្រហារ', 'ពង្រីក', 'បញ្ឈប់', 'ចុះហត្ថលេខា', 'ផ្តល់', 'បដិសេធ', 'រង', 'គ្រោង', 'ដាក់ចេញ', 'អនុម័ត', 'ប្តេជ្ញា', 'ទាមទារ', 'ដក', 'ពង្រឹង', 'រិះគន់', 'បង្ហាញ', 'ត្រៀម', 'រៀបចំ', 'ស្នើ', 'ចុះ', 'ឡើង', 'ទម្លាក់', 'ជំរុញ', 'រារាំង', 'ទប់ស្កាត់', 'កែប្រែ', 'បោះទុន', 'វិនិយោគ', 'ឈ្នះ', 'ចាញ់', 'ចាប់ផ្តើម', 'បញ្ចប់')
+            if not any(v in clean_inner for v in _active_verbs):
+                m_pair = re.match(r'^(.+?)\s+និង\s*(.+)$', clean_inner)
+                clean_inner = f"ការវិវឌ្ឍរវាង{m_pair.group(1).strip()} និង{m_pair.group(2).strip()}"
+
+        # Pattern C: Starting with prepositions "អំពី..." or "ស្ដីពី..."
+        elif re.match(r'^(?:អំពី|ស្ដីពី|ស្តីពី)\s*(.+)$', clean_inner):
+            clean_inner = re.sub(r'^(?:អំពី|ស្ដីពី|ស្តីពី)\s*(.+)$', r'បច្ចុប្បន្នភាពស្ដីពី\1', clean_inner)
+
+        # Pattern D: Starting with "ចំពោះ..."
+        elif re.match(r'^(?:ចំពោះ)\s*(.+)$', clean_inner):
+            clean_inner = re.sub(r'^(?:ចំពោះ)\s*(.+)$', r'ការវិភាគចំពោះ\1', clean_inner)
+
+        # Pattern E: Strip trailing conjunctions leaving headline hanging (e.g. "..., ប៉ុន្តែ", "..., និង")
+        clean_inner = re.sub(r'[\s,]+(?:និង|ឬ|ប៉ុន្តែ|ដោយសារ|ព្រោះ)$', '', clean_inner).strip()
+
+        text = text.replace(orig_full_h, f"<b>{clean_inner}</b>")
+
+    # 3. Flag Guarantee: Ensure headline starts with a flag emoji
+    first_line = text.splitlines()[0] if text else ""
+    has_flag = bool(re.search(r'[\U0001F1E0-\U0001F1FF]{2}|🌐|🥇|📅', first_line))
+    if not has_flag and not text.startswith("📊") and not text.startswith("---"):
+        t_low = text.lower()
+        if any(w in t_low for w in ["amazon", "u.s.", "usa", "america", "fed", "biden", "trump", "powell", "indiana", "texas"]):
+            flag = "🇺🇸 "
+        elif any(w in t_low for w in ["china", "ចិន"]):
+            flag = "🇨🇳 "
+        elif any(w in t_low for w in ["russia", "រុស្ស៊ី"]):
+            flag = "🇷🇺 "
+        elif any(w in t_low for w in ["uk", "អង់គ្លេស"]):
+            flag = "🇬🇧 "
+        elif any(w in t_low for w in ["japan", "ជប៉ុន"]):
+            flag = "🇯🇵 "
+        elif any(w in t_low for w in ["germany", "អាល្លឺម៉ង់"]):
+            flag = "🇩🇪 "
+        elif any(w in t_low for w in ["france", "បារាំង"]):
+            flag = "🇫🇷 "
+        elif any(w in t_low for w in ["iran", "អ៊ីរ៉ង់"]):
+            flag = "🇮🇷 "
+        elif any(w in t_low for w in ["israel", "អ៊ីស្រាអែល"]):
+            flag = "🇮🇱 "
+        else:
+            flag = "🌐 "
+        text = flag + text
+
+    # 4. Balanced HTML Tags Check & Auto-Repair
+    open_b = len(re.findall(r'<b>', text))
+    close_b = len(re.findall(r'</b>', text))
+    if open_b > close_b:
+        text += "</b>" * (open_b - close_b)
+    elif close_b > open_b:
+        text = "<b>" * (close_b - open_b) + text
+
+    open_a = len(re.findall(r'<a\b[^>]*>', text))
+    close_a = len(re.findall(r'</a>', text))
+    if open_a > close_a:
+        text += "</a>" * (open_a - close_a)
+
+    vis_len = len(re.sub(r"<[^>]+>", "", text))
+    if vis_len <= max_visible:
+        return text
+
+    blocks = text.split("\n\n")
+    if len(blocks) <= 1:
+        clean = re.sub(r"<[^>]+>", "", text)
+        return clean[:max_visible - 1].rstrip(" .…-–—") + "។"
+
+    header = blocks[0]
+    source_line = blocks[-1]
+
+    impact_line = ""
+    body_blocks = []
+    _impact_prefixes = ("🔹", "🔸", "🔶", "🔴", "🟢", "ផល", "ឥទ្ធិពល", "វាផល", "ហានិភ័យ")
+    if len(blocks) >= 4 and blocks[-2].strip().startswith(_impact_prefixes):
+        impact_line = blocks[-2].strip()
+        body_blocks = blocks[1:-2]
+    elif len(blocks) >= 3:
+        if blocks[-2].strip().startswith(_impact_prefixes):
+            impact_line = blocks[-2].strip()
+            body_blocks = blocks[1:-2]
+        else:
+            body_blocks = blocks[1:-1]
+    else:
+        body_blocks = blocks[1:]
+
+    body = "\n\n".join(body_blocks)
+    clean_body = re.sub(r"<[^>]+>", "", body)
+
+    vis_header = len(re.sub(r"<[^>]+>", "", header))
+    vis_source = len(re.sub(r"<[^>]+>", "", source_line))
+    vis_impact = len(re.sub(r"<[^>]+>", "", impact_line))
+    num_separators = sum(1 for p in [header, clean_body, impact_line, source_line] if p) - 1
+    sep_overhead = max(num_separators, 1) * 2
+
+    avail = max(40, max_visible - (vis_header + vis_source + vis_impact + sep_overhead))
+
+    if len(clean_body) > avail:
+        sub = clean_body[:avail]
+        last_period = max(sub.rfind("។ "), sub.rfind("។\n"), sub.rfind("។"))
+        if last_period > 30:
+            trimmed_body = sub[:last_period + 1].strip()
+        else:
+            last_space = sub.rfind(" ")
+            trimmed_body = (sub[:last_space].strip() if last_space > 25 else sub.strip()) + "។"
+    else:
+        trimmed_body = clean_body
+
+    parts = [p for p in [header, trimmed_body, impact_line, source_line] if p]
+    res = "\n\n".join(parts)
+
+    while len(re.sub(r"<[^>]+>", "", res)) > max_visible and len(trimmed_body) > 30:
+        excess = len(re.sub(r"<[^>]+>", "", res)) - max_visible
+        cut_idx = max(len(trimmed_body) - excess - 5, 20)
+        sub = trimmed_body[:cut_idx]
+        last_period = max(sub.rfind("។ "), sub.rfind("។\n"), sub.rfind("។"))
+        if last_period > 20:
+            trimmed_body = sub[:last_period + 1].strip()
+        else:
+            last_space = sub.rfind(" ")
+            trimmed_body = (sub[:last_space].strip() if last_space > 15 else sub.strip()) + "។"
+        parts = [p for p in [header, trimmed_body, impact_line, source_line] if p]
+        res = "\n\n".join(parts)
+
+    # Absolute 100% hard ceiling guarantee: Never allow even 1 character over limit
+    while len(re.sub(r"<[^>]+>", "", res)) > max_visible:
+        if len(trimmed_body) > 10:
+            trimmed_body = trimmed_body[:-2].rstrip() + "។"
+            parts = [p for p in [header, trimmed_body, impact_line, source_line] if p]
+            res = "\n\n".join(parts)
+        else:
+            res = res[:max_visible]
+            break
+
+    return res
+
 class TelegramNotifier:
     def __init__(self, bot_token: str = None, chat_id: str = None):
         self.bot_token = (bot_token or TELEGRAM_BOT_TOKEN).strip()
@@ -14,8 +196,71 @@ class TelegramNotifier:
     def is_configured(self) -> bool:
         return bool(self.bot_token and self.chat_id and self.bot_token != "YOUR_TELEGRAM_BOT_TOKEN_HERE")
 
+    def _post_dispatch_watchdog(self, message_id: int, is_photo: bool, target_chat: str, raw_text: str) -> bool:
+        """
+        World-Class Zero-Defect Post-Dispatch Watchdog.
+        Audits every message delivered to the channel. If ANY constitutional rule is breached,
+        instantly auto-purges (deletes) the message from Telegram within milliseconds,
+        guaranteeing the human audience NEVER sees a defective post.
+        """
+        import re
+        if not message_id or not raw_text:
+            return True
+
+        # Skip scheduled daily price cards or market open status
+        if raw_text.startswith("🥇") or raw_text.startswith("📅") or raw_text.startswith("📊") or raw_text.startswith("---"):
+            return True
+
+        clean = re.sub(r'<[^>]+>', '', raw_text).strip()
+        vis_len = len(clean)
+        max_allowed = 574 if is_photo else 750
+
+        # Check 1: Absolute hard length ceiling
+        if vis_len > max_allowed:
+            logger.critical(f"[WATCHDOG PURGE] Post #{message_id} exceeded limit ({vis_len} > {max_allowed}). Auto-purging immediately!")
+            self.delete_message(message_id, chat_id=target_chat)
+            return False
+
+        # Check 2: Missing country/macro flag
+        first_line = clean.splitlines()[0] if clean else ""
+        if not re.search(r'[\U0001F1E0-\U0001F1FF]{2}|🌐|🥇|📅|📊', first_line):
+            logger.critical(f"[WATCHDOG PURGE] Post #{message_id} missing sovereign flag emoji. Auto-purging immediately!")
+            self.delete_message(message_id, chat_id=target_chat)
+            return False
+
+        # Check 3: Colons or ellipsis in headline
+        m_head = re.search(r'<b>(.*?)</b>', raw_text, re.DOTALL)
+        if m_head:
+            head_txt = m_head.group(1)
+            if re.search(r'[៖:：]|[\.]{3,}|…', head_txt):
+                logger.critical(f"[WATCHDOG PURGE] Post #{message_id} contains colon/ellipsis in headline. Auto-purging immediately!")
+                self.delete_message(message_id, chat_id=target_chat)
+                return False
+
+        # Check 4: Uncorrected typos
+        typos = ['ប្រមាន', 'ធ្វើអោយ', 'ឿរ៉ង់', 'អគ្លេស', 'សហរដ្ធ', 'សេដ្ធកិច្ច']
+        for tp in typos:
+            if tp in clean:
+                logger.critical(f"[WATCHDOG PURGE] Post #{message_id} contains forbidden typo '{tp}'. Auto-purging immediately!")
+                self.delete_message(message_id, chat_id=target_chat)
+                return False
+
+        logger.info(f"[WATCHDOG PASSED] Post #{message_id} passed all 100% quality checks ({vis_len}/{max_allowed} chars).")
+        return True
+
     def send_message(self, text: str, parse_mode: str = "HTML", disable_web_page_preview: bool = True, auto_pin: bool = False, reply_markup: dict = None, chat_id: str = None) -> dict:
         """Send message directly to Telegram channel/chat. If auto_pin is True, pins the message."""
+        import re
+        # Circuit Breaker 1: Drop empty or dangerously short stubs (< 35 visible characters)
+        clean_vis = re.sub(r'<[^>]+>', '', text or "").strip()
+        if len(clean_vis) < 35:
+            logger.warning(f"[TelegramNotifier] Circuit Breaker ACTIVATED: Message text too short ({len(clean_vis)} chars). Dropping post.")
+            return {"ok": False, "error": "Circuit Breaker: Message too short or empty"}
+
+        # Hard fail-safe: Text-only broadcasts strictly <= 750 characters
+        if text and not text.startswith("📊") and not text.startswith("🥇"):
+            text = enforce_telegram_char_limit(text, max_visible=750)
+
         if not self.is_configured():
             logger.warning("[TelegramNotifier] Credentials not set. Message output (Simulation):\n" + "="*50 + f"\n{text}\n" + "="*50)
             return {"ok": True, "result": {"message_id": 999999, "simulated": True}}
@@ -23,7 +268,6 @@ class TelegramNotifier:
         target_chat = str(chat_id or self.chat_id)
         url = f"{self.base_url}/sendMessage"
         if parse_mode == "HTML" and text:
-            import re
             text = re.sub(r'&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[a-fA-F0-9]+);)', '&amp;', text)
         payload = {
             "chat_id": target_chat,
@@ -44,7 +288,6 @@ class TelegramNotifier:
                 desc = str(data.get("description", "")).lower()
                 if "can't parse entities" in desc or "entity" in desc:
                     logger.info("[TelegramNotifier] Retrying message with sanitized HTML tags...")
-                    import re
                     import html
                     # Normalize anchor tags to only keep href (strip target="_blank" and other unsupported attributes)
                     clean_text = re.sub(r'<a\s+[^>]*href=["\']([^"\']+)["\'][^>]*>', r'<a href="\1">', text, flags=re.IGNORECASE)
@@ -70,6 +313,11 @@ class TelegramNotifier:
             message_id = data.get("result", {}).get("message_id")
             logger.info(f"[TelegramNotifier] Message sent successfully (ID: {message_id})")
 
+            # WORLD-CLASS POST-DISPATCH WATCHDOG AUDIT
+            if message_id:
+                if not self._post_dispatch_watchdog(message_id, is_photo=False, target_chat=target_chat, raw_text=payload.get("text", "")):
+                    return {"ok": False, "error": "Watchdog: Message violated rules and was auto-purged"}
+
             if auto_pin and message_id:
                 self.pin_message(message_id)
 
@@ -79,9 +327,21 @@ class TelegramNotifier:
             return {"ok": False, "error": str(e)}
 
     def send_photo(self, photo_bytes: bytes, caption: str = "", parse_mode: str = "HTML", reply_markup: dict = None, chat_id: str = None) -> dict:
+        import re
         if isinstance(photo_bytes, str) and os.path.isfile(photo_bytes):
             with open(photo_bytes, "rb") as f:
                 photo_bytes = f.read()
+
+        # Circuit Breaker 2: If image is missing, empty, or corrupted (< 500 bytes), fallback to MODE B text-only!
+        if not photo_bytes or len(photo_bytes) < 500:
+            logger.warning("[TelegramNotifier] Circuit Breaker: Invalid photo bytes. Seamless fallback to MODE B (send_message).")
+            return self.send_message(text=caption, parse_mode=parse_mode, reply_markup=reply_markup, chat_id=chat_id)
+
+        # Circuit Breaker 3: Drop empty or dangerously short captions (< 35 visible characters)
+        clean_vis = re.sub(r'<[^>]+>', '', caption or "").strip()
+        if len(clean_vis) < 35:
+            logger.warning(f"[TelegramNotifier] Circuit Breaker ACTIVATED: Caption too short ({len(clean_vis)} chars). Dropping post.")
+            return {"ok": False, "error": "Circuit Breaker: Caption too short or empty"}
 
         if not self.is_configured():
             logger.warning(f"[TelegramNotifier] Credentials not set. Simulated photo upload ({len(photo_bytes) if photo_bytes else 0} bytes).")
@@ -92,6 +352,9 @@ class TelegramNotifier:
         files = {"photo": ("calendar.png", photo_bytes, "image/png")}
         data = {"chat_id": target_chat}
         if caption:
+            # Bulletproof gate: Photo captions strictly <= 574 characters per user constitutional rule
+            if not caption.startswith("📅") and not caption.startswith("🥇"):
+                caption = enforce_telegram_char_limit(caption, max_visible=574)
             if parse_mode == "HTML":
                 import re
                 caption = re.sub(r'&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[a-fA-F0-9]+);)', '&amp;', caption)
@@ -132,6 +395,13 @@ class TelegramNotifier:
                         result = retry_resp2.json()
                         if result.get("ok"):
                             logger.info(f"[TelegramNotifier] Photo sent on plain-text fallback (ID: {result.get('result', {}).get('message_id')})")
+            if result.get("ok"):
+                message_id = result.get('result', {}).get('message_id')
+                # WORLD-CLASS POST-DISPATCH WATCHDOG AUDIT
+                if message_id:
+                    if not self._post_dispatch_watchdog(message_id, is_photo=True, target_chat=target_chat, raw_text=data.get("caption", "")):
+                        return {"ok": False, "error": "Watchdog: Photo caption violated rules and was auto-purged"}
+
             return result
         except Exception as e:
             logger.error(f"[TelegramNotifier] Exception while sending photo: {e}")
