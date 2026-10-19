@@ -92,7 +92,11 @@ class BreakingNewsCollector:
         "huffpost", "dailykos", "commondreams", "breitbart", "newsmax", "thegatewaypundit", "slate",
         "mankato", "mankato free press", "centralalbertaonline", "cleveland.com", "ponoka", 
         "energy news beat", "the tech buzz", "pa environment", "express.co.uk", "triblive", "herald",
-        "patch.com", "chronicle", "gazette", "post-gazette", "ledger", "bulletin", "sentinel"
+        "patch.com", "chronicle", "gazette", "post-gazette", "ledger", "bulletin", "sentinel",
+        # Academic think-tanks, policy research centers & non-breaking opinion essay outlets
+        "middle east institute", "mei.edu", "carnegie", "brookings", "atlantic council", "csis",
+        "chatham house", "foreign affairs", "foreign policy", "project syndicate", "cfr.org",
+        "rand.org", "heritage.org", "aei.org", "cato.org", "stimson", "rusi.org", "iiss.org"
     ]
 
     def __init__(self):
