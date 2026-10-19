@@ -34,9 +34,9 @@ USE_GEMINI = os.getenv("USE_GEMINI", "true").lower() in ("true", "1", "yes")
 GEMINI_MIN_INTERVAL = float(os.getenv("GEMINI_MIN_INTERVAL", "20"))
 GEMINI_COOLDOWN = float(os.getenv("GEMINI_COOLDOWN", "900"))
 
-# Minimum seconds between two breaking-news alerts (Optimized for ultra-fast sub-second delivery: 5s)
-# Prevents channel flood while ensuring instant dispatch the moment news breaks.
-BREAKING_ALERT_MIN_GAP = float(os.getenv("BREAKING_ALERT_MIN_GAP", "5"))
+# Minimum seconds between two breaking-news alerts (Anti-Burst Cadence: 90s)
+# Prevents channel flood and wire duplicate collisions while ensuring VIP pacing.
+BREAKING_ALERT_MIN_GAP = float(os.getenv("BREAKING_ALERT_MIN_GAP", "90"))
 
 # Timezone (Cambodia Time UTC+7)
 CAMBODIA_TZ_NAME = os.getenv("TIMEZONE", "Asia/Phnom_Penh")
