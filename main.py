@@ -943,9 +943,10 @@ class XAUUSDNewsAssistantBot:
         return len(re.sub(r"<[^>]+>", "", text)) <= limit
 
     @staticmethod
-    def _truncate_html_caption(text: str, max_visible_chars: int = 900) -> str:
-        """Safely trims narrative text while strictly preserving header, impact line, and clickable source link."""
-        if XAUUSDNewsAssistantBot._caption_fits(text, limit=1000):
+    def _truncate_html_caption(text: str, max_visible_chars: int = 574) -> str:
+        """Safely trims narrative text while strictly preserving header, impact line, and clickable source link to stay strictly <= max_visible_chars visible characters."""
+        vis_len = len(re.sub(r"<[^>]+>", "", text))
+        if vis_len <= max_visible_chars:
             return text
 
         blocks = text.split("\n\n")
@@ -959,7 +960,7 @@ class XAUUSDNewsAssistantBot:
         # Check if second to last block is impact_line
         impact_line = ""
         body_blocks = []
-        _impact_prefixes = ("🔹", "🔸", "ផល", "ឥទ្ធិពល", "វាផល", "ហានិភ័យ")
+        _impact_prefixes = ("🔹", "🔸", "🔶", "🔴", "🟢", "ផល", "ឥទ្ធិពល", "វាផល", "ហានិភ័យ")
         if len(blocks) >= 4 and blocks[-2].strip().startswith(_impact_prefixes):
             impact_line = blocks[-2].strip()
             body_blocks = blocks[1:-2]
@@ -973,18 +974,46 @@ class XAUUSDNewsAssistantBot:
             body_blocks = blocks[1:]
 
         body = "\n\n".join(body_blocks)
-
-        reserved = len(re.sub(r"<[^>]+>", "", header)) + len(re.sub(r"<[^>]+>", "", source_line)) + len(impact_line) + 25
-        avail = max(100, max_visible_chars - reserved)
-
         clean_body = re.sub(r"<[^>]+>", "", body)
+
+        vis_header = len(re.sub(r"<[^>]+>", "", header))
+        vis_source = len(re.sub(r"<[^>]+>", "", source_line))
+        vis_impact = len(re.sub(r"<[^>]+>", "", impact_line))
+        num_separators = sum(1 for p in [header, clean_body, impact_line, source_line] if p) - 1
+        sep_overhead = max(num_separators, 1) * 2
+
+        avail = max(40, max_visible_chars - (vis_header + vis_source + vis_impact + sep_overhead))
+
         if len(clean_body) > avail:
-            trimmed_body = clean_body[:avail].rsplit(" ", 1)[0].rstrip(" .…-–—") + "។"
+            sub = clean_body[:avail]
+            last_period = max(sub.rfind("។ "), sub.rfind("។\n"), sub.rfind("។"))
+            if last_period > 30:
+                trimmed_body = sub[:last_period + 1].strip()
+            else:
+                last_space = sub.rfind(" ")
+                if last_space > 25:
+                    trimmed_body = sub[:last_space].strip() + "។"
+                else:
+                    trimmed_body = sub.strip() + "។"
         else:
             trimmed_body = clean_body
 
         parts = [p for p in [header, trimmed_body, impact_line, source_line] if p]
         res = "\n\n".join(parts)
+
+        # Progressive hard clamp to guarantee strictly <= max_visible_chars
+        while len(re.sub(r"<[^>]+>", "", res)) > max_visible_chars and len(trimmed_body) > 30:
+            excess = len(re.sub(r"<[^>]+>", "", res)) - max_visible_chars
+            cut_idx = max(len(trimmed_body) - excess - 5, 20)
+            sub = trimmed_body[:cut_idx]
+            last_period = max(sub.rfind("។ "), sub.rfind("។\n"), sub.rfind("។"))
+            if last_period > 20:
+                trimmed_body = sub[:last_period + 1].strip()
+            else:
+                last_space = sub.rfind(" ")
+                trimmed_body = (sub[:last_space].strip() if last_space > 15 else sub.strip()) + "។"
+            parts = [p for p in [header, trimmed_body, impact_line, source_line] if p]
+            res = "\n\n".join(parts)
 
         # Auto-close open tags
         for tag in ["i", "b", "code", "a"]:
@@ -1077,7 +1106,15 @@ class XAUUSDNewsAssistantBot:
         FORBIDDEN_PATTERNS = [
             "googleusercontent", "gstatic", "google", "logo", "icon", "avatar",
             "1x1", "placeholder", "default", "favicon", "badge", "button", "app-icon",
-            "branding", "spinner", "loader"
+            "branding", "spinner", "loader",
+            # Banned generic stock photos, flags & repetitive photo banks
+            "wall_street", "wall-street", "wallstreet", "nyse", "nasdaq", "trading-floor", "trading_floor",
+            "stock-photo", "stock_photo", "stockphoto", "gettyimages", "getty", "shutterstock",
+            "istockphoto", "istock", "depositphotos", "alamy", "dreamstime", "123rf",
+            "gold-bars", "gold_bars", "gold-bullion", "gold_bullion", "bullion", "coins",
+            "candlestick", "chart-graphic", "chart_graphic", "stock-exchange", "financial-district",
+            "flag", "flags", "national-flag", "flag-icon",
+            "generic"
         ]
 
         def _is_valid_article_img(img_url: str) -> bool:
@@ -1748,11 +1785,12 @@ class XAUUSDNewsAssistantBot:
             photo = self._fetch_news_image(it, analysis=analysis)
             if photo:
                 msg_photo = KhmerFormatter.format_breaking_event_alert(it, analysis, has_photo=True)
-                caption_text = self._truncate_html_caption(msg_photo, max_visible_chars=950)
+                caption_text = self._truncate_html_caption(msg_photo, max_visible_chars=574)
                 self.notifier.send_photo(photo, caption=caption_text, reply_markup=None)
             else:
                 msg_text = KhmerFormatter.format_breaking_event_alert(it, analysis, has_photo=False)
-                self.notifier.send_message(msg_text, reply_markup=None)
+                clean_text = self._truncate_html_caption(msg_text, max_visible_chars=750)
+                self.notifier.send_message(clean_text, reply_markup=None)
 
             # 💥 USER DIRECTIVE: CLEAR FROM DATA IMMEDIATELY AFTER SENDING
             self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
