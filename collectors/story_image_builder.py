@@ -25,7 +25,7 @@ class StoryImageBuilder:
 
     TOPIC_PATTERNS = [
         ("ai_data_center", r"\b(data center|data centers|cooling|liquid cooling|wastewater|supercomputer|compute|gpu cluster|ai infrastructure)\b|មជ្ឈមណ្ឌលទិន្នន័យ|កម្ដៅម៉ាស៊ីនមេ|ម៉ាស៊ីនមេ"),
-        ("gold_bullion", r"\b(gold|gold price|bullion|xauusd|xau|precious metals)\b|មាស|ហាងឆេងមាស|តម្លៃមាស"),
+        ("gold_bullion", r"\b(gold|gold price|bullion|xauusd|xau|precious metals)\b|(?<![\u1780-\u17D3])មាស(?![\u1780-\u17D3])|ហាងឆេងមាស|តម្លៃមាស|ដុំមាស"),
         ("crude_oil", r"\b(oil|crude|brent|wti|opec|refinery|refineries|petroleum|fuel|gasoline|natural gas|lng|permian basin)\b|ប្រេង|ប្រេងកាត|ប្រេងឆៅ|ឧស្ម័នធម្មជាតិ"),
         ("federal_reserve", r"\b(federal reserve|fed|fomc|interest rate|rate hike|rate cut|monetary policy)\b|ធនាគារកណ្តាលអាមេរិក|អត្រាការប្រាក់"),
         ("wall_street", r"\b(wall street|dow jones|s&p 500|nasdaq|nyse|stock market|equities|stocks rally|stocks plunge)\b|ទីផ្សារភាគហ៊ុន|សន្ទស្សន៍"),
@@ -306,40 +306,16 @@ class StoryImageBuilder:
 
         detected_countries.sort(key=lambda x: x[2])
 
-        # Step 7: Single Country High-Res Flag Canvas (if primary country in headline)
-        # If there are multiple conflicting countries (e.g. Israel + France), DO NOT create split flag; fallback cleanly to MODE B!
-        if len(detected_countries) == 1:
-            c1, path1, pos1 = detected_countries[0]
-            if pos1 < 90000 and not cls.is_asset_on_cooldown(f"flag_{c1}"):
-                logger.info(f"[StoryImageBuilder] Using Single Country Flag Canvas from headline: {c1}")
-                flag_canvas = cls.create_single_flag_canvas(path1)
-                if flag_canvas:
-                    cls.record_asset_used(f"flag_{c1}")
-                    return cls.enhance_image_for_vip(flag_canvas)
-            else:
-                logger.info(f"[StoryImageBuilder] Flag '{c1}' skipped (not prominent in headline or on cooldown).")
-
-        # Step 7.5: Macro Topic Authentic Ultra-HD Photo (Gold, Oil, AI Data Center, Wall St, Fed, Crypto, Naval)
-        # Matches against verified high-resolution editorial topic assets
-        for topic_key, pat in cls.TOPIC_PATTERNS:
-            if re.search(pat, comb_text, re.IGNORECASE):
-                topic_path = os.path.join(cls.TOPICS_DIR, f"{topic_key}.jpg")
-                if os.path.exists(topic_path):
-                    if not cls.is_asset_on_cooldown(f"topic_{topic_key}"):
-                        logger.info(f"[StoryImageBuilder] Using Authentic Macro Topic Photo: {topic_key}")
-                        try:
-                            cls.record_asset_used(f"topic_{topic_key}")
-                            with open(topic_path, "rb") as f:
-                                return cls.enhance_image_for_vip(f.read())
-                        except Exception as e:
-                            logger.warning(f"[StoryImageBuilder] Failed reading topic image {topic_path}: {e}")
-                    else:
-                        logger.info(f"[StoryImageBuilder] Topic '{topic_key}' is on 4h cooldown. Skipping to preserve visual variety.")
+        # Step 7 & 7.5: Flag Canvases and Macro Topic Stock Photos are PERMANENTLY DISABLED!
+        # Strict User Constitutional Directive:
+        # "បើគ្មានរូបភាពថ្មីជាក់ស្តែងពីសារព័ត៌មាន (Direct Article Photo) ឬរូបមេដឹកនាំចំៗទេ 
+        #  ត្រូវទម្លាក់មកផ្សាយជា MODE B (Clean VIP Text Mode) ស្អាតបាត ១០០% ហាមយករូបដដែលមកបិទភ្ជាប់ជាដាច់ខាត!"
+        # This completely guarantees 100% zero image repetition across all news broadcasts.
 
         # Step 8: Mode B Fallback Guarantee
-        # If no authentic direct publisher photo or verified single asset exists, return None!
-        # main.py will automatically broadcast in MODE B (Clean VIP Text Mode), preventing ANY image error or repetition!
-        logger.info("[StoryImageBuilder] No authentic direct photo or dynamic canvas. Falling back to MODE B (VIP Text Mode).")
+        # If no authentic direct publisher photo or verified single leader/split asset exists, return None!
+        # main.py will automatically broadcast in MODE B (Clean VIP Text Mode), preventing ANY image error or repetition 100%!
+        logger.info("[StoryImageBuilder] No authentic direct photo or leader portrait. Falling back to MODE B (VIP Text Mode).")
         return None
 
     @classmethod
