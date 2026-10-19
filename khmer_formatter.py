@@ -724,11 +724,16 @@ class KhmerFormatter:
                 if parsed_impact_lines:
                     bias_str = str(analysis.get("bias", "")).lower()
                     full_txt = f"{news_item.get('title', '')} {key_event}".lower()
-                    is_neg = "bearish" in bias_str or any(k in full_txt for k in ["crisis", "war", "debt", "default", "fall", "drop", "cut", "risk", "វិបត្តិ", "សង្គ្រាម", "បំណុល", "ក្ស័យធន", "ធ្លាក់ចុះ", "ហានិភ័យ", "សម្ពាធ", "រឹតបន្តឹង"])
+                    is_neg = "bearish" in bias_str or any(k in full_txt for k in ["crisis", "war", "debt", "default", "fall", "drop", "cut", "risk", "strike", "attack", "violation", "escalat", "វិបត្តិ", "សង្គ្រាម", "បំណុល", "ក្ស័យធន", "ធ្លាក់ចុះ", "ហានិភ័យ", "សម្ពាធ", "រឹតបន្តឹង", "ឡើងថ្លៃខ្ពស់", "រំខាន", "វាយប្រហារ"])
                     pos = [l for l in parsed_impact_lines if l.startswith("🔹") and len(l) > 15]
                     neg = [l for l in parsed_impact_lines if (l.startswith("🔸") or l.startswith("🔶")) and len(l) > 15]
-                    if is_neg and neg:
-                        impact_line = neg[0]
+                    if is_neg:
+                        if neg:
+                            impact_line = neg[0]
+                        elif pos:
+                            # Auto-correct hallucinated positive badge to risk badge when news context is crisis/war/inflation
+                            detail = re.sub(r'^[🔹🟢]\s*(?:ផលវិជ្ជមាន|ឥទ្ធិពលវិជ្ជមាន)\s*[៖:]?\s*', '', pos[0]).strip()
+                            impact_line = f"🔸 ហានិភ័យទីផ្សារ៖ {detail}"
                     elif pos:
                         impact_line = pos[0]
                     elif neg:
