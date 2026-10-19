@@ -1534,12 +1534,11 @@ class XAUUSDNewsAssistantBot:
                 channel_time_since_last = self._channel_time_since_last_post()
                 time_since_last = channel_time_since_last
 
-            # Fast-track priority check: critical news gets 3s gap, regular gets BREAKING_ALERT_MIN_GAP (5s)
+            # Priority check: extreme crisis gets 45s gap, regular gets BREAKING_ALERT_MIN_GAP (90s)
             is_critical = any(k in (title + " " + desc).lower() for k in [
-                "war", "attack", "missile", "airstrike", "fomc", "rate cut", "rate hike",
-                "interest rate", "powell", "kevin warsh", "cpi", "nfp", "emergency", "nuclear"
+                "nuclear", "outbreak of war", "declares war", "martial law", "assassination"
             ])
-            required_gap = 3.0 if is_critical else BREAKING_ALERT_MIN_GAP
+            required_gap = 45.0 if is_critical else BREAKING_ALERT_MIN_GAP
             if time_since_last < required_gap:
                 logger.debug(f"[BREAKING GAP] {time_since_last:.1f}s elapsed < {required_gap}s required. Deferring to next cycle.")
                 break
@@ -1761,9 +1760,9 @@ class XAUUSDNewsAssistantBot:
                 self._broadcasted_titles_cache.add(title.lower())
                 continue
 
-            # Pre-flight channel cooldown check: ensure another container did not just post in the last 20 seconds
+            # Pre-flight channel cooldown check: ensure another container did not just post in the last 60 seconds
             fresh_elapsed = self._channel_time_since_last_post()
-            min_post_gap = max(required_gap, 20.0)
+            min_post_gap = max(required_gap, 60.0)
             if fresh_elapsed < min_post_gap:
                 logger.info(f"[CHANNEL COLLISION PREVENTED] Channel has a post from {fresh_elapsed:.1f}s ago (< {min_post_gap}s required). Deferring.")
                 break
