@@ -195,7 +195,7 @@ def sanitize_khmer_editorial_text(text: str) -> str:
     # Remove stray English suffixes stuck in Khmer text (e.g. " ing ", " ed ")
     text = re.sub(r'(?<=[\u1780-\u17D3])\s+(?:ing|ed)\b', '', text, flags=re.IGNORECASE)
     text = re.sub(r'\b(?:ing|ed)\b(?=\s+[\u1780-\u17D3])', '', text, flags=re.IGNORECASE)
-    # Fix known editorial slips
+    # Fix known editorial slips & financial terminology
     replacements = {
         "វគ្ណ្ឌ": "វគ្គ",
         "ចរក្សា": "ចិនរក្សា",
@@ -203,6 +203,9 @@ def sanitize_khmer_editorial_text(text: str) -> str:
         "ធ្វើរ៉ង់": "ធ្វើឱ្យអ៊ីរ៉ង់",
         "ធ្វើ៊ីរ៉ង់": "ធ្វើឱ្យអ៊ីរ៉ង់",
         "ឿរ៉ង់": "អ៊ីរ៉ង់",
+        "អ៊ីរ៉ាន": "អ៊ីរ៉ង់",
+        "តេហេឿរ៉ង់": "តេហេរ៉ង់",
+        "តេហឿរ៉ង់": "តេហេរ៉ង់",
         "ប្រមាន": "ព្រមាន",
         "សហរដ្ធ": "សហរដ្ឋ",
         "សេដ្ធកិច្ច": "សេដ្ឋកិច្ច",
@@ -210,10 +213,15 @@ def sanitize_khmer_editorial_text(text: str) -> str:
         "អត្រាកាប្រាក់": "អត្រាការប្រាក់",
         "ពាណិជ្ចកម្ម": "ពាណិជ្ជកម្ម",
         "កូដេន": "កាក់ឌីជីថល",
+        "លីគីឌីធី": "សាច់ប្រាក់ងាយស្រួល",
+        "ដ្ររដោន": "ការខាតបង់ដើមទុន",
         "ទោះបីជាយ៉ាងណាក្តី": "ទោះជាយ៉ាងណាក្ដី",
     }
     for old_w, new_w in replacements.items():
         text = text.replace(old_w, new_w)
+
+    # Clean double periods or trailing punctuation slips
+    text = re.sub(r'(?<=[\u1780-\u17D3])\s*\.{2,}', '។', text)
     return text
 
 class TelegramNotifier:
@@ -267,7 +275,7 @@ class TelegramNotifier:
                 return False
 
         # Check 4: Uncorrected typos & forbidden words
-        typos = ['ប្រមាន', 'ធ្វើអោយ', 'ឿរ៉ង់', 'អគ្លេស', 'សហរដ្ធ', 'សេដ្ធកិច្ច', 'ធ្វើរ៉ង់', 'ធ្វើ៊ីរ៉ង់', 'កូដេន']
+        typos = ['ប្រមាន', 'ធ្វើអោយ', 'ឿរ៉ង់', 'អគ្លេស', 'សហរដ្ធ', 'សេដ្ធកិច្ច', 'ធ្វើរ៉ង់', 'ធ្វើ៊ីរ៉ង់', 'កូដេន', 'លីគីឌីធី', 'ដ្ររដោន', 'តេហេឿរ៉ង់']
         for tp in typos:
             if tp in clean:
                 logger.critical(f"[WATCHDOG PURGE] Post #{message_id} contains forbidden typo '{tp}'. Auto-purging immediately!")
@@ -277,6 +285,12 @@ class TelegramNotifier:
         # Check 5: Stray foreign suffixes (ing, ed) inside Khmer context
         if re.search(r'[\u1780-\u17D3]+\s+(?:ing|ed)\b|\b(?:ing|ed)\s+[\u1780-\u17D3]+', clean, re.IGNORECASE):
             logger.critical(f"[WATCHDOG PURGE] Post #{message_id} contains stray foreign suffix (ing/ed). Auto-purging immediately!")
+            self.delete_message(message_id, chat_id=target_chat)
+            return False
+
+        # Check 6: Forbidden non-VIP emojis (rockets, fire, meme emojis)
+        if re.search(r'[🚀🔥💥💰🎉🤑💩🤡]', clean):
+            logger.critical(f"[WATCHDOG PURGE] Post #{message_id} contains forbidden non-VIP emoji. Auto-purging immediately!")
             self.delete_message(message_id, chat_id=target_chat)
             return False
 
