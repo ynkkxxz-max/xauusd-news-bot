@@ -1215,7 +1215,7 @@ class XAUUSDNewsAssistantBot:
         # 1. Try direct article image from feed
         if _is_valid_article_img(url):
             try:
-                resp = requests.get(url, headers=headers, timeout=2.5)
+                resp = requests.get(url, headers=headers, timeout=6.0)
                 if resp.status_code == 200 and _verify_image_bytes(resp.content):
                     return resp.content
             except Exception as e:
@@ -1240,7 +1240,7 @@ class XAUUSDNewsAssistantBot:
         )
         if target_link and target_link.startswith("http") and "news.google.com" not in target_link and is_deep_article:
             try:
-                art_resp = requests.get(target_link, headers=headers, timeout=2.5)
+                art_resp = requests.get(target_link, headers=headers, timeout=6.0)
                 if art_resp.status_code == 200:
                     patterns = [
                         r'<meta[^>]+property=[\'"]og:image[\'"][^>]+content=[\'"]([^\'"]+)[\'"]',
@@ -1258,7 +1258,7 @@ class XAUUSDNewsAssistantBot:
                             if _is_valid_article_img(raw_img_url):
                                 from urllib.parse import urljoin
                                 full_img_url = urljoin(link, raw_img_url)
-                                img_resp = requests.get(full_img_url, headers=headers, timeout=2.5)
+                                img_resp = requests.get(full_img_url, headers=headers, timeout=6.0)
                                 if img_resp.status_code == 200 and _verify_image_bytes(img_resp.content):
                                     return img_resp.content
             except Exception as e:
