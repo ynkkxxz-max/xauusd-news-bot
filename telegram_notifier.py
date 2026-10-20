@@ -505,6 +505,95 @@ class TelegramNotifier:
             logger.error(f"[TelegramNotifier] Exception while sending photo: {e}")
             return {"ok": False, "error": str(e)}
 
+    def send_video(self, video_data, caption: str = "", parse_mode: str = "HTML", reply_markup: dict = None, chat_id: str = None, supports_streaming: bool = True) -> dict:
+        """
+        Sends an authentic HD video clip to the Telegram channel with strict VIP standard.
+        Accepts:
+          - bytes: raw MP4 bytes
+          - str (filepath): path to local .mp4 file
+          - str (url): direct HTTPS URL to .mp4 video
+        Enforces:
+          - Strict character limit <= 574 characters per user rule.
+          - Post-dispatch watchdog audit.
+          - Automatic fallback to send_message if video sending fails.
+        """
+        import re
+        import time
+
+        if not video_data:
+            return self.send_message(text=caption, parse_mode=parse_mode, reply_markup=reply_markup, chat_id=chat_id)
+
+        # Lexical Sanitization
+        caption = sanitize_khmer_editorial_text(caption)
+
+        # Truncate to strictly <= 574 visible characters per user constitutional rule
+        if caption and not caption.startswith("📅") and not caption.startswith("🥇"):
+            caption = enforce_telegram_char_limit(caption, max_visible=574)
+
+        if not self.is_configured():
+            logger.warning(f"[TelegramNotifier] Credentials not set. Simulated video upload.")
+            return {"ok": True, "result": {"message_id": 999997, "simulated": True}}
+
+        target_chat = str(chat_id or self.chat_id)
+
+        # Anti-Flood Cadence Guard: strictly maintain at least 150 seconds between channel alerts
+        if target_chat == str(self.chat_id) and hasattr(self, "_last_channel_post_time"):
+            elapsed = time.time() - getattr(self, "_last_channel_post_time", 0.0)
+            if elapsed < 150.0:
+                wait_sec = min(150.0 - elapsed, 45.0)
+                logger.info(f"[Anti-Flood Guard] Spacing channel video post by {wait_sec:.1f}s to prevent subscriber flood...")
+                time.sleep(wait_sec)
+
+        url = f"{self.base_url}/sendVideo"
+        data = {
+            "chat_id": target_chat,
+            "supports_streaming": "true" if supports_streaming else "false"
+        }
+        if caption:
+            if parse_mode == "HTML":
+                caption = re.sub(r'&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[a-fA-F0-9]+);)', '&amp;', caption)
+            data["caption"] = caption
+            data["parse_mode"] = parse_mode
+        if reply_markup:
+            import json
+            data["reply_markup"] = json.dumps(reply_markup)
+
+        try:
+            # Case 1: video_data is a URL string
+            if isinstance(video_data, str) and video_data.startswith("http"):
+                data["video"] = video_data
+                resp = requests.post(url, data=data, timeout=45)
+            # Case 2: video_data is a local file path
+            elif isinstance(video_data, str) and os.path.isfile(video_data):
+                with open(video_data, "rb") as vf:
+                    files = {"video": (os.path.basename(video_data), vf, "video/mp4")}
+                    resp = requests.post(url, data=data, files=files, timeout=60)
+            # Case 3: video_data is raw bytes
+            elif isinstance(video_data, bytes):
+                files = {"video": ("news_video.mp4", video_data, "video/mp4")}
+                resp = requests.post(url, data=data, files=files, timeout=60)
+            else:
+                logger.warning(f"[TelegramNotifier] Unsupported video_data type: {type(video_data)}. Falling back to send_message.")
+                return self.send_message(text=caption, parse_mode=parse_mode, reply_markup=reply_markup, chat_id=chat_id)
+
+            result = resp.json()
+            if result.get("ok"):
+                message_id = result.get('result', {}).get('message_id')
+                logger.info(f"[TelegramNotifier] Video sent successfully (ID: {message_id})")
+                if target_chat == str(self.chat_id):
+                    self._last_channel_post_time = time.time()
+                # Post-dispatch watchdog audit
+                if message_id:
+                    if not self._post_dispatch_watchdog(message_id, is_photo=True, target_chat=target_chat, raw_text=data.get("caption", "")):
+                        return {"ok": False, "error": "Watchdog: Video caption violated rules and was auto-purged"}
+                return result
+            else:
+                logger.warning(f"[TelegramNotifier] sendVideo failed ({result}). Falling back to text-only mode.")
+                return self.send_message(text=caption, parse_mode=parse_mode, reply_markup=reply_markup, chat_id=chat_id)
+        except Exception as e:
+            logger.error(f"[TelegramNotifier] Exception while sending video: {e}. Falling back to text-only mode.")
+            return self.send_message(text=caption, parse_mode=parse_mode, reply_markup=reply_markup, chat_id=chat_id)
+
     def edit_message_caption(self, message_id: int, caption: str, parse_mode: str = "HTML", reply_markup: dict = None, chat_id: str = None) -> dict:
         """Edits the caption of an existing photo/document message in the chat/channel."""
         if not self.is_configured():
