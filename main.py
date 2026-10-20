@@ -1397,54 +1397,27 @@ class XAUUSDNewsAssistantBot:
             return (999999.0, [], [], {}, {}, [])
 
     def _is_image_already_in_channel(self, photo_bytes: bytes) -> bool:
-        """Inspects recently used image hashes and channel feed to strictly guarantee ZERO repetitive images!"""
+        """Inspects recently used image hashes and channel feed to strictly guarantee ZERO repetitive images over 24 hours!"""
         if not photo_bytes or len(photo_bytes) < 1000:
             return False
         try:
             import hashlib
-            import io
-            import json
-            from PIL import Image
-
             now = time.time()
             img_hash = hashlib.md5(photo_bytes[:4000]).hexdigest()
             last_used = float(database.get_state(f"channel_img_ts_{img_hash}") or "0")
-            if (now - last_used) < 14400.0:  # 4 hours
-                logger.info(f"[IMAGE REPETITION SHIELD] Image hash {img_hash[:8]} was already used {(now - last_used)/60:.1f}m ago. Rejecting!")
+            if (now - last_used) < 86400.0:  # Strict 24 hours
+                logger.info(f"[IMAGE REPETITION SHIELD] Image MD5 {img_hash[:8]} was already used {(now - last_used)/3600:.1f}h ago. Rejecting!")
                 return True
 
-            im = Image.open(io.BytesIO(photo_bytes)).convert("L").resize((9, 8), Image.Resampling.LANCZOS)
-            pixels = list(im.getdata())
-            diff = []
-            for row in range(8):
-                for col in range(8):
-                    p_left = pixels[row * 9 + col]
-                    p_right = pixels[row * 9 + col + 1]
-                    diff.append(p_left > p_right)
-            dhash_int = 0
-            for idx, val in enumerate(diff):
-                if val:
-                    dhash_int += 2 ** idx
-            dhash_hex = hex(dhash_int)
-
-            recent_dhashes_raw = database.get_state("recent_channel_dhashes") or "{}"
-            try:
-                recent_dhashes = json.loads(recent_dhashes_raw)
-            except Exception:
-                recent_dhashes = {}
-
-            for old_hex, old_ts in list(recent_dhashes.items()):
-                if (now - old_ts) < 14400.0:
-                    old_int = int(old_hex, 16)
-                    hamming_dist = bin(dhash_int ^ old_int).count("1")
-                    if hamming_dist <= 5:  # >= 92% visual match
-                        logger.info(f"[IMAGE PERCEPTUAL SHIELD] Image visually matches a previous broadcast (Hamming dist={hamming_dist}/64, {(now - old_ts)/60:.1f}m ago). Rejecting!")
-                        return True
+            dh = database.calculate_image_dhash(photo_bytes)
+            if dh and database.is_image_dhash_duplicate(dh, max_age_seconds=86400.0, max_hamming_dist=10):
+                logger.info(f"[IMAGE PERCEPTUAL SHIELD] Image visually matches a broadcast within 24h (dHash={dh}). Rejecting!")
+                return True
 
             database.set_state(f"channel_img_ts_{img_hash}", str(now))
-            recent_dhashes[dhash_hex] = now
-            cleaned_dhashes = {k: v for k, v in recent_dhashes.items() if (now - v) < 14400.0}
-            database.set_state("recent_channel_dhashes", json.dumps(cleaned_dhashes))
+            return False
+        except Exception as e:
+            logger.debug(f"[_is_image_already_in_channel error] {e}")
             return False
         except Exception as e:
             logger.debug(f"[_is_image_already_in_channel error] {e}")
