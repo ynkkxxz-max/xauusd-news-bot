@@ -233,6 +233,27 @@ class StoryImageBuilder:
             try:
                 direct_photo = default_fetcher(item)
                 if direct_photo:
+                    # Quality Gate 1: Byte size check (Must be >= 15KB, reject micro-images/pixels)
+                    if len(direct_photo) < 15000:
+                        logger.warning(f"[StoryImageBuilder] Direct photo too small ({len(direct_photo)} bytes). Rejecting.")
+                        direct_photo = None
+                    else:
+                        # Quality Gate 2: Dimension & Aspect Ratio verification
+                        try:
+                            with Image.open(io.BytesIO(direct_photo)) as test_im:
+                                w, h = test_im.size
+                                aspect = w / max(h, 1)
+                                if w < 400 or h < 250:
+                                    logger.warning(f"[StoryImageBuilder] Direct photo resolution too low ({w}x{h} < 400x250). Rejecting.")
+                                    direct_photo = None
+                                elif aspect < 0.5 or aspect > 2.8:
+                                    logger.warning(f"[StoryImageBuilder] Direct photo aspect ratio abnormal ({aspect:.2f}). Rejecting.")
+                                    direct_photo = None
+                        except Exception as e:
+                            logger.warning(f"[StoryImageBuilder] Direct photo unreadable or corrupted: {e}. Rejecting.")
+                            direct_photo = None
+
+                if direct_photo:
                     try:
                         import database
                         dh = database.calculate_image_dhash(direct_photo)
