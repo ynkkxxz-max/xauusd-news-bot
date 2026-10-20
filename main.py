@@ -51,6 +51,14 @@ except ImportError:
         StoryImageBuilder = None
 
 try:
+    from story_video_builder import StoryVideoBuilder
+except ImportError:
+    try:
+        from collectors.story_video_builder import StoryVideoBuilder
+    except ImportError:
+        StoryVideoBuilder = None
+
+try:
     from gold_filter import GoldNewsFilter
 except ImportError:
     from analyzers.gold_filter import GoldNewsFilter
@@ -1225,6 +1233,21 @@ class XAUUSDNewsAssistantBot:
         return None
 
     @staticmethod
+    def _fetch_news_video(item: dict, analysis: dict = None):
+        """
+        Retrieves or probes an authentic HD video clip (.mp4) for ultra-important news events.
+        If available, the news will be broadcasted with authentic streaming video!
+        """
+        if StoryVideoBuilder:
+            try:
+                v_data = StoryVideoBuilder.fetch_story_video(item, analysis=analysis)
+                if v_data:
+                    return v_data
+            except Exception as e:
+                logger.debug(f"[StoryVideoBuilder] Error in fetch_story_video: {e}")
+        return None
+
+    @staticmethod
     def _get_speaker_photo(text_low: str) -> bytes:
         """Returns official portrait bytes for key leaders/speakers if available."""
         return None
@@ -1939,34 +1962,49 @@ class XAUUSDNewsAssistantBot:
                     database.set_state(f"entity_last_ts_{ent}", str(time.time()))
                 database.set_state("last_broadcasted_entity", entities[0])
             self._cached_channel_html = "" # Invalidate channel cache
-            photo = self._fetch_news_image(it, analysis=analysis)
-            if photo:
-                # GATE 1: Strict Zero Repetition & Perceptual Overlap Shield
-                if self._is_image_already_in_channel(photo):
-                    logger.info(f"[IMAGE DUPLICATION SHIELD] Candidate photo for '{title}' was already used in recent broadcasts. Falling back to MODE B.")
-                    photo = None
-                else:
-                    # GATE 2: Supreme AI Multimodal Vision Quality Gate (Worldwide Highest Standard)
-                    try:
-                        from analyzers.vision_verifier import VisionQualityGate
-                        v_res = VisionQualityGate.verify_image(photo, headline=title, summary=it.get("description", ""))
-                        if not v_res.get("is_valid", True):
-                            logger.warning(
-                                f"[SUPREME AI VISION GATE REJECTED] Image for '{title}': "
-                                f"{v_res.get('reason')} (Subject: {v_res.get('detected_subject')}). Falling back to MODE B (VIP Text Mode)!"
-                            )
-                            photo = None
-                    except Exception as ve:
-                        logger.debug(f"[VisionQualityGate error] {ve}")
 
-            if photo:
-                msg_photo = KhmerFormatter.format_breaking_event_alert(it, analysis, has_photo=True)
-                caption_text = self._truncate_html_caption(msg_photo, max_visible_chars=574)
-                self.notifier.send_photo(photo, caption=caption_text, reply_markup=None)
-            else:
-                msg_text = KhmerFormatter.format_breaking_event_alert(it, analysis, has_photo=False)
-                clean_text = self._truncate_html_caption(msg_text, max_visible_chars=750)
-                self.notifier.send_message(clean_text, reply_markup=None)
+            # 🎬 PRIORITY 1: High-Importance Video Alert
+            video = self._fetch_news_video(it, analysis=analysis)
+            video_sent = False
+            if video:
+                msg_video = KhmerFormatter.format_breaking_event_alert(it, analysis, has_photo=True)
+                caption_text = self._truncate_html_caption(msg_video, max_visible_chars=574)
+                logger.info(f"[DISPATCHING VIDEO POST] Broadcasting high-importance video news: '{title}'...")
+                res_v = self.notifier.send_video(video, caption=caption_text, reply_markup=None)
+                if res_v.get("ok"):
+                    video_sent = True
+                else:
+                    logger.warning("[DISPATCH FALLBACK] send_video failed or was rejected. Seamless fallback to photo/text mode.")
+
+            if not video_sent:
+                photo = self._fetch_news_image(it, analysis=analysis)
+                if photo:
+                    # GATE 1: Strict Zero Repetition & Perceptual Overlap Shield
+                    if self._is_image_already_in_channel(photo):
+                        logger.info(f"[IMAGE DUPLICATION SHIELD] Candidate photo for '{title}' was already used in recent broadcasts. Falling back to MODE B.")
+                        photo = None
+                    else:
+                        # GATE 2: Supreme AI Multimodal Vision Quality Gate (Worldwide Highest Standard)
+                        try:
+                            from analyzers.vision_verifier import VisionQualityGate
+                            v_res = VisionQualityGate.verify_image(photo, headline=title, summary=it.get("description", ""))
+                            if not v_res.get("is_valid", True):
+                                logger.warning(
+                                    f"[SUPREME AI VISION GATE REJECTED] Image for '{title}': "
+                                    f"{v_res.get('reason')} (Subject: {v_res.get('detected_subject')}). Falling back to MODE B (VIP Text Mode)!"
+                                )
+                                photo = None
+                        except Exception as ve:
+                            logger.debug(f"[VisionQualityGate error] {ve}")
+
+                if photo:
+                    msg_photo = KhmerFormatter.format_breaking_event_alert(it, analysis, has_photo=True)
+                    caption_text = self._truncate_html_caption(msg_photo, max_visible_chars=574)
+                    self.notifier.send_photo(photo, caption=caption_text, reply_markup=None)
+                else:
+                    msg_text = KhmerFormatter.format_breaking_event_alert(it, analysis, has_photo=False)
+                    clean_text = self._truncate_html_caption(msg_text, max_visible_chars=750)
+                    self.notifier.send_message(clean_text, reply_markup=None)
 
             # 💥 USER DIRECTIVE: CLEAR FROM DATA IMMEDIATELY AFTER SENDING
             self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
