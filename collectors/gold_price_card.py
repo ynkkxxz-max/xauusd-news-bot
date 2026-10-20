@@ -38,6 +38,7 @@ class DailyGoldPriceCardBuilder:
 
     def _load_background(self):
         bg_files = [
+            BASE_DIR / "assets" / "topics" / "gold_bullion.jpg",
             BASE_DIR / "gold_bars_raw.jpg",
             BASE_DIR / "gold_fx_photoreal_bars.png",
             BASE_DIR / "xauusd_channel_wallpaper.jpg"
