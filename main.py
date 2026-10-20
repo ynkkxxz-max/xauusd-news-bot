@@ -11,7 +11,7 @@ import pytz
 from config import (
     CAMBODIA_TZ, DAILY_PRICE_ALERT_HOUR, DAILY_PRICE_ALERT_MINUTE,
     INTERVAL_NORMAL, INTERVAL_UPCOMING, INTERVAL_HIGH_IMPACT,
-    BREAKING_ALERT_MIN_GAP
+    BREAKING_ALERT_MIN_GAP, MAX_DAILY_BREAKING_NEWS
 )
 import database
 try:
@@ -1738,6 +1738,21 @@ class XAUUSDNewsAssistantBot:
         if time_since_last < 3.0:
             return
 
+        # Daily Volume Capping & Moderation Standard (User Directive: ក្នុងមួយថ្ងៃកំណត់ការផ្សាយព័ត៌មានល្មមបានហើយ)
+        today_key = datetime.now(CAMBODIA_TZ).strftime("%Y-%m-%d")
+        today_count = int(database.get_state(f"daily_breaking_count_{today_key}") or "0")
+        if today_count >= MAX_DAILY_BREAKING_NEWS:
+            # Only allow bypass if an extreme Tier-0 crisis occurs
+            has_crisis = False
+            for test_it in self.news_collector.fetch_latest_news():
+                t_low = f"{test_it.get('title', '')} {test_it.get('description', '')}".lower()
+                if any(k in t_low for k in ["nuclear", "outbreak of war", "declares war", "martial law", "assassination"]):
+                    has_crisis = True
+                    break
+            if not has_crisis:
+                logger.debug(f"[DAILY VOLUME CAP REACHED] {today_count}/{MAX_DAILY_BREAKING_NEWS} posts already sent today ({today_key}). Preserving channel curation.")
+                return
+
         pending = []
         for item in self.news_collector.fetch_latest_news():
             news_id = item["id"]
@@ -1765,9 +1780,9 @@ class XAUUSDNewsAssistantBot:
             if title.lower() in self._broadcasted_titles_cache:
                 continue
 
-            # STRICT FRESHNESS SHIELD (Zero Old News Guarantee):
-            # Strictly reject stale items older than 60 minutes (3600s) or items with unknown/unverified age.
-            MAX_NEWS_AGE = 3600.0  # Strictly 1 hour maximum for breaking news
+            # STRICT FRESHNESS SHIELD (Zero Old News Guarantee — ព័ត៌មានថ្មីៗ):
+            # Strictly reject stale items older than 45 minutes (2700s) or items with unknown/unverified age.
+            MAX_NEWS_AGE = 2700.0  # Strictly 45 minutes maximum for fresh breaking news
             item_ts = self._news_ts(item)
             if item_ts == 0.0 or (now - item_ts) > MAX_NEWS_AGE:
                 logger.info(f"[STALE NEWS SHIELD] Dropping old/unverified news '{title}' (Age: {(now - item_ts)/60:.1f}m if item_ts > 0 else 'Unknown').")
@@ -1795,11 +1810,11 @@ class XAUUSDNewsAssistantBot:
                 channel_time_since_last = self._channel_time_since_last_post()
                 time_since_last = channel_time_since_last
 
-            # Priority check: extreme crisis gets 45s gap, regular gets BREAKING_ALERT_MIN_GAP (90s)
+            # Priority check: extreme crisis gets 120s gap, regular gets BREAKING_ALERT_MIN_GAP (900s / 15m)
             is_critical = any(k in (title + " " + desc).lower() for k in [
                 "nuclear", "outbreak of war", "declares war", "martial law", "assassination"
             ])
-            required_gap = 45.0 if is_critical else BREAKING_ALERT_MIN_GAP
+            required_gap = 120.0 if is_critical else BREAKING_ALERT_MIN_GAP
             if time_since_last < required_gap:
                 logger.debug(f"[BREAKING GAP] {time_since_last:.1f}s elapsed < {required_gap}s required. Deferring to next cycle.")
                 break
@@ -2094,10 +2109,20 @@ class XAUUSDNewsAssistantBot:
                     msg_photo = KhmerFormatter.format_breaking_event_alert(it, analysis, has_photo=True)
                     caption_text = self._truncate_html_caption(msg_photo, max_visible_chars=574)
                     self.notifier.send_photo(photo, caption=caption_text, reply_markup=None)
-                else:
+                elif is_critical:
                     msg_text = KhmerFormatter.format_breaking_event_alert(it, analysis, has_photo=False)
                     clean_text = self._truncate_html_caption(msg_text, max_visible_chars=750)
                     self.notifier.send_message(clean_text, reply_markup=None)
+                else:
+                    # STRICT VIP IMAGE REQUIREMENT: User Directive (ចាប់យកតែព័ត៌មានណាដែលមានរូបភាពមានគុណភាពខ្ពស់)
+                    logger.info(f"[HIGH-QUALITY IMAGE REQUIRED] Dropping '{title}' because no verified high-quality visual exists per user VIP standard.")
+                    self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
+                    database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
+                    continue
+
+            # Increment daily broadcast counter
+            today_count = int(database.get_state(f"daily_breaking_count_{today_key}") or "0")
+            database.set_state(f"daily_breaking_count_{today_key}", str(today_count + 1))
 
             # 💥 USER DIRECTIVE: CLEAR FROM DATA IMMEDIATELY AFTER SENDING
             self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
