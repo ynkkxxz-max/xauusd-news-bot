@@ -102,6 +102,14 @@ TRIVIAL_AND_LOW_IMPACT_PATTERNS = [
     r"\b(opinion\b|editorial\b|column\b|perspective\b|op-ed\b|commentary\b|viewpoint\b)\b",
     r"\b(analysts say|critics say|experts debate|could face|may face|uncertain future|remains unclear)\b",
     r"\b(what to know|five things to know|3 things to know|here's what|here is what)\b",
+    # Minor fund shareholdings, 13F filings, and routine minor stock transactions
+    r"\b(\d+[,.]?\d*\s*shares in|purchased shares in|acquires shares in|stake in|holdings in|sec filing|form 13f|institutional investors? buy|portfolio update|shares bought|buys \d+[,.]?\d*\s*shares)\b",
+    # Local political party polls / elections / voter demographics
+    r"\b(election gains|young voters|poll shows|poised for election|local election|party primary|parliamentary debate|local council|local politics)\b",
+    # Speculative preview questions and routine chatter
+    r"\b(what comes next|what to expect|ahead of the rba|ahead of the boe|ahead of the fed|ahead of the boj|what next for)\b",
+    # Routine unannounced visits / meetings without policy announcements
+    r"\b(unannounced visit as|ahead of meeting with|meets in unannounced)\b",
 ]
 
 def _matches_any_keyword(text: str, keywords: list) -> bool:
@@ -191,10 +199,15 @@ class GoldNewsFilter:
         # 4. War, Geopolitical Conflict & Maritime Disruption (Tier 1)
         geo_core = [
             "war", "invasion", "military strike", "missile", "airstrike", "drone attack",
-            "strait of hormuz", "red sea", "iran", "israel", "russia", "ukraine", "taiwan",
-            "sanctions", "nuclear", "ceasefire", "peace deal", "naval blockade"
+            "strait of hormuz", "red sea crisis", "naval blockade", "nuclear threat",
+            "ceasefire", "peace deal", "sanctions imposed", "sanctions against",
+            "tensions escalate", "retaliatory strike", "military offensive",
+            "border clash", "armed clash", "troops mobilized", "declares war", "martial law"
         ]
         if _matches_any_keyword(full_text, geo_core):
+            return True
+
+        if re.search(r'\b(israel|iran|russia|ukraine|china|taiwan|us|u\.s\.)\b', full_text) and re.search(r'\b(strike|attack|bomb|clash|warns|threat|escalat|deploy|intercept|drone|retaliat)\b', full_text):
             return True
 
         # 5. Energy Crisis & Commodities Shocks (Tier 1)
@@ -207,12 +220,15 @@ class GoldNewsFilter:
 
         # 6. Big Tech, AI & Frontier Innovation (Tier 1)
         tech_core = [
-            "nvidia", "tsmc", "semiconductor export", "chip export controls", "chip ban",
-            "artificial intelligence", "big tech antitrust", "cyberattack",
-            "elon musk", "tesla", "spacex", "starship", "roadster", "optimus", "cybertruck",
-            "robotaxi", "neuralink", "xai", "grok", "cold gas thruster", "rocket thruster"
+            "semiconductor export", "chip export controls", "chip ban", "big tech antitrust",
+            "artificial intelligence breakthrough", "ai model launch", "data center investment",
+            "starship launch", "roadster unveil", "optimus humanoid", "robotaxi launch",
+            "cyberattack disrupts", "cloud outage", "billion investment", "blackwell"
         ]
         if _matches_any_keyword(full_text, tech_core):
+            return True
+
+        if re.search(r'\b(nvidia|apple|tesla|openai|spacex|microsoft|google|anthropic)\b', full_text) and re.search(r'\b(unveils|launches|invests|bans|regulatory|chips?|antitrust|record revenue|breakthrough|acquisition)\b', full_text):
             return True
 
         # 7. Major Digital Asset & Crypto Milestones (Tier 1)
