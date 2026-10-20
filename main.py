@@ -1773,10 +1773,11 @@ class XAUUSDNewsAssistantBot:
         if time_since_last < 3.0:
             return
 
-        # Daily Volume Capping & Moderation Standard (User Directive: ក្នុងមួយថ្ងៃកំណត់ការផ្សាយព័ត៌មានល្មមបានហើយ)
+        # Daily Volume Capping & Moderation Standard:
+        # User Directive: ដកការទប់ស្កាត់ព័ត៌មានក្នុងមួយថ្ងៃ១៦ដង អាចឱ្យផ្សាយដោយសេរី (0 = Unlimited) ដើម្បីទាក់ទាញមនុស្សចូល Channel
         today_key = datetime.now(CAMBODIA_TZ).strftime("%Y-%m-%d")
         today_count = int(database.get_state(f"daily_breaking_count_{today_key}") or "0")
-        if today_count >= MAX_DAILY_BREAKING_NEWS:
+        if MAX_DAILY_BREAKING_NEWS > 0 and today_count >= MAX_DAILY_BREAKING_NEWS:
             # Only allow bypass if an extreme Tier-0 crisis occurs
             has_crisis = False
             for test_it in self.news_collector.fetch_latest_news():
