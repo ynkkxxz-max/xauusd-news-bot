@@ -142,8 +142,10 @@ This repository is governed by the 5 Golden Principles established by the system
 - **ប្រព័ន្ធការពារការផ្ញើសារជាន់គ្នា ៣ ជាន់ដាច់ខាត (Triple Anti-Duplicate Shield — Zero Spam Guarantee)**:
   1. **ត្រួតពិនិត្យ Telegram Channel Feed ជាក់ស្តែង (`_is_already_in_telegram_channel`)**: មុននឹងចេញផ្សាយ ត្រូវ Scan មើលសារក្នុង Channel `@GoldMarketKH8888` ជាមុនសិន។ ប្រសិនបើមានព័ត៌មាននេះរួចហើយ ទោះបី Server restart ឬមាន Instance ច្រើនប៉ុនណាក៏ដោយ ក៏ **ហាមដាច់ខាតមិនឱ្យផ្សាយជាន់គ្នាជាលើកទី ២ ឡើយ**។
   2. **In-Memory Process Cache & SQLite Deduplication**: កត់ត្រាចំណងជើង និង ID ក្នុង Memory និង Database SQLite ភ្លាមៗមុនពេលផ្ញើ។
-  3. **ល្បឿនផ្សាយទាន់ហេតុការណ៍លឿនរហ័សបំផុត (`BREAKING_ALERT_MIN_GAP = 5s`, VIP Critical = 3s — បញ្ជាផ្ទាល់)**:
-     - ផ្សាយព័ត៌មានទាន់ហេតុការណ៍ឱ្យបានលឿនបំផុតចូល Channel ភ្លាមៗនៅពេលមានព័ត៌មានចេញមក ដោយរក្សាគម្លាតសុវត្ថិភាពអប្បបរមាត្រឹមតែ ៥ វិនាទី (VIP Critical ត្រឹមតែ ៣ វិនាទី) ដើម្បីការពារ Telegram Rate Limit ដោយគ្មានការពន្យារពេល ឬកកស្ទះឡើយ។
+  3. **ស្តង់ដារកំណត់ចំនួនផ្សាយល្មមប្រចាំថ្ងៃ និងគម្លាតសុវត្ថិភាព VIP (Moderate Daily Volume & Pacing Standard — បញ្ជាផ្ទាល់)**:
+     - **កំណត់ចំនួនផ្សាយល្មមក្នុងមួយថ្ងៃ (MAX_DAILY_BREAKING_NEWS = 16 ព័ត៌មានអតិបរមា)**: ក្នុងមួយថ្ងៃផ្សាយព័ត៌មានទាន់ហេតុការណ៍ក្នុងកម្រិតសមរម្យល្មម (អតិបរមា ១២ ទៅ ១៦ ព័ត៌មានក្នុងមួយថ្ងៃ) ហាមដាច់ខាតកុំផ្សាយច្រើនជ្រុលនាំឱ្យរំខាន ឬក្លាយជា Spam។
+     - **គម្លាតរវាងការផ្សាយព័ត៌មាន (BREAKING_ALERT_MIN_GAP = 900s / 15 នាទី)**: រក្សាគម្លាតយ៉ាងហោចណាស់ ១៥ នាទីម្ដង ដើម្បីឱ្យអ្នកអានមានពេលអាន និងយល់សាច់រឿង លើកលែងតែមានអាសន្នវិបត្តិជាតិធ្ងន់ធ្ងរខ្លាំង (Tier-0 Crises: សង្គ្រាមផ្ទុះឡើង, នុយក្លេអ៊ែរ, អាសន្នជាតិ) ទើបអនុញ្ញាតគម្លាត ២ នាទី (120s)។
+     - **កាតព្វកិច្ចត្រូវតែមានរូបភាពគុណភាពខ្ពស់ (Strict High-Quality Image Mandatory)**: គ្រប់ព័ត៌មានដែលផ្សាយទាំងអស់ត្រូវតែមានរូបភាព Ultra-HD ឬ Video។ បើគ្មានរូបភាពច្បាស់ត្រឹមត្រូវតាមស្តង់ដារ VIP ទេ ត្រូវ Drop/Skip ចោលភ្លាម ហាមមិនឱ្យផ្សាយអត្ថបទសុទ្ធឡើយ (លើកលែងតែអាសន្នបន្ទាន់បំផុត)។
   4. **របាំងទប់ស្កាត់ប្រធានបទដដែលៗតាមវិស័យ (Macro Cluster Deduplication & Sector Cooldown Shield)**:
      - **Jobs / NFP / ការងារ**: Cooldown ៤ ម៉ោង (បើរាយការណ៍ពី NFP ឬ Jobs Report រួចហើយ ហាមដាច់ខាតមិនឱ្យផ្សាយប្រធានបទការងារដដែលៗពី Feed ផ្សេងទៀតឡើយ)។
      - **Inflation / អតិផរណា (CPI/PPI/PCE)**: Cooldown ៤ ម៉ោង។
@@ -157,7 +159,7 @@ This repository is governed by the 5 Golden Principles established by the system
      - **របាំងទប់ស្កាត់ការផ្សាយឈ្មោះបុគ្គល ឬមេដឹកនាំដដែលៗ (Entity & Key Figure Deduplication Shield — បញ្ជាផ្ទាល់)**: ហាមដាច់ខាតមិនឱ្យផ្សាយ ២ ព័ត៌មានជាប់គ្នានិយាយពីបុគ្គល ឬមេដឹកនាំដដែល (ឧ. Kevin Warsh, Donald Trump, Jerome Powell, Elon Musk, Putin, Zelenskyy, Netanyahu, TSMC, Nvidia, BlackRock ល) ក្នុងរយៈពេល ៣០ នាទី (Consecutive Entity Diversity) និងចាក់សោ Cooldown ១ ម៉ោង (3600s) ការពារកុំឱ្យព័ត៌មានដែលនិយាយពីសាច់រឿង ឬលេខទិន្នន័យស្រដៀងគ្នា (ឧ. ឱកាស 42% របស់ Kevin Warsh) អាចឆ្លៀតចេញផ្សាយជាន់គ្នាជាលើកទី ២ បានឡើយ។
   5. **ឃ្លាចេញពី Data ភ្លាមៗបន្ទាប់ពីផ្ញើសាររួច (Mandatory Post-Broadcast Data Eviction)**: ភ្លាមៗបន្ទាប់ពីសារមួយត្រូវបានផ្ញើចេញ ឬត្រូវបានច្រានចោល (Drop) ប្រព័ន្ធត្រូវតែហៅ `news_collector.clear_item(...)` ដើម្បីកម្ចាត់ និង Blacklist ចោលភ្លាមៗចេញពី Data Pool, ហៅ `database.clear_news_from_data(...)` ដើម្បីចាក់សោក្នុង SQLite និង `pending.clear()` សម្អាត Queue ចោលភ្លាម ដើម្បីកុំឱ្យមានទិន្នន័យចាស់សេសសល់ក្នុង Loop ឡើយ។
   6. **របាំងការពារព័ត៌មានចាស់ហួសសម័យកាល (Strict Freshness Shield — Zero Old News Guarantee — បញ្ជាផ្ទាល់)**:
-     - ផ្សាយតែព័ត៌មានដែលទើបតែចេញផ្សាយថ្មីៗស្រស់ៗមិនលើសពី ៤៥ ទៅ ៦០ នាទី (Strictly under 1 hour max, `MAX_NEWS_AGE = 3600s`) ប៉ុណ្ណោះ។
+     - ផ្សាយតែព័ត៌មានដែលទើបតែចេញផ្សាយថ្មីៗស្រស់ៗមិនលើសពី ៤៥ នាទី (Strictly under 1 hour max, `MAX_NEWS_AGE = 2700s`) ប៉ុណ្ណោះ។
      - ហាមដាច់ខាតមិនឱ្យទាញយក ឬផ្សាយព័ត៌មានចាស់ (អាយុកាលលើសពី ១ ម៉ោង ឬព័ត៌មានកាលពីម្សិលមិញ/ថ្ងៃមុន) មកផ្សាយចូល Channel ជាដាច់ខាត។ រាល់ព័ត៌មានដែលគ្មានម៉ោងច្បាស់លាស់ ឬអាយុកាលលើសពី ១ ម៉ោង ត្រូវ Drop/Skip ចោលភ្លាមៗដោយស្វ័យប្រវត្តិ។
 - **វិស័យស្នូលទាំង ៧ នៃព័ត៌មាន (The 7 Core News Pillars)**:
   1. 🌐 **សេដ្ឋកិច្ច (Economy)**: GDP, CPI, អតិផរណា, NFP, ការងារ, Retail Sales, PMI, កំណើនសេដ្ឋកិច្ច។
