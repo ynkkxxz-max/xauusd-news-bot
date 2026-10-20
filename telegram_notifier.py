@@ -200,10 +200,16 @@ def sanitize_khmer_editorial_text(text: str) -> str:
         "វគ្ណ្ឌ": "វគ្គ",
         "ចរក្សា": "ចិនរក្សា",
         "ធ្វើអោយ": "ធ្វើឱ្យ",
+        "ធ្វើរ៉ង់": "ធ្វើឱ្យអ៊ីរ៉ង់",
+        "ធ្វើ៊ីរ៉ង់": "ធ្វើឱ្យអ៊ីរ៉ង់",
         "ឿរ៉ង់": "អ៊ីរ៉ង់",
         "ប្រមាន": "ព្រមាន",
         "សហរដ្ធ": "សហរដ្ឋ",
         "សេដ្ធកិច្ច": "សេដ្ឋកិច្ច",
+        "អគ្លេស": "អង់គ្លេស",
+        "អត្រាកាប្រាក់": "អត្រាការប្រាក់",
+        "ពាណិជ្ចកម្ម": "ពាណិជ្ជកម្ម",
+        "កូដេន": "កាក់ឌីជីថល",
         "ទោះបីជាយ៉ាងណាក្តី": "ទោះជាយ៉ាងណាក្ដី",
     }
     for old_w, new_w in replacements.items():
@@ -260,13 +266,19 @@ class TelegramNotifier:
                 self.delete_message(message_id, chat_id=target_chat)
                 return False
 
-        # Check 4: Uncorrected typos
-        typos = ['ប្រមាន', 'ធ្វើអោយ', 'ឿរ៉ង់', 'អគ្លេស', 'សហរដ្ធ', 'សេដ្ធកិច្ច']
+        # Check 4: Uncorrected typos & forbidden words
+        typos = ['ប្រមាន', 'ធ្វើអោយ', 'ឿរ៉ង់', 'អគ្លេស', 'សហរដ្ធ', 'សេដ្ធកិច្ច', 'ធ្វើរ៉ង់', 'ធ្វើ៊ីរ៉ង់', 'កូដេន']
         for tp in typos:
             if tp in clean:
                 logger.critical(f"[WATCHDOG PURGE] Post #{message_id} contains forbidden typo '{tp}'. Auto-purging immediately!")
                 self.delete_message(message_id, chat_id=target_chat)
                 return False
+
+        # Check 5: Stray foreign suffixes (ing, ed) inside Khmer context
+        if re.search(r'[\u1780-\u17D3]+\s+(?:ing|ed)\b|\b(?:ing|ed)\s+[\u1780-\u17D3]+', clean, re.IGNORECASE):
+            logger.critical(f"[WATCHDOG PURGE] Post #{message_id} contains stray foreign suffix (ing/ed). Auto-purging immediately!")
+            self.delete_message(message_id, chat_id=target_chat)
+            return False
 
         logger.info(f"[WATCHDOG PASSED] Post #{message_id} passed all 100% quality checks ({vis_len}/{max_allowed} chars).")
         return True
