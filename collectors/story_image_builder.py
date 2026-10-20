@@ -205,6 +205,35 @@ class StoryImageBuilder:
                 return l_slug, p_path
         return "", ""
 
+    @classmethod
+    def get_available_topic_photo(cls, topic_key: str) -> str:
+        """
+        Dynamically finds the best, non-repeating topic photo from the gallery.
+        Rotates through variants (e.g. gold_bullion.jpg, gold_bullion_2.jpg)
+        and selects one that is NOT on 4-hour cooldown.
+        """
+        import glob
+        pattern = os.path.join(cls.TOPICS_DIR, f"{topic_key}*.jpg")
+        candidates = glob.glob(pattern)
+        if not candidates:
+            return ""
+
+        candidates.sort()
+        for c in candidates:
+            c_name = os.path.basename(c)
+            if cls.is_asset_on_cooldown(f"topic_{c_name}"):
+                continue
+            try:
+                import database
+                with open(c, "rb") as f:
+                    c_hash = database.calculate_image_dhash(f.read())
+                if c_hash and database.is_image_dhash_duplicate(c_hash, max_age_seconds=14400.0, max_hamming_dist=10):
+                    continue
+            except Exception:
+                pass
+            return c
+        return ""
+
 
     @classmethod
     def get_image_for_news(cls, item: dict, analysis: dict = None, default_fetcher=None) -> bytes:
@@ -533,13 +562,46 @@ class StoryImageBuilder:
             r'\b(ceo|chief executive|founder|executive|corporate|corporation|firm|company|earnings|revenue|investor)\b|នាយកប្រតិបត្តិ|ក្រុមហ៊ុន|សាជីវកម្ម',
             comb_text, re.IGNORECASE
         ))
-        if is_corporate_or_exec or len(headline_leaders) >= 1 or len(detected_brands) >= 1:
-            # Drop standalone national flags for corporate/CEO stories!
-            detected_countries = []
+        if not is_corporate_or_exec and len(headline_leaders) == 0 and len(detected_brands) == 0 and len(detected_countries) >= 1:
+            c_code, flag_path, _ = detected_countries[0]
+            if flag_path and os.path.exists(flag_path) and not cls.is_asset_on_cooldown(f"flag_{c_code}"):
+                logger.info(f"[StoryImageBuilder] Synthesizing Single Country VIP Flag Canvas for {c_code.upper()}")
+                flag_bytes = cls.create_single_flag_canvas(flag_path)
+                if flag_bytes:
+                    cls.record_asset_used(f"flag_{c_code}")
+                    return flag_bytes
 
+        # Step 6.5: Single Brand VIP Card (for major tech / market corporations)
+        if len(headline_leaders) == 0 and len(detected_brands) >= 1:
+            b_slug, b_path = detected_brands[0]
+            if b_path and os.path.exists(b_path) and not cls.is_asset_on_cooldown(f"brand_{b_slug}"):
+                logger.info(f"[StoryImageBuilder] Using Single Brand VIP Card for {b_slug.upper()}")
+                try:
+                    with open(b_path, "rb") as f:
+                        brand_bytes = cls.enhance_image_for_vip(f.read())
+                    if brand_bytes:
+                        cls.record_asset_used(f"brand_{b_slug}")
+                        return brand_bytes
+                except Exception as e:
+                    logger.warning(f"[StoryImageBuilder] Failed reading brand image {b_path}: {e}")
 
-        # Step 7: Live Real-Time Editorial Photo Search (Wikipedia Commons High-Res Press Wire)
-        # Search ONLY for confirmed specific modern living leaders or verified modern tech corporations
+        # Step 7: Macro Topics Multi-Variant VIP Photos (Gold, Oil, Fed, Wall Street, Crypto, AI Infrastructure, Naval)
+        for topic_key, pat in cls.TOPIC_PATTERNS:
+            if re.search(pat, comb_text, re.IGNORECASE):
+                t_path = cls.get_available_topic_photo(topic_key)
+                if t_path and os.path.exists(t_path):
+                    t_name = os.path.basename(t_path)
+                    logger.info(f"[StoryImageBuilder] Using Macro Topic VIP Photo for '{topic_key}': {t_name}")
+                    try:
+                        with open(t_path, "rb") as f:
+                            t_bytes = cls.enhance_image_for_vip(f.read())
+                        if t_bytes:
+                            cls.record_asset_used(f"topic_{t_name}")
+                            return t_bytes
+                    except Exception as e:
+                        logger.warning(f"[StoryImageBuilder] Failed reading topic image {t_path}: {e}")
+
+        # Step 7.5: Live Real-Time Editorial Photo Search (Wikipedia Commons High-Res Press Wire)
         live_queries = []
         if headline_leaders:
             l_key = headline_leaders[0][0].replace("_", " ")
@@ -559,6 +621,18 @@ class StoryImageBuilder:
                 live_queries.append("Apple Inc.")
             else:
                 live_queries.append(b_key)
+        elif detected_countries:
+            c_code = detected_countries[0][0]
+            country_names = {
+                "us": "United States Federal Reserve",
+                "jp": "Bank of Japan",
+                "gb": "Bank of England",
+                "eu": "European Central Bank",
+                "de": "Deutsche Bundesbank",
+                "cn": "People's Bank of China"
+            }
+            if c_code in country_names:
+                live_queries.append(country_names[c_code])
 
         for q in live_queries:
             live_img = cls.fetch_live_editorial_photo(q, headline_text=headline_text)
@@ -573,7 +647,6 @@ class StoryImageBuilder:
                     pass
                 logger.info(f"[StoryImageBuilder] Successfully acquired verified editorial photo for query '{q}'.")
                 return live_img
-
 
         # Step 8: Mode B Fallback Guarantee
         # If no authentic direct publisher photo or verified single leader/split asset exists, return None!
