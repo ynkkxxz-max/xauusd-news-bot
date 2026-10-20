@@ -1517,7 +1517,7 @@ class XAUUSDNewsAssistantBot:
     def audit_live_channel_and_heal(self):
         """Autonomous Self-Healing Auditor: Automatically detects & purges duplicate messages or overlapping images on the channel!"""
         now = time.time()
-        if (now - getattr(self, "_last_channel_audit_ts", 0)) < 120.0:
+        if (now - getattr(self, "_last_channel_audit_ts", 0)) < 15.0:
             return
         self._last_channel_audit_ts = now
 
@@ -1546,6 +1546,7 @@ class XAUUSDNewsAssistantBot:
                 posts.append({
                     "id": pid,
                     "text": clean_text,
+                    "raw_html": m_text.group(1) if m_text else "",
                     "photo_url": photo_url,
                     "has_video": has_video
                 })
@@ -1606,6 +1607,23 @@ class XAUUSDNewsAssistantBot:
                     self.notifier.delete_message(pid)
                     continue
 
+                # Missing sovereign flag
+                first_line = clean_vis.splitlines()[0] if clean_vis else ""
+                if not re.search(r'[\U0001F1E0-\U0001F1FF]{2}|🌐|🥇|📅|📊', first_line):
+                    logger.critical(f"[AUTO-HEALING PURGE] Post #{pid} missing sovereign flag emoji. Purging immediately!")
+                    self.notifier.delete_message(pid)
+                    continue
+
+                # Colons or ellipsis in headline
+                raw_h = p.get("raw_html", "")
+                m_head = re.search(r'<b>(.*?)</b>', raw_h, re.DOTALL)
+                if m_head:
+                    head_txt = m_head.group(1)
+                    if re.search(r'[៖:：]|[\.]{3,}|…', head_txt):
+                        logger.critical(f"[AUTO-HEALING PURGE] Post #{pid} contains colon/ellipsis in headline. Purging immediately!")
+                        self.notifier.delete_message(pid)
+                        continue
+
                 forbidden_typos = ['ប្រមាន', 'ធ្វើអោយ', 'ឿរ៉ង់', 'អគ្លេស', 'សហរដ្ធ', 'សេដ្ធកិច្ច', 'ធ្វើរ៉ង់', 'ធ្វើ៊ីរ៉ង់', 'កូដេន', 'លីគីឌីធី', 'ដ្ររដោន', 'តេហេឿរ៉ង់', 'សមរភូមិ្តមុខ']
                 has_forbidden_typo = False
                 for tp in forbidden_typos:
@@ -1621,6 +1639,12 @@ class XAUUSDNewsAssistantBot:
                 war_terms = ['សង្គ្រាម', 'វាយប្រហារ', 'ដ្រូន', 'មីស៊ីល', 'ទាហាន', 'ស្លាប់', 'ផ្ទុះ', 'សមរភូមិ']
                 if any(w in clean_vis for w in war_terms) and '🔹 ផលវិជ្ជមាន' in clean_vis:
                     logger.critical(f"[AUTO-HEALING PURGE] Post #{pid} contains contradictory positive sentiment on war/conflict. Purging immediately!")
+                    self.notifier.delete_message(pid)
+                    continue
+
+                # 6. Non-VIP emojis
+                if re.search(r'[🚀🔥💥💰🎉🤑💩🤡]', clean_vis):
+                    logger.critical(f"[AUTO-HEALING PURGE] Post #{pid} contains forbidden non-VIP emoji. Purging immediately!")
                     self.notifier.delete_message(pid)
                     continue
         except Exception as e:
