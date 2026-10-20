@@ -173,6 +173,7 @@ class XAUUSDNewsAssistantBot:
             logger.info(f"AI analysis chain ENABLED: {' -> '.join(names)} -> rules")
         else:
             logger.info("No AI keys configured — using rule-based MacroAnalyzer fallback.")
+        self._enforce_single_instance_lock()
         logger.info("Initializing XAUUSD News Assistant Bot (Cambodia Time UTC+7)...")
         self._calendar_attached = False
         self._session_alert_locks = set()
@@ -199,6 +200,61 @@ class XAUUSDNewsAssistantBot:
                 logger.warning(f"Could not start HTTP health server on port {port_env}: {e}")
 
         self._bootstrap_news_cache()
+
+    def _enforce_single_instance_lock(self):
+        """
+        Guarantees 100% single-instance execution using bot.lock file.
+        If an older or orphaned bot process is found running, terminates it immediately.
+        Acquires exclusive OS-level PID registration to prevent concurrent runs physically.
+        """
+        import os
+        import sys
+        import atexit
+        lock_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot.lock")
+        current_pid = os.getpid()
+        
+        # Check if lock file exists
+        if os.path.exists(lock_file_path):
+            try:
+                with open(lock_file_path, "r", encoding="utf-8") as f:
+                    old_pid_str = f.read().strip()
+                if old_pid_str.isdigit():
+                    old_pid = int(old_pid_str)
+                    if old_pid != current_pid:
+                        try:
+                            import psutil
+                            if psutil.pid_exists(old_pid):
+                                proc = psutil.Process(old_pid)
+                                logger.warning(f"[PROCESS LOCK] Detected older orphaned bot process (PID: {old_pid}). Terminating it now...")
+                                proc.terminate()
+                                proc.wait(timeout=3)
+                        except Exception:
+                            try:
+                                if os.name == 'nt':
+                                    os.system(f"taskkill /PID {old_pid} /F >nul 2>&1")
+                                else:
+                                    os.kill(old_pid, 9)
+                            except Exception:
+                                pass
+            except Exception as e:
+                logger.warning(f"[PROCESS LOCK] Error checking old lock: {e}")
+
+        # Write current PID
+        try:
+            with open(lock_file_path, "w", encoding="utf-8") as f:
+                f.write(str(current_pid))
+            def _cleanup_lock():
+                try:
+                    if os.path.exists(lock_file_path):
+                        with open(lock_file_path, "r", encoding="utf-8") as f:
+                            if f.read().strip() == str(current_pid):
+                                os.remove(lock_file_path)
+                except Exception:
+                    pass
+            atexit.register(_cleanup_lock)
+            logger.info(f"[PROCESS LOCK] Acquired exclusive single-instance lock for PID {current_pid}.")
+        except Exception as e:
+            logger.warning(f"[PROCESS LOCK] Could not write lock file: {e}")
 
     def _start_self_pinger(self):
         """Pings public URL every 8 minutes to prevent Render Free Tier from idling or sleeping."""
@@ -1473,11 +1529,13 @@ class XAUUSDNewsAssistantBot:
                 m_photos = re.findall(r'background-image:url\(\'([^\']+)\'\)', part)
                 real_photos = [p for p in m_photos if 'emoji' not in p]
                 photo_url = real_photos[0] if real_photos else None
+                has_video = bool(re.search(r'tgme_widget_message_video|tgme_widget_message_roundvideo|<video', part))
 
                 posts.append({
                     "id": pid,
                     "text": clean_text,
-                    "photo_url": photo_url
+                    "photo_url": photo_url,
+                    "has_video": has_video
                 })
 
             # 1. Check for duplicated photo URLs among recent 15 posts
@@ -1510,7 +1568,7 @@ class XAUUSDNewsAssistantBot:
                         continue
                     seen_stories[hl_clean] = pid
 
-            # 3. AI Semantic Event Deduplication Gate: Intercept & purge posts reporting on the exact SAME event under different headlines
+            # 3. AI Semantic Event Deduplication Gate
             if SemanticEventDeduplicator and len(posts) >= 2:
                 try:
                     semantic_dups = SemanticEventDeduplicator.find_duplicate_posts_in_channel(posts)
@@ -1519,6 +1577,29 @@ class XAUUSDNewsAssistantBot:
                         self.notifier.delete_message(dup_pid)
                 except Exception as e:
                     logger.debug(f"[audit_live_channel_and_heal semantic check error] {e}")
+
+            # 4. Strict Real-Time Limit & Zero Spelling Violation Audit
+            for p in posts[-15:]:
+                pid = p["id"]
+                txt = p["text"]
+                if not txt:
+                    continue
+                if txt.startswith("🥇") or txt.startswith("📊") or txt.startswith("---") or txt.startswith("📅"):
+                    continue
+                has_media = bool(p.get("photo_url") or p.get("has_video"))
+                max_vis = 574 if has_media else 750
+                clean_vis = re.sub(r'<[^>]+>', '', txt).strip()
+                if len(clean_vis) > max_vis:
+                    logger.critical(f"[AUTO-HEALING PURGE] Post #{pid} breached character limit ({len(clean_vis)} > {max_vis}). Purging immediately!")
+                    self.notifier.delete_message(pid)
+                    continue
+
+                forbidden_typos = ['ប្រមាន', 'ធ្វើអោយ', 'ឿរ៉ង់', 'អគ្លេស', 'សហរដ្ធ', 'សេដ្ធកិច្ច', 'ធ្វើរ៉ង់', 'ធ្វើ៊ីរ៉ង់', 'កូដេន', 'លីគីឌីធី', 'ដ្ររដោន', 'តេហេឿរ៉ង់']
+                for tp in forbidden_typos:
+                    if tp in clean_vis:
+                        logger.critical(f"[AUTO-HEALING PURGE] Post #{pid} contains forbidden typo '{tp}'. Purging immediately!")
+                        self.notifier.delete_message(pid)
+                        break
         except Exception as e:
             logger.debug(f"[audit_live_channel_and_heal error] {e}")
 
@@ -2135,6 +2216,7 @@ class XAUUSDNewsAssistantBot:
                     try:
                         self.check_database_maintenance()
                         self.check_daily_gold_price()
+                        self.audit_live_channel_and_heal()
                         background_interval = self.check_economic_events()
                     except Exception as err:
                         logger.error(f"Error during background task check: {err}", exc_info=True)
