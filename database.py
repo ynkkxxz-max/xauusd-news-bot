@@ -72,9 +72,19 @@ def init_db():
         UNIQUE(signal_id, user_id)
     )
     """)
+
+    # Table for tracking sent image perceptual hashes (Zero Image Repetition Guarantee)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS sent_image_hashes (
+        dhash TEXT PRIMARY KEY,
+        sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_epoch REAL
+    )
+    """)
     
     conn.commit()
     conn.close()
+
 
 def is_event_stage_sent(event_id: str, stage: str, actual_val: str = None) -> bool:
     """Check if specific stage of an event was already sent.
@@ -400,5 +410,75 @@ def get_signal_subscribers() -> list:
     conn.close()
     return [r[0] for r in rows]
 
+def calculate_image_dhash(img_bytes: bytes, hash_size: int = 8) -> str:
+    """Calculates 64-bit difference hash (dHash) for visual perceptual image comparison."""
+    if not img_bytes or len(img_bytes) < 100:
+        return ""
+    try:
+        import io
+        from PIL import Image
+        with Image.open(io.BytesIO(img_bytes)) as im:
+            im = im.convert('L').resize((hash_size + 1, hash_size), Image.Resampling.LANCZOS)
+            pixels = list(im.getdata())
+            diff = []
+            for row in range(hash_size):
+                for col in range(hash_size):
+                    p_left = pixels[row * (hash_size + 1) + col]
+                    p_right = pixels[row * (hash_size + 1) + col + 1]
+                    diff.append(p_left > p_right)
+            decimal_val = 0
+            hex_str = []
+            for idx, val in enumerate(diff):
+                if val:
+                    decimal_val += 2 ** (idx % 4)
+                if (idx % 4) == 3:
+                    hex_str.append(hex(decimal_val)[2:])
+                    decimal_val = 0
+            return ''.join(hex_str)
+    except Exception:
+        return ""
+
+def record_image_dhash(dhash: str):
+    """Records image perceptual dHash to enforce 24-hour zero image repetition."""
+    if not dhash:
+        return
+    import time
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+    INSERT OR REPLACE INTO sent_image_hashes (dhash, sent_at, created_epoch)
+    VALUES (?, datetime('now'), ?)
+    """, (dhash, time.time()))
+    conn.commit()
+    conn.close()
+
+def is_image_dhash_duplicate(dhash: str, max_age_seconds: float = 86400.0, max_hamming_dist: int = 10) -> bool:
+    """
+    Checks if an image visually matches any image broadcasted within max_age_seconds (default 24h).
+    Hamming distance <= 10 means visually identical or near-identical image.
+    """
+    if not dhash:
+        return False
+    import time
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cutoff = time.time() - max_age_seconds
+    cursor.execute("SELECT dhash FROM sent_image_hashes WHERE created_epoch >= ?", (cutoff,))
+    rows = cursor.fetchall()
+    conn.close()
+
+    def hamming_dist(h1, h2):
+        try:
+            return bin(int(h1, 16) ^ int(h2, 16)).count('1')
+        except Exception:
+            return 999
+
+    for (existing_hash,) in rows:
+        dist = hamming_dist(dhash, existing_hash)
+        if dist <= max_hamming_dist:
+            return True
+    return False
+
 # Initialize upon import
 init_db()
+
