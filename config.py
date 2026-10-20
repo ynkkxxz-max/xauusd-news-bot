@@ -34,9 +34,12 @@ USE_GEMINI = os.getenv("USE_GEMINI", "true").lower() in ("true", "1", "yes")
 GEMINI_MIN_INTERVAL = float(os.getenv("GEMINI_MIN_INTERVAL", "20"))
 GEMINI_COOLDOWN = float(os.getenv("GEMINI_COOLDOWN", "900"))
 
-# Minimum seconds between two breaking-news alerts (Anti-Burst Cadence: 240s / 4 minutes)
-# Prevents channel flood and wire duplicate collisions while ensuring VIP pacing.
-BREAKING_ALERT_MIN_GAP = float(os.getenv("BREAKING_ALERT_MIN_GAP", "240"))
+# Minimum seconds between two breaking-news alerts (VIP Curation Pacing: 900s / 15 minutes)
+# Prevents channel flood and wire duplicate collisions while ensuring VIP pacing per user directive.
+BREAKING_ALERT_MIN_GAP = float(os.getenv("BREAKING_ALERT_MIN_GAP", "900"))
+
+# Maximum breaking news broadcasts per day (12-16 posts max) to keep channel curated and premium
+MAX_DAILY_BREAKING_NEWS = int(os.getenv("MAX_DAILY_BREAKING_NEWS", "16"))
 
 
 # Timezone (Cambodia Time UTC+7)
