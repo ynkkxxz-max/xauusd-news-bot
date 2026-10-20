@@ -233,6 +233,15 @@ class StoryImageBuilder:
             try:
                 direct_photo = default_fetcher(item)
                 if direct_photo:
+                    try:
+                        import database
+                        dh = database.calculate_image_dhash(direct_photo)
+                        if dh and database.is_image_dhash_duplicate(dh, max_age_seconds=86400.0, max_hamming_dist=10):
+                            logger.warning(f"[StoryImageBuilder] Direct publisher photo matches 24h hash ({dh}). Skipping candidate.")
+                            direct_photo = None
+                    except Exception:
+                        pass
+                if direct_photo:
                     direct_hash = hashlib.md5(direct_photo[:1000]).hexdigest()
                     if not cls.is_asset_on_cooldown(f"direct_{direct_hash}"):
                         cls.record_asset_used(f"direct_{direct_hash}")
