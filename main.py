@@ -1606,12 +1606,23 @@ class XAUUSDNewsAssistantBot:
                     self.notifier.delete_message(pid)
                     continue
 
-                forbidden_typos = ['ប្រមាន', 'ធ្វើអោយ', 'ឿរ៉ង់', 'អគ្លេស', 'សហរដ្ធ', 'សេដ្ធកិច្ច', 'ធ្វើរ៉ង់', 'ធ្វើ៊ីរ៉ង់', 'កូដេន', 'លីគីឌីធី', 'ដ្ររដោន', 'តេហេឿរ៉ង់']
+                forbidden_typos = ['ប្រមាន', 'ធ្វើអោយ', 'ឿរ៉ង់', 'អគ្លេស', 'សហរដ្ធ', 'សេដ្ធកិច្ច', 'ធ្វើរ៉ង់', 'ធ្វើ៊ីរ៉ង់', 'កូដេន', 'លីគីឌីធី', 'ដ្ររដោន', 'តេហេឿរ៉ង់', 'សមរភូមិ្តមុខ']
+                has_forbidden_typo = False
                 for tp in forbidden_typos:
                     if tp in clean_vis:
                         logger.critical(f"[AUTO-HEALING PURGE] Post #{pid} contains forbidden typo '{tp}'. Purging immediately!")
                         self.notifier.delete_message(pid)
+                        has_forbidden_typo = True
                         break
+                if has_forbidden_typo:
+                    continue
+
+                # 5. Strict Sentiment Honesty Gate (War / Combat / Missiles cannot have 🔹 ផលវិជ្ជមាន)
+                war_terms = ['សង្គ្រាម', 'វាយប្រហារ', 'ដ្រូន', 'មីស៊ីល', 'ទាហាន', 'ស្លាប់', 'ផ្ទុះ', 'សមរភូមិ']
+                if any(w in clean_vis for w in war_terms) and '🔹 ផលវិជ្ជមាន' in clean_vis:
+                    logger.critical(f"[AUTO-HEALING PURGE] Post #{pid} contains contradictory positive sentiment on war/conflict. Purging immediately!")
+                    self.notifier.delete_message(pid)
+                    continue
         except Exception as e:
             logger.debug(f"[audit_live_channel_and_heal error] {e}")
 
