@@ -1222,13 +1222,25 @@ class XAUUSDNewsAssistantBot:
                 logger.warning(f"Direct news image fetch failed: {e}")
 
         # 2. Extract genuine article image directly from the publisher's web page
-        is_deep_article = (
-            link.count("/") >= 4 and
-            not any(link.rstrip("/").endswith(sec) for sec in ["/world", "/news", "/politics", "/markets", "/business", "/economy", "/home"])
-        )
-        if link and link.startswith("http") and "news.google.com" not in link and is_deep_article:
+        target_link = link or ""
+        if "news.google.com" in target_link and "/articles/" in target_link:
             try:
-                art_resp = requests.get(link, headers=headers, timeout=2.5)
+                import base64
+                s_part = target_link.split("/articles/")[1].split("?")[0]
+                decoded_b = base64.b64decode(s_part + "==").decode("latin1", errors="ignore")
+                m_url = re.search(r"https?://[^\x00-\x1f\x7f-\x9f\"\'\<\>]+", decoded_b)
+                if m_url:
+                    target_link = m_url.group(0).rstrip("/.") + "/"
+            except Exception:
+                pass
+
+        is_deep_article = (
+            target_link.count("/") >= 4 and
+            not any(target_link.rstrip("/").endswith(sec) for sec in ["/world", "/news", "/politics", "/markets", "/business", "/economy", "/home"])
+        )
+        if target_link and target_link.startswith("http") and "news.google.com" not in target_link and is_deep_article:
+            try:
+                art_resp = requests.get(target_link, headers=headers, timeout=2.5)
                 if art_resp.status_code == 200:
                     patterns = [
                         r'<meta[^>]+property=[\'"]og:image[\'"][^>]+content=[\'"]([^\'"]+)[\'"]',
