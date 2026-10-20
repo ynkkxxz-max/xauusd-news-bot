@@ -187,6 +187,29 @@ def enforce_telegram_char_limit(text: str, max_visible: int) -> str:
 
     return res
 
+def sanitize_khmer_editorial_text(text: str) -> str:
+    """Removes stray English suffixes/words and fixes known Khmer editorial typos."""
+    if not text:
+        return text
+    import re
+    # Remove stray English suffixes stuck in Khmer text (e.g. " ing ", " ed ")
+    text = re.sub(r'(?<=[\u1780-\u17D3])\s+(?:ing|ed)\b', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'\b(?:ing|ed)\b(?=\s+[\u1780-\u17D3])', '', text, flags=re.IGNORECASE)
+    # Fix known editorial slips
+    replacements = {
+        "វគ្ណ្ឌ": "វគ្គ",
+        "ចរក្សា": "ចិនរក្សា",
+        "ធ្វើអោយ": "ធ្វើឱ្យ",
+        "ឿរ៉ង់": "អ៊ីរ៉ង់",
+        "ប្រមាន": "ព្រមាន",
+        "សហរដ្ធ": "សហរដ្ឋ",
+        "សេដ្ធកិច្ច": "សេដ្ឋកិច្ច",
+        "ទោះបីជាយ៉ាងណាក្តី": "ទោះជាយ៉ាងណាក្ដី",
+    }
+    for old_w, new_w in replacements.items():
+        text = text.replace(old_w, new_w)
+    return text
+
 class TelegramNotifier:
     def __init__(self, bot_token: str = None, chat_id: str = None):
         self.bot_token = (bot_token or TELEGRAM_BOT_TOKEN).strip()
@@ -251,6 +274,11 @@ class TelegramNotifier:
     def send_message(self, text: str, parse_mode: str = "HTML", disable_web_page_preview: bool = True, auto_pin: bool = False, reply_markup: dict = None, chat_id: str = None) -> dict:
         """Send message directly to Telegram channel/chat. If auto_pin is True, pins the message."""
         import re
+        import time
+
+        # Lexical Sanitization
+        text = sanitize_khmer_editorial_text(text)
+
         # Circuit Breaker 1: Drop empty or dangerously short stubs (< 35 visible characters)
         clean_vis = re.sub(r'<[^>]+>', '', text or "").strip()
         if len(clean_vis) < 35:
@@ -266,6 +294,15 @@ class TelegramNotifier:
             return {"ok": True, "result": {"message_id": 999999, "simulated": True}}
 
         target_chat = str(chat_id or self.chat_id)
+
+        # Anti-Flood Cadence Guard: strictly maintain at least 150 seconds between channel alerts
+        if target_chat == str(self.chat_id) and not text.startswith("🥇") and hasattr(self, "_last_channel_post_time"):
+            elapsed = time.time() - getattr(self, "_last_channel_post_time", 0.0)
+            if elapsed < 150.0:
+                wait_sec = min(150.0 - elapsed, 45.0)
+                logger.info(f"[Anti-Flood Guard] Spacing channel post by {wait_sec:.1f}s to prevent subscriber flood...")
+                time.sleep(wait_sec)
+
         url = f"{self.base_url}/sendMessage"
         if parse_mode == "HTML" and text:
             text = re.sub(r'&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[a-fA-F0-9]+);)', '&amp;', text)
@@ -312,6 +349,8 @@ class TelegramNotifier:
             
             message_id = data.get("result", {}).get("message_id")
             logger.info(f"[TelegramNotifier] Message sent successfully (ID: {message_id})")
+            if target_chat == str(self.chat_id):
+                self._last_channel_post_time = time.time()
 
             # WORLD-CLASS POST-DISPATCH WATCHDOG AUDIT
             if message_id:
@@ -328,6 +367,9 @@ class TelegramNotifier:
 
     def send_photo(self, photo_bytes: bytes, caption: str = "", parse_mode: str = "HTML", reply_markup: dict = None, chat_id: str = None) -> dict:
         import re
+        import time
+        from database import calculate_image_dhash, is_image_dhash_duplicate, record_image_dhash
+
         if isinstance(photo_bytes, str) and os.path.isfile(photo_bytes):
             with open(photo_bytes, "rb") as f:
                 photo_bytes = f.read()
@@ -337,19 +379,42 @@ class TelegramNotifier:
             logger.warning("[TelegramNotifier] Circuit Breaker: Invalid photo bytes. Seamless fallback to MODE B (send_message).")
             return self.send_message(text=caption, parse_mode=parse_mode, reply_markup=reply_markup, chat_id=chat_id)
 
+        # Lexical Sanitization
+        caption = sanitize_khmer_editorial_text(caption)
+
         # Circuit Breaker 3: Drop empty or dangerously short captions (< 35 visible characters)
         clean_vis = re.sub(r'<[^>]+>', '', caption or "").strip()
         if len(clean_vis) < 35:
             logger.warning(f"[TelegramNotifier] Circuit Breaker ACTIVATED: Caption too short ({len(clean_vis)} chars). Dropping post.")
             return {"ok": False, "error": "Circuit Breaker: Caption too short or empty"}
 
+        # STRICT ZERO IMAGE REPETITION GUARD (24-Hour Perceptual dHash Check):
+        # If this image visually matches any photo sent within the past 24 hours (86,400s),
+        # IMMEDIATELY INTERCEPT AND DROP THE PHOTO! Seamlessly fallback to MODE B (Clean VIP Text Mode)!
+        img_dhash = ""
+        is_daily_gold_card = caption and caption.startswith("🥇")
+        if not is_daily_gold_card:
+            img_dhash = calculate_image_dhash(photo_bytes)
+            if img_dhash and is_image_dhash_duplicate(img_dhash, max_age_seconds=86400.0, max_hamming_dist=10):
+                logger.critical(f"[STRICT ANTI-REPETITION INTERCEPT] Image dHash '{img_dhash}' matches an image broadcasted within 24h! Auto-dropping image and falling back to MODE B (Clean VIP Text Mode).")
+                return self.send_message(text=caption, parse_mode=parse_mode, reply_markup=reply_markup, chat_id=chat_id)
+
         if not self.is_configured():
             logger.warning(f"[TelegramNotifier] Credentials not set. Simulated photo upload ({len(photo_bytes) if photo_bytes else 0} bytes).")
             return {"ok": True, "result": {"message_id": 999998, "simulated": True}}
 
         target_chat = str(chat_id or self.chat_id)
+
+        # Anti-Flood Cadence Guard: strictly maintain at least 150 seconds between channel alerts
+        if target_chat == str(self.chat_id) and not is_daily_gold_card and hasattr(self, "_last_channel_post_time"):
+            elapsed = time.time() - getattr(self, "_last_channel_post_time", 0.0)
+            if elapsed < 150.0:
+                wait_sec = min(150.0 - elapsed, 45.0)
+                logger.info(f"[Anti-Flood Guard] Spacing channel photo post by {wait_sec:.1f}s to prevent subscriber flood...")
+                time.sleep(wait_sec)
+
         url = f"{self.base_url}/sendPhoto"
-        files = {"photo": ("calendar.png", photo_bytes, "image/png")}
+        files = {"photo": ("news_photo.png", photo_bytes, "image/png")}
         data = {"chat_id": target_chat}
         if caption:
             # Bulletproof gate: Photo captions strictly <= 574 characters per user constitutional rule
@@ -368,6 +433,13 @@ class TelegramNotifier:
             resp = requests.post(url, data=data, files=files, timeout=30)
             result = resp.json()
             if result.get("ok"):
+                logger.info(f"[TelegramNotifier] Photo sent (ID: {result.get('result', {}).get('message_id')})")
+                if target_chat == str(self.chat_id):
+                    self._last_channel_post_time = time.time()
+                # Record perceptual dHash into database to lock it for 24 hours
+                if img_dhash and not is_daily_gold_card:
+                    record_image_dhash(img_dhash)
+
                 logger.info(f"[TelegramNotifier] Photo sent (ID: {result.get('result', {}).get('message_id')})")
             else:
                 logger.error(f"[TelegramNotifier] Error sending photo: {result}")
