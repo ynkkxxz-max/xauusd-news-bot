@@ -222,6 +222,28 @@ class BreakingNewsCollector:
 
         return ""
 
+    def _extract_video(self, entry) -> str:
+        """Pulls authentic direct video URL (.mp4, .webm) from RSS entry if available."""
+        # 1. Check enclosure for video/mp4
+        for enc in entry.findall("enclosure"):
+            url = (enc.get("url") or "").strip()
+            typ = (enc.get("type") or "").lower()
+            if url and url.startswith("http") and ("video" in typ or url.lower().endswith(('.mp4', '.mov', '.webm'))):
+                return url
+
+        # 2. Check media:content for video
+        for tag in ("{http://search.yahoo.com/mrss/}content", "media:content"):
+            for node in entry.findall(tag):
+                url = (node.get("url") or "").strip()
+                if not url or not url.startswith("http"):
+                    continue
+                med = (node.get("medium") or "").lower()
+                typ = (node.get("type") or "").lower()
+                if med == "video" or "video" in typ or url.lower().endswith(('.mp4', '.mov', '.webm')):
+                    return url
+
+        return ""
+
     def _fetch_single_feed(self, source_name: str, feed_url: str) -> list:
         """Fetches and parses a single RSS feed."""
         items = []
@@ -323,6 +345,8 @@ class BreakingNewsCollector:
                         if img_url and any(bad in img_url.lower() for bad in ["googleusercontent", "gstatic", "google", "logo", "icon", "avatar", "1x1"]):
                             img_url = ""
 
+                        video_url = self._extract_video(entry)
+
                         item_id = hashlib.md5((title + link).encode("utf-8")).hexdigest()
                         items.append({
                             "id": item_id,
@@ -331,7 +355,8 @@ class BreakingNewsCollector:
                             "pub_date": pub_date,
                             "description": clean_desc,
                             "source": actual_source,
-                            "image_url": img_url
+                            "image_url": img_url,
+                            "video_url": video_url
                         })
         except Exception as e:
             logger.debug(f"[BreakingNewsCollector] Fetch failed for {source_name}: {e}")
