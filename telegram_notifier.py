@@ -233,7 +233,7 @@ class TelegramNotifier:
     def is_configured(self) -> bool:
         return bool(self.bot_token and self.chat_id and self.bot_token != "YOUR_TELEGRAM_BOT_TOKEN_HERE")
 
-    def _post_dispatch_watchdog(self, message_id: int, is_photo: bool, target_chat: str, raw_text: str) -> bool:
+    def _post_dispatch_watchdog(self, message_id: int, is_photo: bool = False, target_chat: str = None, raw_text: str = "") -> bool:
         """
         World-Class Zero-Defect Post-Dispatch Watchdog.
         Audits every message delivered to the channel. If ANY constitutional rule is breached,
@@ -275,7 +275,7 @@ class TelegramNotifier:
                 return False
 
         # Check 4: Uncorrected typos & forbidden words
-        typos = ['ប្រមាន', 'ធ្វើអោយ', 'ឿរ៉ង់', 'អគ្លេស', 'សហរដ្ធ', 'សេដ្ធកិច្ច', 'ធ្វើរ៉ង់', 'ធ្វើ៊ីរ៉ង់', 'កូដេន', 'លីគីឌីធី', 'ដ្ររដោន', 'តេហេឿរ៉ង់']
+        typos = ['ប្រមាន', 'ធ្វើអោយ', 'ឿរ៉ង់', 'អគ្លេស', 'សហរដ្ធ', 'សេដ្ធកិច្ច', 'ធ្វើរ៉ង់', 'ធ្វើ៊ីរ៉ង់', 'កូដេន', 'លីគីឌីធី', 'ដ្ររដោន', 'តេហេឿរ៉ង់', 'សមរភូមិ្តមុខ']
         for tp in typos:
             if tp in clean:
                 logger.critical(f"[WATCHDOG PURGE] Post #{message_id} contains forbidden typo '{tp}'. Auto-purging immediately!")
@@ -291,6 +291,13 @@ class TelegramNotifier:
         # Check 6: Forbidden non-VIP emojis (rockets, fire, meme emojis)
         if re.search(r'[🚀🔥💥💰🎉🤑💩🤡]', clean):
             logger.critical(f"[WATCHDOG PURGE] Post #{message_id} contains forbidden non-VIP emoji. Auto-purging immediately!")
+            self.delete_message(message_id, chat_id=target_chat)
+            return False
+
+        # Check 7: Contradictory war news sentiment
+        war_terms = ['សង្គ្រាម', 'វាយប្រហារ', 'ដ្រូន', 'មីស៊ីល', 'ទាហាន', 'ស្លាប់', 'ផ្ទុះ', 'សមរភូមិ']
+        if any(w in clean for w in war_terms) and '🔹 ផលវិជ្ជមាន' in clean:
+            logger.critical(f"[WATCHDOG PURGE] Post #{message_id} contains contradictory positive sentiment on war/conflict. Auto-purging immediately!")
             self.delete_message(message_id, chat_id=target_chat)
             return False
 
@@ -824,21 +831,6 @@ class TelegramNotifier:
         except Exception as e:
             logger.error(f"[TelegramNotifier] Exception deleting message {message_id}: {e}")
             return False
-
-    def _post_dispatch_watchdog(self, message_id: int, is_photo: bool = False, target_chat: str = None, raw_text: str = "") -> bool:
-        """Post-dispatch failsafe watchdog. If message violates character limits or severe spelling rules, purges it instantly!"""
-        try:
-            import re
-            clean_text = re.sub(r'<[^>]+>', '', raw_text or "").strip()
-            max_allowed = 574 if is_photo else 750
-            if len(clean_text) > (max_allowed + 20):
-                logger.error(f"[WATCHDOG PURGE] Message {message_id} exceeded limit ({len(clean_text)} > {max_allowed}). Purging from channel!")
-                self.delete_message(message_id, chat_id=target_chat)
-                return False
-            return True
-        except Exception as e:
-            logger.error(f"[Watchdog Error] {e}")
-            return True
 
 
 
