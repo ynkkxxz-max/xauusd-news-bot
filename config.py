@@ -38,8 +38,8 @@ GEMINI_COOLDOWN = float(os.getenv("GEMINI_COOLDOWN", "900"))
 # Prevents channel flood and wire duplicate collisions while ensuring VIP pacing per user directive.
 BREAKING_ALERT_MIN_GAP = float(os.getenv("BREAKING_ALERT_MIN_GAP", "900"))
 
-# Maximum breaking news broadcasts per day (12-16 posts max) to keep channel curated and premium
-MAX_DAILY_BREAKING_NEWS = int(os.getenv("MAX_DAILY_BREAKING_NEWS", "16"))
+# Maximum breaking news broadcasts per day (0 = Unlimited / Free broadcast per user directive to attract channel members)
+MAX_DAILY_BREAKING_NEWS = int(os.getenv("MAX_DAILY_BREAKING_NEWS", "0"))
 
 
 # Timezone (Cambodia Time UTC+7)
