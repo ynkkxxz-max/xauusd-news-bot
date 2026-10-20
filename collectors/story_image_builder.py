@@ -43,9 +43,12 @@ class StoryImageBuilder:
         ("nvidia", r"\b(nvidia)\b|អិនវីឌា"),
         ("apple", r"\b(apple|iphone)\b|អាប់ផល"),
         ("openai", r"\b(openai|chatgpt)\b|អូផឹនអេអាយ"),
+        ("anthropic", r"\b(anthropic|claude)\b|អានស្រូភិក|អែនស្រូភិក|ក្លូដ"),
+        ("xai", r"\b(xai|grok)\b|អ៊ិចអេអាយ|ហ្គ្រក"),
         ("microsoft", r"\b(microsoft)\b|ម៉ៃក្រូសូហ្វ"),
         ("google", r"\b(google|alphabet)\b|ហ្គូហ្គល"),
         ("intel", r"\b(intel)\b|អ៊ីនធែល"),
+        ("amd", r"\b(amd)\b|អេអឹមឌី"),
         ("amazon", r"\b(amazon|aws)\b|អាម៉ាហ្សូន"),
         ("blackrock", r"\b(blackrock)\b|ប៊្លែករ៉ក់"),
     ]
@@ -58,6 +61,7 @@ class StoryImageBuilder:
         ("jerome_powell", r"\b(powell|jerome powell)\b|ផៅវែល|ផូវែល"),
         ("kevin_warsh", r"\b(warsh|kevin warsh)\b|វ៉ាស|ខេវិន វ៉ាស"),
         ("elon_musk", r"\b(musk|elon musk)\b|ម៉ាស|អេឡុន ម៉ាស"),
+        ("dario_amodei", r"\b(dario amodei|amodei)\b|ដារីយ៉ូ អាម៉ូដី|អាម៉ូដី|នាយកប្រតិបត្តិ\s*(?:របស់\s*)?anthropic|ceo\s*(?:of\s*)?anthropic"),
         ("benjamin_netanyahu", r"\b(netanyahu|benjamin netanyahu)\b|ណេតាន់យ៉ាហ៊ូ"),
         ("volodymyr_zelenskyy", r"\b(zelenskyy|zelensky|volodymyr zelenskyy)\b|ហ្សេលេនស្គី"),
         ("emmanuel_macron", r"\b(macron|emmanuel macron)\b|ម៉ាក្រុង"),
@@ -387,20 +391,45 @@ class StoryImageBuilder:
                 logger.info(f"[StoryImageBuilder] Brand '{b1}' or Split '{b1}_{c1}' on cooldown. Skipping to preserve visual diversity.")
 
 
-        # Step 4.3: If ONE leader and ONE brand are involved (e.g. Elon Musk + SpaceX / Tesla), synthesize Split Image!
-        if len(headline_leaders) == 1 and len(detected_brands) >= 1:
+        # Step 4.3: If ONE leader and ONE brand are involved (e.g. Elon Musk + Anthropic / SpaceX / Tesla), synthesize Split Image!
+        # Respect headline appearance order: e.g. "ក្រុមហ៊ុន Anthropic និង Elon Musk" -> Left: Anthropic, Right: Elon Musk!
+        if len(headline_leaders) >= 1 and len(detected_brands) >= 1:
             l1, path1, _, _ = headline_leaders[0]
             b1, path2 = detected_brands[0]
             p1_name = os.path.basename(path1)
+
+            # Determine visual order based on appearance in headline
+            b_pat = next((pat for slug, pat in cls.BRAND_PATTERNS if slug == b1), "")
+            l_pat = next((pat for slug, pat in cls.LEADER_PATTERNS if slug == l1), "")
+            b_m = re.search(b_pat, headline_text, re.IGNORECASE) if b_pat else None
+            l_m = re.search(l_pat, headline_text, re.IGNORECASE) if l_pat else None
+            b_pos = b_m.start() if b_m else 9999
+            l_pos = l_m.start() if l_m else 9999
+
+            left_img, right_img = (path2, path1) if b_pos < l_pos else (path1, path2)
+
             if not cls.is_asset_on_cooldown(f"photo_{p1_name}") and not cls.is_asset_on_cooldown(f"brand_{b1}"):
-                logger.info(f"[StoryImageBuilder] Synthesizing Leader + Brand Split Image with fresh variant: {p1_name} + {b1}")
-                split_bytes = cls.create_split_image(path1, path2)
+                order_desc = "Brand (Left) + Leader (Right)" if b_pos < l_pos else "Leader (Left) + Brand (Right)"
+                logger.info(f"[StoryImageBuilder] Synthesizing Leader + Brand Split Image ({order_desc}): {b1} + {p1_name}")
+                split_bytes = cls.create_split_image(left_img, right_img)
                 if split_bytes:
                     cls.record_asset_used(f"photo_{p1_name}")
                     cls.record_asset_used(f"brand_{b1}")
                     return split_bytes
             else:
                 logger.info(f"[StoryImageBuilder] Leader photo '{p1_name}' or Brand '{b1}' on cooldown. Skipping to preserve visual diversity.")
+
+        # Step 4.4: Dual-Brand Split Image (e.g. Anthropic + OpenAI, Apple + Tesla)
+        if len(headline_leaders) == 0 and len(detected_brands) >= 2:
+            b1, path1 = detected_brands[0]
+            b2, path2 = detected_brands[1]
+            if not cls.is_asset_on_cooldown(f"brand_{b1}") and not cls.is_asset_on_cooldown(f"brand_{b2}"):
+                logger.info(f"[StoryImageBuilder] Synthesizing Dual-Brand Split Image: {b1} + {b2}")
+                split_bytes = cls.create_split_image(path1, path2)
+                if split_bytes:
+                    cls.record_asset_used(f"brand_{b1}")
+                    cls.record_asset_used(f"brand_{b2}")
+                    return split_bytes
 
 
         # Step 5: Single Leader Official Portrait
