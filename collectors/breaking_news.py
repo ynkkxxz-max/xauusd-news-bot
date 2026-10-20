@@ -24,35 +24,35 @@ logger = logging.getLogger(__name__)
 RSS_FEEDS = [
     # --- Pillar 1: Economy ---
     ("CNBC Economy", "https://www.cnbc.com/id/20910258/device/rss/rss.html"),
-    ("BBC Business", "https://feeds.bbci.co.uk/news/business/rss.xml"),
     ("The Guardian Business", "https://www.theguardian.com/business/rss"),
-    ("Fox Business Latest", "https://moxie.foxbusiness.com/google-publisher/latest.xml"),
+    ("BBC Business", "https://feeds.bbci.co.uk/news/business/rss.xml"),
     ("MarketWatch Real-time", "https://feeds.content.dowjones.io/public/rss/mw_realtimeheadlines"),
-    ("Yahoo Finance Global", "https://finance.yahoo.com/news/rssindex"),
+    ("The Guardian US News", "https://www.theguardian.com/us-news/rss"),
     ("ForexLive News", "https://www.forexlive.com/feed/news"),
 
-    # --- Pillar 2: Geopolitics ---
-    ("BBC World News", "https://feeds.bbci.co.uk/news/world/rss.xml"),
-    ("Al Jazeera World", "https://www.aljazeera.com/xml/rss/all.xml"),
+    # --- Pillar 2: Geopolitics & Global Conflicts ---
     ("The Guardian World", "https://www.theguardian.com/world/rss"),
+    ("The Guardian Middle East", "https://www.theguardian.com/world/middleeast/rss"),
+    ("BBC World News", "https://feeds.bbci.co.uk/news/world/rss.xml"),
     ("Politico World", "https://rss.politico.com/politics-news.xml"),
     ("CNBC World News", "https://www.cnbc.com/id/100727362/device/rss/rss.html"),
 
     # --- Pillar 3: Technology / AI / Frontier Innovation / EV & Aerospace ---
+    ("The Guardian Technology", "https://www.theguardian.com/technology/rss"),
+    ("BBC Technology", "https://feeds.bbci.co.uk/news/technology/rss.xml"),
     ("CNBC Tech", "https://www.cnbc.com/id/19854910/device/rss/rss.html"),
     ("TechCrunch", "https://techcrunch.com/feed/"),
     ("Ars Technica", "https://feeds.arstechnica.com/arstechnica/index"),
     ("Electrek EV & Energy", "https://electrek.co/feed/"),
     ("Teslarati Frontier Tech", "https://www.teslarati.com/feed/"),
     ("SpaceNews Aerospace", "https://spacenews.com/feed/"),
-    ("Google News Elon & Tesla 1h", "https://news.google.com/rss/search?q=(Elon+Musk+OR+Tesla+OR+SpaceX+OR+Starship+OR+Roadster+OR+Cybertruck)+when:1h&hl=en-US&gl=US&ceid=US:en"),
-    ("Google News AI & Frontier 1h", "https://news.google.com/rss/search?q=(Optimus+OR+Neuralink+OR+xAI+OR+Grok+OR+Anthropic+OR+Nvidia)+when:1h&hl=en-US&gl=US&ceid=US:en"),
 
     # --- Pillar 4: Monetary Policy & Central Banks ---
     ("Federal Reserve Press", "https://www.federalreserve.gov/feeds/press_monetary.xml"),
     ("ECB Press Releases", "https://www.ecb.europa.eu/rss/press.html"),
 
     # --- Pillar 5: Environment & Natural Resources (OPEC / Oil / Gold) ---
+    ("The Guardian Environment", "https://www.theguardian.com/environment/rss"),
     ("OilPrice Real-time", "https://oilprice.com/rss/main"),
     ("CNBC Energy", "https://www.cnbc.com/id/19836768/device/rss/rss.html"),
 
@@ -64,17 +64,8 @@ RSS_FEEDS = [
     ("Politico Politics", "https://rss.politico.com/politics-news.xml"),
 
     # --- Pillar 8: Digital Assets, Bitcoin & Cryptocurrency (ប្រាក់ឌីជីថល) ---
-    ("CoinDesk Top News", "https://www.coindesk.com/arc/outboundfeeds/rss/"),
     ("CoinTelegraph Top", "https://cointelegraph.com/rss"),
-
-    # --- Broad Fallback Search Matrix ---
-    ("Google News Economy 1h", "https://news.google.com/rss/search?q=(inflation+OR+cpi+OR+gdp+OR+pmi+OR+retail+sales+OR+recession)+when:1h&hl=en-US&gl=US&ceid=US:en"),
-    ("Google News Geopolitics 1h", "https://news.google.com/rss/search?q=(iran+OR+israel+OR+war+OR+trump+OR+middle+east+OR+sanctions+OR+hormuz+OR+russia+OR+ukraine)+when:1h&hl=en-US&gl=US&ceid=US:en"),
-    ("Google News Tech 1h", "https://news.google.com/rss/search?q=(ai+OR+semiconductor+OR+chips+OR+nvidia+OR+openai+OR+cyberattack+OR+big+tech)+when:1h&hl=en-US&gl=US&ceid=US:en"),
-    ("Google News Central Banks 1h", "https://news.google.com/rss/search?q=(federal+reserve+OR+powell+OR+fomc+OR+interest+rate+OR+ecb+OR+boj+OR+central+bank)+when:1h&hl=en-US&gl=US&ceid=US:en"),
-    ("Google News Energy 1h", "https://news.google.com/rss/search?q=(crude+oil+OR+opec+OR+gold+price+OR+xauusd+OR+energy+crisis+OR+natural+gas)+when:1h&hl=en-US&gl=US&ceid=US:en"),
-    ("Google News Policies & Tariffs 1h", "https://news.google.com/rss/search?q=(tariffs+OR+trade+war+OR+debt+ceiling+OR+sanctions+OR+crypto+regulation)+when:1h&hl=en-US&gl=US&ceid=US:en"),
-    ("Google News Crypto 1h", "https://news.google.com/rss/search?q=(bitcoin+OR+crypto+OR+cbdc+OR+stablecoin+OR+ethereum+OR+sec+crypto)+when:1h&hl=en-US&gl=US&ceid=US:en"),
+    ("CoinDesk Top News", "https://www.coindesk.com/arc/outboundfeeds/rss/"),
 ]
 
 
@@ -217,7 +208,10 @@ class BreakingNewsCollector:
             candidates.sort(key=lambda x: x[0], reverse=True)
             for _, url in candidates:
                 u_low = url.lower()
-                if not any(bad in u_low for bad in ["googleusercontent", "gstatic", "google", "logo", "icon", "avatar", "1x1", "pixel", "favicon"]):
+                if not any(bad in u_low for bad in ["logo", "icon", "avatar", "1x1", "pixel", "favicon"]):
+                    # Upgrade BBC images to 976px crisp HD resolution
+                    if "ichef.bbci.co.uk" in url and re.search(r'/(?:240|320|480)/', url):
+                        url = re.sub(r'/(?:240|320|480)/', '/976/', url)
                     return url
 
         return ""
