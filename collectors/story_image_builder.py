@@ -66,7 +66,13 @@ class StoryImageBuilder:
         ("kazuo_ueda", r"\b(ueda|kazuo ueda)\b|អ៊ូអេដា"),
         ("narendra_modi", r"\b(modi|narendra modi)\b|ម៉ូឌី"),
         ("abdel_fattah_elsisi", r"\b(sisi|el-sisi|abdel fattah)\b|ស៊ីស៊ី|អាប់ដែល ហ្វាតា"),
+        ("jensen_huang", r"\b(jensen huang|jensen|huang)\b|ជេនសិន|ហួង|នាយកប្រតិបត្តិ\s*(?:របស់\s*)?nvidia|ceo\s*(?:of\s*)?nvidia"),
+        ("tim_cook", r"\b(tim cook)\b|ធីម ឃុក|ធីម គុក|នាយកប្រតិបត្តិ\s*(?:របស់\s*)?apple|ceo\s*(?:of\s*)?apple"),
+        ("sam_altman", r"\b(sam altman)\b|សាំ អាល់តូម៉ាន់|សេម អាល់តូម៉ាន់|នាយកប្រតិបត្តិ\s*(?:របស់\s*)?openai|ceo\s*(?:of\s*)?openai"),
+        ("satya_nadella", r"\b(satya nadella)\b|សាត្យា ណាឌែលឡា|នាយកប្រតិបត្តិ\s*(?:របស់\s*)?microsoft|ceo\s*(?:of\s*)?microsoft"),
+        ("mark_zuckerberg", r"\b(mark zuckerberg|zuckerberg)\b|ម៉ាក ហ្សាក់កឺប៊ឺក|ម៉ាក ហ្ស៊ូកឺបឺក|នាយកប្រតិបត្តិ\s*(?:របស់\s*)?meta|ceo\s*(?:of\s*)?meta"),
     ]
+
 
     COUNTRY_PATTERNS = [
         ("us", r"\b(u\.s\.|u\.s|usa|united states|america|american|wall street)\b|អាមេរិក|សហរដ្ឋអាមេរិក"),
@@ -100,7 +106,7 @@ class StoryImageBuilder:
         ("ps", r"\b(palestine|palestinian|west bank|ramallah|gaza)\b|ប៉ាឡេស្ទីន|វេសប៊ែង|ហ្កាហ្សា"),
     ]
 
-    IMAGE_COOLDOWN_SECONDS = 14400.0  # 4 hours strict cooldown for ANY static asset
+    IMAGE_COOLDOWN_SECONDS = 86400.0  # 24 hours strict cooldown for ANY visual asset (Strict Zero Repetition)
     _RECENT_USED_ASSETS = {}
 
     @classmethod
@@ -137,7 +143,7 @@ class StoryImageBuilder:
         """
         Dynamically finds the best, non-repeating leader photo from the gallery.
         If leader has multiple photos (e.g. elon_musk.jpg, elon_musk_2.jpg, ...),
-        rotates and selects the least-recently-used one that is NOT on 4-hour cooldown!
+        rotates and selects the least-recently-used one that is NOT on 24-hour cooldown!
         """
         import glob
         pattern = os.path.join(cls.LEADERS_DIR, f"{leader_key}*.jpg")
@@ -147,14 +153,24 @@ class StoryImageBuilder:
 
         candidates.sort()
 
-        # Check each photo candidate against individual cooldown
+        # Check each photo candidate against individual cooldown and perceptual dHash
         for c in candidates:
             c_name = os.path.basename(c)
-            if not cls.is_asset_on_cooldown(f"photo_{c_name}"):
-                return c
+            if cls.is_asset_on_cooldown(f"photo_{c_name}"):
+                continue
+            try:
+                import database
+                with open(c, "rb") as f:
+                    c_hash = database.calculate_image_dhash(f.read())
+                if c_hash and database.is_image_dhash_duplicate(c_hash, max_age_seconds=86400.0, max_hamming_dist=10):
+                    continue
+            except Exception:
+                pass
+            return c
 
-        logger.info(f"[StoryImageBuilder] All {len(candidates)} photo variants of '{leader_key}' are currently on 4-hour cooldown.")
+        logger.info(f"[StoryImageBuilder] All {len(candidates)} photo variants of '{leader_key}' are currently on 24-hour cooldown.")
         return ""
+
 
     @classmethod
     def get_image_for_news(cls, item: dict, analysis: dict = None, default_fetcher=None) -> bytes:
@@ -288,40 +304,7 @@ class StoryImageBuilder:
                 if os.path.exists(b_path):
                     detected_brands.append((brand_key, b_path))
 
-        # If ONE leader and ONE brand are involved (e.g. Elon Musk + SpaceX / Tesla), synthesize Split Image!
-        # STRICT ZERO REPETITION: Enforce 4-hour cooldown on specific leader photo variant and brand!
-        if len(headline_leaders) == 1 and len(detected_brands) >= 1:
-            l1, path1, _, _ = headline_leaders[0]
-            b1, path2 = detected_brands[0]
-            p1_name = os.path.basename(path1)
-            if not cls.is_asset_on_cooldown(f"photo_{p1_name}") and not cls.is_asset_on_cooldown(f"brand_{b1}"):
-                logger.info(f"[StoryImageBuilder] Synthesizing Leader + Brand Split Image with fresh variant: {p1_name} + {b1}")
-                split_bytes = cls.create_split_image(path1, path2)
-                if split_bytes:
-                    cls.record_asset_used(f"photo_{p1_name}")
-                    cls.record_asset_used(f"brand_{b1}")
-                    return split_bytes
-            else:
-                logger.info(f"[StoryImageBuilder] Leader photo '{p1_name}' or Brand '{b1}' on 4h cooldown. Skipping to preserve visual diversity.")
-
-        # Step 5: Single Leader Official Portrait
-        # ONLY if the leader is the primary subject in headline and NOT just a casual mention in market/economic news
-        if len(headline_leaders) >= 1 and not is_market_index:
-            l1, path1, _, _ = headline_leaders[0]
-            p1_name = os.path.basename(path1)
-            if not cls.is_asset_on_cooldown(f"photo_{p1_name}"):
-                logger.info(f"[StoryImageBuilder] Using Single Leader Portrait with fresh variant: {p1_name}")
-                try:
-                    cls.record_asset_used(f"photo_{p1_name}")
-                    with open(path1, "rb") as f:
-                        return cls.enhance_image_for_vip(f.read())
-                except Exception as e:
-                    logger.warning(f"[StoryImageBuilder] Failed reading single leader image {path1}: {e}")
-            else:
-                logger.info(f"[StoryImageBuilder] Leader portrait variant '{p1_name}' is on 4h cooldown. Skipping to preserve visual variety.")
-
-        # Step 6: Single Country High-Res Flag Canvas (ONLY for single sovereign subject)
-        # Note: Dual-Country Flag Split Image synthesis is PERMANENTLY DISABLED per user directive to eliminate mismatched/hybrid flag collages!
+        # Detect Target Countries involved
         detected_countries = []
         for c_code, pat in cls.COUNTRY_PATTERNS:
             m = re.search(pat, comb_text, re.IGNORECASE)
@@ -339,6 +322,84 @@ class StoryImageBuilder:
 
         detected_countries.sort(key=lambda x: x[2])
 
+        # Step 4.2: CEO/Leader + Target Country Dual Split Image (USER MANDATORY DIRECTIVE: ឈ្មោះក្រុមហ៊ុនឬ CEO ភ្ជាប់ជាមួយប្រទេសនោះ)
+        # e.g. NVIDIA CEO (Jensen Huang) urges German manufacturers -> Left: Jensen Huang (CEO), Right: Germany flag!
+        if len(headline_leaders) == 1 and len(detected_countries) >= 1:
+            l1, path1, _, _ = headline_leaders[0]
+            target_countries = [c for c in detected_countries if c[0] != "us"]
+            c1, path_flag, _ = target_countries[0] if target_countries else detected_countries[0]
+            p1_name = os.path.basename(path1)
+            if not cls.is_asset_on_cooldown(f"photo_{p1_name}") and not cls.is_asset_on_cooldown(f"split_{l1}_{c1}"):
+                logger.info(f"[StoryImageBuilder] Synthesizing CEO + Country Split Image: {p1_name} (Left) + {c1} Flag (Right)")
+                split_bytes = cls.create_split_image(path1, path_flag)
+                if split_bytes:
+                    cls.record_asset_used(f"photo_{p1_name}")
+                    cls.record_asset_used(f"split_{l1}_{c1}")
+                    return split_bytes
+            else:
+                logger.info(f"[StoryImageBuilder] CEO '{p1_name}' or Split '{l1}_{c1}' on cooldown. Skipping to preserve visual diversity.")
+
+        # Step 4.2.1: Company/Brand + Target Country Dual Split Image (USER MANDATORY DIRECTIVE: ឈ្មោះក្រុមហ៊ុនឬ CEO ភ្ជាប់ជាមួយប្រទេសនោះ)
+        # e.g. ក្រុមហ៊ុន NVIDIA / Apple / Tesla + Germany / Japan / India -> Left: Brand Logo Card, Right: Country Flag!
+        if len(headline_leaders) == 0 and len(detected_brands) >= 1 and len(detected_countries) >= 1:
+            b1, path_brand = detected_brands[0]
+            target_countries = [c for c in detected_countries if c[0] != "us"]
+            c1, path_flag, _ = target_countries[0] if target_countries else detected_countries[0]
+            b1_name = os.path.basename(path_brand)
+            if not cls.is_asset_on_cooldown(f"brand_{b1}") and not cls.is_asset_on_cooldown(f"split_{b1}_{c1}"):
+                logger.info(f"[StoryImageBuilder] Synthesizing Company + Country Split Image: {b1} (Left) + {c1} Flag (Right)")
+                split_bytes = cls.create_split_image(path_brand, path_flag)
+                if split_bytes:
+                    cls.record_asset_used(f"brand_{b1}")
+                    cls.record_asset_used(f"split_{b1}_{c1}")
+                    return split_bytes
+            else:
+                logger.info(f"[StoryImageBuilder] Brand '{b1}' or Split '{b1}_{c1}' on cooldown. Skipping to preserve visual diversity.")
+
+
+        # Step 4.3: If ONE leader and ONE brand are involved (e.g. Elon Musk + SpaceX / Tesla), synthesize Split Image!
+        if len(headline_leaders) == 1 and len(detected_brands) >= 1:
+            l1, path1, _, _ = headline_leaders[0]
+            b1, path2 = detected_brands[0]
+            p1_name = os.path.basename(path1)
+            if not cls.is_asset_on_cooldown(f"photo_{p1_name}") and not cls.is_asset_on_cooldown(f"brand_{b1}"):
+                logger.info(f"[StoryImageBuilder] Synthesizing Leader + Brand Split Image with fresh variant: {p1_name} + {b1}")
+                split_bytes = cls.create_split_image(path1, path2)
+                if split_bytes:
+                    cls.record_asset_used(f"photo_{p1_name}")
+                    cls.record_asset_used(f"brand_{b1}")
+                    return split_bytes
+            else:
+                logger.info(f"[StoryImageBuilder] Leader photo '{p1_name}' or Brand '{b1}' on cooldown. Skipping to preserve visual diversity.")
+
+
+        # Step 5: Single Leader Official Portrait
+        # ONLY if the leader is the primary subject in headline and NOT just a casual mention in market/economic news
+        if len(headline_leaders) >= 1 and not is_market_index:
+            l1, path1, _, _ = headline_leaders[0]
+            p1_name = os.path.basename(path1)
+            if not cls.is_asset_on_cooldown(f"photo_{p1_name}"):
+                logger.info(f"[StoryImageBuilder] Using Single Leader Portrait with fresh variant: {p1_name}")
+                try:
+                    cls.record_asset_used(f"photo_{p1_name}")
+                    with open(path1, "rb") as f:
+                        return cls.enhance_image_for_vip(f.read())
+                except Exception as e:
+                    logger.warning(f"[StoryImageBuilder] Failed reading single leader image {path1}: {e}")
+            else:
+                logger.info(f"[StoryImageBuilder] Leader portrait variant '{p1_name}' is on cooldown. Skipping to preserve visual variety.")
+
+        # Step 6: Single Country High-Res Flag Canvas (ONLY for sovereign macro / geopolitical stories)
+        # STRICT RULE: NEVER use a standalone country flag for Corporate, Tech, Business or CEO stories!
+        is_corporate_or_exec = bool(re.search(
+            r'\b(ceo|chief executive|founder|executive|corporate|corporation|firm|company|earnings|revenue|investor)\b|នាយកប្រតិបត្តិ|ក្រុមហ៊ុន|សាជីវកម្ម',
+            comb_text, re.IGNORECASE
+        ))
+        if is_corporate_or_exec or len(headline_leaders) >= 1 or len(detected_brands) >= 1:
+            # Drop standalone national flags for corporate/CEO stories!
+            detected_countries = []
+
+
         # Step 7: Live Real-Time Editorial Photo Search (Wikipedia Commons High-Res Press Wire)
         # Search ONLY for confirmed specific modern living leaders or verified modern tech corporations
         live_queries = []
@@ -355,7 +416,7 @@ class StoryImageBuilder:
             elif b_key == "spacex":
                 live_queries.append("SpaceX Starship")
             elif b_key == "nvidia":
-                live_queries.append("Nvidia Blackwell")
+                live_queries.append("Jensen Huang Nvidia")
             elif b_key == "apple":
                 live_queries.append("Apple Inc.")
             else:
@@ -364,8 +425,17 @@ class StoryImageBuilder:
         for q in live_queries:
             live_img = cls.fetch_live_editorial_photo(q, headline_text=headline_text)
             if live_img:
+                try:
+                    import database
+                    h = database.calculate_image_dhash(live_img)
+                    if h and database.is_image_dhash_duplicate(h, max_age_seconds=86400.0, max_hamming_dist=10):
+                        logger.warning(f"[StoryImageBuilder] Live photo for '{q}' matches recent 24h hash ({h}). Skipping candidate.")
+                        continue
+                except Exception:
+                    pass
                 logger.info(f"[StoryImageBuilder] Successfully acquired verified editorial photo for query '{q}'.")
                 return live_img
+
 
         # Step 8: Mode B Fallback Guarantee
         # If no authentic direct publisher photo or verified single leader/split asset exists, return None!
