@@ -69,6 +69,7 @@ class EconomicCalendarCollector:
             elif resp.status_code == 429:
                 logger.warning(f"[EconomicCalendarCollector] HTTP 429 Rate Limit from calendar feed. Backing off for 180s. Serving cache.")
                 self._rate_limit_until = now + 180.0
+                self._last_fetch_ts = now
         except Exception as e:
             logger.warning(f"[EconomicCalendarCollector] Network exception: {e}")
 
