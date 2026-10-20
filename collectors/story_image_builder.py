@@ -74,8 +74,26 @@ class StoryImageBuilder:
         ("tim_cook", r"\b(tim cook)\b|ធីម ឃុក|ធីម គុក|នាយកប្រតិបត្តិ\s*(?:របស់\s*)?apple|ceo\s*(?:of\s*)?apple"),
         ("sam_altman", r"\b(sam altman)\b|សាំ អាល់តូម៉ាន់|សេម អាល់តូម៉ាន់|នាយកប្រតិបត្តិ\s*(?:របស់\s*)?openai|ceo\s*(?:of\s*)?openai"),
         ("satya_nadella", r"\b(satya nadella)\b|សាត្យា ណាឌែលឡា|នាយកប្រតិបត្តិ\s*(?:របស់\s*)?microsoft|ceo\s*(?:of\s*)?microsoft"),
+        ("ali_khamenei", r"\b(khamenei|ayatollah)\b|ខាមេណី|ខាមេនី|មេដឹកនាំកំពូលអ៊ីរ៉ង់"),
+        ("masoud_pezeshkian", r"\b(pezeshkian)\b|ពេហ្សេសគីយ៉ាន|ប្រធានាធិបតីអ៊ីរ៉ង់"),
+        ("kim_jong_un", r"\b(kim jong un|kim jong-un|kim jong)\b|គីម ជុងអ៊ុន|គីម ជុង-អ៊ុន"),
         ("mark_zuckerberg", r"\b(mark zuckerberg|zuckerberg)\b|ម៉ាក ហ្សាក់កឺប៊ឺក|ម៉ាក ហ្ស៊ូកឺបឺក|នាយកប្រតិបត្តិ\s*(?:របស់\s*)?meta|ceo\s*(?:of\s*)?meta"),
     ]
+
+    COUNTRY_PRESIDENTS = {
+        "us": ["donald_trump"],
+        "ru": ["vladimir_putin"],
+        "ua": ["volodymyr_zelenskyy"],
+        "cn": ["xi_jinping"],
+        "il": ["benjamin_netanyahu"],
+        "ir": ["ali_khamenei", "masoud_pezeshkian"],
+        "kp": ["kim_jong_un"],
+        "fr": ["emmanuel_macron"],
+        "gb": ["keir_starmer"],
+        "it": ["giorgia_meloni"],
+        "in": ["narendra_modi"],
+        "eg": ["abdel_fattah_elsisi"],
+    }
 
 
     COUNTRY_PATTERNS = [
@@ -174,6 +192,18 @@ class StoryImageBuilder:
 
         logger.info(f"[StoryImageBuilder] All {len(candidates)} photo variants of '{leader_key}' are currently on 24-hour cooldown.")
         return ""
+
+    @classmethod
+    def get_available_president_photo_for_country(cls, country_code: str) -> tuple:
+        """Finds the best available non-cooldown leader photo for a sovereign country."""
+        leaders = cls.COUNTRY_PRESIDENTS.get(country_code, [])
+        if isinstance(leaders, str):
+            leaders = [leaders]
+        for l_slug in leaders:
+            p_path = cls.get_available_leader_photo(l_slug)
+            if p_path:
+                return l_slug, p_path
+        return "", ""
 
 
     @classmethod
@@ -355,6 +385,55 @@ class StoryImageBuilder:
                     detected_countries.append((c_code, flag_path, head_pos))
 
         detected_countries.sort(key=lambda x: x[2])
+
+        # Step 4.1: Bilateral Conflict / State Clash Dual-President Split Image (USER MANDATORY DIRECTIVE: បើជាជម្លោះប្រទេសនិងប្រទេស ដាក់រូបប្រធានាធិបតីប្រទេសទាំងពីរ)
+        # e.g. Russia vs Ukraine -> Left: Vladimir Putin, Right: Volodymyr Zelenskyy
+        # e.g. US vs Iran -> Left: Donald Trump, Right: Ali Khamenei
+        # e.g. Israel vs Iran -> Left: Benjamin Netanyahu, Right: Ali Khamenei
+        # e.g. US vs China -> Left: Donald Trump, Right: Xi Jinping
+        is_bilateral_conflict = bool(re.search(
+            r"\b(war|conflict|clash|clashes|strike|strikes|attack|missile|missiles|drone|drones|tensions|retaliat|invad|invasion|sanction|sanctions|dispute|standoff|frontline|escalat|defense|military|peace talks|summit|bilateral|ceasefire|threat|warns|warning)\b|សង្គ្រាម|ជម្លោះ|វាយប្រហារ|មីស៊ីល|ដ្រូន|តានតឹង|ទណ្ឌកម្ម|យោធា|ការពារជាតិ|ការប្រឈមមុខ|បាញ់|ប្រយុទ្ធ|ជំនួប|កិច្ចប្រជុំ|ព្រមាន",
+            comb_text, re.IGNORECASE
+        ))
+
+        # Case 1: Two countries detected in conflict / bilateral relations
+        if len(detected_countries) >= 2 and is_bilateral_conflict:
+            c1_code = detected_countries[0][0]
+            c2_code = detected_countries[1][0]
+            l1_slug, p1_path = cls.get_available_president_photo_for_country(c1_code)
+            l2_slug, p2_path = cls.get_available_president_photo_for_country(c2_code)
+            if l1_slug and l2_slug and l1_slug != l2_slug and p1_path and p2_path:
+                p1_name = os.path.basename(p1_path)
+                p2_name = os.path.basename(p2_path)
+                split_key = f"pres_conflict_{l1_slug}_{l2_slug}"
+                if not cls.is_asset_on_cooldown(f"photo_{p1_name}") and not cls.is_asset_on_cooldown(f"photo_{p2_name}") and not cls.is_asset_on_cooldown(split_key):
+                    logger.info(f"[StoryImageBuilder] Synthesizing Bilateral Conflict Dual-President Split Image: {l1_slug} (Left) + {l2_slug} (Right)")
+                    split_bytes = cls.create_split_image(p1_path, p2_path)
+                    if split_bytes:
+                        cls.record_asset_used(f"photo_{p1_name}")
+                        cls.record_asset_used(f"photo_{p2_name}")
+                        cls.record_asset_used(split_key)
+                        return split_bytes
+
+        # Case 2: One Leader and One Target Country in conflict (e.g. Trump warns Iran, Putin strikes Ukraine)
+        if len(headline_leaders) == 1 and len(detected_countries) >= 1 and is_bilateral_conflict:
+            l1, path1, _, _ = headline_leaders[0]
+            opposing_countries = [c for c in detected_countries if l1 not in cls.COUNTRY_PRESIDENTS.get(c[0], [])]
+            if opposing_countries:
+                c_opp = opposing_countries[0][0]
+                l2_slug, p2_path = cls.get_available_president_photo_for_country(c_opp)
+                if l2_slug and l2_slug != l1 and p2_path:
+                    p1_name = os.path.basename(path1)
+                    p2_name = os.path.basename(p2_path)
+                    split_key = f"leader_conflict_{l1}_{l2_slug}"
+                    if not cls.is_asset_on_cooldown(f"photo_{p1_name}") and not cls.is_asset_on_cooldown(f"photo_{p2_name}") and not cls.is_asset_on_cooldown(split_key):
+                        logger.info(f"[StoryImageBuilder] Synthesizing Leader vs Opposing President Conflict Split Image: {l1} (Left) + {l2_slug} (Right)")
+                        split_bytes = cls.create_split_image(path1, p2_path)
+                        if split_bytes:
+                            cls.record_asset_used(f"photo_{p1_name}")
+                            cls.record_asset_used(f"photo_{p2_name}")
+                            cls.record_asset_used(split_key)
+                            return split_bytes
 
         # Step 4.2: CEO/Leader + Target Country Dual Split Image (USER MANDATORY DIRECTIVE: ឈ្មោះក្រុមហ៊ុនឬ CEO ភ្ជាប់ជាមួយប្រទេសនោះ)
         # e.g. NVIDIA CEO (Jensen Huang) urges German manufacturers -> Left: Jensen Huang (CEO), Right: Germany flag!
