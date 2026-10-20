@@ -622,17 +622,19 @@ class StoryImageBuilder:
             else:
                 live_queries.append(b_key)
         elif detected_countries:
-            c_code = detected_countries[0][0]
-            country_names = {
-                "us": "United States Federal Reserve",
-                "jp": "Bank of Japan",
-                "gb": "Bank of England",
-                "eu": "European Central Bank",
-                "de": "Deutsche Bundesbank",
-                "cn": "People's Bank of China"
-            }
-            if c_code in country_names:
-                live_queries.append(country_names[c_code])
+            is_central_bank_story = bool(re.search(r'\b(rate|interest rate|monetary policy|central bank|inflation|cpi|yield|fomc|fed)\b|អត្រាការប្រាក់|ធនាគារកណ្តាល', comb_text, re.IGNORECASE))
+            if is_central_bank_story:
+                c_code = detected_countries[0][0]
+                country_names = {
+                    "us": "United States Federal Reserve",
+                    "jp": "Bank of Japan",
+                    "gb": "Bank of England",
+                    "eu": "European Central Bank",
+                    "de": "Deutsche Bundesbank",
+                    "cn": "People's Bank of China"
+                }
+                if c_code in country_names:
+                    live_queries.append(country_names[c_code])
 
         for q in live_queries:
             live_img = cls.fetch_live_editorial_photo(q, headline_text=headline_text)
