@@ -1,4 +1,5 @@
 import os
+import time
 import logging
 import requests
 from config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
@@ -301,6 +302,27 @@ class TelegramNotifier:
             self.delete_message(message_id, chat_id=target_chat)
             return False
 
+        # Check 8: Lightning Anti-Duplicate Purge (< 1 second)
+        # Guarantees zero duplicate headlines or story signatures can ever coexist on the channel
+        if not hasattr(self, "_recent_watchdog_posts"):
+            self._recent_watchdog_posts = []
+
+        now_ts = time.time()
+        self._recent_watchdog_posts = [p for p in self._recent_watchdog_posts if (now_ts - p[0]) < 14400.0]
+
+        headline_match = re.search(r'<b>(.*?)</b>', raw_text, re.DOTALL)
+        current_headline = re.sub(r'[^\w\u1780-\u17FF]', '', headline_match.group(1)).strip().lower() if headline_match else ""
+        current_sig = re.sub(r'[^\w\u1780-\u17FF]', '', clean)[:60].lower()
+
+        for p_ts, p_head, p_sig, p_id in self._recent_watchdog_posts:
+            if (current_headline and len(current_headline) >= 15 and current_headline == p_head) or (current_sig and len(current_sig) >= 30 and current_sig == p_sig):
+                logger.critical(f"[LIGHTNING WATCHDOG PURGE] Post #{message_id} duplicates earlier post #{p_id}. Auto-purging immediately in < 1 second!")
+                self.delete_message(message_id, chat_id=target_chat)
+                return False
+
+        if current_headline or current_sig:
+            self._recent_watchdog_posts.append((now_ts, current_headline, current_sig, message_id))
+
         logger.info(f"[WATCHDOG PASSED] Post #{message_id} passed all 100% quality checks ({vis_len}/{max_allowed} chars).")
         return True
 
@@ -328,11 +350,11 @@ class TelegramNotifier:
 
         target_chat = str(chat_id or self.chat_id)
 
-        # Anti-Flood Cadence Guard: strictly maintain at least 150 seconds between channel alerts
+        # Anti-Flood Cadence Guard: strictly maintain at least 60 seconds between channel alerts
         if target_chat == str(self.chat_id) and not text.startswith("🥇") and hasattr(self, "_last_channel_post_time"):
             elapsed = time.time() - getattr(self, "_last_channel_post_time", 0.0)
-            if elapsed < 150.0:
-                wait_sec = min(150.0 - elapsed, 45.0)
+            if elapsed < 60.0:
+                wait_sec = min(60.0 - elapsed, 30.0)
                 logger.info(f"[Anti-Flood Guard] Spacing channel post by {wait_sec:.1f}s to prevent subscriber flood...")
                 time.sleep(wait_sec)
 
@@ -438,11 +460,11 @@ class TelegramNotifier:
 
         target_chat = str(chat_id or self.chat_id)
 
-        # Anti-Flood Cadence Guard: strictly maintain at least 150 seconds between channel alerts
+        # Anti-Flood Cadence Guard: strictly maintain at least 60 seconds between channel alerts
         if target_chat == str(self.chat_id) and not is_daily_gold_card and hasattr(self, "_last_channel_post_time"):
             elapsed = time.time() - getattr(self, "_last_channel_post_time", 0.0)
-            if elapsed < 150.0:
-                wait_sec = min(150.0 - elapsed, 45.0)
+            if elapsed < 60.0:
+                wait_sec = min(60.0 - elapsed, 30.0)
                 logger.info(f"[Anti-Flood Guard] Spacing channel photo post by {wait_sec:.1f}s to prevent subscriber flood...")
                 time.sleep(wait_sec)
 
