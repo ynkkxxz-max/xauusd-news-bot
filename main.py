@@ -2161,16 +2161,13 @@ class XAUUSDNewsAssistantBot:
                     msg_photo = KhmerFormatter.format_breaking_event_alert(it, analysis, has_photo=True)
                     caption_text = self._truncate_html_caption(msg_photo, max_visible_chars=574)
                     self.notifier.send_photo(photo, caption=caption_text, reply_markup=None)
-                elif is_critical:
+                elif photo is None:
+                    # MODE B GUARANTEE: Per user constitutional rule, if no valid photo exists,
+                    # broadcast cleanly in MODE B (Clean VIP Text Mode <= 750 characters)
+                    logger.info(f"[MODE B ACTIVATED] Broadcasting '{title}' in Clean VIP Text Mode.")
                     msg_text = KhmerFormatter.format_breaking_event_alert(it, analysis, has_photo=False)
                     clean_text = self._truncate_html_caption(msg_text, max_visible_chars=750)
                     self.notifier.send_message(clean_text, reply_markup=None)
-                else:
-                    # STRICT VIP IMAGE REQUIREMENT: User Directive (ចាប់យកតែព័ត៌មានណាដែលមានរូបភាពមានគុណភាពខ្ពស់)
-                    logger.info(f"[HIGH-QUALITY IMAGE REQUIRED] Dropping '{title}' because no verified high-quality visual exists per user VIP standard.")
-                    self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
-                    database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
-                    continue
 
             # Increment daily broadcast counter
             today_count = int(database.get_state(f"daily_breaking_count_{today_key}") or "0")
