@@ -375,8 +375,9 @@ class XAUUSDNewsAssistantBot:
         now_kh = datetime.now(CAMBODIA_TZ)
         today_str = now_kh.strftime("%Y-%m-%d")
 
-        # 1. First check: STRICTLY execute only within the 07:00 AM window (07:00 - 07:30 AM Cambodia Time)
-        if not (now_kh.hour == DAILY_PRICE_ALERT_HOUR and DAILY_PRICE_ALERT_MINUTE <= now_kh.minute <= 30):
+        # 1. First check: Morning gold card window (07:00 - 09:59 AM Cambodia Time)
+        # Prevents missing the broadcast if Render dyno or local process reboots after 07:30 AM
+        if not (DAILY_PRICE_ALERT_HOUR <= now_kh.hour <= 9):
             return
 
         # 2. In-memory lock guard (already broadcasted during current process session)
@@ -386,6 +387,16 @@ class XAUUSDNewsAssistantBot:
         # 3. Database SQLite persistence guard (only counts confirmed broadcasts where message_id > 0)
         if database.is_daily_price_sent(today_str):
             self._daily_price_locks.add(today_str)
+            return
+
+        # 3.5 Live channel verification guard (check if today's date formatted e.g. DD/MM/YYYY is already on channel)
+        date_formatted = now_kh.strftime("%d/%m/%Y")
+        if self._is_daily_price_already_in_channel(date_formatted):
+            self._daily_price_locks.add(today_str)
+            try:
+                database.record_daily_price_sent(today_str, 999999)
+            except Exception:
+                pass
             return
 
         # 4. Trigger 07:00 AM Daily Gold Price broadcast
