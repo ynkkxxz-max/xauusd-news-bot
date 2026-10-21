@@ -1531,7 +1531,14 @@ class XAUUSDNewsAssistantBot:
             return False
 
     def audit_live_channel_and_heal(self):
-        """Autonomous Self-Healing Auditor: Automatically detects & purges duplicate messages or overlapping images on the channel in <= 2 seconds!"""
+        """
+        Autonomous Channel Guard:
+        Guarantees channel integrity without retroactively deleting published posts.
+        Per user constitutional directive: All curation, filtering, and limit enforcement happens 100% PRE-DISPATCH.
+        Once an article is published, it remains PERMANENT for subscribers.
+        This auditor ONLY intercepts immediate accidental twin double-posts (where the exact same
+        headline or text was broadcasted twice consecutively within seconds due to a distributed race condition).
+        """
         now = time.time()
         if (now - getattr(self, "_last_channel_audit_ts", 0)) < 2.0:
             return
@@ -1567,102 +1574,21 @@ class XAUUSDNewsAssistantBot:
                     "has_video": has_video
                 })
 
-            # 1. Check for duplicated photo URLs among recent 15 posts
-            seen_photos = {}
-            for p in posts[-15:]:
-                pid = p["id"]
-                photo = p["photo_url"]
-                if photo:
-                    if photo in seen_photos:
-                        orig_id = seen_photos[photo]
-                        logger.warning(f"[AUTO-HEALING PURGE] Post #{pid} repeats photo from post #{orig_id}. Automatically purging #{pid}!")
-                        self.notifier.delete_message(pid)
-                        continue
-                    seen_photos[photo] = pid
+            # Sole Auto-Healing Duty: Purge only an immediate accidental consecutive twin duplicate (posts[-1] vs posts[-2])
+            if len(posts) >= 2:
+                latest = posts[-1]
+                prev = posts[-2]
 
-            # 2. Check for duplicated headlines / stories
-            seen_stories = {}
-            for p in posts[-15:]:
-                pid = p["id"]
-                txt = p["text"]
-                if not txt:
-                    continue
-                hl = txt.split('\n')[0].strip()
-                hl_clean = re.sub(r'[^\w\s\u1780-\u17FF]', '', hl).strip()
-                if len(hl_clean) >= 20:
-                    if hl_clean in seen_stories:
-                        orig_id = seen_stories[hl_clean]
-                        logger.warning(f"[AUTO-HEALING PURGE] Post #{pid} duplicates headline from post #{orig_id}. Automatically purging #{pid}!")
-                        self.notifier.delete_message(pid)
-                        continue
-                    seen_stories[hl_clean] = pid
+                l_txt = latest.get("text", "")
+                p_txt = prev.get("text", "")
 
-            # 3. AI Semantic Event Deduplication Gate
-            if SemanticEventDeduplicator and len(posts) >= 2:
-                try:
-                    semantic_dups = SemanticEventDeduplicator.find_duplicate_posts_in_channel(posts)
-                    for dup_pid in semantic_dups:
-                        logger.warning(f"[AUTO-HEALING SEMANTIC PURGE] Post #{dup_pid} reports on the exact same event as an earlier post. Purging #{dup_pid}!")
-                        self.notifier.delete_message(dup_pid)
-                except Exception as e:
-                    logger.debug(f"[audit_live_channel_and_heal semantic check error] {e}")
+                l_hl = re.sub(r'[^\w\u1780-\u17FF]', '', l_txt.split('\n')[0]).strip().lower() if l_txt else ""
+                p_hl = re.sub(r'[^\w\u1780-\u17FF]', '', p_txt.split('\n')[0]).strip().lower() if p_txt else ""
 
-            # 4. Strict Real-Time Limit & Zero Spelling Violation Audit
-            for p in posts[-15:]:
-                pid = p["id"]
-                txt = p["text"]
-                if not txt:
-                    continue
-                if txt.startswith("🥇") or txt.startswith("📊") or txt.startswith("---") or txt.startswith("📅"):
-                    continue
-                has_media = bool(p.get("photo_url") or p.get("has_video"))
-                max_vis = 574 if has_media else 750
-                clean_vis = re.sub(r'<[^>]+>', '', txt).strip()
-                if len(clean_vis) > max_vis:
-                    logger.critical(f"[AUTO-HEALING PURGE] Post #{pid} breached character limit ({len(clean_vis)} > {max_vis}). Purging immediately!")
-                    self.notifier.delete_message(pid)
-                    continue
-
-                # Missing sovereign flag
-                first_line = clean_vis.splitlines()[0] if clean_vis else ""
-                if not re.search(r'[\U0001F1E0-\U0001F1FF]{2}|🌐|🥇|📅|📊', first_line):
-                    logger.critical(f"[AUTO-HEALING PURGE] Post #{pid} missing sovereign flag emoji. Purging immediately!")
-                    self.notifier.delete_message(pid)
-                    continue
-
-                # Colons or ellipsis in headline
-                raw_h = p.get("raw_html", "")
-                m_head = re.search(r'<b>(.*?)</b>', raw_h, re.DOTALL)
-                if m_head:
-                    head_txt = m_head.group(1)
-                    if re.search(r'[៖:：]|[\.]{3,}|…', head_txt):
-                        logger.critical(f"[AUTO-HEALING PURGE] Post #{pid} contains colon/ellipsis in headline. Purging immediately!")
-                        self.notifier.delete_message(pid)
-                        continue
-
-                forbidden_typos = ['ប្រមាន', 'ធ្វើអោយ', 'ឿរ៉ង់', 'អគ្លេស', 'សហរដ្ធ', 'សេដ្ធកិច្ច', 'ធ្វើរ៉ង់', 'ធ្វើ៊ីរ៉ង់', 'កូដេន', 'លីគីឌីធី', 'ដ្ររដោន', 'តេហេឿរ៉ង់', 'សមរភូមិ្តមុខ']
-                has_forbidden_typo = False
-                for tp in forbidden_typos:
-                    if tp in clean_vis:
-                        logger.critical(f"[AUTO-HEALING PURGE] Post #{pid} contains forbidden typo '{tp}'. Purging immediately!")
-                        self.notifier.delete_message(pid)
-                        has_forbidden_typo = True
-                        break
-                if has_forbidden_typo:
-                    continue
-
-                # 5. Strict Sentiment Honesty Gate (War / Combat / Missiles cannot have 🔹 ផលវិជ្ជមាន)
-                war_terms = ['សង្គ្រាម', 'វាយប្រហារ', 'ដ្រូន', 'មីស៊ីល', 'ទាហាន', 'ស្លាប់', 'ផ្ទុះ', 'សមរភូមិ']
-                if any(w in clean_vis for w in war_terms) and '🔹 ផលវិជ្ជមាន' in clean_vis:
-                    logger.critical(f"[AUTO-HEALING PURGE] Post #{pid} contains contradictory positive sentiment on war/conflict. Purging immediately!")
-                    self.notifier.delete_message(pid)
-                    continue
-
-                # 6. Non-VIP emojis
-                if re.search(r'[🚀🔥💥💰🎉🤑💩🤡]', clean_vis):
-                    logger.critical(f"[AUTO-HEALING PURGE] Post #{pid} contains forbidden non-VIP emoji. Purging immediately!")
-                    self.notifier.delete_message(pid)
-                    continue
+                # If the very last post is a literal twin duplicate of the one right before it (consecutive double-post)
+                if l_hl and p_hl and len(l_hl) >= 15 and l_hl == p_hl:
+                    logger.critical(f"[RACE TWIN PURGE] Consecutive duplicate detected on latest post #{latest['id']} (matches #{prev['id']}). Auto-purging #{latest['id']} immediately!")
+                    self.notifier.delete_message(latest["id"])
         except Exception as e:
             logger.debug(f"[audit_live_channel_and_heal error] {e}")
 
