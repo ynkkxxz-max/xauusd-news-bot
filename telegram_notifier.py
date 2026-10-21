@@ -234,6 +234,93 @@ class TelegramNotifier:
     def is_configured(self) -> bool:
         return bool(self.bot_token and self.chat_id and self.bot_token != "YOUR_TELEGRAM_BOT_TOKEN_HERE")
 
+    def _curate_and_sanitize_pre_dispatch(self, raw_text: str, is_photo: bool = False, target_chat: str = None) -> tuple:
+        """
+        100% PRE-DISPATCH CURATION SHIELD.
+        Scrutinizes, corrects, proofreads, and clamps every detail of the message BEFORE
+        it is ever sent to Telegram. Guarantees that defective, oversized, or duplicate messages
+        are intercepted, repaired, or dropped pre-send, so live subscribers NEVER see a post
+        disappear after being published.
+        Returns: (is_approved: bool, curated_text: str, reason: str)
+        """
+        import re
+        import time
+
+        if not raw_text:
+            return False, "", "Empty text"
+
+        # Special bypass for daily gold cards or calendar/market status
+        if raw_text.startswith("🥇") or raw_text.startswith("📅") or raw_text.startswith("📊") or raw_text.startswith("---"):
+            return True, raw_text, "Special card"
+
+        text = raw_text
+
+        # 1. Lexical Sanitization & 100% Chuon Nath Spelling Normalization
+        text = sanitize_khmer_editorial_text(text)
+
+        # 2. Strict Headline Formatting: Clean trailing colons, ellipsis, or dots
+        def _clean_headline(m):
+            head = m.group(1)
+            # Remove trailing colons, ellipsis, dots
+            head = re.sub(r'[\s៖:：\.\.…]+$', '', head).strip()
+            # Remove embedded colons or ellipsis
+            head = re.sub(r'[៖:：]', '', head)
+            head = re.sub(r'[\.]{2,}|…', '', head)
+            return f"<b>{head}</b>"
+
+        text = re.sub(r'<b>(.*?)</b>', _clean_headline, text, count=1, flags=re.DOTALL)
+
+        # 3. Sovereign Flag Guarantee: Auto-inject 🌐 if missing
+        first_line = text.splitlines()[0] if text else ""
+        if not re.search(r'[\U0001F1E0-\U0001F1FF]{2}|🌐|🥇|📅|📊', first_line):
+            text = f"🌐 {text}"
+
+        # 4. Strict Sentiment Honesty: Auto-correct war news sentiment mismatch
+        war_terms = ['សង្គ្រាម', 'វាយប្រហារ', 'ដ្រូន', 'មីស៊ីល', 'ទាហាន', 'ស្លាប់', 'ផ្ទុះ', 'សមរភូមិ']
+        if any(w in text for w in war_terms) and '🔹 ផលវិជ្ជមាន' in text:
+            text = text.replace('🔹 ផលវិជ្ជមាន', '🔶 ហានិភ័យទីផ្សារ')
+
+        # 5. Remove any non-VIP emojis (rockets, meme emojis)
+        text = re.sub(r'[🚀🔥💥💰🎉🤑💩🤡]', '', text)
+
+        # 6. Character Limit Enforcement Pre-Dispatch
+        max_allowed = 574 if is_photo else 750
+        text = enforce_telegram_char_limit(text, max_visible=max_allowed)
+
+        clean_vis = re.sub(r'<[^>]+>', '', text).strip()
+        vis_len = len(clean_vis)
+
+        # Double-check hard limit
+        if vis_len > max_allowed:
+            text = enforce_telegram_char_limit(text, max_visible=max_allowed)
+            clean_vis = re.sub(r'<[^>]+>', '', text).strip()
+            vis_len = len(clean_vis)
+            if vis_len > max_allowed:
+                logger.warning(f"[PRE-DISPATCH REJECT] Message exceeds max limit ({vis_len} > {max_allowed}). Dropped before sending.")
+                return False, text, f"Length {vis_len} exceeds {max_allowed}"
+
+        if vis_len < 35:
+            logger.warning(f"[PRE-DISPATCH REJECT] Message too short ({vis_len} chars). Dropped before sending.")
+            return False, text, "Message too short"
+
+        # 7. Lightning Anti-Duplicate Pre-Dispatch Intercept
+        if not hasattr(self, "_recent_watchdog_posts"):
+            self._recent_watchdog_posts = []
+
+        now_ts = time.time()
+        self._recent_watchdog_posts = [p for p in self._recent_watchdog_posts if (now_ts - p[0]) < 14400.0]
+
+        headline_match = re.search(r'<b>(.*?)</b>', text, re.DOTALL)
+        current_headline = re.sub(r'[^\w\u1780-\u17FF]', '', headline_match.group(1)).strip().lower() if headline_match else ""
+        current_sig = re.sub(r'[^\w\u1780-\u17FF]', '', clean_vis)[:60].lower()
+
+        for p_ts, p_head, p_sig, p_id in self._recent_watchdog_posts:
+            if (current_headline and len(current_headline) >= 15 and current_headline == p_head) or (current_sig and len(current_sig) >= 30 and current_sig == p_sig):
+                logger.warning(f"[PRE-DISPATCH DEDUP INTERCEPT] Dropping candidate post pre-dispatch (duplicates recent post #{p_id}). Never sent to Telegram!")
+                return False, text, f"Duplicate of post #{p_id}"
+
+        return True, text, "Approved"
+
     def _post_dispatch_watchdog(self, message_id: int, is_photo: bool = False, target_chat: str = None, raw_text: str = "") -> bool:
         """
         World-Class Zero-Defect Post-Dispatch Watchdog.
@@ -331,18 +418,14 @@ class TelegramNotifier:
         import re
         import time
 
-        # Lexical Sanitization
-        text = sanitize_khmer_editorial_text(text)
+        target_chat = str(chat_id or self.chat_id)
 
-        # Circuit Breaker 1: Drop empty or dangerously short stubs (< 35 visible characters)
-        clean_vis = re.sub(r'<[^>]+>', '', text or "").strip()
-        if len(clean_vis) < 35:
-            logger.warning(f"[TelegramNotifier] Circuit Breaker ACTIVATED: Message text too short ({len(clean_vis)} chars). Dropping post.")
-            return {"ok": False, "error": "Circuit Breaker: Message too short or empty"}
-
-        # Hard fail-safe: Text-only broadcasts strictly <= 750 characters
-        if text and not text.startswith("📊") and not text.startswith("🥇"):
-            text = enforce_telegram_char_limit(text, max_visible=750)
+        # 100% PRE-DISPATCH CURATION SHIELD: Curate, proofread, and verify BEFORE sending
+        is_ok, curated_text, reason = self._curate_and_sanitize_pre_dispatch(text, is_photo=False, target_chat=target_chat)
+        if not is_ok:
+            logger.warning(f"[TelegramNotifier] Pre-dispatch curation rejected message: {reason}. Dropped before sending.")
+            return {"ok": False, "error": f"Pre-dispatch curation rejected: {reason}"}
+        text = curated_text
 
         if not self.is_configured():
             logger.warning("[TelegramNotifier] Credentials not set. Message output (Simulation):\n" + "="*50 + f"\n{text}\n" + "="*50)
@@ -434,14 +517,15 @@ class TelegramNotifier:
             logger.warning("[TelegramNotifier] Circuit Breaker: Invalid photo bytes. Seamless fallback to MODE B (send_message).")
             return self.send_message(text=caption, parse_mode=parse_mode, reply_markup=reply_markup, chat_id=chat_id)
 
-        # Lexical Sanitization
-        caption = sanitize_khmer_editorial_text(caption)
+        target_chat = str(chat_id or self.chat_id)
 
-        # Circuit Breaker 3: Drop empty or dangerously short captions (< 35 visible characters)
-        clean_vis = re.sub(r'<[^>]+>', '', caption or "").strip()
-        if len(clean_vis) < 35:
-            logger.warning(f"[TelegramNotifier] Circuit Breaker ACTIVATED: Caption too short ({len(clean_vis)} chars). Dropping post.")
-            return {"ok": False, "error": "Circuit Breaker: Caption too short or empty"}
+        # 100% PRE-DISPATCH CURATION SHIELD: Curate, proofread, and verify caption BEFORE sending
+        if caption:
+            is_ok, curated_caption, reason = self._curate_and_sanitize_pre_dispatch(caption, is_photo=True, target_chat=target_chat)
+            if not is_ok:
+                logger.warning(f"[TelegramNotifier] Pre-dispatch curation rejected photo caption: {reason}. Dropped before sending.")
+                return {"ok": False, "error": f"Pre-dispatch curation rejected: {reason}"}
+            caption = curated_caption
 
         # STRICT ZERO IMAGE REPETITION GUARD (24-Hour Perceptual dHash Check):
         # If this image visually matches any photo sent within the past 24 hours (86,400s),
@@ -458,8 +542,6 @@ class TelegramNotifier:
             logger.warning(f"[TelegramNotifier] Credentials not set. Simulated photo upload ({len(photo_bytes) if photo_bytes else 0} bytes).")
             return {"ok": True, "result": {"message_id": 999998, "simulated": True}}
 
-        target_chat = str(chat_id or self.chat_id)
-
         # Anti-Flood Cadence Guard: strictly maintain at least 60 seconds between channel alerts
         if target_chat == str(self.chat_id) and not is_daily_gold_card and hasattr(self, "_last_channel_post_time"):
             elapsed = time.time() - getattr(self, "_last_channel_post_time", 0.0)
@@ -472,9 +554,6 @@ class TelegramNotifier:
         files = {"photo": ("news_photo.png", photo_bytes, "image/png")}
         data = {"chat_id": target_chat}
         if caption:
-            # Bulletproof gate: Photo captions strictly <= 574 characters per user constitutional rule
-            if not caption.startswith("📅") and not caption.startswith("🥇"):
-                caption = enforce_telegram_char_limit(caption, max_visible=574)
             if parse_mode == "HTML":
                 import re
                 caption = re.sub(r'&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[a-fA-F0-9]+);)', '&amp;', caption)
@@ -552,18 +631,19 @@ class TelegramNotifier:
         if not video_data:
             return self.send_message(text=caption, parse_mode=parse_mode, reply_markup=reply_markup, chat_id=chat_id)
 
-        # Lexical Sanitization
-        caption = sanitize_khmer_editorial_text(caption)
+        target_chat = str(chat_id or self.chat_id)
 
-        # Truncate to strictly <= 574 visible characters per user constitutional rule
-        if caption and not caption.startswith("📅") and not caption.startswith("🥇"):
-            caption = enforce_telegram_char_limit(caption, max_visible=574)
+        # 100% PRE-DISPATCH CURATION SHIELD: Curate, proofread, and verify caption BEFORE sending
+        if caption:
+            is_ok, curated_caption, reason = self._curate_and_sanitize_pre_dispatch(caption, is_photo=True, target_chat=target_chat)
+            if not is_ok:
+                logger.warning(f"[TelegramNotifier] Pre-dispatch curation rejected video caption: {reason}. Dropped before sending.")
+                return {"ok": False, "error": f"Pre-dispatch curation rejected: {reason}"}
+            caption = curated_caption
 
         if not self.is_configured():
             logger.warning(f"[TelegramNotifier] Credentials not set. Simulated video upload.")
             return {"ok": True, "result": {"message_id": 999997, "simulated": True}}
-
-        target_chat = str(chat_id or self.chat_id)
 
         # Anti-Flood Cadence Guard: strictly maintain at least 150 seconds between channel alerts
         if target_chat == str(self.chat_id) and hasattr(self, "_last_channel_post_time"):
