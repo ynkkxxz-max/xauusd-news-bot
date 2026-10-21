@@ -186,56 +186,76 @@ class GoldNewsFilter:
         if _matches_any_keyword(full_text, GoldNewsFilter.URGENT_SIGNALS):
             return True
 
-        # 3. Macroeconomic & Central Bank Decisions (Tier 1)
+        # 3. Macroeconomic & Central Bank Decisions & Bond Yields (Tier 1)
         macro_core = [
             "cpi", "core cpi", "inflation", "pce", "core pce", "non-farm", "nonfarm", "nfp",
             "gdp", "fomc", "federal reserve", "interest rate", "rate cut", "rate hike",
-            "powell", "warsh", "kevin warsh", "ecb rate", "boj rate", "pboc rate",
-            "central bank reserves", "unemployment rate", "recession", "debt ceiling", "tariff", "trade war"
+            "powell", "warsh", "kevin warsh", "ecb", "boj", "boe", "pboc", "bank of japan",
+            "bank of england", "european central bank", "treasury yield", "treasury yields",
+            "bond yield", "bond yields", "10-year yield", "2-year yield", "yield curve",
+            "dollar index", "dxy", "us dollar", "greenback", "rate decision", "holds rates",
+            "cuts rates", "hikes rates", "central bank buying", "central bank reserves",
+            "unemployment rate", "recession", "debt ceiling", "tariff", "trade war", "sovereign debt"
         ]
         if _matches_any_keyword(full_text, macro_core):
             return True
 
-        # 4. War, Geopolitical Conflict & Maritime Disruption (Tier 1)
+        # 4. War, Geopolitical Conflict, Peace Talks & Security (Tier 1)
         geo_core = [
-            "war", "invasion", "military strike", "missile", "airstrike", "drone attack",
-            "strait of hormuz", "red sea crisis", "naval blockade", "nuclear threat",
-            "ceasefire", "peace deal", "sanctions imposed", "sanctions against",
-            "tensions escalate", "retaliatory strike", "military offensive",
-            "border clash", "armed clash", "troops mobilized", "declares war", "martial law"
+            "war", "invasion", "military strike", "missile", "airstrike", "air strike", "drone attack",
+            "drone strike", "strait of hormuz", "red sea crisis", "naval blockade", "nuclear threat",
+            "ceasefire", "peace deal", "peace talks", "envoy", "ambassador", "diplomatic",
+            "sanctions imposed", "sanctions against", "sanctions lifted", "tensions escalate",
+            "retaliatory strike", "military offensive", "border clash", "armed clash",
+            "troops mobilized", "declares war", "martial law", "hostage", "detains", "detained",
+            "freed", "humanitarian", "security council", "defense pact", "ballistic", "warship"
         ]
         if _matches_any_keyword(full_text, geo_core):
             return True
 
-        if re.search(r'\b(israel|iran|russia|ukraine|china|taiwan|us|u\.s\.)\b', full_text) and re.search(r'\b(strike|attack|bomb|clash|warns|threat|escalat|deploy|intercept|drone|retaliat)\b', full_text):
+        if re.search(r'\b(israel|iran|russia|ukraine|china|taiwan|us|u\.s\.|syria|lebanon|yemen|houthi|gaza)\b', full_text) and re.search(r'\b(strike|attack|bomb|clash|warns|threat|escalat|deploy|intercept|drone|retaliat|freed|talks|crisis|conflict)\b', full_text):
             return True
 
-        # 5. Energy Crisis & Commodities Shocks (Tier 1)
-        energy_core = [
-            "opec", "crude oil", "oil supply", "brent", "wti", "energy crisis",
-            "central bank buying gold", "gold surges", "gold plunges"
+        # 5. Gold & Precious Metals, Energy & Oil Shocks (Tier 1)
+        energy_and_gold_core = [
+            "gold", "xau", "bullion", "yellow metal", "gold price", "spot gold", "gold rally",
+            "gold surges", "gold plunges", "gold hits", "all-time high", "record high",
+            "central bank buying gold", "gold reserves", "silver", "precious metals", "mining",
+            "opec", "opec+", "crude oil", "oil supply", "oil price", "oil prices", "brent", "wti",
+            "crude", "energy crisis", "crude inventories", "lng export", "gas prices", "pipeline"
         ]
-        if _matches_any_keyword(full_text, energy_core):
+        if _matches_any_keyword(full_text, energy_and_gold_core):
             return True
 
-        # 6. Big Tech, AI & Frontier Innovation (Tier 1)
+        # 6. Financial Markets, Wall Street & Earnings (Tier 1)
+        markets_core = [
+            "wall street", "dow jones", "s&p 500", "nasdaq", "equities", "stock market",
+            "market selloff", "stocks plunge", "stocks rally", "market rout", "market crash",
+            "earnings beat", "earnings surprise", "ipo", "trillion market cap"
+        ]
+        if _matches_any_keyword(full_text, markets_core):
+            return True
+
+        # 7. Big Tech, AI, Frontier Innovation & Aerospace (Tier 1)
         tech_core = [
             "semiconductor export", "chip export controls", "chip ban", "big tech antitrust",
             "artificial intelligence breakthrough", "ai model launch", "data center investment",
             "starship launch", "roadster unveil", "optimus humanoid", "robotaxi launch",
-            "cyberattack disrupts", "cloud outage", "billion investment", "blackwell"
+            "cyberattack disrupts", "cloud outage", "billion investment", "blackwell", "deepseek",
+            "asml", "tsmc", "earnings beat", "revenue surge", "tie-up", "partnership", "acquisition"
         ]
         if _matches_any_keyword(full_text, tech_core):
             return True
 
-        if re.search(r'\b(nvidia|apple|tesla|openai|spacex|microsoft|google|anthropic)\b', full_text) and re.search(r'\b(unveils|launches|invests|bans|regulatory|chips?|antitrust|record revenue|breakthrough|acquisition)\b', full_text):
+        if re.search(r'\b(nvidia|apple|tesla|openai|spacex|microsoft|google|anthropic|meta|amazon)\b', full_text) and re.search(r'\b(unveils|launches|invests|bans|regulatory|chips?|antitrust|record revenue|breakthrough|acquisition|earnings|stock jumps|stock surges|beats)\b', full_text):
             return True
 
-        # 7. Major Digital Asset & Crypto Milestones (Tier 1)
+        # 8. Major Digital Asset & Crypto Milestones (Tier 1)
         crypto_core = [
             "strategic bitcoin reserve", "spot bitcoin etf", "crypto regulation", "sec approves",
             "sec sues", "crypto crash", "bitcoin surges above", "bitcoin plunges below",
-            "stablecoin law", "cbdc", "binance settlement", "crypto liquidation"
+            "stablecoin law", "cbdc", "binance settlement", "crypto liquidation", "mainnet launch",
+            "solana", "ethereum"
         ]
         if _matches_any_keyword(full_text, crypto_core):
             return True
