@@ -516,6 +516,11 @@ class XAUUSDNewsAssistantBot:
                 logger.debug(f"Scratch cleanup notice: {e}")
 
             database.set_state(key, "done")
+            try:
+                import gc
+                gc.collect()
+            except Exception:
+                pass
             logger.info(f"[DB Auto-Maintenance] Cleaned {cleaned} old records (retention: 2 days) and executed VACUUM successfully.")
 
     def process_incoming_commands(self):
@@ -1526,15 +1531,15 @@ class XAUUSDNewsAssistantBot:
             return False
 
     def audit_live_channel_and_heal(self):
-        """Autonomous Self-Healing Auditor: Automatically detects & purges duplicate messages or overlapping images on the channel!"""
+        """Autonomous Self-Healing Auditor: Automatically detects & purges duplicate messages or overlapping images on the channel in <= 2 seconds!"""
         now = time.time()
-        if (now - getattr(self, "_last_channel_audit_ts", 0)) < 15.0:
+        if (now - getattr(self, "_last_channel_audit_ts", 0)) < 2.0:
             return
         self._last_channel_audit_ts = now
 
         try:
             import html as html_module
-            channel_html = self._fetch_channel_html(max_cache_age=0.0)
+            channel_html = self._fetch_channel_html(max_cache_age=2.0)
             if not channel_html:
                 return
 
@@ -2275,6 +2280,8 @@ class XAUUSDNewsAssistantBot:
         background_interval = 30  # Responsive background check interval (30s)
         last_breaking_check = 0.0
         breaking_interval = 2.0   # Ultra-fast sub-second breaking news monitor (every 2s)
+        last_channel_audit = 0.0
+        channel_audit_interval = 2.0  # Ultra-fast 2-second autonomous self-healing audit per user directive
         last_signal_check = 0.0
         signal_interval = 30.0    # Real-time high-speed signals & trade trailing monitor (every 30s)
 
@@ -2292,7 +2299,13 @@ class XAUUSDNewsAssistantBot:
                     except Exception as err:
                         logger.error(f"Error checking breaking news: {err}", exc_info=True)
 
-
+                # 3. Autonomous Channel Self-Healing Auditor (Purges duplicates or defective posts in <= 2 seconds!)
+                if now - last_channel_audit >= channel_audit_interval:
+                    last_channel_audit = now
+                    try:
+                        self.audit_live_channel_and_heal()
+                    except Exception as err:
+                        logger.debug(f"Error during channel live audit: {err}")
 
                 # 4. Scheduled & Periodic Tasks Checker (Non-blocking)
                 if now - last_background_check >= background_interval:
@@ -2300,7 +2313,6 @@ class XAUUSDNewsAssistantBot:
                     try:
                         self.check_database_maintenance()
                         self.check_daily_gold_price()
-                        self.audit_live_channel_and_heal()
                         background_interval = self.check_economic_events()
                     except Exception as err:
                         logger.error(f"Error during background task check: {err}", exc_info=True)
