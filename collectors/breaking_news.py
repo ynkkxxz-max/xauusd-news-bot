@@ -22,39 +22,53 @@ logger = logging.getLogger(__name__)
 # 7. ⚖️ ច្បាប់ បទប្បញ្ញត្តិ និងគោលនយោបាយរដ្ឋាភិបាល (Laws, Tariffs, Debt, Sanctions)
 # -------------------------------------------------------------------------
 RSS_FEEDS = [
-    # --- Pillar 1: Economy ---
+    # --- Pillar 1: Economy & Financial Markets ---
     ("CNBC Economy", "https://www.cnbc.com/id/20910258/device/rss/rss.html"),
+    ("CNBC Markets", "https://www.cnbc.com/id/10000664/device/rss/rss.html"),
+    ("MarketWatch Top Stories", "https://feeds.content.dowjones.io/public/rss/mw_topstories"),
+    ("MarketWatch Real-time", "https://feeds.content.dowjones.io/public/rss/mw_realtimeheadlines"),
     ("The Guardian Business", "https://www.theguardian.com/business/rss"),
     ("BBC Business", "https://feeds.bbci.co.uk/news/business/rss.xml"),
-    ("MarketWatch Real-time", "https://feeds.content.dowjones.io/public/rss/mw_realtimeheadlines"),
+    ("Bloomberg Markets Wire", "https://news.google.com/rss/search?q=site:bloomberg.com+markets+OR+economy+when:1d&hl=en-US&gl=US&ceid=US:en"),
     ("The Guardian US News", "https://www.theguardian.com/us-news/rss"),
-    ("ForexLive News", "https://www.forexlive.com/feed/news"),
 
-    # --- Pillar 2: Geopolitics & Global Conflicts ---
+    # --- Pillar 2: Geopolitics, War & Global Security ---
+    ("Reuters World Wire", "https://news.google.com/rss/search?q=site:reuters.com+world+OR+geopolitics+OR+war+when:1d&hl=en-US&gl=US&ceid=US:en"),
+    ("Al Jazeera World", "https://www.aljazeera.com/xml/rss/all.xml"),
     ("The Guardian World", "https://www.theguardian.com/world/rss"),
     ("The Guardian Middle East", "https://www.theguardian.com/world/middleeast/rss"),
     ("BBC World News", "https://feeds.bbci.co.uk/news/world/rss.xml"),
+    ("BBC Middle East", "https://feeds.bbci.co.uk/news/world/middle_east/rss.xml"),
+    ("BBC Europe", "https://feeds.bbci.co.uk/news/world/europe/rss.xml"),
     ("Politico World", "https://rss.politico.com/politics-news.xml"),
     ("CNBC World News", "https://www.cnbc.com/id/100727362/device/rss/rss.html"),
 
-    # --- Pillar 3: Technology / AI / Frontier Innovation / EV & Aerospace ---
+    # --- Pillar 3: Technology, AI, Frontier Innovation, EV & Aerospace ---
+    ("The Verge Tech & AI", "https://www.theverge.com/rss/index.xml"),
+    ("TechCrunch", "https://techcrunch.com/feed/"),
     ("The Guardian Technology", "https://www.theguardian.com/technology/rss"),
     ("BBC Technology", "https://feeds.bbci.co.uk/news/technology/rss.xml"),
     ("CNBC Tech", "https://www.cnbc.com/id/19854910/device/rss/rss.html"),
-    ("TechCrunch", "https://techcrunch.com/feed/"),
     ("Ars Technica", "https://feeds.arstechnica.com/arstechnica/index"),
     ("Electrek EV & Energy", "https://electrek.co/feed/"),
     ("Teslarati Frontier Tech", "https://www.teslarati.com/feed/"),
     ("SpaceNews Aerospace", "https://spacenews.com/feed/"),
 
-    # --- Pillar 4: Monetary Policy & Central Banks ---
+    # --- Pillar 4: Monetary Policy, Central Banks, USD & Forex, Bond Yields ---
+    ("CNBC Bonds & Yields", "https://www.cnbc.com/id/15839069/device/rss/rss.html"),
+    ("FXStreet Forex Wire", "https://news.google.com/rss/search?q=site:fxstreet.com+gold+OR+fed+OR+dollar+when:1d&hl=en-US&gl=US&ceid=US:en"),
+    ("ForexLive News", "https://www.forexlive.com/feed/news"),
+    ("Investing Forex & Rates", "https://www.investing.com/rss/news_1.rss"),
     ("Federal Reserve Press", "https://www.federalreserve.gov/feeds/press_monetary.xml"),
     ("ECB Press Releases", "https://www.ecb.europa.eu/rss/press.html"),
 
-    # --- Pillar 5: Environment & Natural Resources (OPEC / Oil / Gold) ---
-    ("The Guardian Environment", "https://www.theguardian.com/environment/rss"),
+    # --- Pillar 5: Gold & Precious Metals, Environment, Energy & Oil ---
+    ("Kitco Gold News", "https://news.google.com/rss/search?q=site:kitco.com+gold+when:1d&hl=en-US&gl=US&ceid=US:en"),
+    ("Mining.com Gold Wire", "https://www.mining.com/commodity/gold/feed/"),
+    ("Investing Commodities & Gold", "https://www.investing.com/rss/news_25.rss"),
     ("OilPrice Real-time", "https://oilprice.com/rss/main"),
     ("CNBC Energy", "https://www.cnbc.com/id/19836768/device/rss/rss.html"),
+    ("The Guardian Environment", "https://www.theguardian.com/environment/rss"),
 
     # --- Pillar 6: Social & Demographics (Labor, Employment, Strikes) ---
     ("CNBC Jobs & Economy", "https://www.cnbc.com/id/10000115/device/rss/rss.html"),
