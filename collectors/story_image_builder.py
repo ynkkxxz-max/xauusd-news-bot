@@ -160,6 +160,22 @@ class StoryImageBuilder:
         except Exception:
             pass
 
+    _FILE_DHASH_CACHE = {}
+
+    @classmethod
+    def _get_file_dhash(cls, file_path: str) -> str:
+        """Returns cached perceptual dHash for static gallery file with zero disk re-reads."""
+        if file_path in cls._FILE_DHASH_CACHE:
+            return cls._FILE_DHASH_CACHE[file_path]
+        try:
+            import database
+            with open(file_path, "rb") as f:
+                dh = database.calculate_image_dhash(f.read())
+            cls._FILE_DHASH_CACHE[file_path] = dh
+            return dh
+        except Exception:
+            return ""
+
     @classmethod
     def get_available_leader_photo(cls, leader_key: str) -> str:
         """
@@ -182,8 +198,7 @@ class StoryImageBuilder:
                 continue
             try:
                 import database
-                with open(c, "rb") as f:
-                    c_hash = database.calculate_image_dhash(f.read())
+                c_hash = cls._get_file_dhash(c)
                 if c_hash and database.is_image_dhash_duplicate(c_hash, max_age_seconds=86400.0, max_hamming_dist=10):
                     continue
             except Exception:
@@ -225,8 +240,7 @@ class StoryImageBuilder:
                 continue
             try:
                 import database
-                with open(c, "rb") as f:
-                    c_hash = database.calculate_image_dhash(f.read())
+                c_hash = cls._get_file_dhash(c)
                 if c_hash and database.is_image_dhash_duplicate(c_hash, max_age_seconds=14400.0, max_hamming_dist=10):
                     continue
             except Exception:
