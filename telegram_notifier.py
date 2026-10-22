@@ -207,6 +207,10 @@ def sanitize_khmer_editorial_text(text: str) -> str:
         "អ៊ីរ៉ាន": "អ៊ីរ៉ង់",
         "តេហេឿរ៉ង់": "តេហេរ៉ង់",
         "តេហឿរ៉ង់": "តេហេរ៉ង់",
+        "ប្រចាំត្រីម័យ": "ប្រចាំត្រីមាស",
+        "ត្រីម័យ": "ត្រីមាស",
+        "ផ្អោបផ្ដើម": "ចាប់ផ្ដើម",
+        "ផ្អោបផ្តើម": "ចាប់ផ្តើម",
         "ប្រមាន": "ព្រមាន",
         "សហរដ្ធ": "សហរដ្ឋ",
         "សេដ្ធកិច្ច": "សេដ្ឋកិច្ច",
@@ -413,7 +417,7 @@ class TelegramNotifier:
         logger.info(f"[WATCHDOG PASSED] Post #{message_id} passed all 100% quality checks ({vis_len}/{max_allowed} chars).")
         return True
 
-    def send_message(self, text: str, parse_mode: str = "HTML", disable_web_page_preview: bool = True, auto_pin: bool = False, reply_markup: dict = None, chat_id: str = None) -> dict:
+    def send_message(self, text: str, parse_mode: str = "HTML", disable_web_page_preview: bool = True, auto_pin: bool = False, reply_markup: dict = None, chat_id: str = None, is_ultra_breaking: bool = False) -> dict:
         """Send message directly to Telegram channel/chat. If auto_pin is True, pins the message."""
         import re
         import time
@@ -433,12 +437,13 @@ class TelegramNotifier:
 
         target_chat = str(chat_id or self.chat_id)
 
-        # Anti-Flood Cadence Guard: strictly maintain at least 60 seconds between channel alerts
+        # Anti-Flood Cadence Guard: 15s for Ultra Breaking, 60s for standard channel alerts
+        flood_gap = 15.0 if is_ultra_breaking else 60.0
         if target_chat == str(self.chat_id) and not text.startswith("🥇") and hasattr(self, "_last_channel_post_time"):
             elapsed = time.time() - getattr(self, "_last_channel_post_time", 0.0)
-            if elapsed < 60.0:
-                wait_sec = min(60.0 - elapsed, 30.0)
-                logger.info(f"[Anti-Flood Guard] Spacing channel post by {wait_sec:.1f}s to prevent subscriber flood...")
+            if elapsed < flood_gap:
+                wait_sec = min(flood_gap - elapsed, 15.0)
+                logger.info(f"[Anti-Flood Guard] Spacing channel post by {wait_sec:.1f}s (tier: {'ULTRA' if is_ultra_breaking else 'STANDARD'})...")
                 time.sleep(wait_sec)
 
         url = f"{self.base_url}/sendMessage"
@@ -503,7 +508,7 @@ class TelegramNotifier:
             logger.error(f"[TelegramNotifier] Exception while sending message: {e}")
             return {"ok": False, "error": str(e)}
 
-    def send_photo(self, photo_bytes: bytes, caption: str = "", parse_mode: str = "HTML", reply_markup: dict = None, chat_id: str = None) -> dict:
+    def send_photo(self, photo_bytes: bytes, caption: str = "", parse_mode: str = "HTML", reply_markup: dict = None, chat_id: str = None, is_ultra_breaking: bool = False) -> dict:
         import re
         import time
         from database import calculate_image_dhash, is_image_dhash_duplicate, record_image_dhash
@@ -515,7 +520,7 @@ class TelegramNotifier:
         # Circuit Breaker 2: If image is missing, empty, or corrupted (< 500 bytes), fallback to MODE B text-only!
         if not photo_bytes or len(photo_bytes) < 500:
             logger.warning("[TelegramNotifier] Circuit Breaker: Invalid photo bytes. Seamless fallback to MODE B (send_message).")
-            return self.send_message(text=caption, parse_mode=parse_mode, reply_markup=reply_markup, chat_id=chat_id)
+            return self.send_message(text=caption, parse_mode=parse_mode, reply_markup=reply_markup, chat_id=chat_id, is_ultra_breaking=is_ultra_breaking)
 
         target_chat = str(chat_id or self.chat_id)
 
@@ -536,18 +541,19 @@ class TelegramNotifier:
             img_dhash = calculate_image_dhash(photo_bytes)
             if img_dhash and is_image_dhash_duplicate(img_dhash, max_age_seconds=86400.0, max_hamming_dist=10):
                 logger.critical(f"[STRICT ANTI-REPETITION INTERCEPT] Image dHash '{img_dhash}' matches an image broadcasted within 24h! Auto-dropping image and falling back to MODE B (Clean VIP Text Mode).")
-                return self.send_message(text=caption, parse_mode=parse_mode, reply_markup=reply_markup, chat_id=chat_id)
+                return self.send_message(text=caption, parse_mode=parse_mode, reply_markup=reply_markup, chat_id=chat_id, is_ultra_breaking=is_ultra_breaking)
 
         if not self.is_configured():
             logger.warning(f"[TelegramNotifier] Credentials not set. Simulated photo upload ({len(photo_bytes) if photo_bytes else 0} bytes).")
             return {"ok": True, "result": {"message_id": 999998, "simulated": True}}
 
-        # Anti-Flood Cadence Guard: strictly maintain at least 60 seconds between channel alerts
+        # Anti-Flood Cadence Guard: 15s for Ultra Breaking, 60s for standard channel alerts
+        flood_gap = 15.0 if is_ultra_breaking else 60.0
         if target_chat == str(self.chat_id) and not is_daily_gold_card and hasattr(self, "_last_channel_post_time"):
             elapsed = time.time() - getattr(self, "_last_channel_post_time", 0.0)
-            if elapsed < 60.0:
-                wait_sec = min(60.0 - elapsed, 30.0)
-                logger.info(f"[Anti-Flood Guard] Spacing channel photo post by {wait_sec:.1f}s to prevent subscriber flood...")
+            if elapsed < flood_gap:
+                wait_sec = min(flood_gap - elapsed, 15.0)
+                logger.info(f"[Anti-Flood Guard] Spacing channel photo post by {wait_sec:.1f}s (tier: {'ULTRA' if is_ultra_breaking else 'STANDARD'})...")
                 time.sleep(wait_sec)
 
         url = f"{self.base_url}/sendPhoto"
@@ -613,7 +619,7 @@ class TelegramNotifier:
             logger.error(f"[TelegramNotifier] Exception while sending photo: {e}")
             return {"ok": False, "error": str(e)}
 
-    def send_video(self, video_data, caption: str = "", parse_mode: str = "HTML", reply_markup: dict = None, chat_id: str = None, supports_streaming: bool = True) -> dict:
+    def send_video(self, video_data, caption: str = "", parse_mode: str = "HTML", reply_markup: dict = None, chat_id: str = None, supports_streaming: bool = True, is_ultra_breaking: bool = False) -> dict:
         """
         Sends an authentic HD video clip to the Telegram channel with strict VIP standard.
         Accepts:
@@ -629,7 +635,7 @@ class TelegramNotifier:
         import time
 
         if not video_data:
-            return self.send_message(text=caption, parse_mode=parse_mode, reply_markup=reply_markup, chat_id=chat_id)
+            return self.send_message(text=caption, parse_mode=parse_mode, reply_markup=reply_markup, chat_id=chat_id, is_ultra_breaking=is_ultra_breaking)
 
         target_chat = str(chat_id or self.chat_id)
 
@@ -645,12 +651,13 @@ class TelegramNotifier:
             logger.warning(f"[TelegramNotifier] Credentials not set. Simulated video upload.")
             return {"ok": True, "result": {"message_id": 999997, "simulated": True}}
 
-        # Anti-Flood Cadence Guard: strictly maintain at least 150 seconds between channel alerts
+        # Anti-Flood Cadence Guard: 15s for Ultra Breaking, 60s for standard channel alerts
+        flood_gap = 15.0 if is_ultra_breaking else 60.0
         if target_chat == str(self.chat_id) and hasattr(self, "_last_channel_post_time"):
             elapsed = time.time() - getattr(self, "_last_channel_post_time", 0.0)
-            if elapsed < 150.0:
-                wait_sec = min(150.0 - elapsed, 45.0)
-                logger.info(f"[Anti-Flood Guard] Spacing channel video post by {wait_sec:.1f}s to prevent subscriber flood...")
+            if elapsed < flood_gap:
+                wait_sec = min(flood_gap - elapsed, 15.0)
+                logger.info(f"[Anti-Flood Guard] Spacing channel video post by {wait_sec:.1f}s (tier: {'ULTRA' if is_ultra_breaking else 'STANDARD'})...")
                 time.sleep(wait_sec)
 
         url = f"{self.base_url}/sendVideo"
