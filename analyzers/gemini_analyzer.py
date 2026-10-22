@@ -97,11 +97,11 @@ def _json_schema():
     }
 
 
-def breaking_prompt(title: str, description: str) -> str:
+def breaking_prompt(title: str, description: str, macro_context: str = "") -> str:
     return (
         f"You are an elite financial news editor and Telegram market broadcaster. Your mission is to process global macroeconomic and financial wire news into professional, clean, concise Khmer posts for an exclusive VIP Telegram channel.\n\n"
         f"ព័ត៌មានជាក់ស្តែង៖\n"
-        f"ចំណងជើង: {title}\nខ្លឹមសារ: {description}\n\n"
+        f"ចំណងជើង: {title}\nខ្លឹមសារ: {description}\n{f"បរិបទទីផ្សារបច្ចុប្បន្ន (Live Market Context): {macro_context}\n" if macro_context else ""}\n"
         f"STRICT EDITORIAL & STRUCTURAL RULES (គោលការណ៍តឹងរ៉ឹង):\n\n"
         f"1. ACCURATE KHMER & ENGLISH SPELLING (ការសរសេរអក្សរខ្មែរ និង English ឱ្យបានត្រឹមត្រូវ):\n"
         f"   - Proper Nouns (Companies, Tech Brands, Leaders): Strictly preserve all company names, tech brands, global leaders, and crypto symbols in their exact original English/Latin spelling (e.g., SpaceX, Starlink, Apple, Microsoft, NVIDIA, Tesla, Google, Amazon, Meta, Tether, BlackRock, TSMC, Intel, OpenAI, Donald Trump, Jerome Powell, Kevin Warsh, Elon Musk, Xi Jinping, Vladimir Putin, Volodymyr Zelenskyy, Bitcoin, Ethereum, USDT, USDC, Spot ETF, CPI, NFP, GDP, FOMC, SEC).\n"
@@ -162,6 +162,11 @@ def breaking_prompt(title: str, description: str) -> str:
         f"   - REJECT THINK-TANK ESSAYS & OP-EDS: If this news is an academic essay, think-tank report (e.g. Middle East Institute, Carnegie, Brookings, CSIS), policy commentary, speculative opinion ('limits of', 'future of', 'perspective', 'could mean', 'opinion'), routine minor chatter, small earnings, or local news: You MUST set `is_clear: false` to DROP IT IMMEDIATELY.\n\n"
         f"4. REAL ASSET & ECONOMIC IMPACT TARGETING (ហាមមិនឱ្យផ្តោតលើមាសគ្រប់ពេលឡើយ):\n"
         f"   - STRICTLY ZERO CHILD-LIKE COMMENTARY: NEVER write naive, simplistic phrases like 'នេះជាព័ត៌មានល្អ...', 'នេះជាព័ត៌មានមិនល្អ...', 'នេះជាព័ត៌មានអាក្រក់...'! Always provide authoritative, sophisticated macroeconomic and asset-level analysis (e.g. '🔶 ហានិភ័យទីផ្សារ៖ បង្កើនសម្ពាធលើ...', '🔹 ផលវិជ្ជមាន៖ ជំរុញឱ្យ...') explaining concrete financial impacts on real assets (Gold, Crude Oil, DXY, US 10Y Yields)!\n"
+        f"   - INSTITUTIONAL TRANSMISSION CHANNELS (ជម្រៅនៃការវិភាគបែបស្ថាប័នហិរញ្ញវត្ថុ):\n"
+        f"     • ភូមិសាស្ត្រនយោបាយ និងសង្គ្រាម: ជំរុញតម្រូវការទ្រព្យសុវត្ថិភាព (Safe-Haven Gold) និងហានិភ័យថ្លៃប្រេងឆៅកើនឡើង (Crude Oil Risk Premium)។\n"
+        f"     • ថាមពល និងប្រេងឆៅឡើងថ្លៃ: បង្កើនសម្ពាធអតិផរណា (Rekindling Inflation) ជំរុញទិន្នផលប័ណ្ណបំណុល US10Y ឡើងខ្ពស់ និងបង្ខំឱ្យ Fed រក្សាការប្រាក់ខ្ពស់យូរជាងមុន (Higher-for-Longer Rates)។\n"
+        f"     • ពន្ធគយ និងសង្គ្រាមពាណិជ្ជកម្ម: បង្កើនថ្លៃដើមនាំចូល និងហានិភ័យជាប់គាំងសេដ្ឋកិច្ច (Stagflation Risk)។\n"
+        f"     • បច្ចេកវិទ្យា និង AI: ជះឥទ្ធិពលលើថ្លៃភាគហ៊ុនបច្ចេកវិទ្យា និងខ្សែច្រវាក់ផ្គត់ផ្គង់ Semiconductor សកល។\n"
         f"   - Tailor the impact line directly to the REAL asset or sector in the news (Crude Oil, Energy, Big Tech/AI, Global Trade, Tariffs, USD, Bond Yields, or Crypto):\n"
         f"     • For Oil & Energy (e.g. Aramco, OPEC, Diesel, Middle East energy): Explain concrete impact on crude oil prices (ថ្លៃប្រេងកាត/ប្រេងឆៅ) and global energy supply — DO NOT mention Gold!\n"
         f"     • For Tech & AI (e.g. Nvidia, TSMC, Chips, AI): Explain concrete impact on chip supply and tech stocks (ភាគហ៊ុនបច្ចេកវិទ្យា) — DO NOT mention Gold!\n"
@@ -194,14 +199,21 @@ def breaking_prompt(title: str, description: str) -> str:
 
 def actual_prompt(event_name: str, actual: str, forecast: str, previous: str) -> str:
     return (
-        f"ទិន្នន័យសេដ្ឋកិច្ចបានចេញផ្សាយ៖\n"
+        f"You are an elite Wall Street macroeconomic analyst broadcasting to a VIP Khmer audience.\n"
+        f"ទិន្នន័យសេដ្ឋកិច្ចសំខាន់ទើបតែចេញផ្សាយ (Actual Economic Data Release)៖\n"
         f"- ព្រឹត្តិការណ៍: {event_name}\n"
         f"- ជាក់ស្តែង (Actual): {actual}\n"
         f"- ការព្យាករណ៍ (Forecast): {forecast}\n"
         f"- ទិន្នន័យមុន (Previous): {previous}\n\n"
-        f"ប្រៀបធៀប Actual vs Forecast ហើយវិភាគផលប៉ះពាល់លើ USD និងមាស។ "
-        f"ត្រឡប់ JSON ដែលមាន fields: {', '.join(_ANALYSIS_KEYS)}។ "
-        f"សរសេរជាភាសាខ្មែរ ខ្លី ច្បាស់លាស់ (what_happened ≤110 តួ, why_it_matters ≤200 តួ, ផ្សេងទៀត ≤80-110 តួ)។"
+        f"ភារកិច្ចរបស់អ្នក៖ ធ្វើការប្រៀបធៀប Actual vs Forecast និង Previous ភ្លាមៗ ជាមួយនឹងជម្រៅវិភាគកម្រិតស្ថាប័ន (Institutional Macro Depth)៖\n"
+        f"1. ស្ថានភាព (condition / what_happened): សង្ខេបយ៉ាងច្បាស់ថាទិន្នន័យនេះ (Actual) ខ្ពស់ ឬទាបជាងរំពឹងទុក និងឆ្លុះបញ្ចាំងពីស្ថានភាពម៉ាក្រូសេដ្ឋកិច្ចបែបណា (ឧ. សម្ពាធអតិផរណារឹងរូស 'Sticky Inflation', ទីផ្សារការងាររឹងមាំ ឬការធ្លាក់ចុះកំណើន)។ (១ ប្រយោគខ្លីខ្លឹម ≤ 110 តួអក្សរ)\n"
+        f"2. ផលជះ (effect / why_it_matters): ជះឥទ្ធិពលយ៉ាងណាចំពោះការរំពឹងទុកអត្រាការប្រាក់របស់ធនាគារកណ្តាល Fed (Rate Cut / Rate Hike / Higher-for-Longer)។ (១ ប្រយោគខ្លីខ្លឹម ≤ 150 តួអក្សរ)\n"
+        f"3. ផលប៉ះពាល់លើ USD (usd_impact): ឡើងថ្លៃភ្លាមៗ (Bullish) ឬ ចុះខ្សោយភ្លាមៗ (Bearish)។\n"
+        f"4. ផលប៉ះពាល់លើ Bond Yields (rate_yield_impact): ទិន្នផលមូលបត្របំណុល US10Y ស្ទុះងើបឡើង ឬ ធ្លាក់ចុះ។\n"
+        f"5. ផលប៉ះពាល់លើមាស (xau_pressure): ប្រឈមសម្ពាធធ្លាក់ចុះរយៈពេលខ្លី (Bearish Pressure) ឬ ទទួលបានកម្លាំងរុញឡើង (Bullish Momentum)។\n"
+        f"6. bias: 🟢 Bullish ឬ 🔴 Bearish ឬ 🟡 Neutral (ផ្អែកលើផលប៉ះពាល់ចំពោះមាស XAU/USD)។\n\n"
+        f"ច្បាប់អក្ខរាវិរុទ្ធ៖ អក្សរខ្មែរត្រូវតែត្រឹមត្រូវ ១០០% តាមវចនានុក្រម ជួន ណាត គ្មានពាក្យកាត់ គ្មានកំហុសអក្ខរាវិរុទ្ធ។\n"
+        f"ត្រឡប់ JSON ដែលមាន fields: {', '.join(_ANALYSIS_KEYS)}។"
     )
 
 
@@ -521,11 +533,11 @@ class GeminiAnalyzer:
     def _normalize(self, raw: dict) -> dict:
         return normalize_analysis(raw)
 
-    def analyze_breaking_news(self, title: str, description: str = "") -> dict:
+    def analyze_breaking_news(self, title: str, description: str = "", macro_context: str = "") -> dict:
         if not self.is_available():
             return None
         try:
-            return normalize_analysis(self._call(breaking_prompt(title, description)))
+            return normalize_analysis(self._call(breaking_prompt(title, description, macro_context)))
         except Exception as e:
             logger.warning(f"[GeminiAnalyzer] breaking_news failed: {e}")
             return None
@@ -878,4 +890,4 @@ class GeminiAnalyzer:
             return json.loads(_extract_text(data))
         except Exception as e:
             logger.warning(f"[GeminiAnalyzer] analyze_user_chart_image failed: {e}")
-            return None
+            return None
