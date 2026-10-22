@@ -94,10 +94,18 @@ def sanitize_khmer_spelling(text: str) -> str:
     res = re.sub(foreign_regex, "", res)
 
     corrections = [
-        # Lexical Integrity: Fix ព្រមាន
+        # Lexical Integrity: Fix ព្រមាន and common typos
         (r"\bប្រមាន\b", "ព្រមាន"),
         (r"ការប្រមាន", "ការព្រមាន"),
         (r"បានប្រមាន", "បានព្រមាន"),
+        (r"ប្រចាំត្រីម័យ", "ប្រចាំត្រីមាស"),
+        (r"ត្រីម័យ", "ត្រីមាស"),
+        (r"ផ្អោបផ្ដើម", "ចាប់ផ្ដើម"),
+        (r"ផ្អោបផ្តើម", "ចាប់ផ្តើម"),
+        (r"អត្រាកាប្រាក់", "អត្រាការប្រាក់"),
+        (r"ពាណិជ្ចកម្ម", "ពាណិជ្ជកម្ម"),
+        (r"ចក្រភពអគ្លេស", "ចក្រភពអង់គ្លេស"),
+        (r"\bអគ្លេស\b", "អង់គ្លេស"),
 
         # Currency & Economy Fixes (prevents orphan or duplicate 'អាមេរិក' / 'ាមេរិក')
         (r"កប៉ាល់អណ្តែតទឹក", "នាវាអណ្តែតទឹក"),
@@ -837,9 +845,9 @@ class KhmerFormatter:
             (r"\b(jordan|jordanian|amman)\b|ហ្ស៊កដានី", "🇯🇴"),
             (r"\b(vietnam|vietnamese|hanoi)\b|វៀតណាម", "🇻🇳"),
             (r"\b(philippines|philippine|filipino|manila|bsp|bangko sentral)\b|ហ្វីលីពីន|ម៉ានីល|ប៉េសូ|ប៉េសូហ្វីលីពីន", "🇵🇭"),
-            (r"\b(thailand|thai|bangkok|bot)\b|ថៃ|បាងកក", "🇹🇭"),
-            (r"\b(indonesia|indonesian|jakarta|rupiah|bi)\b|ឥណ្ឌូណេស៊ី|ហ្សាការតា|រូព្យ៉ា", "🇮🇩"),
-            (r"\b(malaysia|malaysian|kuala lumpur|ringgit|bnm)\b|ម៉ាឡេស៊ី|គូឡាឡាំពួ|រីងហ្គីត", "🇲🇾"),
+            (r"\b(thailand|thai|bangkok|bank of thailand)\b|ថៃ|បាងកក", "🇹🇭"),
+            (r"\b(indonesia|indonesian|jakarta|rupiah|bank indonesia)\b|ឥណ្ឌូណេស៊ី|ហ្សាការតា|រូព្យ៉ា", "🇮🇩"),
+            (r"\b(malaysia|malaysian|kuala lumpur|ringgit|bank negara malaysia)\b|ម៉ាឡេស៊ី|គូឡាឡាំពួ|រីងហ្គីត", "🇲🇾"),
             (r"\b(pakistan|pakistani|islamabad)\b|ប៉ាគីស្ថាន", "🇵🇰"),
             (r"\b(syria|syrian|damascus)\b|ស៊ីរី", "🇸🇾"),
             (r"\b(lebanon|lebanese|beirut|hezbollah)\b|លីបង់", "🇱🇧"),
@@ -882,15 +890,15 @@ class KhmerFormatter:
         # If no specific country was matched, auto-detect by region/topic or default to 🌐 (Global Macro Pulse).
         if not country_flags:
             comb_lower = f"{headline_priority} {news_item.get('title', '')} {key_event}".lower()
-            if any(w in comb_lower for w in ["u.s.", "usa", "america", "dollar", "fed", "treasury", "sec", "texas", "california", "york", "florida", "wall st", "nvidia", "apple", "tesla", "spacex", "openai", "anthropic", "claude", "musk", "elon musk", "amodei", "xai", "amazon", "google", "microsoft", "intel", "amd", "blackrock", "ai", "artificial intelligence"]):
+            if any(w in comb_lower for w in ["u.s.", "usa", "america", "dollar", "fed", "treasury", "sec", "texas", "california", "york", "florida", "wall st", "nvidia", "apple", "tesla", "spacex", "openai", "anthropic", "claude", "musk", "elon musk", "amodei", "xai", "amazon", "google", "microsoft", "intel", "amd", "blackrock", "ai", "artificial intelligence", "bitcoin", "btc", "etf", "etfs", "crypto", "cryptocurrency"]):
                 country_flags = ["🇺🇸"]
             elif any(w in comb_lower for w in ["philippines", "philippine", "filipino", "manila", "bsp", "ហ្វីលីពីន", "ប៉េសូ"]):
                 country_flags = ["🇵🇭"]
-            elif any(w in comb_lower for w in ["thailand", "thai", "bangkok", "bot", "ថៃ", "បាងកក"]):
+            elif any(w in comb_lower for w in ["thailand", "thai", "bangkok", "bank of thailand", "ថៃ", "បាងកក"]):
                 country_flags = ["🇹🇭"]
-            elif any(w in comb_lower for w in ["indonesia", "indonesian", "jakarta", "rupiah", "bi", "ឥណ្ឌូណេស៊ី"]):
+            elif any(w in comb_lower for w in ["indonesia", "indonesian", "jakarta", "rupiah", "bank indonesia", "ឥណ្ឌូណេស៊ី"]):
                 country_flags = ["🇮🇩"]
-            elif any(w in comb_lower for w in ["malaysia", "malaysian", "kuala lumpur", "ringgit", "bnm", "ម៉ាឡេស៊ី"]):
+            elif any(w in comb_lower for w in ["malaysia", "malaysian", "kuala lumpur", "ringgit", "bank negara malaysia", "ម៉ាឡេស៊ី"]):
                 country_flags = ["🇲🇾"]
             elif any(w in comb_lower for w in ["china", "chinese", "beijing", "pboc", "yuan", "chongqing", "shanghai", "shenzhen"]):
                 country_flags = ["🇨🇳"]
@@ -1166,34 +1174,28 @@ class KhmerFormatter:
                     impact_line = "🔶 ហានិភ័យទីផ្សារ៖ បង្កើនភាពតានតឹងផ្នែកភូមិសាស្ត្រនយោបាយ និងបង្កើនការប្រុងប្រយ័ត្នខ្ពស់ក្នុងទីផ្សារហិរញ្ញវត្ថុសកល"
 
         if impact_line:
-            # Flatten multi-line impact where label was separated from description by newline
-            impact_line = re.sub(r'([🔹🔸🔴🟢]?\s*(?:ផលវិជ្ជមាន|ផលអវិជ្ជមាន/ហានិភ័យ|ហានិភ័យទីផ្សារ|ផលអវិជ្ជមាន|ហានិភ័យ|ឥទ្ធិពលវិជ្ជមាន|ឥទ្ធិពលអវិជ្ជមាន)[\s៖:]*)\n+\s*', r'\1 ', impact_line.strip())
-
-            raw_lines = [l.strip() for l in impact_line.split("\n") if l.strip()]
-            impact_lines = []
-            for iline in raw_lines:
-                if "ផលវិជ្ជមាន" in iline or "ឥទ្ធិពលវិជ្ជមាន" in iline:
-                    if not iline.startswith("🔹"):
-                        iline = "🔹 " + re.sub(r'^[🔹🟢\s]*', '', iline)
-                elif any(k in iline for k in ["ផលអវិជ្ជមាន", "ហានិភ័យទីផ្សារ", "ហានិភ័យ", "ឥទ្ធិពលអវិជ្ជមាន"]):
-                    if not iline.startswith("🔸"):
-                        iline = "🔸 " + re.sub(r'^[🔸🔴\s]*', '', iline)
+            # Guarantee strict GATE 3 standard: 2-line structure with badge and newline
+            # 🔶 ហានិភ័យទីផ្សារ៖\n{desc} OR 🔹 ផលវិជ្ជមាន៖\n{desc}
+            m_imp = re.search(r'(?:[🔹🔸🔶🔴🟢]\s*)?(ផលវិជ្ជមាន|ផលអវិជ្ជមាន/ហានិភ័យ|ហានិភ័យទីផ្សារ|ផលអវិជ្ជមាន|ហានិភ័យ|ឥទ្ធិពលវិជ្ជមាន|ឥទ្ធិពលអវិជ្ជមាន)[\s៖:]*\n*\s*(.+)', impact_line.strip(), re.DOTALL)
+            if m_imp:
+                imp_kind = m_imp.group(1)
+                desc = m_imp.group(2).strip()
+                desc = re.sub(r'^[\s៖:]+', '', desc).strip()
+                desc = sanitize_khmer_spelling(desc)
+                desc = re.sub(r'[។\.]\s*$', '', desc).strip()
+                if desc and not desc.endswith("។"):
+                    desc += "។"
+                if "ផលវិជ្ជមាន" in imp_kind or "ឥទ្ធិពលវិជ្ជមាន" in imp_kind:
+                    impact_line = f"🔹 ផលវិជ្ជមាន៖\n{desc}"
                 else:
-                    # If this line is an orphaned description from a broken newline, merge with previous line!
-                    if impact_lines:
-                        impact_lines[-1] = re.sub(r'[។\.]\s*$', '', impact_lines[-1]).strip() + " " + iline.strip()
-                        if not impact_lines[-1].endswith("។"):
-                            impact_lines[-1] += "។"
-                        continue
-                    iline = "🔶 ហានិភ័យទីផ្សារ៖ " + iline
-
-                iline = re.sub(r'^(🔹|🔸)?\s*(ផលវិជ្ជមាន|ផលអវិជ្ជមាន/ហានិភ័យ|ហានិភ័យទីផ្សារ|ផលអវិជ្ជមាន|ផលអព្យាក្រឹត)[\s៖:]+', r'\1 \2៖ ', iline).strip()
-                iline = sanitize_khmer_spelling(iline)
-                iline = re.sub(r'[។\.]\s*$', '', iline).strip()
-                if iline and not iline.endswith("។"):
-                    iline += "។"
-                impact_lines.append(iline)
-            impact_line = "\n".join(impact_lines)
+                    impact_line = f"🔶 ហានិភ័យទីផ្សារ៖\n{desc}"
+            else:
+                desc = sanitize_khmer_spelling(impact_line.strip())
+                desc = re.sub(r'^[🔹🔸🔶🔴🟢\s]*', '', desc).strip()
+                desc = re.sub(r'[។\.]\s*$', '', desc).strip()
+                if desc and not desc.endswith("។"):
+                    desc += "។"
+                impact_line = f"🔶 ហានិភ័យទីផ្សារ៖\n{desc}"
 
             # Specific Asset Targeting (Point 3) - Replace generic templates with trader-focused asset impacts
             generic_phrases = [
