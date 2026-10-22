@@ -100,6 +100,10 @@ def sanitize_khmer_spelling(text: str) -> str:
         (r"បានប្រមាន", "បានព្រមាន"),
 
         # Currency & Economy Fixes (prevents orphan or duplicate 'អាមេរិក' / 'ាមេរិក')
+        (r"កប៉ាល់អណ្តែតទឹក", "នាវាអណ្តែតទឹក"),
+        (r"កប៉ាល់ដឹកប្រេង", "នាវាដឹកប្រេង"),
+        (r"ក្នុងកប៉ាល់", "ក្នុងនាវា"),
+        (r"កប៉ាល់", "នាវា"),
         (r"ក្នុងមួយ\s*(\d+)\s*(ក្រាម|គីឡូ|លីត្រ)", r"ក្នុង \1 \2"),
         (r"🔴\s*នេះជាព័ត៌មានមិនល្អ\s*ព្រោះ(?:វា)?", "🔶 ហានិភ័យទីផ្សារ៖ "),
         (r"🟢\s*នេះជាព័ត៌មានល្អ\s*(?:សម្រាប់[^\s]+)?\s*ព្រោះ(?:វា)?", "🔹 ផលវិជ្ជមាន៖ "),
@@ -1134,14 +1138,16 @@ class KhmerFormatter:
         if impact_line:
             threat_kh = [
                 "ដ្រូន", "វាយប្រហារ", "សង្គ្រាម", "គ្រាប់បែក", "ឧទ្ទាម", "ប្រដាប់អាវុធ", "មីស៊ីល",
-                "ជម្លោះ", "កងទ័ព", "យោធា", "ទ័ព", "កងកម្លាំង", "ច្រកសមុទ្រ", "សមុទ្រក្រហម", "យេមែន", "យេម៉ែន", "ហូទី"
+                "ជម្លោះ", "កងទ័ព", "យោធា", "ទ័ព", "កងកម្លាំង", "ច្រកសមុទ្រ", "សមុទ្រក្រហម", "យេមែន", "យេម៉ែន", "ហូទី",
+                "បិទផ្លូវ", "បិទខ្ទប់", "កងនាវា", "រឹតបន្តឹង", "ទណ្ឌកម្ម", "តានតឹង", "ភាពតានតឹង", "កង្វះខាត", "បាត់បង់", "ស្ទើរគ្មានសល់"
             ]
             threat_en = [
                 r"\bwar\b", r"\bwars\b", r"\bdrone\b", r"\bdrones\b", r"\battack\b", r"\battacks\b",
                 r"\bbomb\b", r"\bbombing\b", r"\brebel\b", r"\brebels\b", r"\barmed\b", r"\bmissile\b",
                 r"\bmissiles\b", r"\bconflict\b", r"\bmilitary\b", r"\barmy\b", r"\btroops\b",
                 r"\bsoldiers\b", r"\bnavy\b", r"\byemen\b", r"\bhouthi\b", r"\bmandab\b", r"\bred sea\b",
-                r"\bstrait\b", r"\bstraits\b", r"\bhormuz\b", r"\bclash\b", r"\bairstrike\b"
+                r"\bstrait\b", r"\bstraits\b", r"\bhormuz\b", r"\bclash\b", r"\bairstrike\b",
+                r"\bblockade\b", r"\bsanctions?\b", r"\btensions?\b", r"\bembargo\b", r"\bdepleted?\b"
             ]
             txt_check = f"{news_item.get('title', '')} {key_event} {impact_line} {headline_km}".lower()
             is_threat = any(k in txt_check for k in threat_kh) or any(re.search(pat, txt_check) for pat in threat_en)
@@ -1257,13 +1263,24 @@ class KhmerFormatter:
             if imp_detail:
                 imp_detail += "។"
                 # Strictly harmonize badge with detail sentiment (Zero-Contradiction Guarantee)
-                pos_words = ["ជួយពង្រឹង", "ជំរុញ", "គាំទ្រ", "ងើបឡើង", "កើនឡើងលើស", "ស្ថិរភាព", "ផលវិជ្ជមាន", "ទាក់ទាញទុន", "ឱកាស", "សម្រួល", "បន្ធូរបន្ថយ"]
-                neg_words = ["ហានិភ័យ", "គំរាមកំហែង", "អវិជ្ជមាន", "ធ្លាក់ចុះ", "សម្ពាធ", "ការរំខាន", "កង្វះខាត", "អស្ថិរភាព", "វិបត្តិ", "សង្គ្រាម", "ការខាតបង់", "ការព្រមាន"]
-                
-                has_pos = any(w in imp_detail for w in pos_words) or (is_explicit_positive and not is_explicit_negative) or bias_str == "bullish"
-                has_neg = any(w in imp_detail for w in neg_words) or (is_explicit_negative and not is_explicit_positive) or bias_str == "bearish"
-                
-                if (has_pos and not any(w in imp_detail for w in neg_words[:5])) or (is_explicit_positive and not is_explicit_negative):
+                pos_words = ["ជួយពង្រឹង", "ជំរុញកំណើន", "ជំរុញការវិនិយោគ", "គាំទ្រដល់", "ងើបឡើងវិញ", "ស្ថិរភាព", "ទាក់ទាញទុន", "ឱកាសវិនិយោគ", "សម្រួល", "បន្ធូរបន្ថយ"]
+                neg_words = [
+                    "ហានិភ័យ", "គំរាមកំហែង", "អវិជ្ជមាន", "ធ្លាក់ចុះ", "សម្ពាធ", "ការរំខាន", "កង្វះខាត",
+                    "អស្ថិរភាព", "វិបត្តិ", "សង្គ្រាម", "ការខាតបង់", "ការព្រមាន", "តានតឹង", "ភាពតានតឹង",
+                    "ឡើងថ្លៃ", "បិទផ្លូវ", "បិទខ្ទប់", "ទណ្ឌកម្ម", "រឹតបន្តឹង", "អតិផរណា", "រំខាន", "បាត់បង់",
+                    "ស្ទើរគ្មានសល់", "កងនាវា"
+                ]
+
+                # Combined context check (imp_detail + headline + key_event)
+                combined_check = f"{imp_detail} {headline_km} {key_event}".lower()
+                is_explicit_risk = (
+                    any(w in imp_detail for w in neg_words) or
+                    any(w in combined_check for w in ["សង្គ្រាម", "វាយប្រហារ", "មីស៊ីល", "ដ្រូន", "បិទផ្លូវ", "បិទខ្ទប់", "ទណ្ឌកម្ម", "រឹតបន្តឹង", "ភាពតានតឹង", "ឡើងថ្លៃ", "អតិផរណា", "blockade", "sanction"])
+                )
+
+                has_pos = any(w in imp_detail for w in pos_words)
+
+                if has_pos and not is_explicit_risk:
                     impact_line = f"🔹 ផលវិជ្ជមាន៖\n{imp_detail}"
                 else:
                     impact_line = f"🔶 ហានិភ័យទីផ្សារ៖\n{imp_detail}"
