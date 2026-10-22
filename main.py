@@ -1373,7 +1373,8 @@ class XAUUSDNewsAssistantBot:
         Returns recommended sleep interval.
         """
         now_kh = datetime.now(CAMBODIA_TZ)
-        events = self.calendar_collector.fetch_events(max_age=15.0)
+        fetch_max_age = 5.0 if getattr(self, "_has_waiting_actual", False) else 15.0
+        events = self.calendar_collector.fetch_events(max_age=fetch_max_age)
         
         has_imminent_event = False
         has_waiting_actual = False
@@ -1403,7 +1404,16 @@ class XAUUSDNewsAssistantBot:
                         analysis = self.analyzer.analyze_actual_vs_forecast(
                             ev["title"], actual_val, ev.get("forecast", ""), ev.get("previous", "")
                         )
-                        msg = KhmerFormatter.format_actual_release_alert(ev, analysis)
+                        spot_price_str = ""
+                        try:
+                            if hasattr(self, "gold_collector") and self.gold_collector:
+                                spot = self.gold_collector.get_spot_gold_price()
+                                if spot and spot.get("price"):
+                                    spot_price_str = f"${float(spot['price']):,.2f}"
+                        except Exception:
+                            pass
+
+                        msg = KhmerFormatter.format_actual_release_alert(ev, analysis, spot_price=spot_price_str)
 
                         # Ultra-fast sub-second text alert (Zero chart rendering latency per user directive)
                         self.notifier.send_message(msg)
@@ -1416,10 +1426,11 @@ class XAUUSDNewsAssistantBot:
                     # Event is past due, but Actual has not published yet -> Poll frequently
                     has_waiting_actual = True
 
+        self._has_waiting_actual = has_waiting_actual
         if has_waiting_actual:
-            return INTERVAL_HIGH_IMPACT
+            return 5  # Ultra-fast 5s polling when waiting for high-impact actual release numbers
         elif has_imminent_event:
-            return INTERVAL_UPCOMING
+            return 15 # Responsive 15s cadence when high-impact event is imminent
         else:
             return 30  # Responsive 30s cadence to never miss timely actual release updates
 
@@ -1934,7 +1945,16 @@ class XAUUSDNewsAssistantBot:
                     database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
                     continue
 
-            analysis = self.analyzer.analyze_breaking_news(title, desc)
+            macro_ctx = ""
+            try:
+                if hasattr(self, "gold_collector") and self.gold_collector:
+                    spot = self.gold_collector.get_spot_gold_price()
+                    if spot and spot.get("price"):
+                        macro_ctx = f"Spot Gold XAU/USD: ${float(spot['price']):,.2f}"
+            except Exception:
+                pass
+
+            analysis = self.analyzer.analyze_breaking_news(title, desc, macro_context=macro_ctx)
             if not analysis:
                 continue
 
