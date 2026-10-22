@@ -1182,105 +1182,15 @@ class XAUUSDNewsAssistantBot:
     @staticmethod
     def _fetch_direct_publisher_image(item: dict) -> bytes:
         """
-        Extracts genuine direct article image from feed or deep article webpage (og:image / twitter:image / json-ld).
-        Strictly rejects generic logos, site icons, and small thumbnails.
+        Extracts genuine direct article image from feed or deep article webpage (og:image / twitter:image / json-ld),
+        with high-definition CDN upgrading, Google News token decoding, and live editorial search fallback.
         """
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-        }
-        url = (item.get("image_url") or "").strip()
-        link = (item.get("link") or item.get("url") or "").strip()
-
-        FORBIDDEN_PATTERNS = [
-            "googleusercontent", "gstatic", "google", "logo", "icon", "avatar",
-            "1x1", "placeholder", "default", "favicon", "badge", "button", "app-icon",
-            "branding", "spinner", "loader",
-            # Banned generic stock photos, flags & repetitive photo banks
-            "wall_street", "wall-street", "wallstreet", "nyse", "nasdaq", "trading-floor", "trading_floor",
-            "stock-photo", "stock_photo", "stockphoto", "gettyimages", "getty", "shutterstock",
-            "istockphoto", "istock", "depositphotos", "alamy", "dreamstime", "123rf",
-            "gold-bars", "gold_bars", "gold-bullion", "gold_bullion", "bullion", "coins",
-            "candlestick", "chart-graphic", "chart_graphic", "stock-exchange", "financial-district",
-            "flag", "flags", "national-flag", "flag-icon",
-            "generic"
-        ]
-
-        def _is_valid_article_img(img_url: str) -> bool:
-            if not img_url or not img_url.startswith("http"):
-                return False
-            u_low = img_url.lower()
-            return not any(pat in u_low for pat in FORBIDDEN_PATTERNS)
-
-        def _verify_image_bytes(img_bytes: bytes) -> bool:
-            if not img_bytes or len(img_bytes) < 4000:
-                return False
-            try:
-                from PIL import Image
-                import io
-                with Image.open(io.BytesIO(img_bytes)) as im:
-                    w, h = im.size
-                    min_side = min(w, h)
-                    max_side = max(w, h)
-                    if max_side >= 380 and min_side >= 180:
-                        return True
-            except Exception:
-                pass
-            return False
-
-        # 1. Try direct article image from feed
-        if _is_valid_article_img(url):
-            try:
-                resp = requests.get(url, headers=headers, timeout=6.0)
-                if resp.status_code == 200 and _verify_image_bytes(resp.content):
-                    return resp.content
-            except Exception as e:
-                logger.warning(f"Direct news image fetch failed: {e}")
-
-        # 2. Extract genuine article image directly from the publisher's web page
-        target_link = link or ""
-        if "news.google.com" in target_link and "/articles/" in target_link:
-            try:
-                import base64
-                s_part = target_link.split("/articles/")[1].split("?")[0]
-                decoded_b = base64.b64decode(s_part + "==").decode("latin1", errors="ignore")
-                m_url = re.search(r"https?://[^\x00-\x1f\x7f-\x9f\"\'\<\>]+", decoded_b)
-                if m_url:
-                    target_link = m_url.group(0).rstrip("/.") + "/"
-            except Exception:
-                pass
-
-        is_deep_article = (
-            target_link.count("/") >= 4 and
-            not any(target_link.rstrip("/").endswith(sec) for sec in ["/world", "/news", "/politics", "/markets", "/business", "/economy", "/home"])
-        )
-        if target_link and target_link.startswith("http") and "news.google.com" not in target_link and is_deep_article:
-            try:
-                art_resp = requests.get(target_link, headers=headers, timeout=6.0)
-                if art_resp.status_code == 200:
-                    patterns = [
-                        r'<meta[^>]+property=[\'"]og:image[\'"][^>]+content=[\'"]([^\'"]+)[\'"]',
-                        r'<meta[^>]+content=[\'"]([^\'"]+)[\'"][^>]+property=[\'"]og:image[\'"]',
-                        r'<meta[^>]+property=[\'"]og:image:secure_url[\'"][^>]+content=[\'"]([^\'"]+)[\'"]',
-                        r'<meta[^>]+name=[\'"]twitter:image(?:[:\w]+)?[\'"][^>]+content=[\'"]([^\'"]+)[\'"]',
-                        r'<meta[^>]+content=[\'"]([^\'"]+)[\'"][^>]+name=[\'"]twitter:image(?:[:\w]+)?[\'"]',
-                        r'[\'"]image[\'"]\s*:\s*[\'"](https?://[^\'"]+\.(?:jpg|jpeg|png|webp)[^\'"]*)[\'"]',
-                        r'[\'"]thumbnailUrl[\'"]\s*:\s*[\'"](https?://[^\'"]+\.(?:jpg|jpeg|png|webp)[^\'"]*)[\'"]',
-                    ]
-                    for p in patterns:
-                        m = re.search(p, art_resp.text, re.IGNORECASE)
-                        if m:
-                            raw_img_url = m.group(1).replace("&amp;", "&").strip()
-                            if _is_valid_article_img(raw_img_url):
-                                from urllib.parse import urljoin
-                                full_img_url = urljoin(link, raw_img_url)
-                                img_resp = requests.get(full_img_url, headers=headers, timeout=6.0)
-                                if img_resp.status_code == 200 and _verify_image_bytes(img_resp.content):
-                                    return img_resp.content
-            except Exception as e:
-                logger.debug(f"Webpage og:image fetch failed for {link}: {e}")
-
-        return None
+        try:
+            from collectors.internet_image_fetcher import InternetImageFetcher
+            return InternetImageFetcher.fetch_image_for_news(item)
+        except Exception as e:
+            logger.debug(f"[InternetImageFetcher error] {e}")
+            return None
 
     @staticmethod
     def _fetch_news_image(item: dict, analysis: dict = None) -> bytes:
@@ -1289,7 +1199,7 @@ class XAUUSDNewsAssistantBot:
         1. Dual-Leader Split Image (Meloni + Trump, Trump + Putin, etc.)
         2. Dual-Country Flag Split Image (India + Canada, US + China, etc.)
         3. Single Leader Official Portrait
-        4. Direct Verified Publisher Article Photo
+        4. Direct Verified Publisher Article Photo / Live Editorial Press Photo
         5. Macro Topic Authentic Ultra-HD Photo
         6. Single Country High-Res Flag Canvas
         """
@@ -1305,14 +1215,13 @@ class XAUUSDNewsAssistantBot:
             except Exception as e:
                 logger.warning(f"[StoryImageBuilder] Error in get_image_for_news: {e}")
 
-        # Fallback to direct publisher photo if builder is unavailable
+        # Fallback to direct internet image fetcher if builder is unavailable
         direct = XAUUSDNewsAssistantBot._fetch_direct_publisher_image(item)
         if direct:
             return direct
 
         # MODE B GUARANTEE: If no authentic article photo from publisher or dynamic canvas exists,
         # return None so the message broadcasts cleanly in MODE B (Clean VIP Text Mode)!
-        # NEVER return repetitive generic static stock photos (like wafer die or generic bullions).
         logger.info("[_fetch_news_image] No authentic direct photo. Defaulting to MODE B (Clean VIP Text Mode).")
         return None
 
@@ -1533,9 +1442,6 @@ class XAUUSDNewsAssistantBot:
                 return True
 
             database.set_state(f"channel_img_ts_{img_hash}", str(now))
-            return False
-        except Exception as e:
-            logger.debug(f"[_is_image_already_in_channel error] {e}")
             return False
         except Exception as e:
             logger.debug(f"[_is_image_already_in_channel error] {e}")
@@ -1784,10 +1690,25 @@ class XAUUSDNewsAssistantBot:
         if not pending:
             return
 
+        # PRIORITY 5: Breaking Velocity & Multi-Wire Consensus Engine
+        from analyzers.breaking_velocity import BreakingVelocityEngine
+        pending = BreakingVelocityEngine.prioritize_pending(pending)
+
         recent_sent_titles = database.get_recent_news_titles(hours=24)
         for it in pending:
             title = it["title"]
             desc = it.get("description", "")
+
+            # Dynamically evaluate Breaking Velocity & Multi-Wire Consensus
+            velocity_info = it.get("velocity_eval") or BreakingVelocityEngine.evaluate_velocity(it)
+            is_ultra = velocity_info.get("is_ultra_breaking", False)
+            required_gap = velocity_info.get("required_gap", BREAKING_ALERT_MIN_GAP)
+            bypass_cooldown = velocity_info.get("bypass_cooldown", False)
+            wire_sources = velocity_info.get("consensus_sources", [])
+            if wire_sources:
+                logger.info(f"[MULTI-WIRE CONSENSUS] '{title}' verified across {len(wire_sources)} global wires: {wire_sources}")
+            if is_ultra:
+                logger.info(f"[BREAKING VELOCITY ULTRA] Crisis/Consensus detected for '{title}'. Required gap: {required_gap:.0f}s. Bypass cooldown: {bypass_cooldown}")
 
             # Dynamically recalculate gap before evaluating each item
             now = time.time()
@@ -1799,11 +1720,6 @@ class XAUUSDNewsAssistantBot:
                 channel_time_since_last = self._channel_time_since_last_post()
                 time_since_last = channel_time_since_last
 
-            # Priority check: extreme crisis gets 120s gap, regular gets BREAKING_ALERT_MIN_GAP (900s / 15m)
-            is_critical = any(k in (title + " " + desc).lower() for k in [
-                "nuclear", "outbreak of war", "declares war", "martial law", "assassination"
-            ])
-            required_gap = 120.0 if is_critical else BREAKING_ALERT_MIN_GAP
             if time_since_last < required_gap:
                 logger.debug(f"[BREAKING GAP] {time_since_last:.1f}s elapsed < {required_gap}s required. Deferring to next cycle.")
                 break
@@ -1846,11 +1762,13 @@ class XAUUSDNewsAssistantBot:
                         is_consecutive_sector = True
                         matched_sec = common_cl[0]
 
-                if is_consecutive_sector:
+                if is_consecutive_sector and not bypass_cooldown:
                     logger.info(f"[SECTOR DIVERSITY SHIELD] Dropping '{title}' - sector '{matched_sec}' was just broadcasted {effective_elapsed:.0f}s ago. Rotating to preserve variety.")
                     self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                     database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
                     continue
+                elif is_consecutive_sector and bypass_cooldown:
+                    logger.info(f"[VELOCITY BYPASS] Consecutive sector shield bypassed for high-velocity breaking crisis: '{title}'")
 
                 # 2. Check each matched cluster against cooldown (persistent SQLite + live Telegram feed history)
                 is_in_cooldown = False
@@ -1861,7 +1779,7 @@ class XAUUSDNewsAssistantBot:
                     channel_cl_elapsed = ch_recent_clusters.get(cl, 999999.0)
                     if (now - last_cl_ts) < cd or channel_cl_elapsed < cd or (cl in ch_latest_clusters and ch_elapsed < cd):
                         defcon1_words = ["nuclear", "outbreak of war", "declares war", "martial law", "assassination"]
-                        if not any(dw in (title + " " + desc).lower() for dw in defcon1_words):
+                        if not bypass_cooldown and not any(dw in (title + " " + desc).lower() for dw in defcon1_words):
                             is_in_cooldown = True
                             blocked_cluster = cl
                             break
@@ -1890,11 +1808,13 @@ class XAUUSDNewsAssistantBot:
                         is_consecutive_entity = True
                         matched_ent_name = common_ent[0]
 
-                if is_consecutive_entity:
+                if is_consecutive_entity and not bypass_cooldown:
                     logger.info(f"[ENTITY DIVERSITY SHIELD] Dropping '{title}' - entity '{matched_ent_name}' was just featured {effective_elapsed:.0f}s ago. Rotating to preserve variety.")
                     self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                     database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
                     continue
+                elif is_consecutive_entity and bypass_cooldown:
+                    logger.info(f"[VELOCITY BYPASS] Consecutive entity shield bypassed for high-velocity breaking crisis: '{title}'")
 
                 # B. Entity Cooldown: Prevent repeating the same key person/entity within 14400s (4 hours - Strict Anti-Fatigue Shield)
                 is_entity_in_cooldown = False
@@ -1904,7 +1824,7 @@ class XAUUSDNewsAssistantBot:
                     channel_ent_elapsed = ch_recent_entities.get(ent, 999999.0)
                     if (now - last_ent_ts) < 14400.0 or channel_ent_elapsed < 14400.0 or (ent in ch_latest_entities and ch_elapsed < 14400.0):
                         defcon1_words = ["nuclear", "outbreak of war", "declares war", "martial law", "assassination"]
-                        if not any(dw in (title + " " + desc).lower() for dw in defcon1_words):
+                        if not bypass_cooldown and not any(dw in (title + " " + desc).lower() for dw in defcon1_words):
                             is_entity_in_cooldown = True
                             blocked_entity = ent
                             break
@@ -2049,7 +1969,7 @@ class XAUUSDNewsAssistantBot:
 
             # Pre-flight channel cooldown check: ensure another container did not just post in the last 60 seconds
             fresh_elapsed = self._channel_time_since_last_post()
-            min_post_gap = max(required_gap, 60.0)
+            min_post_gap = 20.0 if is_ultra else max(required_gap, 60.0)
             if fresh_elapsed < min_post_gap:
                 logger.info(f"[CHANNEL COLLISION PREVENTED] Channel has a post from {fresh_elapsed:.1f}s ago (< {min_post_gap}s required). Deferring.")
                 break
@@ -2076,7 +1996,7 @@ class XAUUSDNewsAssistantBot:
                 msg_video = KhmerFormatter.format_breaking_event_alert(it, analysis, has_photo=True)
                 caption_text = self._truncate_html_caption(msg_video, max_visible_chars=574)
                 logger.info(f"[DISPATCHING VIDEO POST] Broadcasting high-importance video news: '{title}'...")
-                res_v = self.notifier.send_video(video, caption=caption_text, reply_markup=None)
+                res_v = self.notifier.send_video(video, caption=caption_text, reply_markup=None, is_ultra_breaking=is_ultra)
                 if res_v.get("ok"):
                     video_sent = True
                 else:
@@ -2106,14 +2026,14 @@ class XAUUSDNewsAssistantBot:
                 if photo:
                     msg_photo = KhmerFormatter.format_breaking_event_alert(it, analysis, has_photo=True)
                     caption_text = self._truncate_html_caption(msg_photo, max_visible_chars=574)
-                    self.notifier.send_photo(photo, caption=caption_text, reply_markup=None)
+                    self.notifier.send_photo(photo, caption=caption_text, reply_markup=None, is_ultra_breaking=is_ultra)
                 elif photo is None:
                     # MODE B GUARANTEE: Per user constitutional rule, if no valid photo exists,
                     # broadcast cleanly in MODE B (Clean VIP Text Mode <= 750 characters)
                     logger.info(f"[MODE B ACTIVATED] Broadcasting '{title}' in Clean VIP Text Mode.")
                     msg_text = KhmerFormatter.format_breaking_event_alert(it, analysis, has_photo=False)
                     clean_text = self._truncate_html_caption(msg_text, max_visible_chars=750)
-                    self.notifier.send_message(clean_text, reply_markup=None)
+                    self.notifier.send_message(clean_text, reply_markup=None, is_ultra_breaking=is_ultra)
 
             # Increment daily broadcast counter
             today_count = int(database.get_state(f"daily_breaking_count_{today_key}") or "0")
@@ -2127,6 +2047,122 @@ class XAUUSDNewsAssistantBot:
 
             logger.info(f"[BREAKING NEWS APPROVED & BROADCASTED] '{title}' sent. Data purged immediately. Real-time cadence active.")
             break
+
+    def audit_live_channel_and_heal(self):
+        """
+        Autonomous Channel Self-Healing Auditor:
+        - Inspects live posts from the Telegram channel feed.
+        - Detects and auto-repairs spelling errors, flag anomalies, and structural issues.
+        - Auto-purges accidental duplicate posts in real time.
+        """
+        now = time.time()
+        if not hasattr(self, "_last_healing_run"):
+            self._last_healing_run = 0.0
+            self._healed_posts = set()
+            self._failed_healing_posts = set()
+
+        # Run healing scan every 15 seconds to ensure real-time auto-repair without spamming
+        if now - self._last_healing_run < 15.0:
+            return
+        self._last_healing_run = now
+
+        try:
+            channel_html = self._fetch_channel_html(max_cache_age=20.0)
+            if not channel_html:
+                return
+
+            post_divs = re.findall(
+                r'<div class="tgme_widget_message_wrap\s+js-widget_message_wrap"[^>]*>.*?(?=<div class="tgme_widget_message_wrap\s+js-widget_message_wrap"|\Z)',
+                channel_html,
+                re.DOTALL
+            )
+            if not post_divs:
+                return
+
+            recent_posts = post_divs[-8:]
+            seen_headlines = {}
+
+            for p in recent_posts:
+                m_id = re.search(r'data-post="[^/]+/(\d+)"', p)
+                if not m_id:
+                    continue
+                msg_id = int(m_id.group(1))
+                if msg_id in self._healed_posts or msg_id in self._failed_healing_posts:
+                    continue
+
+                m_txt = re.search(r'<div class="[^"]*tgme_widget_message_text[^"]*"[^>]*>(.*?)</div>', p, re.DOTALL)
+                if not m_txt:
+                    continue
+                raw_html = m_txt.group(1)
+                has_photo = 'tgme_widget_message_photo_wrap' in p or 'tgme_widget_message_video' in p
+
+                # 1. Duplicate Detection Check
+                clean_text = re.sub(r'<br/?>', '\n', raw_html)
+                clean_text = re.sub(r'<[^>]+>', '', clean_text).strip()
+                headline = clean_text.split('\n')[0].strip() if clean_text else ""
+                hl_norm = re.sub(r'[^\w\u1780-\u17FF]', '', headline).lower()
+
+                if hl_norm and len(hl_norm) >= 15:
+                    if hl_norm in seen_headlines:
+                        prev_id = seen_headlines[hl_norm]
+                        logger.warning(f"[CHANNEL AUTO-HEAL] Duplicate detected: Post #{msg_id} duplicates Post #{prev_id}. Auto-purging #{msg_id}!")
+                        try:
+                            self.notifier.delete_message(msg_id)
+                            self._healed_posts.add(msg_id)
+                        except Exception as e:
+                            logger.error(f"[CHANNEL AUTO-HEAL] Failed to purge duplicate #{msg_id}: {e}")
+                        continue
+                    seen_headlines[hl_norm] = msg_id
+
+                # 2. Defect Detection & Repair
+                reconstructed = re.sub(r'<br/?>', '\n', raw_html)
+                reconstructed = re.sub(r'<a\s+[^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', r'<a href="\1">\2</a>', reconstructed)
+                reconstructed = re.sub(r'<(?!/?(?:b|strong|i|em|u|ins|s|strike|del|a|code|pre|blockquote)\b)[^>]+>', '', reconstructed)
+
+                original_body = reconstructed
+                healed = original_body
+
+                # A. Fix Flag Anomalies (e.g. Bitcoin / Crypto with Indonesia flag)
+                if "🇮🇩" in healed and any(k in healed.lower() for k in ["bitcoin", "etf", "etfs", "crypto"]):
+                    healed = healed.replace("🇮🇩", "🇺🇸")
+
+                # B. Fix Known Spelling & Lexical Anomalies
+                try:
+                    from formatters.khmer_formatter import sanitize_khmer_spelling
+                    healed = sanitize_khmer_spelling(healed)
+                except Exception:
+                    pass
+
+                # C. Fix Market Impact Spacing (Strict GATE 3 standard: 2-line layout)
+                m_imp = re.search(r'([🔹🔸🔶🔴🟢]\s*(?:ហានិភ័យទីផ្សារ|ផលវិជ្ជមាន|ហានិភ័យ|ផលអវិជ្ជមាន)[\s៖:]+)([^\n]+)', healed)
+                if m_imp:
+                    tag = m_imp.group(1).strip()
+                    desc = m_imp.group(2).strip()
+                    badge = "🔹" if ("វិជ្ជមាន" in tag) else "🔶"
+                    label = "ផលវិជ្ជមាន" if ("វិជ្ជមាន" in tag) else "ហានិភ័យទីផ្សារ"
+                    healed = healed.replace(m_imp.group(0), f"{badge} {label}៖\n{desc}")
+
+                if healed != original_body:
+                    logger.info(f"[CHANNEL AUTO-HEAL] Auto-healing defect in Post #{msg_id}...")
+                    try:
+                        if has_photo:
+                            res = self.notifier.edit_message_caption(msg_id, healed)
+                        else:
+                            res = self.notifier.edit_message_text(msg_id, healed)
+
+                        if res.get("ok"):
+                            logger.info(f"[CHANNEL AUTO-HEAL] Successfully healed Post #{msg_id} in channel!")
+                            self._healed_posts.add(msg_id)
+                        else:
+                            logger.warning(f"[CHANNEL AUTO-HEAL] Telegram edit API returned: {res}")
+                            self._failed_healing_posts.add(msg_id)
+                    except Exception as e:
+                        logger.error(f"[CHANNEL AUTO-HEAL] Exception healing Post #{msg_id}: {e}")
+                        self._failed_healing_posts.add(msg_id)
+                else:
+                    self._healed_posts.add(msg_id)
+        except Exception as e:
+            logger.debug(f"[CHANNEL AUTO-HEAL] Audit iteration warning: {e}")
 
     def run_cycle(self) -> int:
         """Executes a single monitoring cycle for scheduled/background tasks and returns next sleep duration."""
