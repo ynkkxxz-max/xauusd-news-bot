@@ -223,9 +223,12 @@ class BreakingNewsCollector:
             for _, url in candidates:
                 u_low = url.lower()
                 if not any(bad in u_low for bad in ["logo", "icon", "avatar", "1x1", "pixel", "favicon"]):
-                    # Upgrade BBC images to 976px crisp HD resolution
-                    if "ichef.bbci.co.uk" in url and re.search(r'/(?:240|320|480)/', url):
-                        url = re.sub(r'/(?:240|320|480)/', '/976/', url)
+                    try:
+                        from collectors.internet_image_fetcher import InternetImageFetcher
+                        url = InternetImageFetcher.upgrade_cdn_image_url(url)
+                    except Exception:
+                        if "ichef.bbci.co.uk" in url and re.search(r'/(?:240|320|480)/', url):
+                            url = re.sub(r'/(?:240|320|480)/', '/976/', url)
                     return url
 
         return ""
