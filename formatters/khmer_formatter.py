@@ -457,7 +457,7 @@ class KhmerFormatter:
         return ""
 
     @staticmethod
-    def format_actual_release_alert(event: dict, analysis: dict) -> str:
+    def format_actual_release_alert(event: dict, analysis: dict, spot_price: str = "") -> str:
         """
         Formats immediate flash alert when Actual economic data is released.
         Strictly follows Point 3 VIP Flash Update Template:
@@ -653,6 +653,8 @@ class KhmerFormatter:
             f"🔹 US10Y Yields: {raw_yield}\n\n"
             f"🔸 XAUUSD (មាស): {raw_xau}"
         )
+        if spot_price:
+            msg += f"\n\n🥇 Spot XAU/USD ពេលចេញទិន្នន័យ: {spot_price}"
         return msg
 
     @staticmethod
@@ -678,7 +680,7 @@ class KhmerFormatter:
             impact_raw = (analysis.get("impact") or analysis.get("market_impact") or "").strip()
             if impact_raw:
                 # Merge multi-line header with description if needed
-                # e.g. "🔶 ហានិភ័យទីផ្សារ (ការវិភាគ)\n{detail}" or "🔸 ហានិភ័យទីផ្សារ៖\n{detail}"
+                # e.g. "🔶 ហានិភ័យទីផ្សារ (ការវិភាគ)\n{detail}" or "🔶 ហានិភ័យទីផ្សារ៖\n{detail}"
                 impact_raw = re.sub(r'([🔹🔸🔴🟢🔶]\s*(?:ផលវិជ្ជមាន|ផលអវិជ្ជមាន/ហានិភ័យ|ហានិភ័យទីផ្សារ|ផលអវិជ្ជមាន|ហានិភ័យ)\s*(?:\(ការវិភាគ\))?[\s៖:]*)\n+\s*', r'\1 ', impact_raw.strip())
                 # Pre-split if multiple impacts were squished on one line without newline
                 impact_raw = re.sub(r'([^\n\r])\s+([🔸🔴🔹🟢🔶]\s*(?:ផលវិជ្ជមាន|ផលអវិជ្ជមាន|ហានិភ័យ))', r'\1\n\2', impact_raw)
@@ -715,7 +717,7 @@ class KhmerFormatter:
                     elif m_neg:
                         prefix_used = "🔸 ផលអវិជ្ជមាន"
                         if "ហានិភ័យទីផ្សារ" in imp_clean:
-                            prefix_used = "🔸 ហានិភ័យទីផ្សារ"
+                            prefix_used = "🔶 ហានិភ័យទីផ្សារ"
                         elif "ផលអវិជ្ជមាន/ហានិភ័យ" in imp_clean:
                             prefix_used = "🔸 ផលអវិជ្ជមាន/ហានិភ័យ"
                         detail = m_neg.group(1).strip()
@@ -726,7 +728,7 @@ class KhmerFormatter:
                         detail = re.sub(r'^[\s៖:]+', '', detail).strip()
                         parsed_impact_lines.append(f"ផលអព្យាក្រឹត៖ {detail}" if detail else "ផលអព្យាក្រឹត")
                     elif not imp_clean.startswith(("ផល", "ឥទ្ធិពល", "ហានិភ័យ")):
-                        parsed_impact_lines.append(f"🔸 ហានិភ័យទីផ្សារ៖ {imp_clean}")
+                        parsed_impact_lines.append(f"🔶 ហានិភ័យទីផ្សារ៖ {imp_clean}")
                     else:
                         parsed_impact_lines.append(imp_clean)
                 
@@ -743,7 +745,7 @@ class KhmerFormatter:
                         elif pos:
                             # Auto-correct hallucinated positive badge to risk badge when news context is crisis/war/inflation
                             detail = re.sub(r'^[🔹🟢]\s*(?:ផលវិជ្ជមាន|ឥទ្ធិពលវិជ្ជមាន)\s*[៖:]?\s*', '', pos[0]).strip()
-                            impact_line = f"🔸 ហានិភ័យទីផ្សារ៖ {detail}"
+                            impact_line = f"🔶 ហានិភ័យទីផ្សារ៖ {detail}"
                     elif pos:
                         impact_line = pos[0]
                     elif neg:
@@ -1155,13 +1157,13 @@ class KhmerFormatter:
                 is_oil = any(k in txt_check for k in ["oil", "crude", "diesel", "gas", "energy", "petroleum", "aramco", "iea", "opec", "ប្រេង", "ប្រេងកាត", "ប្រេងឆៅ", "ម៉ាស៊ូត", "ឧស្ម័ន", "ថាមពល"])
                 is_strait = any(k in txt_check for k in ["mandab", "bab al-mandab", "red sea", "strait", "straits", "hormuz", "ច្រកសមុទ្រ", "សមុទ្រក្រហម"])
                 if is_oil:
-                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ ការរំខានការផ្គត់ផ្គង់ ឬភាពតានតឹងថាមពល រុញសម្ពាធតម្លៃប្រេងឆៅសកលឱ្យឡើងថ្លៃ"
+                    impact_line = "🔶 ហានិភ័យទីផ្សារ៖ ការរំខានការផ្គត់ផ្គង់ ឬភាពតានតឹងថាមពល រុញសម្ពាធតម្លៃប្រេងឆៅសកលឱ្យឡើងថ្លៃ"
                 elif is_strait:
-                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ ភាពតានតឹងនៅច្រកសមុទ្រយុទ្ធសាស្ត្រ គំរាមកំហែងដល់ផ្លូវដឹកជញ្ជូន និងរុញសម្ពាធថ្លៃដឹកជញ្ជូនសកលឱ្យហក់ឡើង"
+                    impact_line = "🔶 ហានិភ័យទីផ្សារ៖ ភាពតានតឹងនៅច្រកសមុទ្រយុទ្ធសាស្ត្រ គំរាមកំហែងដល់ផ្លូវដឹកជញ្ជូន និងរុញសម្ពាធថ្លៃដឹកជញ្ជូនសកលឱ្យហក់ឡើង"
                 elif any(k in txt_check for k in ["gold", "xau", "bullion", "មាស"]):
-                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ បង្កើនតម្រូវការទិញមាស XAUUSD ក្នុងនាមជាទ្រព្យសុវត្ថិភាព"
+                    impact_line = "🔶 ហានិភ័យទីផ្សារ៖ បង្កើនតម្រូវការទិញមាស XAUUSD ក្នុងនាមជាទ្រព្យសុវត្ថិភាព"
                 else:
-                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ បង្កើនភាពតានតឹងផ្នែកភូមិសាស្ត្រនយោបាយ និងបង្កើនការប្រុងប្រយ័ត្នខ្ពស់ក្នុងទីផ្សារហិរញ្ញវត្ថុសកល"
+                    impact_line = "🔶 ហានិភ័យទីផ្សារ៖ បង្កើនភាពតានតឹងផ្នែកភូមិសាស្ត្រនយោបាយ និងបង្កើនការប្រុងប្រយ័ត្នខ្ពស់ក្នុងទីផ្សារហិរញ្ញវត្ថុសកល"
 
         if impact_line:
             # Flatten multi-line impact where label was separated from description by newline
@@ -1183,7 +1185,7 @@ class KhmerFormatter:
                         if not impact_lines[-1].endswith("។"):
                             impact_lines[-1] += "។"
                         continue
-                    iline = "🔸 ហានិភ័យទីផ្សារ៖ " + iline
+                    iline = "🔶 ហានិភ័យទីផ្សារ៖ " + iline
 
                 iline = re.sub(r'^(🔹|🔸)?\s*(ផលវិជ្ជមាន|ផលអវិជ្ជមាន/ហានិភ័យ|ហានិភ័យទីផ្សារ|ផលអវិជ្ជមាន|ផលអព្យាក្រឹត)[\s៖:]+', r'\1 \2៖ ', iline).strip()
                 iline = sanitize_khmer_spelling(iline)
@@ -1208,22 +1210,22 @@ class KhmerFormatter:
             if any(p in impact_line for p in generic_phrases):
                 is_neg = "ផលអវិជ្ជមាន" in impact_line or "ឥទ្ធិពលអវិជ្ជមាន" in impact_line or "ហានិភ័យ" in impact_line
                 if any(k in full_search for k in ["oil", "crude", "energy", "petroleum", "diesel", "gas", "aramco", "opec", "iea", "ប្រេង", "ប្រេងកាត", "ប្រេងឆៅ", "ម៉ាស៊ូត", "ឧស្ម័ន", "ថាមពល"]):
-                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ ការរំខានការផ្គត់ផ្គង់ ឬភាពតានតឹងថាមពល រុញសម្ពាធតម្លៃប្រេងឆៅសកលឱ្យឡើងថ្លៃ" if is_neg else "🔹 ផលវិជ្ជមាន៖ ការកើនឡើងការផ្គត់ផ្គង់ប្រេង ជួយកាត់បន្ថយសម្ពាធថ្លៃដើមថាមពលសកល"
+                    impact_line = "🔶 ហានិភ័យទីផ្សារ៖ ការរំខានការផ្គត់ផ្គង់ ឬភាពតានតឹងថាមពល រុញសម្ពាធតម្លៃប្រេងឆៅសកលឱ្យឡើងថ្លៃ" if is_neg else "🔹 ផលវិជ្ជមាន៖ ការកើនឡើងការផ្គត់ផ្គង់ប្រេង ជួយកាត់បន្ថយសម្ពាធថ្លៃដើមថាមពលសកល"
                 elif any(k in full_search for k in ["ai", "chip", "semiconductor", "tech", "nvidia", "tsmc", "apple", "microsoft", "google", "meta", "intel", "បច្ចេកវិទ្យា", "បន្ទះឈីប"]):
-                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ បង្កផលរំខានដល់ខ្សែច្រវាក់ផ្គត់ផ្គង់បន្ទះឈីប ដែលអាចដាក់សម្ពាធលើទីផ្សារភាគហ៊ុនបច្ចេកវិទ្យា" if is_neg else "🔹 ផលវិជ្ជមាន៖ ជំរុញកំណើនភាគហ៊ុនបច្ចេកវិទ្យា Big Tech និងទាក់ទាញលំហូរទុនវិនិយោគសកល"
+                    impact_line = "🔶 ហានិភ័យទីផ្សារ៖ បង្កផលរំខានដល់ខ្សែច្រវាក់ផ្គត់ផ្គង់បន្ទះឈីប ដែលអាចដាក់សម្ពាធលើទីផ្សារភាគហ៊ុនបច្ចេកវិទ្យា" if is_neg else "🔹 ផលវិជ្ជមាន៖ ជំរុញកំណើនភាគហ៊ុនបច្ចេកវិទ្យា Big Tech និងទាក់ទាញលំហូរទុនវិនិយោគសកល"
                 elif any(k in full_search for k in ["tariff", "trade war", "customs", "sanction", "export control", "ពន្ធគយ", "ទណ្ឌកម្ម", "សង្គ្រាមពាណិជ្ជកម្ម"]):
-                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ វិធានការពន្ធគយ និងទណ្ឌកម្ម បង្កើនថ្លៃដើមនាំចូល និងដាក់សម្ពាធលើចរន្តពាណិជ្ជកម្មសកល" if is_neg else "🔹 ផលវិជ្ជមាន៖ កិច្ចព្រមព្រៀងពាណិជ្ជកម្មជួយសម្រួលដល់ខ្សែច្រវាក់នាំចេញ និងកំណើនសេដ្ឋកិច្ច"
+                    impact_line = "🔶 ហានិភ័យទីផ្សារ៖ វិធានការពន្ធគយ និងទណ្ឌកម្ម បង្កើនថ្លៃដើមនាំចូល និងដាក់សម្ពាធលើចរន្តពាណិជ្ជកម្មសកល" if is_neg else "🔹 ផលវិជ្ជមាន៖ កិច្ចព្រមព្រៀងពាណិជ្ជកម្មជួយសម្រួលដល់ខ្សែច្រវាក់នាំចេញ និងកំណើនសេដ្ឋកិច្ច"
                 elif any(k in full_search for k in ["fed", "rate", "powell", "fomc", "cpi", "inflation", "yield", "bond", "អត្រាការប្រាក់", "អតិផរណា", "ecb", "boj", "pboc"]):
-                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ អត្រាការប្រាក់កម្រិតខ្ពស់យូរអង្វែង រុញ USD និង Yields ឡើងថ្លៃ ព្រមទាំងដាក់សម្ពាធលើកំណើនសេដ្ឋកិច្ច" if is_neg else "🔹 ផលវិជ្ជមាន៖ ការបន្ធូរបន្ថយអត្រាការប្រាក់ ជួយកាត់បន្ថយថ្លៃដើមកម្ចី និងជំរុញសកម្មភាពសេដ្ឋកិច្ច"
+                    impact_line = "🔶 ហានិភ័យទីផ្សារ៖ អត្រាការប្រាក់កម្រិតខ្ពស់យូរអង្វែង រុញ USD និង Yields ឡើងថ្លៃ ព្រមទាំងដាក់សម្ពាធលើកំណើនសេដ្ឋកិច្ច" if is_neg else "🔹 ផលវិជ្ជមាន៖ ការបន្ធូរបន្ថយអត្រាការប្រាក់ ជួយកាត់បន្ថយថ្លៃដើមកម្ចី និងជំរុញសកម្មភាពសេដ្ឋកិច្ច"
                 elif any(k in full_search for k in ["bitcoin", "crypto", "etf", "sec", "គ្រីបតូ", "ប៊ីតខយ", "btc"]):
-                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ បង្កើនសម្ពាធលក់ និងការប្រុងប្រយ័ត្នខ្ពស់ក្នុងទីផ្សារទ្រព្យសកម្មឌីជីថល Crypto" if is_neg else "🔹 ផលវិជ្ជមាន៖ លំហូរទុនវិនិយោគស្ថាប័នក្នុង Spot ETF គាំទ្រដល់ស្ថិរភាព និងកំណើនទីផ្សារ Bitcoin BTC"
+                    impact_line = "🔶 ហានិភ័យទីផ្សារ៖ បង្កើនសម្ពាធលក់ និងការប្រុងប្រយ័ត្នខ្ពស់ក្នុងទីផ្សារទ្រព្យសកម្មឌីជីថល Crypto" if is_neg else "🔹 ផលវិជ្ជមាន៖ លំហូរទុនវិនិយោគស្ថាប័នក្នុង Spot ETF គាំទ្រដល់ស្ថិរភាព និងកំណើនទីផ្សារ Bitcoin BTC"
                 elif any(k in full_search for k in ["gold", "xau", "bullion", "មាស"]):
-                    impact_line = "🔸 ហានិភ័យទីផ្សារ៖ ដាក់សម្ពាធលើទិសដៅតម្លៃមាស XAUUSD" if is_neg else "🔹 ផលវិជ្ជមាន៖ គាំទ្រដល់និន្នាការកើនឡើងនៃតម្លៃមាស XAUUSD"
+                    impact_line = "🔶 ហានិភ័យទីផ្សារ៖ ដាក់សម្ពាធលើទិសដៅតម្លៃមាស XAUUSD" if is_neg else "🔹 ផលវិជ្ជមាន៖ គាំទ្រដល់និន្នាការកើនឡើងនៃតម្លៃមាស XAUUSD"
                 elif any(k in full_search for k in ["war", "strike", "attack", "drone", "missile", "military", "army", "troops", "strait", "mandab", "yemen", "houthi", "សង្គ្រាម", "វាយប្រហារ", "កងទ័ព", "យោធា", "ច្រកសមុទ្រ"]):
                     if any(k in full_search for k in ["mandab", "bab al-mandab", "red sea", "strait", "straits", "hormuz", "ច្រកសមុទ្រ", "សមុទ្រក្រហម"]):
-                        impact_line = "🔸 ហានិភ័យទីផ្សារ៖ ភាពតានតឹងនៅច្រកសមុទ្រយុទ្ធសាស្ត្រ គំរាមកំហែងដល់ផ្លូវដឹកជញ្ជូន និងរុញសម្ពាធថ្លៃដឹកជញ្ជូនសកលឱ្យហក់ឡើង"
+                        impact_line = "🔶 ហានិភ័យទីផ្សារ៖ ភាពតានតឹងនៅច្រកសមុទ្រយុទ្ធសាស្ត្រ គំរាមកំហែងដល់ផ្លូវដឹកជញ្ជូន និងរុញសម្ពាធថ្លៃដឹកជញ្ជូនសកលឱ្យហក់ឡើង"
                     else:
-                        impact_line = "🔸 ហានិភ័យទីផ្សារ៖ បង្កើនភាពតានតឹងផ្នែកភូមិសាស្ត្រនយោបាយ និងបង្កើនការប្រុងប្រយ័ត្នខ្ពស់ក្នុងទីផ្សារហិរញ្ញវត្ថុសកល"
+                        impact_line = "🔶 ហានិភ័យទីផ្សារ៖ បង្កើនភាពតានតឹងផ្នែកភូមិសាស្ត្រនយោបាយ និងបង្កើនការប្រុងប្រយ័ត្នខ្ពស់ក្នុងទីផ្សារហិរញ្ញវត្ថុសកល"
                 else:
                     impact_line = "🔸 ផលអវិជ្ជមាន/ហានិភ័យ៖ ការរឹតបន្តឹងគោលនយោបាយរូបិយវត្ថុយូរអង្វែង អាចដាក់សម្ពាធលើកំណើនសេដ្ឋកិច្ច" if is_neg else "🔹 ផលវិជ្ជមាន៖ ជួយពង្រឹងកិច្ចសហប្រតិបត្តិការអន្តរជាតិក្នុងការរក្សាស្ថិរភាពលំហូរសាច់ប្រាក់"
 
