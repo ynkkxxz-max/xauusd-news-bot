@@ -65,11 +65,12 @@ import re
 
 # Comprehensive exclusion filter for Sports, Football, Entertainment, Celebrity, Gossip, and Lifestyle
 SPORTS_AND_GOSSIP_PATTERNS = [
-    # Football / Soccer / Sports
+    # Football / Soccer / Sports / Athletics / Gymnastics / Medals
     r"\b(manchester city|man city|premier league|champions league|football|soccer|fifa|uefa)\b",
-    r"\b(la liga|serie a|bundesliga|world cup|olympics|nfl|nba|mlb|nhl|cricket|tennis|golf)\b",
+    r"\b(la liga|serie a|bundesliga|world cup|olympics|olympic|nfl|nba|mlb|nhl|cricket|tennis|golf)\b",
     r"\b(tournament|referee|striker|goalkeeper|player|transfer fee|stadium|coach|ballon d'or|pinto)\b",
-    r"\b(athletics|athlete|racing|f1|formula 1|grand prix|super bowl)\b",
+    r"\b(athletics|athlete|racing|f1|formula 1|grand prix|super bowl|swimming|relay)\b",
+    r"\b(gymnastics|gymnast|gymnasts|gold medal|silver medal|bronze medal|medalist|medallists?|podium|championships?|world championship)\b",
     
     # Celebrity / Gossip / Romance / Personal Drama / Private Life / Non-Institutional Individual Affairs
     r"\b(dating|romance|relationship|divorce|girlfriend|boyfriend|breakup|ended relationship|split)\b",
@@ -82,6 +83,16 @@ SPORTS_AND_GOSSIP_PATTERNS = [
     # Entertainment / Streaming / Food / Lifestyle
     r"\b(netflix|movie|movies|film|films|cinema|box office|tv series|trailer|album|concert)\b",
     r"\b(french food|recipe|cuisine|restaurant|satire|parody|comedy|funny|horoscope)\b",
+]
+
+# Strict exclusion filter for Regional, Domestic, and Local Retail Gold Jewelry Markets
+# (e.g. India, Pakistan, Bangladesh retail gold in Rupees, MCX, per 10 grams, Tola, local Jewellers)
+REGIONAL_RETAIL_GOLD_PATTERNS = [
+    r"\b(rupee|rupees|rs\.?|\b\d+\s*(?:rs|rupees))\b",
+    r"\b(per 10\s*grams?|per 10g|10\s*grams?|10g gold|in 10 grams?)\b",
+    r"\b(22k|22-carat|24k gold rate|22k gold rate|gold rate today|gold price today in|gold rate in)\b",
+    r"\b(tola|sovereign gold|jewellers?|jewellery|jewelry association|saraf|mcx gold|mcx)\b",
+    r"\b(pakistan gold|india gold rate|indian gold price|delhi gold|mumbai gold|kolkata gold|chennai gold|lahore gold|karachi gold)\b",
 ]
 
 # Trivial, Low-Impact, Routine Market Noise, Analyst Ratings, and Minor Tips Filter
@@ -175,6 +186,11 @@ class GoldNewsFilter:
 
         # Reject sports and gossip
         for pat in SPORTS_AND_GOSSIP_PATTERNS:
+            if re.search(pat, full_text):
+                return False
+
+        # Reject regional local retail gold jewelry markets (India, Pakistan, Rupees, 10 grams, MCX, jewellers)
+        for pat in REGIONAL_RETAIL_GOLD_PATTERNS:
             if re.search(pat, full_text):
                 return False
 
@@ -284,6 +300,11 @@ class GoldNewsFilter:
 
         # Gate 0.1: Reject trivial low-impact, analyst ratings, routine earnings previews
         for pat in TRIVIAL_AND_LOW_IMPACT_PATTERNS:
+            if re.search(pat, full_text):
+                return False
+
+        # Gate 0.2: Reject regional local retail gold jewelry markets (India, Pakistan, Rupees, 10 grams, MCX, jewellers)
+        for pat in REGIONAL_RETAIL_GOLD_PATTERNS:
             if re.search(pat, full_text):
                 return False
 
