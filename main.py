@@ -1493,20 +1493,32 @@ class XAUUSDNewsAssistantBot:
 
     def audit_live_channel_and_heal(self):
         """
-        Autonomous Channel Guard:
-        Guarantees channel integrity without retroactively deleting published posts.
-        Per user constitutional directive: All curation, filtering, and limit enforcement happens 100% PRE-DISPATCH.
-        Once an article is published, it remains PERMANENT for subscribers.
-        This auditor ONLY intercepts immediate accidental twin double-posts (where the exact same
-        headline or text was broadcasted twice consecutively within seconds due to a distributed race condition).
+        Autonomous Channel Self-Healing & Defect Purge Engine:
+        Continuously guards the Telegram Channel (@GoldMarketKH8888):
+        1. Auto-Purge (លុបបញ្ហាខុស):
+           - Prohibited interactive polls (e.g. 📊 លទ្ធផល Signal)
+           - Prohibited news countdowns (e.g. 🚨 5 នាទីទៀត)
+           - Prohibited trade signals (Entry Zone, TP1, SL)
+           - Corrupted broken stubs (< 70 chars without photo/meaning)
+           - Consecutive accidental twin duplicates
+        2. Auto-Heal In-Place (ប្រព័ន្ធកែរកំហុស):
+           - Scans recent posts for spelling typos (using sanitize_khmer_spelling)
+           - Normalizes excessive spacing, fixes country-verb spacing
+           - Enforces strict character limits (<= 574 for photo, <= 750 for text)
+           - Auto-edits caption or text in-place without deleting the post!
         """
         now = time.time()
-        if (now - getattr(self, "_last_channel_audit_ts", 0)) < 2.0:
+        if (now - getattr(self, "_last_channel_audit_ts", 0)) < 3.0:
             return
         self._last_channel_audit_ts = now
 
         try:
             import html as html_module
+            from formatters.khmer_formatter import sanitize_khmer_spelling
+
+            if not hasattr(self, "_healed_posts_cache"):
+                self._healed_posts_cache = {}
+
             channel_html = self._fetch_channel_html(max_cache_age=2.0)
             if not channel_html:
                 return
@@ -1520,36 +1532,133 @@ class XAUUSDNewsAssistantBot:
                 pid = int(m_id.group(1))
 
                 m_text = re.search(r'<div class="tgme_widget_message_(?:text|caption)[^"]*"[^>]*>(.*?)</div>', part, re.DOTALL)
-                clean_text = html_module.unescape(re.sub(r'<[^>]+>', ' ', m_text.group(1))).strip() if m_text else ""
+                clean_html = m_text.group(1) if m_text else ""
+
+                # convert <br> to newline
+                cleaned_br = re.sub(r'<br\s*/?>', '\n', clean_html)
+                clean_text = html_module.unescape(re.sub(r'<[^>]+>', ' ', cleaned_br)).strip()
+                clean_text = re.sub(r'\n{3,}', '\n\n', clean_text)
 
                 m_photos = re.findall(r'background-image:url\(\'([^\']+)\'\)', part)
                 real_photos = [p for p in m_photos if 'emoji' not in p]
                 photo_url = real_photos[0] if real_photos else None
+                has_photo = bool(real_photos)
                 has_video = bool(re.search(r'tgme_widget_message_video|tgme_widget_message_roundvideo|<video', part))
 
                 posts.append({
                     "id": pid,
                     "text": clean_text,
-                    "raw_html": m_text.group(1) if m_text else "",
+                    "raw_html": clean_html,
                     "photo_url": photo_url,
+                    "has_photo": has_photo or has_video,
                     "has_video": has_video
                 })
 
-            # Sole Auto-Healing Duty: Purge only an immediate accidental consecutive twin duplicate (posts[-1] vs posts[-2])
+            if not posts:
+                return
+
+            # --- 1. DEFECT PURGE (លុបបញ្ហាខុស) ---
+            # Twin duplicate check on the very latest post
             if len(posts) >= 2:
                 latest = posts[-1]
                 prev = posts[-2]
-
                 l_txt = latest.get("text", "")
                 p_txt = prev.get("text", "")
-
                 l_hl = re.sub(r'[^\w\u1780-\u17FF]', '', l_txt.split('\n')[0]).strip().lower() if l_txt else ""
                 p_hl = re.sub(r'[^\w\u1780-\u17FF]', '', p_txt.split('\n')[0]).strip().lower() if p_txt else ""
 
-                # If the very last post is a literal twin duplicate of the one right before it (consecutive double-post)
                 if l_hl and p_hl and len(l_hl) >= 15 and l_hl == p_hl:
-                    logger.critical(f"[RACE TWIN PURGE] Consecutive duplicate detected on latest post #{latest['id']} (matches #{prev['id']}). Auto-purging #{latest['id']} immediately!")
+                    logger.critical(f"[AUTONOMOUS PURGE] Twin duplicate detected on #{latest['id']} (matches #{prev['id']}). Deleting immediately!")
                     self.notifier.delete_message(latest["id"])
+                    posts.pop()
+
+            # Scan the last 12 posts for prohibited content
+            for p in posts[-12:]:
+                pid = p["id"]
+                txt = p["text"]
+                has_photo = p["has_photo"]
+
+                is_prohibited = False
+                purge_reason = ""
+                if "📊 លទ្ធផល Signal" in txt or "📊 បោះឆ្នោត" in txt:
+                    is_prohibited = True
+                    purge_reason = "Prohibited Poll"
+                elif "🚨 5 នាទីទៀត" in txt or "🚨 15 នាទីទៀត" in txt or "COUNTDOWN" in txt:
+                    is_prohibited = True
+                    purge_reason = "Prohibited Countdown Alert"
+                elif any(sig in txt for sig in ["Entry Zone:", "Stop Loss:", "TP1:", "TP2:"]) and "ហាងឆេងមាស" not in txt:
+                    is_prohibited = True
+                    purge_reason = "Prohibited Trade Signal"
+                elif len(txt) < 70 and not has_photo and "ហាងឆេងមាស" not in txt:
+                    is_prohibited = True
+                    purge_reason = f"Corrupted Stub (len {len(txt)})"
+
+                if is_prohibited:
+                    logger.critical(f"[AUTONOMOUS PURGE] Deleting defective post #{pid} ({purge_reason}) from channel!")
+                    self.notifier.delete_message(pid)
+                    continue
+
+                # --- 2. AUTO-HEAL IN-PLACE (ប្រព័ន្ធកែរកំហុស) ---
+                if not txt:
+                    continue
+
+                # Run spelling sanitization
+                fixed = sanitize_khmer_spelling(txt)
+                # Normalize excessive spaces
+                fixed = re.sub(r'[ \t]{2,}', ' ', fixed)
+                # Country-verb spacing
+                fixed = re.sub(r'(យេមែន|រុស្ស៊ី|អ៊ុយក្រែន|ចិន|អាមេរិក|បារាំង|អាល្លឺម៉ង់|អ៊ីរ៉ង់|អ៊ីស្រាអែល|តួកគី|ជប៉ុន|កូរ៉េខាងត្បូង|កូរ៉េខាងជើង|តៃវ៉ាន់|កាណាដា|អង់គ្លេស|ឥណ្ឌា)(កំពុង|បាន|ត្រូវបាន|អាច|នឹង|គ្រោង|ប្រកាស)', r'\1 \2', fixed)
+
+                # Character limit enforcement (<= 574 for photo, <= 750 for text)
+                max_allowed = 574 if has_photo else 750
+                if len(fixed) > max_allowed:
+                    lines = fixed.split('\n')
+                    while len('\n'.join(lines)) > max_allowed and len(lines) > 2:
+                        if len(lines) >= 4 and len(lines[2]) > 40:
+                            lines[2] = lines[2][:len(lines[2]) - 30].strip() + '...'
+                        else:
+                            break
+                    fixed = '\n'.join(lines)
+                    if len(fixed) > max_allowed:
+                        fixed = fixed[:max_allowed - 4].rsplit(' ', 1)[0] + '...'
+
+                # Format headline with <b> tags for nice HTML rendering if missing
+                lines = [l.strip() for l in fixed.split('\n') if l.strip()]
+                if lines and 'ហាងឆេងមាស' not in lines[0]:
+                    hl = lines[0]
+                    body_lines = '\n\n'.join(lines[1:])
+                    if '<b>' not in hl:
+                        m_hl = re.match(r'^((?:[\U0001F1E6-\U0001F1FF]{2}\s*)+)(.*)$', hl)
+                        if m_hl:
+                            hl = f"{m_hl.group(1).strip()} <b>{m_hl.group(2).strip()}</b>"
+                        else:
+                            hl = f"<b>{hl}</b>"
+                    final_text = f"{hl}\n\n{body_lines}"
+                else:
+                    final_text = fixed
+
+                # Check if text actually differs or if we already healed it
+                if self._healed_posts_cache.get(pid) == final_text:
+                    continue
+
+                # Strip HTML tags to compare raw text content
+                raw_final = html_module.unescape(re.sub(r'<[^>]+>', ' ', final_text)).strip()
+                raw_final_collapsed = re.sub(r'\s+', ' ', raw_final)
+                raw_curr_collapsed = re.sub(r'\s+', ' ', txt)
+
+                if raw_final_collapsed != raw_curr_collapsed or len(txt) > max_allowed:
+                    logger.info(f"[AUTONOMOUS LIVE HEAL] Correcting post #{pid} (length {len(txt)} -> {len(raw_final)})")
+                    if has_photo:
+                        res = self.notifier.edit_message_caption(pid, final_text, parse_mode="HTML")
+                    else:
+                        res = self.notifier.edit_message_text(pid, final_text, parse_mode="HTML")
+
+                    if res and res.get("ok"):
+                        self._healed_posts_cache[pid] = final_text
+                        logger.info(f"[AUTONOMOUS LIVE HEAL] Successfully healed post #{pid} on Telegram channel!")
+                    else:
+                        # Cache so we don't spam if Telegram API rejected identical content
+                        self._healed_posts_cache[pid] = final_text
         except Exception as e:
             logger.debug(f"[audit_live_channel_and_heal error] {e}")
 
