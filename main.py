@@ -1566,29 +1566,46 @@ class XAUUSDNewsAssistantBot:
                 txt = p["text"]
                 has_photo = p["has_photo"]
 
-                # A. Prohibited content check
+                # A. Severe defect & prohibited content check (INSTANT AUTO-PURGE)
                 is_prohibited = False
                 purge_reason = ""
-                if "📊 លទ្ធផល Signal" in txt or "📊 បោះឆ្នោត" in txt:
+                
+                # Check 1: Empty or corrupted stub (< 40 chars)
+                if len(txt) < 40 and "ហាងឆេងមាស" not in txt:
+                    is_prohibited = True
+                    purge_reason = f"Corrupted/Empty Stub ({len(txt)} chars)"
+                # Check 2: Prohibited polls
+                elif "📊 លទ្ធផល Signal" in txt or "📊 បោះឆ្នោត" in txt:
                     is_prohibited = True
                     purge_reason = "Prohibited Poll"
+                # Check 3: Prohibited countdown alerts
                 elif "🚨 5 នាទីទៀត" in txt or "🚨 15 នាទីទៀត" in txt or "COUNTDOWN" in txt:
                     is_prohibited = True
                     purge_reason = "Prohibited Countdown Alert"
+                # Check 4: Prohibited trade signals
                 elif any(sig in txt for sig in ["Entry Zone:", "Stop Loss:", "TP1:", "TP2:"]) and "ហាងឆេងមាស" not in txt:
                     is_prohibited = True
                     purge_reason = "Prohibited Trade Signal"
-                elif len(txt) < 70 and not has_photo and "ហាងឆេងមាស" not in txt:
+                # Check 5: Forbidden non-VIP meme emojis
+                elif re.search(r'[🚀🔥💥💰🎉🤑💩🤡]', txt):
                     is_prohibited = True
-                    purge_reason = f"Corrupted Stub (len {len(txt)})"
+                    purge_reason = "Forbidden Meme Emojis"
+                # Check 6: Contradictory war sentiment with positive badge
+                elif any(w in txt for w in ['សង្គ្រាម', 'វាយប្រហារ', 'ដ្រូន', 'មីស៊ីល', 'ទាហាន', 'ស្លាប់', 'ផ្ទុះ', 'សមរភូមិ']) and '🔹 ផលវិជ្ជមាន' in txt:
+                    is_prohibited = True
+                    purge_reason = "Contradictory Positive Sentiment on War/Conflict"
+                # Check 7: Gross length violation that exceeds ceiling by > 100 chars
+                elif (has_photo and len(txt) > 674) or (not has_photo and len(txt) > 850):
+                    is_prohibited = True
+                    purge_reason = f"Gross Length Violation ({len(txt)} chars)"
 
                 if is_prohibited:
-                    logger.critical(f"[AUTONOMOUS PURGE] Deleting defective post #{pid} ({purge_reason}) from channel!")
+                    logger.critical(f"[AUTONOMOUS SEVERE ERROR PURGE] Deleting defective post #{pid} ({purge_reason}) from channel!")
                     self.notifier.delete_message(pid)
                     posts = [post for post in posts if post["id"] != pid]
                     continue
 
-                # B. Multi-post Duplicate Check (Jaccard similarity >= 0.65)
+                # B. Multi-post Duplicate Check (Jaccard similarity >= 0.60)
                 lines = [l.strip() for l in txt.split('\n') if l.strip()]
                 if lines and "ហាងឆេងមាស" not in lines[0]:
                     hl = lines[0]
@@ -1599,8 +1616,8 @@ class XAUUSDNewsAssistantBot:
                             overlap = len(norm_tokens.intersection(prev_tokens))
                             union = len(norm_tokens.union(prev_tokens))
                             jaccard = overlap / union if union else 0
-                            if jaccard >= 0.65:
-                                logger.critical(f"[AUTONOMOUS PURGE] Duplicate post #{pid} matches #{prev_pid} (Jaccard {jaccard:.2f}). Deleting immediately!")
+                            if jaccard >= 0.60:
+                                logger.critical(f"[AUTONOMOUS DUPLICATE PURGE] Duplicate post #{pid} matches #{prev_pid} (Jaccard {jaccard:.2f}). Deleting immediately!")
                                 self.notifier.delete_message(pid)
                                 posts = [post for post in posts if post["id"] != pid]
                                 is_dup = True
@@ -1631,9 +1648,12 @@ class XAUUSDNewsAssistantBot:
                 if not lines:
                     continue
 
-                # Strip unwanted non-country emojis (🛢️, 🥇, 📈, 🌐) from headline
+                # Strip unwanted non-country emojis (🛢️, 📈, ⚠️, 🚨) from headline but PRESERVE 🌐
                 if "ហាងឆេងមាស" not in lines[0]:
-                    lines[0] = re.sub(r'^[🛢🥇📈🌐⚠️🚨\ufe0f\s]+', '', lines[0]).strip()
+                    lines[0] = re.sub(r'^[🛢📈⚠️🚨\ufe0f\s]+', '', lines[0]).strip()
+                    # Ensure headline has at least a sovereign flag or country flag
+                    if not re.search(r'[\U0001F1E0-\U0001F1FF]{2}|🌐', lines[0]):
+                        lines[0] = f"🌐 {lines[0]}"
 
                 # Tail & formatting check: Clean trailing colons, ellipsis, or hanging prepositions in headline
                 lines[0] = re.sub(r'[\s\u200B\u200C\u200D\uFEFF\u00A0.,;:៖–—_…]+$', '', lines[0]).strip()
