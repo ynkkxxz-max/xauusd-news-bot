@@ -233,6 +233,15 @@ def sanitize_khmer_spelling(text: str) -> str:
         (r"ចក្រភពអគ្លេស", "ចក្រភពអង់គ្លេស"),
         (r"អត្រាកាប្រាក់", "អត្រាការប្រាក់"),
         (r"ពាណិជ្ចកម្ម", "ពាណិជ្ជកម្ម"),
+        (r"អិរភាព", "អស្ថិរភាព"),
+        (r"ពីភាពអិរភាព", "ភាពអស្ថិរភាព"),
+        (r"ពីភាព(?=\s*[\u1780-\u17D3])", "ភាព"),
+        (r"ប្រាក់អឺរ៉ុប", "ប្រាក់អឺរ៉ូ (EUR)"),
+        (r"ក្នុងការ៉េដី", "នៅលើសមរភូមិជាក់ស្តែង"),
+        (r"ក្នុងការពារ(?=ខ្លួន)", "ក្នុងការការពារ"),
+        (r"ក្នុងការពារ", "ក្នុងការការពារ"),
+        (r"កង\s+RSF", "កងកម្លាំង RSF"),
+        (r"\bCockroach Party\b", "គណបក្ស Cockroach Party"),
         (r"បែប\s*(?:satire|satirical)", "បែបកំប្លែងចំអក"),
         (r"បញ៉ា", "បែបកំប្លែងចំអក"),
         (r"\b(?:satire|satirical)\b", "បែបកំប្លែងចំអក"),
@@ -1425,7 +1434,7 @@ class KhmerFormatter:
                 blocks.append(source_line)
                 full_msg = "\n\n".join(blocks).strip()
 
-        return full_msg
+        return sanitize_khmer_spelling(full_msg)
 
     @staticmethod
     def format_whale_alert(whale_data: dict) -> str:
