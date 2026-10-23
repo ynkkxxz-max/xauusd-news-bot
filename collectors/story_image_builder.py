@@ -478,8 +478,8 @@ class StoryImageBuilder:
                             cls.record_asset_used(split_key)
                             return split_bytes
 
-        # Step 4.2: CEO/Leader + Target Country Dual Split Image (USER MANDATORY DIRECTIVE: ឈ្មោះក្រុមហ៊ុនឬ CEO ភ្ជាប់ជាមួយប្រទេសនោះ)
-        # e.g. NVIDIA CEO (Jensen Huang) urges German manufacturers -> Left: Jensen Huang (CEO), Right: Germany flag!
+        # Step 4.2: CEO/Leader + Target Country Dual Split Image (Story-Accurate Composite)
+        # e.g. Jensen Huang + Germany flag, Elon Musk + China flag
         if len(headline_leaders) == 1 and len(detected_countries) >= 1:
             l1, path1, _, _ = headline_leaders[0]
             target_countries = [c for c in detected_countries if c[0] != "us"]
@@ -492,11 +492,9 @@ class StoryImageBuilder:
                     cls.record_asset_used(f"photo_{p1_name}")
                     cls.record_asset_used(f"split_{l1}_{c1}")
                     return split_bytes
-            else:
-                logger.info(f"[StoryImageBuilder] CEO '{p1_name}' or Split '{l1}_{c1}' on cooldown. Skipping to preserve visual diversity.")
 
-        # Step 4.2.1: Company/Brand + Target Country Dual Split Image (USER MANDATORY DIRECTIVE: ឈ្មោះក្រុមហ៊ុនឬ CEO ភ្ជាប់ជាមួយប្រទេសនោះ)
-        # e.g. ក្រុមហ៊ុន NVIDIA / Apple / Tesla + Germany / Japan / India -> Left: Brand Logo Card, Right: Country Flag!
+        # Step 4.2.1: Company/Brand + Target Country Dual Split Image (Story-Accurate Composite)
+        # e.g. NVIDIA Logo + Germany/Japan/India flag
         if len(headline_leaders) == 0 and len(detected_brands) >= 1 and len(detected_countries) >= 1:
             b1, path_brand = detected_brands[0]
             target_countries = [c for c in detected_countries if c[0] != "us"]
@@ -509,39 +507,30 @@ class StoryImageBuilder:
                     cls.record_asset_used(f"brand_{b1}")
                     cls.record_asset_used(f"split_{b1}_{c1}")
                     return split_bytes
-            else:
-                logger.info(f"[StoryImageBuilder] Brand '{b1}' or Split '{b1}_{c1}' on cooldown. Skipping to preserve visual diversity.")
 
-
-        # Step 4.3: If ONE leader and ONE brand are involved (e.g. Elon Musk + Anthropic / SpaceX / Tesla), synthesize Split Image!
-        # Respect headline appearance order: e.g. "ក្រុមហ៊ុន Anthropic និង Elon Musk" -> Left: Anthropic, Right: Elon Musk!
+        # Step 4.3: Leader + Brand Split Image (Story-Accurate Composite)
+        # e.g. Elon Musk + SpaceX / Tesla / Anthropic
         if len(headline_leaders) >= 1 and len(detected_brands) >= 1:
             l1, path1, _, _ = headline_leaders[0]
             b1, path2 = detected_brands[0]
             p1_name = os.path.basename(path1)
-
-            # Determine visual order based on appearance in headline
             b_pat = next((pat for slug, pat in cls.BRAND_PATTERNS if slug == b1), "")
             l_pat = next((pat for slug, pat in cls.LEADER_PATTERNS if slug == l1), "")
             b_m = re.search(b_pat, headline_text, re.IGNORECASE) if b_pat else None
             l_m = re.search(l_pat, headline_text, re.IGNORECASE) if l_pat else None
             b_pos = b_m.start() if b_m else 9999
             l_pos = l_m.start() if l_m else 9999
-
             left_img, right_img = (path2, path1) if b_pos < l_pos else (path1, path2)
-
             if not cls.is_asset_on_cooldown(f"photo_{p1_name}") and not cls.is_asset_on_cooldown(f"brand_{b1}"):
-                order_desc = "Brand (Left) + Leader (Right)" if b_pos < l_pos else "Leader (Left) + Brand (Right)"
-                logger.info(f"[StoryImageBuilder] Synthesizing Leader + Brand Split Image ({order_desc}): {b1} + {p1_name}")
+                logger.info(f"[StoryImageBuilder] Synthesizing Leader + Brand Split Image: {p1_name} + {b1}")
                 split_bytes = cls.create_split_image(left_img, right_img)
                 if split_bytes:
                     cls.record_asset_used(f"photo_{p1_name}")
                     cls.record_asset_used(f"brand_{b1}")
                     return split_bytes
-            else:
-                logger.info(f"[StoryImageBuilder] Leader photo '{p1_name}' or Brand '{b1}' on cooldown. Skipping to preserve visual diversity.")
 
-        # Step 4.4: Dual-Brand Split Image (e.g. Anthropic + OpenAI, Apple + Tesla)
+        # Step 4.4: Dual-Brand Split Image (Story-Accurate Composite)
+        # e.g. Anthropic + OpenAI, Apple + Tesla
         if len(headline_leaders) == 0 and len(detected_brands) >= 2:
             b1, path1 = detected_brands[0]
             b2, path2 = detected_brands[1]
@@ -552,7 +541,6 @@ class StoryImageBuilder:
                     cls.record_asset_used(f"brand_{b1}")
                     cls.record_asset_used(f"brand_{b2}")
                     return split_bytes
-
 
         # Step 5: Single Leader Official Portrait
         # ONLY if the leader is the primary subject in headline and NOT just a casual mention in market/economic news
@@ -570,22 +558,7 @@ class StoryImageBuilder:
             else:
                 logger.info(f"[StoryImageBuilder] Leader portrait variant '{p1_name}' is on cooldown. Skipping to preserve visual variety.")
 
-        # Step 6: Single Country High-Res Flag Canvas (ONLY for sovereign macro / geopolitical stories)
-        # STRICT RULE: NEVER use a standalone country flag for Corporate, Tech, Business or CEO stories!
-        is_corporate_or_exec = bool(re.search(
-            r'\b(ceo|chief executive|founder|executive|corporate|corporation|firm|company|earnings|revenue|investor)\b|នាយកប្រតិបត្តិ|ក្រុមហ៊ុន|សាជីវកម្ម',
-            comb_text, re.IGNORECASE
-        ))
-        if not is_corporate_or_exec and len(headline_leaders) == 0 and len(detected_brands) == 0 and len(detected_countries) >= 1:
-            c_code, flag_path, _ = detected_countries[0]
-            if flag_path and os.path.exists(flag_path) and not cls.is_asset_on_cooldown(f"flag_{c_code}"):
-                logger.info(f"[StoryImageBuilder] Synthesizing Single Country VIP Flag Canvas for {c_code.upper()}")
-                flag_bytes = cls.create_single_flag_canvas(flag_path)
-                if flag_bytes:
-                    cls.record_asset_used(f"flag_{c_code}")
-                    return flag_bytes
-
-        # Step 6.5: Single Brand VIP Card (for major tech / market corporations)
+        # Step 6: Single Brand VIP Card (for major tech / market corporations)
         if len(headline_leaders) == 0 and len(detected_brands) >= 1:
             b_slug, b_path = detected_brands[0]
             if b_path and os.path.exists(b_path) and not cls.is_asset_on_cooldown(f"brand_{b_slug}"):
@@ -599,21 +572,9 @@ class StoryImageBuilder:
                 except Exception as e:
                     logger.warning(f"[StoryImageBuilder] Failed reading brand image {b_path}: {e}")
 
-        # Step 7: Macro Topics Multi-Variant VIP Photos (Gold, Oil, Fed, Wall Street, Crypto, AI Infrastructure, Naval)
-        for topic_key, pat in cls.TOPIC_PATTERNS:
-            if re.search(pat, comb_text, re.IGNORECASE):
-                t_path = cls.get_available_topic_photo(topic_key)
-                if t_path and os.path.exists(t_path):
-                    t_name = os.path.basename(t_path)
-                    logger.info(f"[StoryImageBuilder] Using Macro Topic VIP Photo for '{topic_key}': {t_name}")
-                    try:
-                        with open(t_path, "rb") as f:
-                            t_bytes = cls.enhance_image_for_vip(f.read())
-                        if t_bytes:
-                            cls.record_asset_used(f"topic_{t_name}")
-                            return t_bytes
-                    except Exception as e:
-                        logger.warning(f"[StoryImageBuilder] Failed reading topic image {t_path}: {e}")
+        # Note: Static topic stock photos (bitcoin_crypto, wall_street, crude_oil, etc.)
+        # and cheap flag cutouts are strictly BANNED to guarantee zero repetition and maximum visual quality.
+        # Fall through to Live Editorial Photo Search or Clean MODE B!
 
         # Step 7.5: Live Real-Time Editorial Photo Search (Wikipedia Commons High-Res Press Wire)
         live_queries = []
