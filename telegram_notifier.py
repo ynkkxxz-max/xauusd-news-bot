@@ -14,23 +14,43 @@ def enforce_telegram_char_limit(text: str, max_visible: int) -> str:
 
     # 1. Comprehensive Lexical & Spelling Sanitization
     try:
-        from khmer_formatter import sanitize_khmer_spelling
+        try:
+            from formatters.khmer_formatter import sanitize_khmer_spelling
+        except ImportError:
+            from khmer_formatter import sanitize_khmer_spelling
         text = sanitize_khmer_spelling(text)
     except Exception:
         pass
 
-    text = re.sub(r'\bប្រមាន\b', 'ព្រមាន', text)
+    text = re.sub(r'ប្រមាន', 'ព្រមាន', text)
     text = re.sub(r'ការប្រមាន', 'ការព្រមាន', text)
     text = re.sub(r'បានប្រមាន', 'បានព្រមាន', text)
     text = re.sub(r'ធ្វើអោយ', 'ធ្វើឱ្យ', text)
-    text = re.sub(r'ឿរ៉ង់', 'អ៊ីរ៉ង់', text)
-    text = re.sub(r'\bអគ្លេស\b', 'អង់គ្លេស', text)
+    text = re.sub(r'ឿ+អ៊ីរ៉ង់|ឿ+រ៉ង់', 'អ៊ីរ៉ង់', text)
+    text = re.sub(r'តេហេឿរ៉ង់|តេហឿរ៉ង់', 'តេហេរ៉ង់', text)
+    text = re.sub(r'អគ្លេស', 'អង់គ្លេស', text)
     text = re.sub(r'ចក្រភពអគ្លេស', 'ចក្រភពអង់គ្លេស', text)
-    text = re.sub(r'\bសហរដ្ធ\b', 'សហរដ្ឋ', text)
-    text = re.sub(r'\bរដ្ធ\b', 'រដ្ឋ', text)
-    text = re.sub(r'\bសេដ្ធកិច្ច\b', 'សេដ្ឋកិច្ច', text)
-    text = re.sub(r'\bអត្រាកាប្រាក់\b', 'អត្រាការប្រាក់', text)
-    text = re.sub(r'\bពាណិជ្ចកម្ម\b', 'ពាណិជ្ជកម្ម', text)
+    text = re.sub(r'សហរដ្ធ', 'សហរដ្ឋ', text)
+    text = re.sub(r'រដ្ធ', 'រដ្ឋ', text)
+    text = re.sub(r'សេដ្ធកិច្ច', 'សេដ្ឋកិច្ច', text)
+    text = re.sub(r'អត្រាកាប្រាក់', 'អត្រាការប្រាក់', text)
+    text = re.sub(r'ពាណិជ្ចកម្ម', 'ពាណិជ្ជកម្ម', text)
+    text = re.sub(r'បែប\s*(?:satire|satirical)', 'បែបកំប្លែងចំអក', text)
+    text = re.sub(r'បញ៉ា', 'បែបកំប្លែងចំអក', text)
+    text = re.sub(r'\b(?:satire|satirical)\b', 'បែបកំប្លែងចំអក', text)
+    text = re.sub(r'ដើរហង្ហែ', 'ដើរហែក្បួន', text)
+    text = re.sub(r'ហង្ហែ', 'ដង្ហែ', text)
+    no_space_stutters = [
+        "តវ៉ា", "បាតុកម្ម", "ហែក្បួន", "ប្រឆាំង", "កើនឡើង", "ធ្លាក់ចុះ",
+        "រដ្ឋាភិបាល", "សេដ្ឋកិច្ច", "អតិផរណា", "ទីផ្សារ", "វិនិយោគិន", "នយោបាយ",
+        "អន្តរជាតិ", "ប្រជាជន", "ប្រជាពលរដ្ឋ", "ព្យាករណ៍", "រំពឹងទុក", "ព្រួយបារម្ភ",
+        "តានតឹង", "ប្រកាស", "សម្រេច", "ព្រមាន", "វាយប្រហារ", "ហង្ហែ"
+    ]
+    for w in no_space_stutters:
+        text = re.sub(rf'({w})[\s\u200B]*\1+', r'\1', text)
+    for _ in range(2):
+        text = re.sub(r'([\u1780-\u17D3]{3,})[\s\u200B]*\1+', r'\1', text)
+    text = re.sub(r'(\b[\u1780-\u17D3]{2,}\b)\s*\1\b', r'\1', text)
     
     # 2. Complete Sentence Guarantee & Colon/Fragment Stripping in Headline
     m_head = re.search(r'(<b>(.*?)</b>)', text, re.DOTALL)
@@ -163,28 +183,22 @@ def enforce_telegram_char_limit(text: str, max_visible: int) -> str:
     parts = [p for p in [header, trimmed_body, impact_line, source_line] if p]
     res = "\n\n".join(parts)
 
+    # Safe trimming: Always trim at clean sentence boundary (។) or clean space, NEVER slice blind glyphs
     while len(re.sub(r"<[^>]+>", "", res)) > max_visible and len(trimmed_body) > 30:
         excess = len(re.sub(r"<[^>]+>", "", res)) - max_visible
-        cut_idx = max(len(trimmed_body) - excess - 5, 20)
-        sub = trimmed_body[:cut_idx]
-        last_period = max(sub.rfind("។ "), sub.rfind("។\n"), sub.rfind("។"))
-        if last_period > 20:
-            trimmed_body = sub[:last_period + 1].strip()
+        # Look for a sentence boundary before the cut point
+        cut_candidate = trimmed_body[:max(len(trimmed_body) - excess - 2, 20)]
+        last_period = cut_candidate.rfind("។")
+        if last_period > 25:
+            trimmed_body = cut_candidate[:last_period + 1].strip()
         else:
-            last_space = sub.rfind(" ")
-            trimmed_body = (sub[:last_space].strip() if last_space > 15 else sub.strip()) + "។"
+            last_space = cut_candidate.rfind(" ")
+            if last_space > 25:
+                trimmed_body = cut_candidate[:last_space].strip() + "។"
+            else:
+                trimmed_body = cut_candidate.strip() + "។"
         parts = [p for p in [header, trimmed_body, impact_line, source_line] if p]
         res = "\n\n".join(parts)
-
-    # Absolute 100% hard ceiling guarantee: Never allow even 1 character over limit
-    while len(re.sub(r"<[^>]+>", "", res)) > max_visible:
-        if len(trimmed_body) > 10:
-            trimmed_body = trimmed_body[:-2].rstrip() + "។"
-            parts = [p for p in [header, trimmed_body, impact_line, source_line] if p]
-            res = "\n\n".join(parts)
-        else:
-            res = res[:max_visible]
-            break
 
     return res
 
@@ -920,7 +934,22 @@ class TelegramNotifier:
             return False
         except Exception as e:
             logger.error(f"[TelegramNotifier] Error checking member status: {e}")
-            return True # Fail-open on network error to not block legitimate users
+    def is_user_admin_of_channel(self, user_id: int, channel_id: str = None) -> bool:
+        """Check if user_id is the creator or an administrator of the official channel."""
+        if not self.is_configured() or not user_id:
+            return False
+        target_channel = str(channel_id or self.chat_id)
+        url = f"{self.base_url}/getChatMember"
+        try:
+            resp = requests.get(url, params={"chat_id": target_channel, "user_id": user_id}, timeout=8)
+            data = resp.json()
+            if data.get("ok"):
+                status = data.get("result", {}).get("status", "")
+                return status in ("creator", "administrator")
+            return False
+        except Exception as e:
+            logger.error(f"[TelegramNotifier] Error checking admin status: {e}")
+            return False
 
     def delete_message(self, message_id: int, chat_id: str = None) -> bool:
         """Deletes a message directly from the chat/channel using Telegram deleteMessage API."""
