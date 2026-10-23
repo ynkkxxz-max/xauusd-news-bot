@@ -46,8 +46,10 @@ MAX_DAILY_BREAKING_NEWS = int(os.getenv("MAX_DAILY_BREAKING_NEWS", "0"))
 CAMBODIA_TZ_NAME = os.getenv("TIMEZONE", "Asia/Phnom_Penh")
 CAMBODIA_TZ = pytz.timezone(CAMBODIA_TZ_NAME)
 
-# Daily Gold Price Alert Schedule (Cambodia Time)
-DAILY_PRICE_ALERT_HOUR = int(os.getenv("DAILY_PRICE_ALERT_HOUR", "7"))
+# Daily Gold Price Alert Schedule (Cambodia Time) - Twice daily (07:00 AM & 07:00 PM)
+DAILY_PRICE_MORNING_HOUR = int(os.getenv("DAILY_PRICE_MORNING_HOUR", "7"))
+DAILY_PRICE_EVENING_HOUR = int(os.getenv("DAILY_PRICE_EVENING_HOUR", "19"))
+DAILY_PRICE_ALERT_HOUR = DAILY_PRICE_MORNING_HOUR  # Backward compatibility
 DAILY_PRICE_ALERT_MINUTE = int(os.getenv("DAILY_PRICE_ALERT_MINUTE", "0"))
 
 # Database Path
