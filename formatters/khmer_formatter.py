@@ -979,14 +979,8 @@ class KhmerFormatter:
                 country_flags = ["🇪🇺"]
             elif any(w in comb_lower for w in ["japan", "japanese", "tokyo", "yen", "boj", "nikkei"]):
                 country_flags = ["🇯🇵"]
-            elif any(w in comb_lower for w in ["oil", "crude", "brent", "wti", "opec", "ប្រេង", "ប្រេងឆៅ", "ឧស្ម័ន"]):
-                country_flags = ["🛢️"]  # Dedicated Oil / Energy indicator
-            elif any(w in comb_lower for w in ["gold", "bullion", "silver", "xauusd", "មាស", "លោហៈ"]):
-                country_flags = ["🥇"]  # Gold / Precious Metals indicator
-            elif any(w in comb_lower for w in ["ភាគហ៊ុន", "stock", "wall street", "nasdaq", "s&p"]):
-                country_flags = ["📈"]  # Global Equity Markets indicator
             else:
-                country_flags = ["🌐"]  # Global Macro Pulse indicator
+                country_flags = []
 
         # STRICT BILATERAL FLAG RULE: A 2nd flag is ONLY permitted if BOTH nations are prominently in the headline
         # AND it is an official bilateral state summit or war (e.g. US-China trade talks, Russia-Ukraine war).
