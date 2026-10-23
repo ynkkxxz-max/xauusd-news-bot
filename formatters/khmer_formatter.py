@@ -464,12 +464,12 @@ def sanitize_khmer_spelling(text: str) -> str:
 
 class KhmerFormatter:
     @staticmethod
-    def format_daily_gold_price(price_data: dict, summary: str = "", include_smc: bool = False) -> str:
+    def format_daily_gold_price(price_data: dict, summary: str = "", include_smc: bool = False, session_time: str = "") -> str:
         """
         Formats daily gold price report in clean, concise Khmer style requested by user:
         🥇  DAILY GOLD PRICE — ហាងឆេងមាសប្រចាំថ្ងៃ
 
-        📅  កាលបរិច្ឆេទ: 29/09/2026 
+        📅  កាលបរិច្ឆេទ: 29/09/2026 (ម៉ោង 07:00 ព្រឹក)
 
 
          🌐1 អោន : $4,127.30
@@ -499,10 +499,11 @@ class KhmerFormatter:
 
         sign = "+" if chg >= 0 else ""
         icon = "📈" if chg >= 0 else "📉"
+        time_part = f" ({session_time})" if session_time else ""
 
         msg = (
             f"🥇  <b>DAILY GOLD PRICE — ហាងឆេងមាសប្រចាំថ្ងៃ</b>\n\n"
-            f"📅  <b>កាលបរិច្ឆេទ:</b> {date_str} \n\n\n"
+            f"📅  <b>កាលបរិច្ឆេទ:</b> {date_str}{time_part} \n\n\n"
             f" 🌐<b>1 អោន :</b> ${oz:,.2f}\n\n"
             f"🇰🇭 <b>1 តម្លឹង:</b> លក់ ${damlung_sell:,.2f} | ទិញ ${damlung_buy:,.2f}\n"
             f"      \n"
