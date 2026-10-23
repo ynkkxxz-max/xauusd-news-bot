@@ -382,8 +382,10 @@ class TelegramNotifier:
         guaranteeing the human audience NEVER sees a defective post.
         """
         import re
-        if not message_id or not raw_text:
+        if not message_id:
             return True
+
+        raw_text = raw_text or ""
 
         # Skip scheduled daily price cards or market open status
         if raw_text.startswith("🥇") or raw_text.startswith("📅") or raw_text.startswith("📊") or raw_text.startswith("---"):
@@ -392,6 +394,26 @@ class TelegramNotifier:
         clean = re.sub(r'<[^>]+>', '', raw_text).strip()
         vis_len = len(clean)
         max_allowed = 574 if is_photo else 750
+
+        # Check 0: Empty or corrupted stub (< 40 chars)
+        if vis_len < 40:
+            logger.critical(f"[WATCHDOG PURGE] Post #{message_id} is empty or corrupted stub ({vis_len} < 40 chars). Auto-purging immediately!")
+            self.delete_message(message_id, chat_id=target_chat)
+            return False
+
+        # Check 0.1: Prohibited poll, countdown alert, or trade signals
+        if "📊 លទ្ធផល Signal" in clean or "📊 បោះឆ្នោត" in clean:
+            logger.critical(f"[WATCHDOG PURGE] Post #{message_id} contains prohibited poll. Auto-purging immediately!")
+            self.delete_message(message_id, chat_id=target_chat)
+            return False
+        if "🚨 5 នាទីទៀត" in clean or "🚨 15 នាទីទៀត" in clean or "COUNTDOWN" in clean:
+            logger.critical(f"[WATCHDOG PURGE] Post #{message_id} contains prohibited countdown alert. Auto-purging immediately!")
+            self.delete_message(message_id, chat_id=target_chat)
+            return False
+        if any(sig in clean for sig in ["Entry Zone:", "Stop Loss:", "TP1:", "TP2:"]) and "ហាងឆេងមាស" not in clean:
+            logger.critical(f"[WATCHDOG PURGE] Post #{message_id} contains prohibited trade signal. Auto-purging immediately!")
+            self.delete_message(message_id, chat_id=target_chat)
+            return False
 
         # Check 1: Absolute hard length ceiling
         if vis_len > max_allowed:
