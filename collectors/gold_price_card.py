@@ -81,18 +81,12 @@ class DailyGoldPriceCardBuilder:
             if oz_price <= 0:
                 oz_price = 4152.0
 
-            loc = price_data.get("local_market") or {}
-            damlung_price = price_data.get("damlung_sell") or loc.get("damlung_sell")
-            if not damlung_price:
-                damlung_price = price_data.get("price_damlung")
-            if not damlung_price:
-                damlung_price = oz_price * DAMLUNG_TO_OZ_RATIO
-            damlung_price = float(damlung_price)
-
-            chi_price = price_data.get("chi_sell") or loc.get("chi_sell")
-            if not chi_price:
-                chi_price = damlung_price / 10.0
-            chi_price = float(chi_price)
+            # Pure Spot conversion for 100% mathematical consistency across all 3 boxes:
+            # 1 Troy Ounce = 31.1034768 grams
+            # 1 Damlung = 37.5 grams = 1.20565297 Troy Ounces
+            # 1 Chi = 3.75 grams = 1/10 of Damlung
+            damlung_price = oz_price * DAMLUNG_TO_OZ_RATIO
+            chi_price = damlung_price / 10.0
 
             # Round prices to match clean display
             damlung_str = f"${round(damlung_price):,}"
