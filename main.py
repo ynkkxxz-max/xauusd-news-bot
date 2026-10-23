@@ -1631,42 +1631,9 @@ class XAUUSDNewsAssistantBot:
                 if not lines:
                     continue
 
-                # Head check: Ensure headline has country or macro flag emoji
+                # Strip unwanted non-country emojis (🛢️, 🥇, 📈, 🌐) from headline
                 if "ហាងឆេងមាស" not in lines[0]:
-                    hl = lines[0]
-                    has_flag = bool(re.match(r'^(?:[\U0001F1E6-\U0001F1FF]{2}|[\U0001F300-\U0001FFFF]|🌐|🛢️|🥇|📈|📉|🚨|⚠️)', hl))
-                    if not has_flag:
-                        comb_lower = txt.lower()
-                        if any(w in comb_lower for w in ["ប្រេង", "ប្រេងឆៅ", "brent", "wti", "crude", "opec", "ថាមពល"]):
-                            flag = "🛢️"
-                        elif any(w in comb_lower for w in ["មាស", "gold", "xauusd"]):
-                            flag = "🥇"
-                        elif any(w in comb_lower for w in ["រុស្ស៊ី", "russia", "putin"]):
-                            flag = "🇷🇺"
-                        elif any(w in comb_lower for w in ["អ៊ុយក្រែន", "ukraine", "zelensky"]):
-                            flag = "🇺🇦"
-                        elif any(w in comb_lower for w in ["អ៊ីរ៉ង់", "iran", "tehran"]):
-                            flag = "🇮🇷"
-                        elif any(w in comb_lower for w in ["អ៊ីស្រាអែល", "israel"]):
-                            flag = "🇮🇱"
-                        elif any(w in comb_lower for w in ["ចិន", "china", "beijing"]):
-                            flag = "🇨🇳"
-                        elif any(w in comb_lower for w in ["អឺរ៉ុប", "eu", "europe"]):
-                            flag = "🇪🇺"
-                        elif any(w in comb_lower for w in ["អង់គ្លេស", "uk", "britain"]):
-                            flag = "🇬🇧"
-                        elif any(w in comb_lower for w in ["តៃវ៉ាន់", "taiwan", "tsmc"]):
-                            flag = "🇹🇼"
-                        elif any(w in comb_lower for w in ["ជប៉ុន", "japan", "boj"]):
-                            flag = "🇯🇵"
-                        elif any(w in comb_lower for w in ["អាមេរិក", "fed", "biden", "trump", "dollar"]):
-                            flag = "🇺🇸"
-                        elif any(w in comb_lower for w in ["ភាគហ៊ុន", "stock", "wall street"]):
-                            flag = "📈"
-                        else:
-                            flag = "🌐"
-                        hl = f"{flag} {hl}"
-                        lines[0] = hl
+                    lines[0] = re.sub(r'^[🛢🥇📈🌐⚠️🚨\ufe0f\s]+', '', lines[0]).strip()
 
                 # Tail & formatting check: Clean trailing colons, ellipsis, or hanging prepositions in headline
                 lines[0] = re.sub(r'[\s\u200B\u200C\u200D\uFEFF\u00A0.,;:៖–—_…]+$', '', lines[0]).strip()
@@ -1675,7 +1642,7 @@ class XAUUSDNewsAssistantBot:
                 hl_text = lines[0]
                 body_and_rest = '\n\n'.join(lines[1:])
                 if "ហាងឆេងមាស" not in hl_text and '<b>' not in hl_text:
-                    m_hl = re.match(r'^((?:[\U0001F1E6-\U0001F1FF]{2}|[\U0001F300-\U0001FFFF]|🌐|🛢️|🥇|📈|📉|🚨|⚠️)\s*)+(.+)$', hl_text)
+                    m_hl = re.match(r'^((?:[\U0001F1E6-\U0001F1FF]{2}\s*)+)(.+)$', hl_text)
                     if m_hl:
                         hl_text = f"{m_hl.group(1).strip()} <b>{m_hl.group(2).strip()}</b>"
                     else:
