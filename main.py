@@ -1495,16 +1495,18 @@ class XAUUSDNewsAssistantBot:
         """
         Autonomous Channel Self-Healing & Defect Purge Engine:
         Continuously guards the Telegram Channel (@GoldMarketKH8888):
-        1. Auto-Purge (លុបបញ្ហាខុស):
+        1. Auto-Purge (លុបបញ្ហាខុស & លុបជាន់):
            - Prohibited interactive polls (e.g. 📊 លទ្ធផល Signal)
            - Prohibited news countdowns (e.g. 🚨 5 នាទីទៀត)
            - Prohibited trade signals (Entry Zone, TP1, SL)
            - Corrupted broken stubs (< 70 chars without photo/meaning)
-           - Consecutive accidental twin duplicates
-        2. Auto-Heal In-Place (ប្រព័ន្ធកែរកំហុស):
+           - Multi-post duplicate detection across recent posts (Jaccard similarity >= 0.65)
+        2. Auto-Heal In-Place (ប្រព័ន្ធចាប់ខុស & កែរកំហុស):
+           - Fixes missing head (prepend country/macro flag if missing)
+           - Fixes missing verbs (e.g. នេះពីការ -> នេះបង្ហាញពីការ)
            - Scans recent posts for spelling typos (using sanitize_khmer_spelling)
            - Normalizes excessive spacing, fixes country-verb spacing
-           - Enforces strict character limits (<= 574 for photo, <= 750 for text)
+           - Sentence-aware character limit enforcement (<= 574 for photo, <= 750 for text)
            - Auto-edits caption or text in-place without deleting the post!
         """
         now = time.time()
@@ -1557,27 +1559,14 @@ class XAUUSDNewsAssistantBot:
             if not posts:
                 return
 
-            # --- 1. DEFECT PURGE (លុបបញ្ហាខុស) ---
-            # Twin duplicate check on the very latest post
-            if len(posts) >= 2:
-                latest = posts[-1]
-                prev = posts[-2]
-                l_txt = latest.get("text", "")
-                p_txt = prev.get("text", "")
-                l_hl = re.sub(r'[^\w\u1780-\u17FF]', '', l_txt.split('\n')[0]).strip().lower() if l_txt else ""
-                p_hl = re.sub(r'[^\w\u1780-\u17FF]', '', p_txt.split('\n')[0]).strip().lower() if p_txt else ""
-
-                if l_hl and p_hl and len(l_hl) >= 15 and l_hl == p_hl:
-                    logger.critical(f"[AUTONOMOUS PURGE] Twin duplicate detected on #{latest['id']} (matches #{prev['id']}). Deleting immediately!")
-                    self.notifier.delete_message(latest["id"])
-                    posts.pop()
-
-            # Scan the last 12 posts for prohibited content
-            for p in posts[-12:]:
+            # --- 1. DEFECT PURGE & MULTI-POST DEDUPLICATION (លុបបញ្ហាខុស & លុបជាន់) ---
+            seen_headlines = {}
+            for p in list(posts):
                 pid = p["id"]
                 txt = p["text"]
                 has_photo = p["has_photo"]
 
+                # A. Prohibited content check
                 is_prohibited = False
                 purge_reason = ""
                 if "📊 លទ្ធផល Signal" in txt or "📊 បោះឆ្នោត" in txt:
@@ -1596,52 +1585,130 @@ class XAUUSDNewsAssistantBot:
                 if is_prohibited:
                     logger.critical(f"[AUTONOMOUS PURGE] Deleting defective post #{pid} ({purge_reason}) from channel!")
                     self.notifier.delete_message(pid)
+                    posts = [post for post in posts if post["id"] != pid]
                     continue
 
-                # --- 2. AUTO-HEAL IN-PLACE (ប្រព័ន្ធកែរកំហុស) ---
+                # B. Multi-post Duplicate Check (Jaccard similarity >= 0.65)
+                lines = [l.strip() for l in txt.split('\n') if l.strip()]
+                if lines and "ហាងឆេងមាស" not in lines[0]:
+                    hl = lines[0]
+                    norm_tokens = set(re.findall(r'[\u1780-\u17FF]{3,}|[a-zA-Z]{3,}', hl.lower()))
+                    if norm_tokens:
+                        is_dup = False
+                        for prev_pid, prev_tokens in seen_headlines.items():
+                            overlap = len(norm_tokens.intersection(prev_tokens))
+                            union = len(norm_tokens.union(prev_tokens))
+                            jaccard = overlap / union if union else 0
+                            if jaccard >= 0.65:
+                                logger.critical(f"[AUTONOMOUS PURGE] Duplicate post #{pid} matches #{prev_pid} (Jaccard {jaccard:.2f}). Deleting immediately!")
+                                self.notifier.delete_message(pid)
+                                posts = [post for post in posts if post["id"] != pid]
+                                is_dup = True
+                                break
+                        if not is_dup:
+                            seen_headlines[pid] = norm_tokens
+
+            # --- 2. AUTO-HEAL IN-PLACE (ប្រព័ន្ធចាប់ខុស & កែរកំហុស) ---
+            for p in posts[-15:]:
+                pid = p["id"]
+                txt = p["text"]
+                has_photo = p["has_photo"]
                 if not txt:
                     continue
 
                 # Run spelling sanitization
                 fixed = sanitize_khmer_spelling(txt)
+                # Fix missing verbs (e.g. នេះពីការ -> នេះបង្ហាញពីការ)
+                fixed = re.sub(r'(ការសម្រេចចិត្ត|ស្ថានភាព|វិធានការ|សកម្មភាព|របាយការណ៍)នេះ\s*ពីការ', r'\1នេះបង្ហាញពីការ', fixed)
+                fixed = re.sub(r'ភាពងុបងុល', 'ភាពប្រែប្រួល', fixed)
                 # Normalize excessive spaces
                 fixed = re.sub(r'[ \t]{2,}', ' ', fixed)
+                fixed = re.sub(r'([🔸🔹🔴🟢🔶])\s{2,}', r'\1 ', fixed)
                 # Country-verb spacing
                 fixed = re.sub(r'(យេមែន|រុស្ស៊ី|អ៊ុយក្រែន|ចិន|អាមេរិក|បារាំង|អាល្លឺម៉ង់|អ៊ីរ៉ង់|អ៊ីស្រាអែល|តួកគី|ជប៉ុន|កូរ៉េខាងត្បូង|កូរ៉េខាងជើង|តៃវ៉ាន់|កាណាដា|អង់គ្លេស|ឥណ្ឌា)(កំពុង|បាន|ត្រូវបាន|អាច|នឹង|គ្រោង|ប្រកាស)', r'\1 \2', fixed)
 
-                # Character limit enforcement (<= 574 for photo, <= 750 for text)
+                lines = [l.strip() for l in fixed.split('\n') if l.strip()]
+                if not lines:
+                    continue
+
+                # Head check: Ensure headline has country or macro flag emoji
+                if "ហាងឆេងមាស" not in lines[0]:
+                    hl = lines[0]
+                    has_flag = bool(re.match(r'^(?:[\U0001F1E6-\U0001F1FF]{2}|[\U0001F300-\U0001FFFF]|🌐|🛢️|🥇|📈|📉|🚨|⚠️)', hl))
+                    if not has_flag:
+                        comb_lower = txt.lower()
+                        if any(w in comb_lower for w in ["ប្រេង", "ប្រេងឆៅ", "brent", "wti", "crude", "opec", "ថាមពល"]):
+                            flag = "🛢️"
+                        elif any(w in comb_lower for w in ["មាស", "gold", "xauusd"]):
+                            flag = "🥇"
+                        elif any(w in comb_lower for w in ["រុស្ស៊ី", "russia", "putin"]):
+                            flag = "🇷🇺"
+                        elif any(w in comb_lower for w in ["អ៊ុយក្រែន", "ukraine", "zelensky"]):
+                            flag = "🇺🇦"
+                        elif any(w in comb_lower for w in ["អ៊ីរ៉ង់", "iran", "tehran"]):
+                            flag = "🇮🇷"
+                        elif any(w in comb_lower for w in ["អ៊ីស្រាអែល", "israel"]):
+                            flag = "🇮🇱"
+                        elif any(w in comb_lower for w in ["ចិន", "china", "beijing"]):
+                            flag = "🇨🇳"
+                        elif any(w in comb_lower for w in ["អឺរ៉ុប", "eu", "europe"]):
+                            flag = "🇪🇺"
+                        elif any(w in comb_lower for w in ["អង់គ្លេស", "uk", "britain"]):
+                            flag = "🇬🇧"
+                        elif any(w in comb_lower for w in ["តៃវ៉ាន់", "taiwan", "tsmc"]):
+                            flag = "🇹🇼"
+                        elif any(w in comb_lower for w in ["ជប៉ុន", "japan", "boj"]):
+                            flag = "🇯🇵"
+                        elif any(w in comb_lower for w in ["អាមេរិក", "fed", "biden", "trump", "dollar"]):
+                            flag = "🇺🇸"
+                        elif any(w in comb_lower for w in ["ភាគហ៊ុន", "stock", "wall street"]):
+                            flag = "📈"
+                        else:
+                            flag = "🌐"
+                        hl = f"{flag} {hl}"
+                        lines[0] = hl
+
+                # Tail & formatting check: Clean trailing colons, ellipsis, or hanging prepositions in headline
+                lines[0] = re.sub(r'[\s\u200B\u200C\u200D\uFEFF\u00A0.,;:៖–—_…]+$', '', lines[0]).strip()
+                lines[0] = re.sub(r'\s+(?:នៃ|របស់|និង|ពី|ក្នុង|ដើម្បី|លើ|អំពី)\s*$', '', lines[0]).strip()
+
+                hl_text = lines[0]
+                body_and_rest = '\n\n'.join(lines[1:])
+                if "ហាងឆេងមាស" not in hl_text and '<b>' not in hl_text:
+                    m_hl = re.match(r'^((?:[\U0001F1E6-\U0001F1FF]{2}|[\U0001F300-\U0001FFFF]|🌐|🛢️|🥇|📈|📉|🚨|⚠️)\s*)+(.+)$', hl_text)
+                    if m_hl:
+                        hl_text = f"{m_hl.group(1).strip()} <b>{m_hl.group(2).strip()}</b>"
+                    else:
+                        hl_text = f"<b>{hl_text}</b>"
+
+                fixed = f"{hl_text}\n\n{body_and_rest}" if body_and_rest else hl_text
+
+                # Sentence-aware Character limit enforcement (<= 574 for photo, <= 750 for text)
                 max_allowed = 574 if has_photo else 750
                 if len(fixed) > max_allowed:
-                    lines = fixed.split('\n')
-                    while len('\n'.join(lines)) > max_allowed and len(lines) > 2:
-                        if len(lines) >= 4 and len(lines[2]) > 40:
-                            lines[2] = lines[2][:len(lines[2]) - 30].strip() + '...'
+                    r_paragraphs = fixed.split('\n\n')
+                    while len('\n\n'.join(r_paragraphs)) > max_allowed and len(r_paragraphs) > 2:
+                        mid = r_paragraphs[1]
+                        if '។' in mid:
+                            sentences = [s.strip() for s in mid.split('។') if s.strip()]
+                            if len(sentences) > 1:
+                                r_paragraphs[1] = '។ '.join(sentences[:-1]) + '។'
+                            else:
+                                r_paragraphs.pop(1)
                         else:
-                            break
-                    fixed = '\n'.join(lines)
+                            r_paragraphs.pop(1)
+                    fixed = '\n\n'.join(r_paragraphs)
                     if len(fixed) > max_allowed:
-                        fixed = fixed[:max_allowed - 4].rsplit(' ', 1)[0] + '...'
+                        last_period = fixed[:max_allowed - 1].rfind('។')
+                        if last_period > 200:
+                            fixed = fixed[:last_period + 1].strip()
 
-                # Format headline with <b> tags for nice HTML rendering if missing
-                lines = [l.strip() for l in fixed.split('\n') if l.strip()]
-                if lines and 'ហាងឆេងមាស' not in lines[0]:
-                    hl = lines[0]
-                    body_lines = '\n\n'.join(lines[1:])
-                    if '<b>' not in hl:
-                        m_hl = re.match(r'^((?:[\U0001F1E6-\U0001F1FF]{2}\s*)+)(.*)$', hl)
-                        if m_hl:
-                            hl = f"{m_hl.group(1).strip()} <b>{m_hl.group(2).strip()}</b>"
-                        else:
-                            hl = f"<b>{hl}</b>"
-                    final_text = f"{hl}\n\n{body_lines}"
-                else:
-                    final_text = fixed
+                final_text = fixed
 
                 # Check if text actually differs or if we already healed it
                 if self._healed_posts_cache.get(pid) == final_text:
                     continue
 
-                # Strip HTML tags to compare raw text content
                 raw_final = html_module.unescape(re.sub(r'<[^>]+>', ' ', final_text)).strip()
                 raw_final_collapsed = re.sub(r'\s+', ' ', raw_final)
                 raw_curr_collapsed = re.sub(r'\s+', ' ', txt)
@@ -1657,7 +1724,6 @@ class XAUUSDNewsAssistantBot:
                         self._healed_posts_cache[pid] = final_text
                         logger.info(f"[AUTONOMOUS LIVE HEAL] Successfully healed post #{pid} on Telegram channel!")
                     else:
-                        # Cache so we don't spam if Telegram API rejected identical content
                         self._healed_posts_cache[pid] = final_text
         except Exception as e:
             logger.debug(f"[audit_live_channel_and_heal error] {e}")
