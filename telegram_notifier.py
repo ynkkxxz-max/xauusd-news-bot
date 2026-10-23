@@ -123,8 +123,9 @@ def enforce_telegram_char_limit(text: str, max_visible: int) -> str:
         elif any(w in t_low for w in ["israel", "អ៊ីស្រាអែល"]):
             flag = "🇮🇱 "
         else:
-            flag = "🌐 "
-        text = flag + text
+            flag = ""
+        if flag:
+            text = flag + text
 
     # 4. Balanced HTML Tags Check & Auto-Repair
     open_b = len(re.findall(r'<b>', text))
@@ -146,7 +147,13 @@ def enforce_telegram_char_limit(text: str, max_visible: int) -> str:
     blocks = text.split("\n\n")
     if len(blocks) <= 1:
         clean = re.sub(r"<[^>]+>", "", text)
-        return clean[:max_visible - 1].rstrip(" .…-–—") + "។"
+        last_period = clean[:max_visible].rfind("។")
+        if last_period > 30:
+            return clean[:last_period + 1].strip()
+        last_sp = clean[:max_visible].rfind(" ")
+        if last_sp > 30:
+            return clean[:last_sp].strip() + "។"
+        return clean[:max_visible]
 
     header = blocks[0]
     source_line = blocks[-1]
@@ -177,34 +184,54 @@ def enforce_telegram_char_limit(text: str, max_visible: int) -> str:
 
     avail = max(40, max_visible - (vis_header + vis_source + vis_impact + sep_overhead))
 
-    if len(clean_body) > avail:
-        sub = clean_body[:avail]
-        last_period = max(sub.rfind("។ "), sub.rfind("។\n"), sub.rfind("។"))
-        if last_period > 30:
-            trimmed_body = sub[:last_period + 1].strip()
+    # Sentence-preserving trimmer: split body into complete sentences ending in '។'
+    raw_sentences = [s.strip() for s in re.findall(r'[^។]+(?:។|$)', clean_body) if s.strip()]
+    if not raw_sentences:
+        raw_sentences = [clean_body]
+
+    kept_sentences = []
+    curr_len = 0
+    for s in raw_sentences:
+        add_len = len(s) + (1 if kept_sentences else 0)
+        if curr_len + add_len <= avail:
+            kept_sentences.append(s)
+            curr_len += add_len
         else:
-            last_space = sub.rfind(" ")
-            trimmed_body = (sub[:last_space].strip() if last_space > 25 else sub.strip()) + "។"
+            break
+
+    if kept_sentences:
+        trimmed_body = " ".join(kept_sentences)
+        if not trimmed_body.endswith("។"):
+            trimmed_body += "។"
     else:
-        trimmed_body = clean_body
+        # First sentence alone is longer than avail -> find last clause connector or sentence stop
+        first_s = raw_sentences[0]
+        last_p = first_s[:avail].rfind("។")
+        if last_p > 30:
+            trimmed_body = first_s[:last_p + 1].strip()
+        else:
+            # Look for clause boundary words before avail (e.g. " ដោយ", " ដែល", " និង", " ខណៈ", " បន្ទាប់ពី")
+            clause_match = None
+            for connector in [" ដោយ", " ដែល", " និង", " ខណៈ", " បន្ទាប់ពី", " ក្នុងការ", " ដើម្បី"]:
+                pos = first_s[:avail].rfind(connector)
+                if pos > 30 and (clause_match is None or pos > clause_match):
+                    clause_match = pos
+            if clause_match:
+                trimmed_body = first_s[:clause_match].strip() + "។"
+            else:
+                last_space = first_s[:avail].rfind(" ")
+                if last_space > 30:
+                    trimmed_body = first_s[:last_space].strip() + "។"
+                else:
+                    trimmed_body = first_s[:avail].strip() + "។"
 
     parts = [p for p in [header, trimmed_body, impact_line, source_line] if p]
     res = "\n\n".join(parts)
 
-    # Safe trimming: Always trim at clean sentence boundary (។) or clean space, NEVER slice blind glyphs
-    while len(re.sub(r"<[^>]+>", "", res)) > max_visible and len(trimmed_body) > 30:
-        excess = len(re.sub(r"<[^>]+>", "", res)) - max_visible
-        # Look for a sentence boundary before the cut point
-        cut_candidate = trimmed_body[:max(len(trimmed_body) - excess - 2, 20)]
-        last_period = cut_candidate.rfind("។")
-        if last_period > 25:
-            trimmed_body = cut_candidate[:last_period + 1].strip()
-        else:
-            last_space = cut_candidate.rfind(" ")
-            if last_space > 25:
-                trimmed_body = cut_candidate[:last_space].strip() + "។"
-            else:
-                trimmed_body = cut_candidate.strip() + "។"
+    # Double check total visible length; if still overflowing, drop sentences from the end
+    while len(re.sub(r"<[^>]+>", "", res)) > max_visible and len(kept_sentences) > 1:
+        kept_sentences.pop()
+        trimmed_body = " ".join(kept_sentences)
         parts = [p for p in [header, trimmed_body, impact_line, source_line] if p]
         res = "\n\n".join(parts)
 
