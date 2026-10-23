@@ -107,6 +107,32 @@ def sanitize_khmer_spelling(text: str) -> str:
         (r"ចក្រភពអគ្លេស", "ចក្រភពអង់គ្លេស"),
         (r"\bអគ្លេស\b", "អង់គ្លេស"),
 
+        # Satire / Parody / Mockery Translation Guards (prevents English leak or hallucinated words)
+        (r"\bវីដេអូហ្គេមបញ៉ា\b", "វីដេអូហ្គេមបែបកំប្លែងចំអក"),
+        (r"\bហ្គេមបញ៉ា\b", "ហ្គេមបែបកំប្លែងចំអក"),
+        (r"\bបញ៉ា\b", "បែបកំប្លែងចំអក"),
+        (r"\bវីដេអូហ្គេម\s*satire\b", "វីដេអូហ្គេមបែបកំប្លែងចំអក"),
+        (r"\bហ្គេម\s*satire\b", "ហ្គេមបែបកំប្លែងចំអក"),
+        (r"\bsatire\b", "បែបកំប្លែងចំអក"),
+        (r"\bsatirical\b", "បែបកំប្លែងចំអក"),
+
+        # Protest / March & Lexical Stutter Fixes (fixes ដើរហង្ហែ and duplicate words)
+        (r"ដើរហង្ហែ", "ដើរហែក្បួន"),
+        (r"ហង្ហែ", "ដង្ហែ"),
+        (r"តវ៉ាតវ៉ា", "តវ៉ា"),
+        (r"ហែក្បួនហែក្បួន", "ហែក្បួន"),
+        (r"បាតុកម្មបាតុកម្ម", "បាតុកម្ម"),
+        (r"បាតុកម្ម\s*បាតុកម្ម", "បាតុកម្ម"),
+        (r"តវ៉ា\s*តវ៉ា", "តវ៉ា"),
+        (r"បាន\s*បាន", "បាន"),
+        (r"ជា\s*ជា", "ជា"),
+        (r"ដែល\s*ដែល", "ដែល"),
+        (r"ក្នុង\s*ក្នុង", "ក្នុង"),
+        (r"លើ\s*លើ", "លើ"),
+        (r"និង\s*និង", "និង"),
+        (r"ការ\s*ការ", "ការ"),
+        (r"នៃ\s*នៃ", "នៃ"),
+
         # Currency & Economy Fixes (prevents orphan or duplicate 'អាមេរិក' / 'ាមេរិក')
         (r"កប៉ាល់អណ្តែតទឹក", "នាវាអណ្តែតទឹក"),
         (r"កប៉ាល់ដឹកប្រេង", "នាវាដឹកប្រេង"),
@@ -198,10 +224,24 @@ def sanitize_khmer_spelling(text: str) -> str:
         (r"(?:Ukraine|អ៊ុយក្រែន)\s*\(\s*(?:Ukraine|អ៊ុយក្រែន)\s*\)", "អ៊ុយក្រែន"),
         (r"\bIran\b|អ៊ីរ៉ាន", "អ៊ីរ៉ង់"),
         # Iran & Causation Orthography (Strictly prevent 'ធ្វើ៊ីរ៉ង់', 'ធ្វើឿរ៉ង់', 'ធ្វើអោយ', or truncated 'រ៉ង់')
+        (r"ឿ+អ៊ីរ៉ង់|ឿ+រ៉ង់", "អ៊ីរ៉ង់"),
+        (r"តេហេឿរ៉ង់|តេហឿរ៉ង់", "តេហេរ៉ង់"),
+        (r"សហរដ្ធ", "សហរដ្ឋ"),
+        (r"សេដ្ធកិច្ច", "សេដ្ឋកិច្ច"),
+        (r"រដ្ធ", "រដ្ឋ"),
+        (r"អគ្លេស", "អង់គ្លេស"),
+        (r"ចក្រភពអគ្លេស", "ចក្រភពអង់គ្លេស"),
+        (r"អត្រាកាប្រាក់", "អត្រាការប្រាក់"),
+        (r"ពាណិជ្ចកម្ម", "ពាណិជ្ជកម្ម"),
+        (r"បែប\s*(?:satire|satirical)", "បែបកំប្លែងចំអក"),
+        (r"បញ៉ា", "បែបកំប្លែងចំអក"),
+        (r"\b(?:satire|satirical)\b", "បែបកំប្លែងចំអក"),
+        (r"ដើរហង្ហែ", "ដើរហែក្បួន"),
+        (r"ហង្ហែ", "ដង្ហែ"),
         (r"ធ្វើ(?:\u17b1\u17d2\u1799|\u17a2\u17c4\u1799)?[\s\u200B\uFEFF]*(?:[\u17ca\u17b8\u17be]+|\u17a2[\u17ca\u17b8]+)?\s*រ៉ង់", "ធ្វើឱ្យអ៊ីរ៉ង់"),
         (r"ធ្វើ\s*(រុស្ស៊ី|អ៊ុយក្រែន|ចិន|អាមេរិក|បារាំង|អាល្លឺម៉ង់|អ៊ីស្រាអែល|តួកគី|ជប៉ុន|កូរ៉េខាងត្បូង|កូរ៉េខាងជើង|តៃវ៉ាន់|កាណាដា|អង់គ្លេស|ឥណ្ឌា|យេមែន|អារ៉ាប៊ីសាអ៊ូឌីត)", r"ធ្វើឱ្យ\1"),
         (r"ធ្វើអោយ", "ធ្វើឱ្យ"),
-        (r"(?<!អ៊ី)(?<!\u17a2\u17ca\u17b8)(?<!តេហេ)(?<!តេអ៊ែ)(?<!តេអេ)(?<!បា)រ៉ង់(?=[ជាប់ប្រឈមមុខក្នុលើពីដល់\s]|$)", "អ៊ីរ៉ង់"),
+        (r"(?<!អ៊ី)(?<!\u17a2\u17ca\u17b8)(?<!តេហេ)(?<!តេអ៊ែ)(?<!តេអេ)(?<!បា)(?<!ឿ)រ៉ង់(?=[ជាប់ប្រឈមមុខក្នុលើពីដល់\s]|$)", "អ៊ីរ៉ង់"),
         (r"(\bកុំព្យូទ័រ\s*)?ន់តូម\b", r"\1កង់ទិច"),
         (r"\bកង់ទូម\b", "កង់ទិច"),
         (r"ឡើងកម្តៅ", "ឡើងកម្ដៅ"),
@@ -367,9 +407,17 @@ def sanitize_khmer_spelling(text: str) -> str:
         res = re.sub(pat, rep, res)
 
     # General algorithmic deduplication of Khmer word/syllable repeats (length >= 3)
-    # Strictly require whitespace (\s+) to prevent corrupting compound words like 'ការថារថយន្ត'
+    no_space_stutters = [
+        "តវ៉ា", "បាតុកម្ម", "ហែក្បួន", "ប្រឆាំង", "កើនឡើង", "ធ្លាក់ចុះ",
+        "រដ្ឋាភិបាល", "សេដ្ឋកិច្ច", "អតិផរណា", "ទីផ្សារ", "វិនិយោគិន", "នយោបាយ",
+        "អន្តរជាតិ", "ប្រជាជន", "ប្រជាពលរដ្ឋ", "ព្យាករណ៍", "រំពឹងទុក", "ព្រួយបារម្ភ",
+        "តានតឹង", "ប្រកាស", "សម្រេច", "ព្រមាន", "វាយប្រហារ", "ហង្ហែ"
+    ]
+    for w in no_space_stutters:
+        res = re.sub(rf'({w})[\s\u200B]*\1+', r'\1', res)
+
     for _ in range(2):
-        res = re.sub(r'([\u1780-\u17D3\u17B6-\u17C5]{3,})\s+\1', r'\1', res)
+        res = re.sub(r'([\u1780-\u17D3\u17B6-\u17C5]{3,})[\s\u200B]*\1+', r'\1', res)
 
     # 7. Percentage & Financial Number Formatting (Convert Khmer/Latin digits + ភាគរយ/percent to clean Latin %)
     # e.g. ២២ ភាគរយ -> 22%, ២២.២៤ ភាគរយ -> 22.24%, 42 ភាគរយ -> 42%, 15% -> 15%
@@ -404,8 +452,13 @@ def sanitize_khmer_spelling(text: str) -> str:
     # 10. Ensure clean space after Khmer full stop (។) and Bariyoosan (៕)
     res = re.sub(r'([។៕])(?!\s|$)', r'\1 ', res)
 
-    # 11. Strictly collapse multiple consecutive spaces (e.g. "  " -> " ")
-    res = re.sub(r'[\t ]{2,}', ' ', res)
+    # 12. Strip all colons and trailing ellipsis from inside <b>...</b>
+    def _clean_headline_inner(m):
+        inner = m.group(1)
+        inner = re.sub(r'[\s\u200b]*[៖:：][\s\u200b]*', ' ', inner)
+        inner = re.sub(r'[\.]{2,}|…', '', inner)
+        return f"<b>{inner.strip()}</b>"
+    res = re.sub(r'<b>(.*?)</b>', _clean_headline_inner, res, flags=re.DOTALL)
 
     return res.strip()
 
@@ -843,6 +896,8 @@ class KhmerFormatter:
             (r"\b(oman|omani|muscat)\b|អូម៉ង់", "🇴🇲"),
             (r"\b(bahrain|bahraini|manama)\b|បារ៉ែន", "🇧🇭"),
             (r"\b(jordan|jordanian|amman)\b|ហ្ស៊កដានី", "🇯🇴"),
+            (r"\b(greece|greek|athens)\b|ក្រិក|ប្រទេសក្រិក", "🇬🇷"),
+            (r"\b(libya|libyan|tripoli)\b|លីប៊ី|ប្រទេសលីប៊ី", "🇱🇾"),
             (r"\b(vietnam|vietnamese|hanoi)\b|វៀតណាម", "🇻🇳"),
             (r"\b(philippines|philippine|filipino|manila|bsp|bangko sentral)\b|ហ្វីលីពីន|ម៉ានីល|ប៉េសូ|ប៉េសូហ្វីលីពីន", "🇵🇭"),
             (r"\b(thailand|thai|bangkok|bank of thailand)\b|ថៃ|បាងកក", "🇹🇭"),
@@ -1073,11 +1128,9 @@ class KhmerFormatter:
         # Strip all HTML tags EXCEPT clean Telegram formatting tags (<b>, <i>, <code>, <blockquote>)
         key_event = re.sub(r'<(?!/?(?:b|strong|i|em|code|blockquote)\b)[^>]+>', '', key_event)
 
-        # Clean multiple spaces / newlines
-        key_event = re.sub(r'[ \t]+', ' ', key_event)
-        # Eliminate awkward single line breaks within sentences, turning them into flowing journalistic prose
-        key_event = re.sub(r'(?<!\n)\n(?!\n)', ' ', key_event)
-        key_event = re.sub(r'\n{3,}', '\n\n', key_event).strip()
+        # Clean multiple spaces / newlines: collapse all internal newlines to spaces so sentences flow naturally
+        key_event = re.sub(r'[\r\n]+', ' ', key_event)
+        key_event = re.sub(r'\s{2,}', ' ', key_event).strip()
 
         # Sanitize Khmer spelling to guarantee 100% accurate spelling
         key_event = sanitize_khmer_spelling(key_event)
@@ -1091,7 +1144,8 @@ class KhmerFormatter:
         # With Photo: strictly 150 to 240 characters (concise, 1-2 punchy sentences)
         # Without Photo: strictly 250 to 380 characters (clean 2 paragraphs)
         max_narrative_cap = 240 if has_photo else 380
-        raw_sentences = [s.strip() for s in re.split(r'(?<=។)\s+|\n+', key_event) if s.strip()]
+        # Split strictly on full Khmer sentence endings (។), NEVER split on raw mid-sentence newlines!
+        raw_sentences = [s.strip() for s in re.split(r'(?<=។)\s*', key_event) if s.strip()]
         clean_sentences = []
         for s in raw_sentences:
             s_clean = sanitize_khmer_spelling(s)
