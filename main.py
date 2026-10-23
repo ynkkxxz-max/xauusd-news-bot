@@ -693,7 +693,33 @@ class XAUUSDNewsAssistantBot:
             # Command routing
             clean_cmd = text.split()[0].lower()
 
-            if clean_cmd in ("/stats", "/winrate", "stats", "winrate") or "ស្ថិតិ" in text:
+            # Admin Recall / Delete Commands (Instant Remote Control to remove flawed post from channel)
+            if clean_cmd in ("/recall", "/delete", "/del"):
+                from_user_id = msg_obj.get("from", {}).get("id") or chat_id
+                is_admin = self.notifier.is_user_admin_of_channel(from_user_id) if hasattr(self.notifier, "is_user_admin_of_channel") else True
+                if is_admin:
+                    parts = text.split()
+                    del_id = None
+                    if len(parts) > 1 and parts[1].isdigit():
+                        del_id = int(parts[1])
+                    else:
+                        last_saved = database.get_state("last_channel_post_id")
+                        if last_saved and last_saved.isdigit():
+                            del_id = int(last_saved)
+
+                    if del_id:
+                        ok = self.notifier.delete_message(del_id)
+                        if ok:
+                            self.notifier.send_message(f"🗑️ <b>បានលុបសារ #{del_id} ចេញពី Channel រួចរាល់ដោយជោគជ័យ!</b>", chat_id=chat_id)
+                        else:
+                            self.notifier.send_message(f"⚠️ មិនអាចលុបសារ #{del_id} បានទេ (សារអាចត្រូវបានលុបរួចហើយ ឬចាស់ហួស ៤៨ ម៉ោង)។", chat_id=chat_id)
+                    else:
+                        self.notifier.send_message("ℹ️ សូមបញ្ជាក់ Message ID ឧ. <code>/delete 2340</code> ឬវាយ <code>/recall</code> ដើម្បីលុបសារចុងក្រោយ។", chat_id=chat_id)
+                else:
+                    self.notifier.send_message("⛔ លោកអ្នកមិនមានសិទ្ធិ Admin ក្នុងការបញ្ជាលុបសារក្នុង Channel ឡើយ!", chat_id=chat_id)
+                continue
+
+            elif clean_cmd in ("/stats", "/winrate", "stats", "winrate") or "ស្ថិតិ" in text:
                 stats = database.get_overall_signal_vote_stats()
                 resp = KhmerFormatter.format_signal_stats(stats)
                 self.notifier.send_message(resp, chat_id=chat_id, reply_markup=bottom_keyboard)
@@ -1907,12 +1933,35 @@ class XAUUSDNewsAssistantBot:
 
             msg = KhmerFormatter.format_breaking_event_alert(it, analysis)
 
-            # ZERO ENGLISH LEAKAGE GATE: Ensure the broadcasted body is genuinely translated into Khmer
+            # ZERO ENGLISH LEAKAGE GATE: Ensure both headline and body are genuinely translated into Khmer
+            # 1. Headline English Leak Check (Strictly reject untranslated words like 'satire', 'video game', 'crisis', etc.)
+            headline_latin_words = [w.lower() for w in re.findall(r'\b[a-zA-Z]{3,}\b', hl_km)]
+            APPROVED_PROPER_ACRONYMS = {
+                'ai', 'fed', 'fomc', 'cpi', 'pce', 'gdp', 'nfp', 'pmi', 'sec', 'etf', 'etfs', 'ecb', 'boj',
+                'opec', 'xau', 'usd', 'xauusd', 'dxy', 'btc', 'eth', 'sol', 'usdt', 'usdc', 'imf', 'nato',
+                'tsmc', 'asml', 'amd', 'arm', 'byd', 'spacex', 'nasa', 'ceo', 'ipo', 'cds', 'us10y'
+            }
+            APPROVED_ENTITIES = {
+                'trump', 'putin', 'biden', 'musk', 'powell', 'warsh', 'zelenskyy', 'netanyahu',
+                'nvidia', 'apple', 'tesla', 'google', 'microsoft', 'meta', 'amazon', 'intel',
+                'openai', 'deepseek', 'anthropic', 'huawei', 'tencent', 'alibaba', 'samsung'
+            }
+            untranslated_words = [
+                w for w in headline_latin_words
+                if w not in APPROVED_PROPER_ACRONYMS and w not in APPROVED_ENTITIES
+            ]
+            if untranslated_words:
+                logger.warning(f"[REJECTED ENGLISH LEAK IN HEADLINE] Breaking news '{title}' has untranslated words in headline: {untranslated_words}. Dropping from broadcast.")
+                self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
+                database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
+                continue
+
+            # 2. Body English Leak Check
             narrative_body = (analysis.get("key_event") or analysis.get("what_happened") or "").strip()
             khmer_count = len(re.findall(r'[\u1780-\u17FF]', narrative_body))
             latin_count = len(re.findall(r'[a-zA-Z]', narrative_body))
             if khmer_count < 20 or (latin_count > 0 and (latin_count / (khmer_count + latin_count)) > 0.40):
-                logger.warning(f"[REJECTED ENGLISH LEAK] Breaking news '{title}' has untranslated English body (Khmer: {khmer_count}, Latin: {latin_count}). Dropping from broadcast.")
+                logger.warning(f"[REJECTED ENGLISH LEAK IN BODY] Breaking news '{title}' has untranslated English body (Khmer: {khmer_count}, Latin: {latin_count}). Dropping from broadcast.")
                 self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                 database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
                 continue
@@ -2023,17 +2072,23 @@ class XAUUSDNewsAssistantBot:
                         except Exception as ve:
                             logger.debug(f"[VisionQualityGate error] {ve}")
 
+                res_send = None
                 if photo:
                     msg_photo = KhmerFormatter.format_breaking_event_alert(it, analysis, has_photo=True)
                     caption_text = self._truncate_html_caption(msg_photo, max_visible_chars=574)
-                    self.notifier.send_photo(photo, caption=caption_text, reply_markup=None, is_ultra_breaking=is_ultra)
+                    res_send = self.notifier.send_photo(photo, caption=caption_text, reply_markup=None, is_ultra_breaking=is_ultra)
                 elif photo is None:
                     # MODE B GUARANTEE: Per user constitutional rule, if no valid photo exists,
                     # broadcast cleanly in MODE B (Clean VIP Text Mode <= 750 characters)
                     logger.info(f"[MODE B ACTIVATED] Broadcasting '{title}' in Clean VIP Text Mode.")
                     msg_text = KhmerFormatter.format_breaking_event_alert(it, analysis, has_photo=False)
                     clean_text = self._truncate_html_caption(msg_text, max_visible_chars=750)
-                    self.notifier.send_message(clean_text, reply_markup=None, is_ultra_breaking=is_ultra)
+                    res_send = self.notifier.send_message(clean_text, reply_markup=None, is_ultra_breaking=is_ultra)
+
+                if res_send and res_send.get("ok"):
+                    new_msg_id = res_send.get("result", {}).get("message_id")
+                    if new_msg_id:
+                        database.set_state("last_channel_post_id", str(new_msg_id))
 
             # Increment daily broadcast counter
             today_count = int(database.get_state(f"daily_breaking_count_{today_key}") or "0")
@@ -2048,121 +2103,7 @@ class XAUUSDNewsAssistantBot:
             logger.info(f"[BREAKING NEWS APPROVED & BROADCASTED] '{title}' sent. Data purged immediately. Real-time cadence active.")
             break
 
-    def audit_live_channel_and_heal(self):
-        """
-        Autonomous Channel Self-Healing Auditor:
-        - Inspects live posts from the Telegram channel feed.
-        - Detects and auto-repairs spelling errors, flag anomalies, and structural issues.
-        - Auto-purges accidental duplicate posts in real time.
-        """
-        now = time.time()
-        if not hasattr(self, "_last_healing_run"):
-            self._last_healing_run = 0.0
-            self._healed_posts = set()
-            self._failed_healing_posts = set()
 
-        # Run healing scan every 15 seconds to ensure real-time auto-repair without spamming
-        if now - self._last_healing_run < 15.0:
-            return
-        self._last_healing_run = now
-
-        try:
-            channel_html = self._fetch_channel_html(max_cache_age=20.0)
-            if not channel_html:
-                return
-
-            post_divs = re.findall(
-                r'<div class="tgme_widget_message_wrap\s+js-widget_message_wrap"[^>]*>.*?(?=<div class="tgme_widget_message_wrap\s+js-widget_message_wrap"|\Z)',
-                channel_html,
-                re.DOTALL
-            )
-            if not post_divs:
-                return
-
-            recent_posts = post_divs[-8:]
-            seen_headlines = {}
-
-            for p in recent_posts:
-                m_id = re.search(r'data-post="[^/]+/(\d+)"', p)
-                if not m_id:
-                    continue
-                msg_id = int(m_id.group(1))
-                if msg_id in self._healed_posts or msg_id in self._failed_healing_posts:
-                    continue
-
-                m_txt = re.search(r'<div class="[^"]*tgme_widget_message_text[^"]*"[^>]*>(.*?)</div>', p, re.DOTALL)
-                if not m_txt:
-                    continue
-                raw_html = m_txt.group(1)
-                has_photo = 'tgme_widget_message_photo_wrap' in p or 'tgme_widget_message_video' in p
-
-                # 1. Duplicate Detection Check
-                clean_text = re.sub(r'<br/?>', '\n', raw_html)
-                clean_text = re.sub(r'<[^>]+>', '', clean_text).strip()
-                headline = clean_text.split('\n')[0].strip() if clean_text else ""
-                hl_norm = re.sub(r'[^\w\u1780-\u17FF]', '', headline).lower()
-
-                if hl_norm and len(hl_norm) >= 15:
-                    if hl_norm in seen_headlines:
-                        prev_id = seen_headlines[hl_norm]
-                        logger.warning(f"[CHANNEL AUTO-HEAL] Duplicate detected: Post #{msg_id} duplicates Post #{prev_id}. Auto-purging #{msg_id}!")
-                        try:
-                            self.notifier.delete_message(msg_id)
-                            self._healed_posts.add(msg_id)
-                        except Exception as e:
-                            logger.error(f"[CHANNEL AUTO-HEAL] Failed to purge duplicate #{msg_id}: {e}")
-                        continue
-                    seen_headlines[hl_norm] = msg_id
-
-                # 2. Defect Detection & Repair
-                reconstructed = re.sub(r'<br/?>', '\n', raw_html)
-                reconstructed = re.sub(r'<a\s+[^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', r'<a href="\1">\2</a>', reconstructed)
-                reconstructed = re.sub(r'<(?!/?(?:b|strong|i|em|u|ins|s|strike|del|a|code|pre|blockquote)\b)[^>]+>', '', reconstructed)
-
-                original_body = reconstructed
-                healed = original_body
-
-                # A. Fix Flag Anomalies (e.g. Bitcoin / Crypto with Indonesia flag)
-                if "🇮🇩" in healed and any(k in healed.lower() for k in ["bitcoin", "etf", "etfs", "crypto"]):
-                    healed = healed.replace("🇮🇩", "🇺🇸")
-
-                # B. Fix Known Spelling & Lexical Anomalies
-                try:
-                    from formatters.khmer_formatter import sanitize_khmer_spelling
-                    healed = sanitize_khmer_spelling(healed)
-                except Exception:
-                    pass
-
-                # C. Fix Market Impact Spacing (Strict GATE 3 standard: 2-line layout)
-                m_imp = re.search(r'([🔹🔸🔶🔴🟢]\s*(?:ហានិភ័យទីផ្សារ|ផលវិជ្ជមាន|ហានិភ័យ|ផលអវិជ្ជមាន)[\s៖:]+)([^\n]+)', healed)
-                if m_imp:
-                    tag = m_imp.group(1).strip()
-                    desc = m_imp.group(2).strip()
-                    badge = "🔹" if ("វិជ្ជមាន" in tag) else "🔶"
-                    label = "ផលវិជ្ជមាន" if ("វិជ្ជមាន" in tag) else "ហានិភ័យទីផ្សារ"
-                    healed = healed.replace(m_imp.group(0), f"{badge} {label}៖\n{desc}")
-
-                if healed != original_body:
-                    logger.info(f"[CHANNEL AUTO-HEAL] Auto-healing defect in Post #{msg_id}...")
-                    try:
-                        if has_photo:
-                            res = self.notifier.edit_message_caption(msg_id, healed)
-                        else:
-                            res = self.notifier.edit_message_text(msg_id, healed)
-
-                        if res.get("ok"):
-                            logger.info(f"[CHANNEL AUTO-HEAL] Successfully healed Post #{msg_id} in channel!")
-                            self._healed_posts.add(msg_id)
-                        else:
-                            logger.warning(f"[CHANNEL AUTO-HEAL] Telegram edit API returned: {res}")
-                            self._failed_healing_posts.add(msg_id)
-                    except Exception as e:
-                        logger.error(f"[CHANNEL AUTO-HEAL] Exception healing Post #{msg_id}: {e}")
-                        self._failed_healing_posts.add(msg_id)
-                else:
-                    self._healed_posts.add(msg_id)
-        except Exception as e:
-            logger.debug(f"[CHANNEL AUTO-HEAL] Audit iteration warning: {e}")
 
     def run_cycle(self) -> int:
         """Executes a single monitoring cycle for scheduled/background tasks and returns next sleep duration."""
