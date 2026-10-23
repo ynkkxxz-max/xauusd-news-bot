@@ -10,6 +10,7 @@ import pytz
 
 from config import (
     CAMBODIA_TZ, DAILY_PRICE_ALERT_HOUR, DAILY_PRICE_ALERT_MINUTE,
+    DAILY_PRICE_MORNING_HOUR, DAILY_PRICE_EVENING_HOUR,
     INTERVAL_NORMAL, INTERVAL_UPCOMING, INTERVAL_HIGH_IMPACT,
     BREAKING_ALERT_MIN_GAP, MAX_DAILY_BREAKING_NEWS
 )
@@ -359,65 +360,82 @@ class XAUUSDNewsAssistantBot:
         except Exception as e:
             logger.warning(f"[Startup News Sync] Warning: {e}")
 
-    def _is_daily_price_already_in_channel(self, date_str: str) -> bool:
-        """Inspects live channel feed to verify if today's daily gold price was already broadcasted."""
+    def _is_daily_price_already_in_channel(self, date_str: str, session_keyword: str = "") -> bool:
+        """Inspects live channel feed to verify if daily gold price was already broadcasted for this session."""
         try:
             channel_html = self._fetch_channel_html(max_cache_age=300.0)
-            # If today's date formatted (e.g. 02/10/2026) is already in channel, return True
             if date_str in channel_html:
-                return True
+                if not session_keyword:
+                    return True
+                kw = "ព្រឹក" if "ព្រឹក" in session_keyword else "យប់"
+                if session_keyword in channel_html or kw in channel_html:
+                    return True
+                return False
         except Exception as e:
             logger.debug(f"[Channel Gold Price Check] {e}")
         return False
 
     def check_daily_gold_price(self):
-        """Checks if daily gold price message needs to be sent at 07:00 AM Cambodia Time (strictly once per day)."""
+        """Checks if daily gold price message needs to be sent at 07:00 AM and 07:00 PM Cambodia Time (twice per day)."""
         now_kh = datetime.now(CAMBODIA_TZ)
         today_str = now_kh.strftime("%Y-%m-%d")
 
-        # 1. First check: Morning gold card window (07:00 - 09:59 AM Cambodia Time)
-        # Prevents missing the broadcast if Render dyno or local process reboots after 07:30 AM
-        if not (DAILY_PRICE_ALERT_HOUR <= now_kh.hour <= 9):
+        # 1. Determine active gold price broadcast slot
+        # Morning window: 07:00 - 09:59 AM Cambodia Time
+        # Evening window: 19:00 - 21:59 PM Cambodia Time
+        # Prevents missing the broadcast if Render dyno or local process reboots after schedule
+        if DAILY_PRICE_MORNING_HOUR <= now_kh.hour <= 9:
+            session_type = "morning"
+            session_key = f"{today_str}_morning"
+            session_label = "07:00 ព្រឹក"
+        elif DAILY_PRICE_EVENING_HOUR <= now_kh.hour <= 21:
+            session_type = "evening"
+            session_key = f"{today_str}_evening"
+            session_label = "07:00 យប់"
+        else:
             return
 
         # 2. In-memory lock guard (already broadcasted during current process session)
-        if today_str in self._daily_price_locks:
+        if session_key in self._daily_price_locks:
+            return
+        if session_type == "morning" and today_str in self._daily_price_locks:
             return
 
         # 3. Database SQLite persistence guard (only counts confirmed broadcasts where message_id > 0)
-        if database.is_daily_price_sent(today_str):
-            self._daily_price_locks.add(today_str)
+        # Supports session_key and legacy today_str format for morning
+        if database.is_daily_price_sent(session_key) or (session_type == "morning" and database.is_daily_price_sent(today_str)):
+            self._daily_price_locks.add(session_key)
             return
 
-        # 3.5 Live channel verification guard (check if today's date formatted e.g. DD/MM/YYYY is already on channel)
+        # 3.5 Live channel verification guard (check if today's date and session are already on channel)
         date_formatted = now_kh.strftime("%d/%m/%Y")
-        if self._is_daily_price_already_in_channel(date_formatted):
-            self._daily_price_locks.add(today_str)
+        if self._is_daily_price_already_in_channel(date_formatted, session_keyword=session_label):
+            self._daily_price_locks.add(session_key)
             try:
-                database.record_daily_price_sent(today_str, 999999)
+                database.record_daily_price_sent(session_key, 999999)
             except Exception:
                 pass
             return
 
-        # 4. Trigger 07:00 AM Daily Gold Price broadcast
-        self._daily_price_locks.add(today_str)
-        logger.info(f"Triggering 07:00 AM Daily Gold Price broadcast for {today_str}...")
+        # 4. Trigger Daily Gold Price broadcast (07:00 AM or 07:00 PM)
+        self._daily_price_locks.add(session_key)
+        logger.info(f"Triggering {session_label} Daily Gold Price broadcast for {today_str} ({session_type})...")
         price_data = self.gold_collector.fetch_price(force_refresh=True)
 
         # Render Ultra-HD Graphic Card per user design specification
-        card_png = self.gold_card_builder.build_card_png(price_data) if self.gold_card_builder else None
+        card_png = self.gold_card_builder.build_card_png(price_data, session=session_type) if self.gold_card_builder else None
         if card_png:
             res = self.notifier.send_photo(card_png, caption="", reply_markup=None)
         else:
-            msg = KhmerFormatter.format_daily_gold_price(price_data)
+            msg = KhmerFormatter.format_daily_gold_price(price_data, session_time=session_label)
             res = self.notifier.send_message(msg, auto_pin=False, reply_markup=None)
 
         msg_id = res.get("result", {}).get("message_id") if res else None
         if msg_id:
-            database.record_daily_price_sent(today_str, msg_id)
-            logger.info(f"Daily Gold Price broadcast completed for {today_str} (msg_id: {msg_id}).")
+            database.record_daily_price_sent(session_key, msg_id)
+            logger.info(f"Daily Gold Price broadcast completed for {session_key} ({session_label}) (msg_id: {msg_id}).")
         else:
-            logger.error(f"Failed to broadcast Daily Gold Price for {today_str}: {res}")
+            logger.error(f"Failed to broadcast Daily Gold Price for {session_key}: {res}")
 
     def _is_session_alert_already_in_channel(self, session_keyword: str) -> bool:
         """Inspects live Telegram channel feed to verify if session open alert was already broadcasted today."""
