@@ -114,7 +114,7 @@ class OpenAICompatAnalyzer:
                     pass
             return {}
 
-    def analyze_breaking_news(self, title: str, description: str = "") -> dict:
+    def analyze_breaking_news(self, title: str, description: str = "", **kwargs) -> dict:
         raw = self._clean_json(self._chat(breaking_prompt(title, description), True))
         return normalize_analysis(raw)
 
@@ -182,7 +182,7 @@ class ClaudeAnalyzer:
             self.cooldown_until = time.time() + 300.0
             raise
 
-    def analyze_breaking_news(self, title: str, description: str = "") -> dict:
+    def analyze_breaking_news(self, title: str, description: str = "", **kwargs) -> dict:
         return normalize_analysis(json.loads(self._chat(breaking_prompt(title, description))))
 
     def analyze_actual_vs_forecast(self, event_name: str, actual: str, forecast: str, previous: str) -> dict:
@@ -231,7 +231,7 @@ class AnalyzerChain:
     def is_available(self) -> bool:
         return any(a.is_available() for a in self.analyzers)
 
-    def _first_result(self, method: str, *args):
+    def _first_result(self, method: str, *args, **kwargs):
         for a in self.analyzers:
             if not a.is_available():
                 continue
@@ -239,7 +239,13 @@ class AnalyzerChain:
                 continue
             try:
                 fn = getattr(a, method)
-                res = fn(*args)
+                import inspect
+                sig = inspect.signature(fn)
+                if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
+                    res = fn(*args, **kwargs)
+                else:
+                    valid_kw = {k: v for k, v in kwargs.items() if k in sig.parameters}
+                    res = fn(*args, **valid_kw)
                 if res:
                     logger.info(f"[AnalyzerChain] {getattr(a, 'name', a.__class__.__name__)} answered {method}")
                     return res
@@ -247,8 +253,8 @@ class AnalyzerChain:
                 logger.warning(f"[AnalyzerChain] {getattr(a, 'name', a.__class__.__name__)} failed {method}: {e}")
         return None
 
-    def analyze_breaking_news(self, title: str, description: str = "") -> dict:
-        return self._first_result("analyze_breaking_news", title, description) \
+    def analyze_breaking_news(self, title: str, description: str = "", *args, **kwargs) -> dict:
+        return self._first_result("analyze_breaking_news", title, description, *args, **kwargs) \
             or MacroAnalyzer.analyze_breaking_news(title, description)
 
     def analyze_actual_vs_forecast(self, event_name: str, actual: str, forecast: str, previous: str) -> dict:
