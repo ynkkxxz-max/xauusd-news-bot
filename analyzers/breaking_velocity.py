@@ -122,13 +122,13 @@ class BreakingVelocityEngine:
             urgency_reason = f"Multi-wire consensus ({consensus_count} sources: {', '.join(consensus_sources[:3])})" if is_multi_wire else "Tier-1 Crisis flashpoint"
         elif is_high_velocity:
             tier = "HIGH_VELOCITY"
-            required_gap = 60.0  # Responsive 1-minute window
+            required_gap = 600.0  # High velocity: 10-minute window
             bypass_cooldown = False
             urgency_score = 500 + (consensus_count * 100)
             urgency_reason = f"High velocity market flash ({consensus_count} sources)" if is_multi_wire else "High-velocity market movement"
         else:
             tier = "STANDARD"
-            required_gap = 120.0  # Standard 2-minute cadence
+            required_gap = 900.0  # Standard 15-minute pacing per constitutional standard
             bypass_cooldown = False
             urgency_score = 100
             urgency_reason = "Standard macroeconomic wire"
