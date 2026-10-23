@@ -51,6 +51,7 @@ STRICT REJECTION RULES (Return is_valid: false if ANY rule triggers):
 2. Macro / Asset Mismatch: Showing gold bullion/coins when the story is about GDP, economic growth, inflation, jobs, or oil (only allowed if headline explicitly mentions gold/bullion/xau).
 3. Non-Editorial Graphics: Government seals, circular coat of arms emblems (e.g. US Great Seal), generic corporate logos, cartoon icons, SVG graphics, flowcharts, or maps.
 4. Unrelated Buildings / Context: e.g. Federal Reserve building for chemical companies.
+5. Generic Stock Clipart / Repetitive Patterns: Abstract wallpaper patterns, repeating icons (e.g. repeated padlocks pattern, generic 3D bitcoin/crypto circuit wallpaper on dark background, generic matrix code background, stock illustrations). These look amateur. ONLY approve real, authentic editorial photography of the actual news event, real people, or verified press photos.
 
 Answer in STRICT JSON format:
 {{
