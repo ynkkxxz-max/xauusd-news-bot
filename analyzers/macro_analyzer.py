@@ -165,7 +165,7 @@ class MacroAnalyzer:
         return ""
 
     @classmethod
-    def analyze_breaking_news(cls, title, description: str = "") -> dict:
+    def analyze_breaking_news(cls, title, description: str = "", **kwargs) -> dict:
         """Analyzes breaking geopolitical, tech/AI, economic or central bank event for gold impact with full narrative context."""
         import re
         import html
