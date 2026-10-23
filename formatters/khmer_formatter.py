@@ -251,6 +251,10 @@ def sanitize_khmer_spelling(text: str) -> str:
         (r"ធ្វើ\s*(រុស្ស៊ី|អ៊ុយក្រែន|ចិន|អាមេរិក|បារាំង|អាល្លឺម៉ង់|អ៊ីស្រាអែល|តួកគី|ជប៉ុន|កូរ៉េខាងត្បូង|កូរ៉េខាងជើង|តៃវ៉ាន់|កាណាដា|អង់គ្លេស|ឥណ្ឌា|យេមែន|អារ៉ាប៊ីសាអ៊ូឌីត)", r"ធ្វើឱ្យ\1"),
         (r"ធ្វើអោយ", "ធ្វើឱ្យ"),
         (r"(?<!អ៊ី)(?<!\u17a2\u17ca\u17b8)(?<!តេហេ)(?<!តេអ៊ែ)(?<!តេអេ)(?<!បា)(?<!ឿ)រ៉ង់(?=[ជាប់ប្រឈមមុខក្នុលើពីដល់\s]|$)", "អ៊ីរ៉ង់"),
+        (r"បច្ចេកវិទ្យាយ", "បច្ចេកវិទ្យា"),
+        (r"(ការសម្រេចចិត្ត|ស្ថានភាព|វិធានការ|សកម្មភាព|របាយការណ៍)នេះ\s*ពីការ", r"\1នេះបង្ហាញពីការ"),
+        (r"ភាពងុបងុល", "ភាពប្រែប្រួល"),
+        (r"ថ្លៃប្រេងកាត\s*និង\s*កើនឡើងថ្លៃដើម", "ថ្លៃប្រេងឆៅ និងបង្កើនថ្លៃដើម"),
         (r"(\bកុំព្យូទ័រ\s*)?ន់តូម\b", r"\1កង់ទិច"),
         (r"\bកង់ទូម\b", "កង់ទិច"),
         (r"ឡើងកម្តៅ", "ឡើងកម្ដៅ"),
@@ -975,10 +979,14 @@ class KhmerFormatter:
                 country_flags = ["🇪🇺"]
             elif any(w in comb_lower for w in ["japan", "japanese", "tokyo", "yen", "boj", "nikkei"]):
                 country_flags = ["🇯🇵"]
-            elif any(w in comb_lower for w in ["oil", "crude", "opec", "gold", "bullion", "silver", "commodity"]):
-                country_flags = ["🌐"]  # Global Commodity / Macro Pulse indicator
+            elif any(w in comb_lower for w in ["oil", "crude", "brent", "wti", "opec", "ប្រេង", "ប្រេងឆៅ", "ឧស្ម័ន"]):
+                country_flags = ["🛢️"]  # Dedicated Oil / Energy indicator
+            elif any(w in comb_lower for w in ["gold", "bullion", "silver", "xauusd", "មាស", "លោហៈ"]):
+                country_flags = ["🥇"]  # Gold / Precious Metals indicator
+            elif any(w in comb_lower for w in ["ភាគហ៊ុន", "stock", "wall street", "nasdaq", "s&p"]):
+                country_flags = ["📈"]  # Global Equity Markets indicator
             else:
-                country_flags = ["🇺🇸"]
+                country_flags = ["🌐"]  # Global Macro Pulse indicator
 
         # STRICT BILATERAL FLAG RULE: A 2nd flag is ONLY permitted if BOTH nations are prominently in the headline
         # AND it is an official bilateral state summit or war (e.g. US-China trade talks, Russia-Ukraine war).
