@@ -1640,7 +1640,20 @@ class XAUUSDNewsAssistantBot:
                 lines[0] = re.sub(r'\s+(?:នៃ|របស់|និង|ពី|ក្នុង|ដើម្បី|លើ|អំពី)\s*$', '', lines[0]).strip()
 
                 hl_text = lines[0]
-                body_and_rest = '\n\n'.join(lines[1:])
+                body_blocks = []
+                idx = 1
+                while idx < len(lines):
+                    curr = lines[idx]
+                    is_badge = bool(re.match(r'^[🔹🔸🔴🟢🔶]\s*(?:ផលវិជ្ជមាន|ហានិភ័យទីផ្សារ|ផលអវិជ្ជមាន|ហានិភ័យ)[\s៖:]*$', curr))
+                    if is_badge and idx + 1 < len(lines):
+                        next_line = lines[idx + 1]
+                        body_blocks.append(f"{curr}\n{next_line}")
+                        idx += 2
+                    else:
+                        body_blocks.append(curr)
+                        idx += 1
+
+                body_and_rest = '\n\n'.join(body_blocks)
                 if "ហាងឆេងមាស" not in hl_text and '<b>' not in hl_text:
                     m_hl = re.match(r'^((?:[\U0001F1E6-\U0001F1FF]{2}\s*)+)(.+)$', hl_text)
                     if m_hl:
