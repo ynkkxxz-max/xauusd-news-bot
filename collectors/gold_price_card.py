@@ -70,9 +70,10 @@ class DailyGoldPriceCardBuilder:
                 return p
         return None
 
-    def build_card_png(self, price_data: dict) -> Optional[bytes]:
+    def build_card_png(self, price_data: dict, session: str = "auto") -> Optional[bytes]:
         """
         Renders an ultra-luxurious 1080x1080 PNG graphic card with dynamic live prices.
+        Supports both morning (07:00 ព្រឹក) and evening (07:00 យប់) sessions.
         """
         try:
             # 1. Extract and calculate prices
@@ -98,10 +99,19 @@ class DailyGoldPriceCardBuilder:
             chi_str = f"${round(chi_price):,}"
             oz_str = f"${round(oz_price):,}"
 
-            # 2. Extract date
+            # 2. Extract date and format session footer
             now_kh = datetime.now(CAMBODIA_TZ)
             date_str = price_data.get("date_str") or now_kh.strftime("%d/%m/%Y")
-            footer_str = f"ថ្ងៃ {date_str}   ម៉ោង 07:00 ព្រឹក"
+            
+            # Determine morning ("07:00 ព្រឹក") vs evening ("07:00 យប់")
+            if session == "evening" or (isinstance(session, str) and ("យប់" in session or "19" in session)):
+                time_label = "ម៉ោង 07:00 យប់"
+            elif session == "morning" or (isinstance(session, str) and ("ព្រឹក" in session or "07" in session)):
+                time_label = "ម៉ោង 07:00 ព្រឹក"
+            else:
+                time_label = "ម៉ោង 07:00 យប់" if now_kh.hour >= 12 else "ម៉ោង 07:00 ព្រឹក"
+
+            footer_str = f"ថ្ងៃ {date_str}   {time_label}"
 
             # 3. Build HTML
             bg_data_url = f"data:image/jpeg;base64,{self._bg_b64}" if self._bg_b64 else ""
@@ -359,7 +369,10 @@ class DailyGoldPriceCardBuilder:
             from PIL import Image, ImageDraw, ImageFont
 
             # 1. Prefer Ultra-HD Pre-rendered Base Template (Zero font shaping dependency, 100% flawless Khmer)
-            tmpl_path = BASE_DIR / "assets" / "gold_card_base_template.png"
+            is_evening = "យប់" in footer_str
+            tmpl_evening = BASE_DIR / "assets" / "gold_card_base_template_evening.png"
+            tmpl_morning = BASE_DIR / "assets" / "gold_card_base_template.png"
+            tmpl_path = tmpl_evening if (is_evening and tmpl_evening.exists()) else tmpl_morning
             if tmpl_path.exists():
                 img = Image.open(tmpl_path).convert("RGB")
                 draw = ImageDraw.Draw(img)
