@@ -811,24 +811,27 @@ class KhmerFormatter:
 
                     # Standardize to clean Khmer narrative with 🔹 for positive and 🔶 for risk
                     m_pos = re.match(r'^(?:[🔹🟢]*)?\s*(?:ផលវិជ្ជមាន|ឥទ្ធិពលវិជ្ជមាន)\s*(?:\(ការវិភាគ\))?\s*[៖:]*\s*(.*)', imp_clean)
-                    m_neg = re.match(r'^(?:[🔸🔴🔶]*)?\s*(?:ផលអវិជ្ជមាន/ហានិភ័យ|ហានិភ័យទីផ្សារ|ផលអវិជ្ជមាន|ឥទ្ធិពលអវិជ្ជមាន|ហានិភ័យ)\s*(?:\(ការវិភាគ\))?\s*[៖:]*\s*(.*)', imp_clean)
+                    m_neg = re.match(r'^(?:[🔸🔴🔶]*)?\s*(?:ហានិភ័យទីផ្សារ|ផលអវិជ្ជមាន/ហានិភ័យ|ផលអវិជ្ជមាន|ឥទ្ធិពលអវិជ្ជមាន|ហានិភ័យ)\s*(?:\(ការវិភាគ\))?\s*[៖:]*\s*(.*)', imp_clean)
                     m_neu = re.match(r'^(?:[🟡]*)?\s*(?:ផលអព្យាក្រឹត|ឥទ្ធិពលអព្យាក្រឹត)\s*(?:\(ការវិភាគ\))?\s*[៖:]*\s*(.*)', imp_clean)
                     if m_pos:
                         detail = m_pos.group(1).strip()
                         detail = re.sub(r'^[\s៖:]+', '', detail).strip()
-                        parsed_impact_lines.append(f"🔹 ផលវិជ្ជមាន៖\n{detail}" if detail else "🔹 ផលវិជ្ជមាន")
+                        if detail:
+                            parsed_impact_lines.append(f"🔹 ផលវិជ្ជមាន៖\n{detail}")
                     elif m_neg:
                         prefix_used = "🔶 ហានិភ័យទីផ្សារ"
                         detail = m_neg.group(1).strip()
                         detail = re.sub(r'^[\s៖:]+', '', detail).strip()
-                        parsed_impact_lines.append(f"{prefix_used}៖\n{detail}" if detail else prefix_used)
+                        if detail:
+                            parsed_impact_lines.append(f"{prefix_used}៖\n{detail}")
                     elif m_neu:
                         detail = m_neu.group(1).strip()
                         detail = re.sub(r'^[\s៖:]+', '', detail).strip()
-                        parsed_impact_lines.append(f"ផលអព្យាក្រឹត៖\n{detail}" if detail else "ផលអព្យាក្រឹត")
+                        if detail:
+                            parsed_impact_lines.append(f"ផលអព្យាក្រឹត៖\n{detail}")
                     elif not imp_clean.startswith(("ផល", "ឥទ្ធិពល", "ហានិភ័យ")):
                         parsed_impact_lines.append(f"🔶 ហានិភ័យទីផ្សារ៖\n{imp_clean}")
-                    else:
+                    elif len(imp_clean) > 20:
                         parsed_impact_lines.append(imp_clean)
                 
                 # Enforce strictly ONE impact line based on sentiment
@@ -838,8 +841,8 @@ class KhmerFormatter:
                     # De-escalation and tariff relief keywords must NOT be classified as negative
                     is_relief = any(k in full_txt for k in ["lift tariff", "remove tariff", "drop tariff", "waive tariff", "tariff exemption", "ceasefire", "truce", "peace", "លើកលែងពន្ធ", "លុបចោលពន្ធ", "កាត់បន្ថយពន្ធ", "ឈប់បាញ់", "សន្តិភាព"])
                     is_neg = not is_relief and ("bearish" in bias_str or any(k in full_txt for k in ["crisis", "war", "debt", "default", "strike", "attack", "violation", "escalat", "វិបត្តិ", "សង្គ្រាម", "បំណុល", "ក្ស័យធន", "ហានិភ័យ", "សម្ពាធ", "រឹតបន្តឹង", "ឡើងថ្លៃខ្ពស់", "រំខាន", "វាយប្រហារ"]))
-                    pos = [l for l in parsed_impact_lines if l.startswith("🔹") and len(l) > 15]
-                    neg = [l for l in parsed_impact_lines if (l.startswith("🔸") or l.startswith("🔶")) and len(l) > 15]
+                    pos = [l for l in parsed_impact_lines if l.startswith("🔹") and len(l) > 25]
+                    neg = [l for l in parsed_impact_lines if (l.startswith("🔸") or l.startswith("🔶")) and len(l) > 25]
                     if is_relief and pos:
                         impact_line = pos[0]
                     elif is_neg:
@@ -912,7 +915,7 @@ class KhmerFormatter:
             (r"\b(cuba|cuban|havana)\b|គុយបា", "🇨🇺"),
             (r"\b(brazil|brazilian|lula)\b|ប្រេស៊ីល", "🇧🇷"),
             (r"\b(mexico|mexican|banxico)\b|ម៉ិកស៊ិក", "🇲🇽"),
-            (r"\b(north korea|dprk|pyongyang|kim jong un|kim jong-un|kim jong)\b|កូរ៉េខាងជើង", "🇰🇵"),
+            (r"\b(north korea|dprk|pyongyang|kim jong un|kim jong-un|kim jong)\b|កូរ៉េខាងជើង|គីម\s*ជុង\s*អ៊ុន|គីម\s*ជុងអ៊ុន", "🇰🇵"),
             (r"\b(south korea|seoul|bok)\b|(?<!north\s)(?<!dprk\s)\bkorean?\b|កូរ៉េ(?!\s*ខាងជើង)", "🇰🇷"),
             (r"\b(taiwan|taiwanese|taipei|tsmc)\b|តៃវ៉ាន់", "🇹🇼"),
             (r"\b(australia|australian|sydney|rba|canberra)\b|អូស្ត្រាលី", "🇦🇺"),
@@ -1271,19 +1274,22 @@ class KhmerFormatter:
         if impact_line:
             # Guarantee strict GATE 3 standard: 2-line structure with badge and newline
             # 🔶 ហានិភ័យទីផ្សារ៖\n{desc} OR 🔹 ផលវិជ្ជមាន៖\n{desc}
-            m_imp = re.search(r'(?:[🔹🔸🔶🔴🟢]\s*)?(ផលវិជ្ជមាន|ផលអវិជ្ជមាន/ហានិភ័យ|ហានិភ័យទីផ្សារ|ផលអវិជ្ជមាន|ហានិភ័យ|ឥទ្ធិពលវិជ្ជមាន|ឥទ្ធិពលអវិជ្ជមាន)[\s៖:]*\n*\s*(.+)', impact_line.strip(), re.DOTALL)
+            m_imp = re.search(r'(?:[🔹🔸🔶🔴🟢]\s*)?(ហានិភ័យទីផ្សារ|ផលអវិជ្ជមាន/ហានិភ័យ|ផលអវិជ្ជមាន|ឥទ្ធិពលវិជ្ជមាន|ឥទ្ធិពលអវិជ្ជមាន|ផលវិជ្ជមាន|ហានិភ័យ)[\s៖:]*\n*\s*(.+)', impact_line.strip(), re.DOTALL)
             if m_imp:
                 imp_kind = m_imp.group(1)
                 desc = m_imp.group(2).strip()
                 desc = re.sub(r'^[\s៖:]+', '', desc).strip()
                 desc = sanitize_khmer_spelling(desc)
                 desc = re.sub(r'[។\.]\s*$', '', desc).strip()
+                if desc in ("ទីផ្សារ", "ហិរញ្ញវត្ថុ", ""):
+                    desc = ""
                 if desc and not desc.endswith("។"):
                     desc += "។"
-                if "ផលវិជ្ជមាន" in imp_kind or "ឥទ្ធិពលវិជ្ជមាន" in imp_kind:
-                    impact_line = f"🔹 ផលវិជ្ជមាន៖\n{desc}"
-                else:
-                    impact_line = f"🔶 ហានិភ័យទីផ្សារ៖\n{desc}"
+                if desc:
+                    if "ផលវិជ្ជមាន" in imp_kind or "ឥទ្ធិពលវិជ្ជមាន" in imp_kind:
+                        impact_line = f"🔹 ផលវិជ្ជមាន៖\n{desc}"
+                    else:
+                        impact_line = f"🔶 ហានិភ័យទីផ្សារ៖\n{desc}"
             else:
                 desc = sanitize_khmer_spelling(impact_line.strip())
                 desc = re.sub(r'^[🔹🔸🔶🔴🟢\s]*', '', desc).strip()
