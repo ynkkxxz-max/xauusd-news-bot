@@ -9,6 +9,8 @@ from main import XAUUSDNewsAssistantBot
 logger = logging.getLogger("RenderServer")
 _bot_instance = None
 _start_time = time.time()
+_last_error = "None"
+_bot_stage = "Not started"
 
 class HealthHandler(BaseHTTPRequestHandler):
     def do_HEAD(self):
@@ -25,6 +27,8 @@ class HealthHandler(BaseHTTPRequestHandler):
             self.end_headers()
             data = {
                 "bot_running": _bot_instance is not None,
+                "bot_stage": _bot_stage,
+                "last_error": _last_error,
                 "uptime_seconds": time.time() - _start_time,
                 "has_telegram_token": bool(os.getenv("TELEGRAM_BOT_TOKEN")),
                 "telegram_chat_id": os.getenv("TELEGRAM_CHAT_ID", ""),
@@ -103,14 +107,19 @@ if __name__ == "__main__":
     # 3. Start Autonomous Telegram Bot with self-healing 24/7 supervisor loop
     while True:
         try:
+            _bot_stage = "Initializing XAUUSDNewsAssistantBot..."
             print("[SUPERVISOR] Starting XAUUSDNewsAssistantBot...")
             _bot_instance = XAUUSDNewsAssistantBot()
+            _bot_stage = "Bot loop running"
             _bot_instance.start_loop()
         except KeyboardInterrupt:
+            _bot_stage = "Stopped by user"
             print("[SUPERVISOR] Bot stopped by user.")
             break
         except Exception as e:
             import traceback
+            _last_error = f"{e}\n{traceback.format_exc()}"
+            _bot_stage = f"Crashed: {e}"
             print(f"[FATAL ENGINE CRASH] {e}\n{traceback.format_exc()}")
             print("[SUPERVISOR] Restarting bot engine in 10 seconds...")
             time.sleep(10.0)
