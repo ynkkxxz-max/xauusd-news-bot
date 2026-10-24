@@ -1948,27 +1948,27 @@ class XAUUSDNewsAssistantBot:
             clusters = GoldNewsFilter.get_news_clusters(title + " " + desc)
             if clusters:
                 CLUSTER_COOLDOWNS = {
-                    "us_jobs": 14400.0,       # 4 hours
-                    "inflation": 14400.0,     # 4 hours
-                    "fed_rates": 7200.0,      # 2 hours
-                    "energy_oil": 3600.0,     # 1 hour
-                    "tech_ai": 3600.0,        # 1 hour
-                    "crypto_assets": 3600.0,  # 1 hour
-                    "middle_east": 5400.0,    # 1.5 hours
-                    "russia_ukraine": 5400.0, # 1.5 hours
-                    "tariffs_trade": 3600.0,  # 1 hour
+                    "us_jobs": 1800.0,        # 30 mins (responsive to job wire updates)
+                    "inflation": 1800.0,      # 30 mins (responsive to CPI/PCE releases)
+                    "fed_rates": 1800.0,      # 30 mins (responsive to FOMC/Fed speakers)
+                    "energy_oil": 1200.0,     # 20 mins (responsive to crude/OPEC updates)
+                    "tech_ai": 1200.0,        # 20 mins (responsive to big tech/chips)
+                    "crypto_assets": 1200.0,  # 20 mins (responsive to bitcoin/crypto)
+                    "middle_east": 1500.0,    # 25 mins (responsive to geopolitics/security)
+                    "russia_ukraine": 1500.0, # 25 mins (responsive to conflict/diplomacy)
+                    "tariffs_trade": 1200.0,  # 20 mins (responsive to trade/tariffs)
                 }
 
-                # 1. Consecutive Sector Diversity Shield: Never post 2 consecutive articles on the same topic within 30m
+                # 1. Consecutive Sector Diversity Shield: Never post 2 consecutive articles on the exact same topic within 15m
                 last_cluster = database.get_state("last_broadcasted_cluster") or ""
                 last_sent_ts = float(database.get_state("last_breaking_alert_ts") or "0")
                 is_consecutive_sector = False
                 matched_sec = ""
-                if last_cluster and (now - last_sent_ts) < 1800.0 and last_cluster in clusters:
+                if last_cluster and (now - last_sent_ts) < 900.0 and last_cluster in clusters:
                     is_consecutive_sector = True
                     matched_sec = last_cluster
-                # Live Channel Feed fallback: If channel's actual latest post matches any cluster within 30m
-                if not is_consecutive_sector and ch_latest_clusters and ch_elapsed < 1800.0:
+                # Live Channel Feed fallback: If channel's actual latest post matches any cluster within 15m
+                if not is_consecutive_sector and ch_latest_clusters and ch_elapsed < 900.0:
                     common_cl = [c for c in clusters if c in ch_latest_clusters]
                     if common_cl:
                         is_consecutive_sector = True
@@ -1987,7 +1987,7 @@ class XAUUSDNewsAssistantBot:
                 blocked_cluster = ""
                 for cl in clusters:
                     last_cl_ts = float(database.get_state(f"cluster_last_ts_{cl}") or "0")
-                    cd = CLUSTER_COOLDOWNS.get(cl, 3600.0)
+                    cd = CLUSTER_COOLDOWNS.get(cl, 1200.0)
                     channel_cl_elapsed = ch_recent_clusters.get(cl, 999999.0)
                     if (now - last_cl_ts) < cd or channel_cl_elapsed < cd or (cl in ch_latest_clusters and ch_elapsed < cd):
                         defcon1_words = ["nuclear", "outbreak of war", "declares war", "martial law", "assassination"]
@@ -2005,16 +2005,16 @@ class XAUUSDNewsAssistantBot:
             # Key Leader & Entity Deduplication Shield (Prevents repeating same figure/leader/company)
             entities = GoldNewsFilter.get_news_entities(title + " " + desc)
             if entities:
-                # A. Consecutive Entity Diversity: Never post 2 consecutive articles about the same key leader/entity within 1 hour (3600s)
+                # A. Consecutive Entity Diversity: Never post 2 consecutive articles about the same key leader/entity within 20m (1200s)
                 last_entity = database.get_state("last_broadcasted_entity") or ""
                 last_sent_ts = float(database.get_state("last_breaking_alert_ts") or "0")
                 is_consecutive_entity = False
                 matched_ent_name = ""
-                if last_entity and (now - last_sent_ts) < 3600.0 and last_entity in entities:
+                if last_entity and (now - last_sent_ts) < 1200.0 and last_entity in entities:
                     is_consecutive_entity = True
                     matched_ent_name = last_entity
-                # Live Channel Feed fallback: If channel's actual latest post features the same entity within 1 hour
-                if not is_consecutive_entity and ch_latest_entities and ch_elapsed < 3600.0:
+                # Live Channel Feed fallback: If channel's actual latest post features the same entity within 20m
+                if not is_consecutive_entity and ch_latest_entities and ch_elapsed < 1200.0:
                     common_ent = [e for e in entities if e in ch_latest_entities]
                     if common_ent:
                         is_consecutive_entity = True
@@ -2028,13 +2028,13 @@ class XAUUSDNewsAssistantBot:
                 elif is_consecutive_entity and bypass_cooldown:
                     logger.info(f"[VELOCITY BYPASS] Consecutive entity shield bypassed for high-velocity breaking crisis: '{title}'")
 
-                # B. Entity Cooldown: Prevent repeating the same key person/entity within 14400s (4 hours - Strict Anti-Fatigue Shield)
+                # B. Entity Cooldown: Prevent repeating the same key person/entity within 2700s (45 mins)
                 is_entity_in_cooldown = False
                 blocked_entity = ""
                 for ent in entities:
                     last_ent_ts = float(database.get_state(f"entity_last_ts_{ent}") or "0")
                     channel_ent_elapsed = ch_recent_entities.get(ent, 999999.0)
-                    if (now - last_ent_ts) < 14400.0 or channel_ent_elapsed < 14400.0 or (ent in ch_latest_entities and ch_elapsed < 14400.0):
+                    if (now - last_ent_ts) < 2700.0 or channel_ent_elapsed < 2700.0 or (ent in ch_latest_entities and ch_elapsed < 2700.0):
                         defcon1_words = ["nuclear", "outbreak of war", "declares war", "martial law", "assassination"]
                         if not bypass_cooldown and not any(dw in (title + " " + desc).lower() for dw in defcon1_words):
                             is_entity_in_cooldown = True
@@ -2042,7 +2042,7 @@ class XAUUSDNewsAssistantBot:
                             break
 
                 if is_entity_in_cooldown:
-                    logger.info(f"[ENTITY COOLDOWN DEDUPLICATION] Dropping '{title}' - entity '{blocked_entity}' was recently featured within 4 hours.")
+                    logger.info(f"[ENTITY COOLDOWN DEDUPLICATION] Dropping '{title}' - entity '{blocked_entity}' was recently featured within 45 mins.")
                     self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
                     database.record_news_sent(it["id"], title, it.get("source", ""), is_broadcasted=0)
                     continue
