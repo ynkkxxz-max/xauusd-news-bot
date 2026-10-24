@@ -36,7 +36,9 @@ MACRO_KEYWORDS = [
     # 2. នយោបាយភូមិសាស្ត្រ (Geopolitics)
     "geopolitical", "safe haven", "safe-haven", "middle east", "iran", "israel", "red sea",
     "strait of hormuz", "russia", "ukraine", "taiwan", "war", "missile", "airstrike",
-    "military attack", "escalation", "conflict",
+    "military attack", "escalation", "conflict", "north korea", "dprk", "pyongyang",
+    "kim jong un", "kim jong-un", "south korea", "seoul", "xi jinping", "state visit", "summit",
+    "nuclear escalation", "icbm", "ballistic missile", "bilateral talks", "dandong",
     # 3. បច្ចេកវិទ្យា (Technology, AI, Frontier Innovation & Aerospace)
     "artificial intelligence", "ai revolution", "nvidia", "big tech", "semiconductor",
     "datacenter energy", "tech rally", "liquidity surge", "openai", "chip export controls",
@@ -143,7 +145,8 @@ class GoldNewsFilter:
         "central bank reserves", "taiwan", "red sea crisis", "geopolitical shock", "strait of hormuz",
         "ai breakthrough", "tech disruption", "liquidity crisis", "market plunge", "gold surges",
         "flash crash", "sharp spike", "tariff hike", "sanctions", "bank failure", "default", "sovereign debt",
-        "de-dollarization", "unprecedented move", "emergency meeting", "cyberattack"
+        "de-dollarization", "unprecedented move", "emergency meeting", "cyberattack",
+        "kim jong un", "north korea", "state visit", "summit talks"
     ]
 
     URGENT_SIGNALS = [
@@ -151,7 +154,8 @@ class GoldNewsFilter:
         "fomc statement", "cpi rises", "cpi falls", "nfp surges", "nfp misses",
         "escalates", "missile", "war", "attack", "sanctions", "china central bank",
         "powell", "warsh", "fed announces", "unprecedented", "crash", "surge", "plunge",
-        "sharp drop", "rally", "spike", "plummets", "skyrockets", "tensions rise"
+        "sharp drop", "rally", "spike", "plummets", "skyrockets", "tensions rise",
+        "kim jong un", "north korea", "dprk", "xi jinping", "state visit", "summit"
     ]
 
     @staticmethod
@@ -224,12 +228,14 @@ class GoldNewsFilter:
             "sanctions imposed", "sanctions against", "sanctions lifted", "tensions escalate",
             "retaliatory strike", "military offensive", "border clash", "armed clash",
             "troops mobilized", "declares war", "martial law", "hostage", "detains", "detained",
-            "freed", "humanitarian", "security council", "defense pact", "ballistic", "warship"
+            "freed", "humanitarian", "security council", "defense pact", "ballistic", "warship",
+            "north korea", "dprk", "kim jong un", "kim jong-un", "pyongyang", "south korea",
+            "state visit", "bilateral summit", "summit talks", "dandong"
         ]
         if _matches_any_keyword(full_text, geo_core):
             return True
 
-        if re.search(r'\b(israel|iran|russia|ukraine|china|taiwan|us|u\.s\.|syria|lebanon|yemen|houthi|gaza)\b', full_text) and re.search(r'\b(strike|attack|bomb|clash|warns|threat|escalat|deploy|intercept|drone|retaliat|freed|talks|crisis|conflict)\b', full_text):
+        if re.search(r'\b(israel|iran|russia|ukraine|china|taiwan|us|u\.s\.|syria|lebanon|yemen|houthi|gaza|north korea|dprk|south korea|korea)\b', full_text) and re.search(r'\b(strike|attack|bomb|clash|warns|threat|escalat|deploy|intercept|drone|retaliat|freed|talks|crisis|conflict|visit|visits|arrived|arrives|summit|bridge|border|pact|alliance)\b', full_text):
             return True
 
         # 5. Gold & Precious Metals, Energy & Oil Shocks (Tier 1)
@@ -409,6 +415,9 @@ class GoldNewsFilter:
         # 10. Frontier Tech, Tesla & SpaceX Innovation
         if any(k in t for k in ["elon musk", "musk", "tesla", "spacex", "starship", "roadster", "optimus", "cybertruck", "robotaxi", "neuralink", "xai", "grok", "cold gas thruster", "rocket thruster", "falcon heavy", "thruster", "thrusters"]):
             clusters.append("frontier_tech")
+        # 11. Korean Peninsula & East Asia Geopolitics
+        if any(k in t for k in ["north korea", "dprk", "pyongyang", "kim jong un", "kim jong-un", "south korea", "seoul", "dandong", "កូរ៉េខាងជើង", "គីម ជុងអ៊ុន", "កូរ៉េខាងត្បូង"]):
+            clusters.append("korea_east_asia")
         return clusters
 
     @staticmethod
@@ -430,6 +439,7 @@ class GoldNewsFilter:
             "vladimir putin": "vladimir_putin", "putin": "vladimir_putin", "ពូទីន": "vladimir_putin",
             "volodymyr zelensky": "zelenskyy", "zelensky": "zelenskyy", "zelenskyy": "zelenskyy", "ហ្សេលេនស្គី": "zelenskyy",
             "benjamin netanyahu": "netanyahu", "netanyahu": "netanyahu", "ណេតាន់យ៉ាហ៊ូ": "netanyahu",
+            "kim jong un": "kim_jong_un", "kim jong-un": "kim_jong_un", "kim jong": "kim_jong_un", "គីម ជុងអ៊ុន": "kim_jong_un",
             "xi jinping": "xi_jinping", "ស៊ី ជីនពីង": "xi_jinping",
             "scott bessent": "scott_bessent", "bessent": "scott_bessent", "បេសសិន": "scott_bessent",
             "christine lagarde": "lagarde", "lagarde": "lagarde", "ឡាហ្កាដ": "lagarde",
