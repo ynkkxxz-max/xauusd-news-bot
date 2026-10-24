@@ -22,6 +22,12 @@ logger = logging.getLogger(__name__)
 # 7. ⚖️ ច្បាប់ បទប្បញ្ញត្តិ និងគោលនយោបាយរដ្ឋាភិបាល (Laws, Tariffs, Debt, Sanctions)
 # -------------------------------------------------------------------------
 RSS_FEEDS = [
+    # --- Top-Tier Global Breaking Wires (Universal Coverage) ---
+    ("Google News World Top", "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx1YlY4U0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US:en"),
+    ("Google News Business Top", "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVdZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US:en"),
+    ("Google News Technology Top", "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US:en"),
+    ("AP News World Wire", "https://news.google.com/rss/search?q=site:apnews.com+world+when:1d&hl=en-US&gl=US&ceid=US:en"),
+
     # --- Pillar 1: Economy & Financial Markets ---
     ("CNBC Economy", "https://www.cnbc.com/id/20910258/device/rss/rss.html"),
     ("CNBC Markets", "https://www.cnbc.com/id/10000664/device/rss/rss.html"),
