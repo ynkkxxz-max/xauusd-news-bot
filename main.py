@@ -400,16 +400,6 @@ class XAUUSDNewsAssistantBot:
             self._daily_price_locks.add(session_key)
             return
 
-        # 3.5 Live channel verification guard (check if today's date and session are already on channel)
-        date_formatted = now_kh.strftime("%d/%m/%Y")
-        if self._is_daily_price_already_in_channel(date_formatted, session_keyword=session_label):
-            self._daily_price_locks.add(session_key)
-            try:
-                database.record_daily_price_sent(session_key, 999999)
-            except Exception:
-                pass
-            return
-
         # 4. Trigger Daily Gold Price broadcast (07:00 AM or 07:00 PM)
         self._daily_price_locks.add(session_key)
         logger.info(f"Triggering {session_label} Daily Gold Price broadcast for {today_str} ({session_type})...")
@@ -418,7 +408,7 @@ class XAUUSDNewsAssistantBot:
         # Render Ultra-HD Graphic Card per user design specification
         card_png = self.gold_card_builder.build_card_png(price_data, session=session_type) if self.gold_card_builder else None
         if card_png:
-            res = self.notifier.send_photo(card_png, caption="", reply_markup=None)
+            res = self.notifier.send_photo(card_png, caption="", reply_markup=None, is_daily_gold_card=True)
         else:
             msg = KhmerFormatter.format_daily_gold_price(price_data, session_time=session_label)
             res = self.notifier.send_message(msg, auto_pin=False, reply_markup=None)
@@ -1558,10 +1548,13 @@ class XAUUSDNewsAssistantBot:
                 is_prohibited = False
                 purge_reason = ""
                 
-                # Check 1: Empty or corrupted stub (< 40 chars)
-                if len(txt) < 40 and "ហាងឆេងមាស" not in txt:
+                # Check 1: Empty or corrupted stub (< 40 chars for text, pure photo cards without caption are allowed)
+                if not has_photo and len(txt) < 40:
                     is_prohibited = True
                     purge_reason = f"Corrupted/Empty Stub ({len(txt)} chars)"
+                elif has_photo and 0 < len(txt) < 40 and "ហាងឆេងមាស" not in txt:
+                    is_prohibited = True
+                    purge_reason = f"Corrupted Photo Caption ({len(txt)} chars)"
                 # Check 2: Prohibited polls
                 elif "📊 លទ្ធផល Signal" in txt or "📊 បោះឆ្នោត" in txt:
                     is_prohibited = True
