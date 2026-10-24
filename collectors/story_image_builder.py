@@ -55,7 +55,8 @@ class StoryImageBuilder:
 
     LEADER_PATTERNS = [
         ("giorgia_meloni", r"\b(meloni|giorgia meloni)\b|ម៉េឡូនី|មេឡូនី"),
-        ("donald_trump", r"\b(trump|donald trump)\b|ត្រាំ|ដូណាល់ ត្រាំ"),
+        ("melania_trump", r"\b(melania|melania trump)\b|មេឡានី|មេឡានា|លោកស្រី\s*ត្រាំ"),
+        ("donald_trump", r"(?<!melania\s)(?<!melania\b)(?<!melania\W)\b(?:donald\s+trump|president\s+trump|mr\.\s*trump|trump)\b(?!\s*tower|\s*organization)|(?<!លោកស្រី\s)(?<!លោកស្រី)(?:ដូណាល់\s*ត្រាំ|ប្រធានាធិបតី\s*ត្រាំ|លោក\s*ត្រាំ|\bត្រាំ\b)"),
         ("vladimir_putin", r"\b(putin|vladimir putin)\b|ពូទីន|វ្ល៉ាឌីមៀ ពូទីន"),
         ("xi_jinping", r"\b(xi jinping|president xi)\b|ស៊ី ជីនពីង"),
         ("jerome_powell", r"\b(powell|jerome powell)\b|ផៅវែល|ផូវែល"),
@@ -712,14 +713,15 @@ class StoryImageBuilder:
             im = Image.open(io.BytesIO(img_bytes)).convert("RGB")
             w, h = im.size
 
-            # If reasonably wide (landscape), fit cleanly to 1200x800
+            # Optimal framing: Eliminate blurred sidebars by fitting landscape to 1200x800 and vertical portraits to 1080x1080 square
             aspect = w / max(h, 1)
             if 1.2 <= aspect <= 1.95:
                 fitted = ImageOps.fit(im, (target_w, target_h), method=Image.Resampling.LANCZOS, centering=(0.5, 0.38))
+            elif aspect < 1.2:
+                # Vertical portrait or near-square: fit cleanly to 1080x1080 square centered on face (no blurred sidebars!)
+                fitted = ImageOps.fit(im, (1080, 1080), method=Image.Resampling.LANCZOS, centering=(0.5, 0.25))
             else:
-                # Resize proportionally to fit inside 1200x800 bounds
-                im.thumbnail((target_w, target_h), Image.Resampling.LANCZOS)
-                fitted = im
+                fitted = ImageOps.fit(im, (target_w, target_h), method=Image.Resampling.LANCZOS, centering=(0.5, 0.5))
 
             # Editorial enhancement: crisp sharpness and punchy colors
             fitted = ImageEnhance.Contrast(fitted).enhance(1.04)
