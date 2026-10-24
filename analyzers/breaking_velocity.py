@@ -116,19 +116,19 @@ class BreakingVelocityEngine:
 
         if is_ultra_breaking:
             tier = "ULTRA_BREAKING"
-            required_gap = 300.0  # Safe minimum 5-minute gap for crises (prevents instant spam floods)
+            required_gap = 60.0   # Instant 1-minute gap for major crises and multi-wire flashes
             bypass_cooldown = True
             urgency_score = 1000 + (consensus_count * 200)
             urgency_reason = f"Multi-wire consensus ({consensus_count} sources: {', '.join(consensus_sources[:3])})" if is_multi_wire else "Tier-1 Crisis flashpoint"
         elif is_high_velocity:
             tier = "HIGH_VELOCITY"
-            required_gap = 600.0  # High velocity: 10-minute window
+            required_gap = 120.0  # High velocity: 2-minute window
             bypass_cooldown = False
             urgency_score = 500 + (consensus_count * 100)
             urgency_reason = f"High velocity market flash ({consensus_count} sources)" if is_multi_wire else "High-velocity market movement"
         else:
             tier = "STANDARD"
-            required_gap = 900.0  # Standard 15-minute pacing per constitutional standard
+            required_gap = 180.0  # Standard 3-minute pacing for responsive channel flow
             bypass_cooldown = False
             urgency_score = 100
             urgency_reason = "Standard macroeconomic wire"
