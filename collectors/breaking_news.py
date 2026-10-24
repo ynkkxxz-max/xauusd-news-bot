@@ -42,6 +42,8 @@ RSS_FEEDS = [
     ("BBC Europe", "https://feeds.bbci.co.uk/news/world/europe/rss.xml"),
     ("Politico World", "https://rss.politico.com/politics-news.xml"),
     ("CNBC World News", "https://www.cnbc.com/id/100727362/device/rss/rss.html"),
+    ("Google News - Geopolitics & Asia", "https://news.google.com/rss/search?q=geopolitics+OR+%22North+Korea%22+OR+%22Kim+Jong+Un%22+OR+%22Taiwan%22+OR+%22China+visit%22+when:1d&hl=en-US&gl=US&ceid=US:en"),
+    ("Reuters Asia & China Wire", "https://news.google.com/rss/search?q=site:reuters.com+China+OR+%22North+Korea%22+OR+%22Kim+Jong+Un%22+OR+%22Dandong%22+when:1d&hl=en-US&gl=US&ceid=US:en"),
 
     # --- Pillar 3: Technology, AI, Frontier Innovation, EV & Aerospace ---
     ("The Verge Tech & AI", "https://www.theverge.com/rss/index.xml"),
