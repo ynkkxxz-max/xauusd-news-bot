@@ -34,9 +34,9 @@ USE_GEMINI = os.getenv("USE_GEMINI", "true").lower() in ("true", "1", "yes")
 GEMINI_MIN_INTERVAL = float(os.getenv("GEMINI_MIN_INTERVAL", "20"))
 GEMINI_COOLDOWN = float(os.getenv("GEMINI_COOLDOWN", "900"))
 
-# Minimum seconds between two breaking-news alerts (15 minutes / 900s per constitutional standard)
-# Preserves subscriber readability; Tier-0 crises dynamically lower to 120s.
-BREAKING_ALERT_MIN_GAP = float(os.getenv("BREAKING_ALERT_MIN_GAP", "900"))
+# Minimum seconds between two breaking-news alerts (3 minutes / 180s for active, responsive channel pacing)
+# Preserves subscriber engagement; Tier-0 crises dynamically lower to 60s.
+BREAKING_ALERT_MIN_GAP = float(os.getenv("BREAKING_ALERT_MIN_GAP", "180"))
 
 # Maximum breaking news broadcasts per day (0 = Unlimited / Free broadcast per user directive)
 MAX_DAILY_BREAKING_NEWS = int(os.getenv("MAX_DAILY_BREAKING_NEWS", "0"))
