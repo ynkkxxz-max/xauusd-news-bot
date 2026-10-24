@@ -280,10 +280,10 @@ class BreakingNewsCollector:
                             pub_date = entry.findtext("{http://www.w3.org/2005/Atom}published", "").strip() or entry.findtext("{http://www.w3.org/2005/Atom}updated", "").strip() or entry.findtext("dc:date", "").strip()
                         desc = entry.findtext("description", "").strip()
 
-                        # STRICT FRESHNESS SHIELD: Reject any article older than 60 minutes (3600 seconds)
+                        # FRESHNESS SHIELD: Ingest fresh global wire developments up to 12 hours (43,200 seconds)
                         pub_ts = self.parse_pub_date(pub_date)
                         now_ts = time.time()
-                        if pub_ts > 0 and (now_ts - pub_ts) > 3600.0:
+                        if pub_ts > 0 and (now_ts - pub_ts) > 43200.0:
                             continue
 
                         # Clean title and description of raw HTML and HTML entities
@@ -372,6 +372,7 @@ class BreakingNewsCollector:
                             "title": title,
                             "link": link,
                             "pub_date": pub_date,
+                            "pub_ts": pub_ts,
                             "description": clean_desc,
                             "source": actual_source,
                             "image_url": img_url,
@@ -431,4 +432,6 @@ class BreakingNewsCollector:
                 except Exception as err:
                     logger.debug(f"[BreakingNewsCollector] Thread pool worker error: {err}")
 
+        # Always prioritize freshest news first
+        items.sort(key=lambda x: x.get("pub_ts", 0), reverse=True)
         return items
