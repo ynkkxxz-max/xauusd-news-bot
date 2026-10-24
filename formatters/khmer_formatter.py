@@ -79,12 +79,7 @@ def sanitize_khmer_spelling(text: str) -> str:
     res = re.sub(r"ប្រាក់ដុល្លារ\s*[\u0600-\u06FF]+", "ប្រាក់ដុល្លារ (USD) ", res)
     res = re.sub(r"ដុល្លារ\s*[\u0600-\u06FF]+", "ដុល្លារ (USD) ", res)
 
-    # 4. Strictly strip ANY remaining foreign script characters:
-    # Thai (\u0E00-\u0E7F), Lao (\u0E80-\u0EFF), Greek (\u0370-\u03FF, \u1F00-\u1FFF),
-    # Cyrillic (\u0400-\u052F, \u2DE0-\u2DFF, \uA640-\uA69F),
-    # Arabic (\u0600-\u06FF, \u0750-\u077F, \u08A0-\u08FF, \uFB50-\uFDFF, \uFE70-\uFEFF),
-    # Hebrew (\u0590-\u05FF), Indic/Devanagari (\u0900-\u0DFF), Myanmar (\u1000-\u109F),
-    # CJK (\u4E00-\u9FFF, \u3040-\u30FF, \uAC00-\uD7AF)
+    # 4. Strictly strip ANY remaining foreign script characters
     foreign_regex = (
         r"[\u0E00-\u0E7F\u0E80-\u0EFF\u0370-\u03FF\u1F00-\u1FFF\u0400-\u052F"
         r"\u2DE0-\u2DFF\uA640-\uA69F\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF"
@@ -93,7 +88,37 @@ def sanitize_khmer_spelling(text: str) -> str:
     )
     res = re.sub(foreign_regex, "", res)
 
+    # 4.1 Normalize broken stacked vowels: អុី (\u17a2\u17bb\u17b8) -> អ៊ី (\u17a2\u17ca\u17b8), អុឺ -> អឺ
+    res = re.sub(r'\u17a2[\u17bb\u17bc][\u17b8\u17b7]', 'អ៊ី', res)
+    res = re.sub(r'អុី|អុី|អ៊ុី', 'អ៊ី', res)
+    res = re.sub(r'\u17a2[\u17bb\u17bc]\u17b9', 'អឺ', res)
+    res = re.sub(r'អុឺ|អ៊ុឺ', 'អឺ', res)
+
     corrections = [
+        # Cloud Computing & AI Technical Terminology
+        (r"(?:ហេដ្ឋារចនាសម្ព័ន្ធ)?ពពកអ៊ីនធឺណ[ិតេ]ត", "ហេដ្ឋារចនាសម្ព័ន្ធ Cloud"),
+        (r"ទីផ្សារពពកអ៊ីនធឺណ[ិតេ]ត", "ទីផ្សារសេវាកម្ម Cloud"),
+        (r"ពពកអ៊ីនធឺណ[ិតេ]ត", "សេវាកម្ម Cloud"),
+        (r"អ៊ីនធឺណេត", "អ៊ីនធឺណិត"),
+        (r"សមត្ថភាពហារែក", "សមត្ថភាពក្នុងការទម្លុះប្រព័ន្ធសុវត្ថិភាព (Jailbreak)"),
+        (r"\bហារែក\b", "ការទម្លុះប្រព័ន្ធសុវត្ថិភាព (Jailbreak)"),
+        (r"គំរូ Kimi|ម៉ូដែល Kimi", "ម៉ូដែល AI Kimi"),
+
+        # Financial Units, Currencies & Numbers
+        (r"រាប់រយលផោន", "រាប់រយលានផោន"),
+        (r"រាប់រយលដុល្លារ", "រាប់រយលានដុល្លារ"),
+        (r"រាប់ពាន់លដុល្លារ", "រាប់ពាន់លានដុល្លារ"),
+        (r"រាប់ពាន់លផោន", "រាប់ពាន់លានផោន"),
+        (r"រាប់រយល(?=[\s\u200B]*(?:ដុល្លារ|ផោន|អឺរ៉ូ|រៀល))", "រាប់រយលាន"),
+        (r"រាប់ពាន់ល(?=[\s\u200B]*(?:ដុល្លារ|ផោន|អឺរ៉ូ|រៀល))", "រាប់ពាន់លាន"),
+        (r"\b(\d+(?:\.\d+)?)\s*ល(?=[\s\u200B]*(?:ដុល្លារ|ផោន|អឺរ៉ូ|រៀល))", r"\1 លាន"),
+
+        # Government Portfolios & Official Titles (Prevent Misnomers)
+        (r"រដ្ឋមន្ត្រីក្រសួងហិរញ្ញវត្ថុ\s+John Healey", "រដ្ឋមន្ត្រីក្រសួងការពារជាតិ John Healey"),
+        (r"រដ្ឋមន្ត្រីក្រសួងការពារជាតិ\s+Rachel Reeves", "រដ្ឋមន្ត្រីក្រសួងហិរញ្ញវត្ថុ Rachel Reeves"),
+        (r"ការប្រកួតប្រដំប្រសែង", "ការប្រកួតប្រជែង"),
+        (r"ក្នុងការបុណ្យសព", "ក្នុងពិធីបុណ្យសព"),
+        (r"(?<!ទ្រ)ទ្រង់ខ្សែច្រវាក់", "ទ្រទ្រង់ខ្សែច្រវាក់"),
         # Lexical Integrity: Fix ព្រមាន and common typos
         (r"\bប្រមាន\b", "ព្រមាន"),
         (r"ការប្រមាន", "ការព្រមាន"),
@@ -433,9 +458,6 @@ def sanitize_khmer_spelling(text: str) -> str:
     for w in no_space_stutters:
         res = re.sub(rf'({w})[\s\u200B]*\1+', r'\1', res)
 
-    for _ in range(2):
-        res = re.sub(r'([\u1780-\u17D3\u17B6-\u17C5]{3,})[\s\u200B]*\1+', r'\1', res)
-
     # 7. Percentage & Financial Number Formatting (Convert Khmer/Latin digits + ភាគរយ/percent to clean Latin %)
     # e.g. ២២ ភាគរយ -> 22%, ២២.២៤ ភាគរយ -> 22.24%, 42 ភាគរយ -> 42%, 15% -> 15%
     _khmer_digits_map = {'០': '0', '១': '1', '២': '2', '៣': '3', '៤': '4', '៥': '5', '៦': '6', '៧': '7', '៨': '8', '៩': '9'}
@@ -743,6 +765,9 @@ class KhmerFormatter:
         import html
 
         source_name = (news_item.get("source") or "ForexLive News").strip()
+        if "アラブニュース" in source_name or "Arab" in source_name:
+            source_name = "Arab News"
+        source_name = re.sub(r'[\u3040-\u30FF\u4E00-\u9FFF\u0600-\u06FF\u0400-\u052F\u0E00-\u0E7F]+', '', source_name).strip() or "Global Wire"
         article_url = (news_item.get("link") or news_item.get("url") or "").strip()
         if article_url:
             source_line = f'ប្រភព | <a href="{html.escape(article_url, quote=True)}">{html.escape(source_name)}</a>'
@@ -981,7 +1006,7 @@ class KhmerFormatter:
             elif any(w in comb_lower for w in ["japan", "japanese", "tokyo", "yen", "boj", "nikkei"]):
                 country_flags = ["🇯🇵"]
             else:
-                country_flags = []
+                country_flags = ["🌐"]
 
         # STRICT BILATERAL FLAG RULE: A 2nd flag is ONLY permitted if BOTH nations are prominently in the headline
         # AND it is an official bilateral state summit or war (e.g. US-China trade talks, Russia-Ukraine war).
