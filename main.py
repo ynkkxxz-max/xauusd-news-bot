@@ -1116,30 +1116,25 @@ class XAUUSDNewsAssistantBot:
             if last_period > 30:
                 trimmed_body = sub[:last_period + 1].strip()
             else:
-                last_space = sub.rfind(" ")
-                if last_space > 25:
-                    trimmed_body = sub[:last_space].strip() + "។"
+                first_period = clean_body.find("។")
+                if first_period != -1 and first_period <= avail + 40:
+                    trimmed_body = clean_body[:first_period + 1].strip()
                 else:
-                    trimmed_body = sub.strip() + "។"
+                    trimmed_body = clean_body.strip()
         else:
             trimmed_body = clean_body
 
         parts = [p for p in [header, trimmed_body, impact_line, source_line] if p]
         res = "\n\n".join(parts)
 
-        # Progressive hard clamp to guarantee strictly <= max_visible_chars
-        while len(re.sub(r"<[^>]+>", "", res)) > max_visible_chars and len(trimmed_body) > 30:
-            excess = len(re.sub(r"<[^>]+>", "", res)) - max_visible_chars
-            cut_idx = max(len(trimmed_body) - excess - 5, 20)
-            sub = trimmed_body[:cut_idx]
-            last_period = max(sub.rfind("។ "), sub.rfind("។\n"), sub.rfind("។"))
-            if last_period > 20:
-                trimmed_body = sub[:last_period + 1].strip()
-            else:
-                last_space = sub.rfind(" ")
-                trimmed_body = (sub[:last_space].strip() if last_space > 15 else sub.strip()) + "។"
-            parts = [p for p in [header, trimmed_body, impact_line, source_line] if p]
-            res = "\n\n".join(parts)
+        # Sentence-safe clamping (NEVER slice mid-word in Khmer)
+        if len(re.sub(r"<[^>]+>", "", res)) > max_visible_chars:
+            sentences = [s.strip() for s in trimmed_body.split("។") if s.strip()]
+            while len(re.sub(r"<[^>]+>", "", res)) > max_visible_chars and len(sentences) > 1:
+                sentences.pop()
+                trimmed_body = "។ ".join(sentences) + "។"
+                parts = [p for p in [header, trimmed_body, impact_line, source_line] if p]
+                res = "\n\n".join(parts)
 
         # Auto-close open tags
         for tag in ["i", "b", "code", "a"]:
@@ -1676,26 +1671,6 @@ class XAUUSDNewsAssistantBot:
 
                 fixed = f"{hl_text}\n\n{body_and_rest}" if body_and_rest else hl_text
 
-                # Sentence-aware Character limit enforcement (<= 574 for photo, <= 750 for text)
-                max_allowed = 574 if has_photo else 750
-                if len(fixed) > max_allowed:
-                    r_paragraphs = fixed.split('\n\n')
-                    while len('\n\n'.join(r_paragraphs)) > max_allowed and len(r_paragraphs) > 2:
-                        mid = r_paragraphs[1]
-                        if '។' in mid:
-                            sentences = [s.strip() for s in mid.split('។') if s.strip()]
-                            if len(sentences) > 1:
-                                r_paragraphs[1] = '។ '.join(sentences[:-1]) + '។'
-                            else:
-                                r_paragraphs.pop(1)
-                        else:
-                            r_paragraphs.pop(1)
-                    fixed = '\n\n'.join(r_paragraphs)
-                    if len(fixed) > max_allowed:
-                        last_period = fixed[:max_allowed - 1].rfind('។')
-                        if last_period > 200:
-                            fixed = fixed[:last_period + 1].strip()
-
                 final_text = fixed
 
                 # Check if text actually differs or if we already healed it
@@ -1706,8 +1681,8 @@ class XAUUSDNewsAssistantBot:
                 raw_final_collapsed = re.sub(r'\s+', ' ', raw_final)
                 raw_curr_collapsed = re.sub(r'\s+', ' ', txt)
 
-                if raw_final_collapsed != raw_curr_collapsed or len(txt) > max_allowed:
-                    logger.info(f"[AUTONOMOUS LIVE HEAL] Correcting post #{pid} (length {len(txt)} -> {len(raw_final)})")
+                if raw_final_collapsed != raw_curr_collapsed:
+                    logger.info(f"[AUTONOMOUS LIVE HEAL] Correcting spelling/typos on post #{pid}")
                     if has_photo:
                         res = self.notifier.edit_message_caption(pid, final_text, parse_mode="HTML")
                     else:
