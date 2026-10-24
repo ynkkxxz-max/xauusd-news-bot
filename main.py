@@ -1463,6 +1463,8 @@ class XAUUSDNewsAssistantBot:
                 logger.info(f"[IMAGE PERCEPTUAL SHIELD] Image visually matches a broadcast within 24h (dHash={dh}). Rejecting!")
                 return True
 
+            if dh:
+                database.record_image_dhash(dh)
             database.set_state(f"channel_img_ts_{img_hash}", str(now))
             return False
         except Exception as e:
@@ -1539,10 +1541,12 @@ class XAUUSDNewsAssistantBot:
 
             # --- 1. DEFECT PURGE & MULTI-POST DEDUPLICATION (លុបបញ្ហាខុស & លុបជាន់) ---
             seen_headlines = {}
+            seen_image_hashes = {}
             for p in list(posts):
                 pid = p["id"]
                 txt = p["text"]
                 has_photo = p["has_photo"]
+                photo_url = p.get("photo_url")
 
                 # A. Severe defect & prohibited content check (INSTANT AUTO-PURGE)
                 is_prohibited = False
@@ -1603,8 +1607,46 @@ class XAUUSDNewsAssistantBot:
                                 posts = [post for post in posts if post["id"] != pid]
                                 is_dup = True
                                 break
-                        if not is_dup:
-                            seen_headlines[pid] = norm_tokens
+                        if is_dup:
+                            continue
+                        seen_headlines[pid] = norm_tokens
+
+                # C. Multi-post Image Duplicate Purge (Strict Zero Repetition Guarantee)
+                if photo_url and "ហាងឆេងមាស" not in txt:
+                    if not hasattr(self, "_channel_photo_dhashes"):
+                        self._channel_photo_dhashes = {}
+
+                    dh = self._channel_photo_dhashes.get(photo_url)
+                    if not dh:
+                        try:
+                            import requests
+                            import database
+                            resp = requests.get(photo_url, timeout=4)
+                            if resp.status_code == 200:
+                                dh = database.calculate_image_dhash(resp.content)
+                                if dh:
+                                    self._channel_photo_dhashes[photo_url] = dh
+                                    database.record_image_dhash(dh)
+                        except Exception as e:
+                            logger.debug(f"[Photo dHash fetch error] {e}")
+
+                    if dh:
+                        try:
+                            cand_int = int(dh, 16)
+                            is_img_dup = False
+                            for prev_dh, prev_pid in seen_image_hashes.items():
+                                prev_int = int(prev_dh, 16)
+                                if (cand_int ^ prev_int).bit_count() <= 10:
+                                    logger.critical(f"[AUTONOMOUS IMAGE DUPLICATE PURGE] Duplicate image in post #{pid} matches earlier post #{prev_pid} (dHash {dh}). Deleting immediately!")
+                                    self.notifier.delete_message(pid)
+                                    posts = [post for post in posts if post["id"] != pid]
+                                    is_img_dup = True
+                                    break
+                            if is_img_dup:
+                                continue
+                            seen_image_hashes[dh] = pid
+                        except Exception as e:
+                            logger.debug(f"[Image dup check error] {e}")
 
             # --- 2. AUTO-HEAL IN-PLACE (ប្រព័ន្ធចាប់ខុស & កែរកំហុស) ---
             for p in posts[-15:]:
