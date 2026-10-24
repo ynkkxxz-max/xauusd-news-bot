@@ -19,6 +19,40 @@ class HealthHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
+        if self.path == "/status":
+            self.send_response(200)
+            self.send_header("Content-type", "application/json; charset=utf-8")
+            self.end_headers()
+            data = {
+                "bot_running": _bot_instance is not None,
+                "uptime_seconds": time.time() - _start_time,
+                "has_telegram_token": bool(os.getenv("TELEGRAM_BOT_TOKEN")),
+                "telegram_chat_id": os.getenv("TELEGRAM_CHAT_ID", ""),
+                "has_gemini_key": bool(os.getenv("GEMINI_API_KEY")),
+                "render_url": os.getenv("RENDER_EXTERNAL_URL", ""),
+            }
+            if _bot_instance:
+                data["last_breaking_sent_ts"] = getattr(_bot_instance, "_last_breaking_sent_ts", 0)
+                data["broadcasted_cache_count"] = len(getattr(_bot_instance, "_broadcasted_titles_cache", set()))
+            self.wfile.write(json.dumps(data, indent=2).encode("utf-8"))
+            return
+
+        if self.path == "/test_feeds":
+            self.send_response(200)
+            self.send_header("Content-type", "application/json; charset=utf-8")
+            self.end_headers()
+            from collectors.breaking_news import RSS_FEEDS
+            import requests
+            results = []
+            for name, url in RSS_FEEDS[:15]:
+                try:
+                    r = requests.get(url, timeout=5, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+                    results.append({"name": name, "status": r.status_code, "bytes": len(r.text)})
+                except Exception as e:
+                    results.append({"name": name, "error": str(e)[:100]})
+            self.wfile.write(json.dumps(results, indent=2).encode("utf-8"))
+            return
+
         self.send_response(200)
         self.send_header("Content-type", "text/plain; charset=utf-8")
         self.send_header("Content-length", "2")
