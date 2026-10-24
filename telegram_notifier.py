@@ -387,7 +387,9 @@ class TelegramNotifier:
 
         raw_text = raw_text or ""
 
-        # Skip scheduled daily price cards or market open status
+        # Skip scheduled daily price cards, pure graphic cards without caption, or market open status
+        if is_photo and not raw_text:
+            return True
         if raw_text.startswith("🥇") or raw_text.startswith("📅") or raw_text.startswith("📊") or raw_text.startswith("---"):
             return True
 
@@ -579,7 +581,7 @@ class TelegramNotifier:
             logger.error(f"[TelegramNotifier] Exception while sending message: {e}")
             return {"ok": False, "error": str(e)}
 
-    def send_photo(self, photo_bytes: bytes, caption: str = "", parse_mode: str = "HTML", reply_markup: dict = None, chat_id: str = None, is_ultra_breaking: bool = False) -> dict:
+    def send_photo(self, photo_bytes: bytes, caption: str = "", parse_mode: str = "HTML", reply_markup: dict = None, chat_id: str = None, is_ultra_breaking: bool = False, is_daily_gold_card: bool = False) -> dict:
         import re
         import time
         from database import calculate_image_dhash, is_image_dhash_duplicate, record_image_dhash
@@ -604,11 +606,10 @@ class TelegramNotifier:
             caption = curated_caption
 
         # STRICT ZERO IMAGE REPETITION GUARD (24-Hour Perceptual dHash Check):
-        # If this image visually matches any photo sent within the past 24 hours (86,400s),
-        # IMMEDIATELY INTERCEPT AND DROP THE PHOTO! Seamlessly fallback to MODE B (Clean VIP Text Mode)!
+        # Excludes daily gold price cards (is_daily_gold_card=True or caption starting with 🥇)
         img_dhash = ""
-        is_daily_gold_card = caption and caption.startswith("🥇")
-        if not is_daily_gold_card:
+        is_gold_card = is_daily_gold_card or (bool(caption) and caption.startswith("🥇"))
+        if not is_gold_card:
             img_dhash = calculate_image_dhash(photo_bytes)
             if img_dhash and is_image_dhash_duplicate(img_dhash, max_age_seconds=86400.0, max_hamming_dist=10):
                 logger.critical(f"[STRICT ANTI-REPETITION INTERCEPT] Image dHash '{img_dhash}' matches an image broadcasted within 24h! Auto-dropping image and falling back to MODE B (Clean VIP Text Mode).")
@@ -620,7 +621,7 @@ class TelegramNotifier:
 
         # Anti-Flood Cadence Guard: 15s for Ultra Breaking, 60s for standard channel alerts
         flood_gap = 15.0 if is_ultra_breaking else 60.0
-        if target_chat == str(self.chat_id) and not is_daily_gold_card and hasattr(self, "_last_channel_post_time"):
+        if target_chat == str(self.chat_id) and not is_gold_card and hasattr(self, "_last_channel_post_time"):
             elapsed = time.time() - getattr(self, "_last_channel_post_time", 0.0)
             if elapsed < flood_gap:
                 wait_sec = min(flood_gap - elapsed, 15.0)
@@ -648,7 +649,7 @@ class TelegramNotifier:
                 if target_chat == str(self.chat_id):
                     self._last_channel_post_time = time.time()
                 # Record perceptual dHash into database to lock it for 24 hours
-                if img_dhash and not is_daily_gold_card:
+                if img_dhash and not is_gold_card:
                     record_image_dhash(img_dhash)
 
                 logger.info(f"[TelegramNotifier] Photo sent (ID: {result.get('result', {}).get('message_id')})")
@@ -681,7 +682,7 @@ class TelegramNotifier:
             if result.get("ok"):
                 message_id = result.get('result', {}).get('message_id')
                 # WORLD-CLASS POST-DISPATCH WATCHDOG AUDIT
-                if message_id:
+                if message_id and not is_gold_card:
                     if not self._post_dispatch_watchdog(message_id, is_photo=True, target_chat=target_chat, raw_text=data.get("caption", "")):
                         return {"ok": False, "error": "Watchdog: Photo caption violated rules and was auto-purged"}
 
