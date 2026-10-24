@@ -116,7 +116,7 @@ class BreakingVelocityEngine:
 
         if is_ultra_breaking:
             tier = "ULTRA_BREAKING"
-            required_gap = 20.0  # Ultra-fast sub-30s broadcast window!
+            required_gap = 300.0  # Safe minimum 5-minute gap for crises (prevents instant spam floods)
             bypass_cooldown = True
             urgency_score = 1000 + (consensus_count * 200)
             urgency_reason = f"Multi-wire consensus ({consensus_count} sources: {', '.join(consensus_sources[:3])})" if is_multi_wire else "Tier-1 Crisis flashpoint"
