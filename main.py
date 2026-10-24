@@ -182,10 +182,11 @@ class XAUUSDNewsAssistantBot:
         self._broadcasted_titles_cache = set()
         now_ts = time.time()
         saved_last_alert = float(database.get_state("last_breaking_alert_ts") or "0")
-        if saved_last_alert > 0:
+        if saved_last_alert > 0 and (now_ts - saved_last_alert) < BREAKING_ALERT_MIN_GAP:
             self._last_breaking_sent_ts = saved_last_alert
         else:
-            self._last_breaking_sent_ts = now_ts - BREAKING_ALERT_MIN_GAP
+            # On fresh boot or after PC restart, enforce standard cooldown from current moment
+            self._last_breaking_sent_ts = now_ts
             try:
                 database.set_state("last_breaking_alert_ts", str(self._last_breaking_sent_ts))
             except Exception:
@@ -328,35 +329,27 @@ class XAUUSDNewsAssistantBot:
 
     def _bootstrap_news_cache(self):
         """
-        On startup, seeds existing headlines that are either older than 30 minutes,
-        already posted, or part of initial backlog, so only fresh news arriving
-        AFTER startup is processed for breaking alerts. Prevents restart/deploy floods.
+        On startup, seeds ALL existing headlines from the initial RSS backlog into memory and DB.
+        Only genuinely new breaking news arriving AFTER the bot is booted will be processed.
+        100% eliminates boot-up news floods and backlog bursts when turning on the PC.
         """
         try:
             items = self.news_collector.fetch_latest_news()
             bootstrapped_count = 0
-            now = time.time()
-            channel_html = self._fetch_channel_html()
             for item in items:
                 news_id = item.get("id")
                 title = (item.get("title") or "").strip()
                 link = item.get("link", "")
-                item_ts = self._news_ts(item)
-                
-                # Only seed items that are genuinely stale (> 30 mins) or already in Telegram channel
-                is_stale = item_ts == 0.0 or (now - item_ts) > 1800.0
-                is_in_channel = self._is_already_in_telegram_channel(title, link) if channel_html else False
-                
-                if is_stale or is_in_channel:
-                    if title:
-                        self._broadcasted_titles_cache.add(title.lower())
-                    self.news_collector.clear_item(news_id=news_id, link=link, title=title)
-                    if news_id and not database.is_news_sent(news_id):
-                        database.record_news_sent(news_id, title, item.get("source", ""), is_broadcasted=1 if is_in_channel else 0)
-                    bootstrapped_count += 1
-                else:
-                    logger.info(f"[Startup News Sync] Preserving fresh active breaking news: '{title}'")
-            logger.info(f"[Startup News Sync] Seeded {bootstrapped_count} initial backlog headlines (fresh news preserved).")
+                if title:
+                    self._broadcasted_titles_cache.add(title.lower())
+                self.news_collector.clear_item(news_id=news_id, link=link, title=title)
+                if news_id and not database.is_news_sent(news_id):
+                    database.record_news_sent(news_id, title, item.get("source", ""), is_broadcasted=0)
+                bootstrapped_count += 1
+            now_ts = time.time()
+            self._last_breaking_sent_ts = now_ts
+            database.set_state("last_breaking_alert_ts", str(now_ts))
+            logger.info(f"[Startup News Sync] Seeded {bootstrapped_count} initial backlog headlines. Zero startup flood guaranteed.")
         except Exception as e:
             logger.warning(f"[Startup News Sync] Warning: {e}")
 
