@@ -336,7 +336,9 @@ class GoldNewsFilter:
             "iran", "israel", "middle east", "war", "conflict", "strait of hormuz", "hormuz",
             "red sea", "russia", "ukraine", "taiwan", "missile", "airstrike", "drone attack",
             "military attack", "nuclear threat", "sanctions", "ceasefire", "peace deal", "trump war",
-            "rial", "geopolitical", "safe haven", "safe-haven"
+            "rial", "geopolitical", "safe haven", "safe-haven", "north korea", "dprk", "pyongyang",
+            "kim jong un", "south korea", "seoul", "xi jinping", "state visit", "summit", "dandong",
+            "icbm", "nuclear escalation", "bilateral"
         ]
         if _matches_any_keyword(text, geopolitical_triggers):
             return True
