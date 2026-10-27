@@ -1321,15 +1321,11 @@ class XAUUSDNewsAssistantBot:
                 return None
             except Exception as e:
                 logger.warning(f"[StoryImageBuilder] Error in get_image_for_news: {e}")
-
-        # Fallback to direct internet image fetcher ONLY if StoryImageBuilder was completely unavailable/failed
-        direct = XAUUSDNewsAssistantBot._fetch_direct_publisher_image(item)
-        if direct:
-            return direct
+                return None
 
         # MODE B GUARANTEE: If no authentic article photo from publisher or dynamic canvas exists,
         # return None so the message broadcasts cleanly in MODE B (Clean VIP Text Mode)!
-        logger.info("[_fetch_news_image] No authentic direct photo. Defaulting to MODE B (Clean VIP Text Mode).")
+        logger.info("[_fetch_news_image] No authentic verified photo. Defaulting to MODE B (Clean VIP Text Mode).")
         return None
 
     @staticmethod
@@ -1680,26 +1676,43 @@ class XAUUSDNewsAssistantBot:
                     posts = [post for post in posts if post["id"] != pid]
                     continue
 
-                # B. Multi-post Duplicate Check (Jaccard similarity >= 0.60)
+                # B. Multi-post Duplicate Check (Character 3-grams, SequenceMatcher & Token Jaccard)
                 lines = [l.strip() for l in txt.split('\n') if l.strip()]
                 if lines and "ហាងឆេងមាស" not in lines[0]:
+                    import difflib
                     hl = lines[0]
+                    # Strip emojis and punctuation
+                    clean_hl = ''.join(c for c in hl.lower() if not c.isspace() and c not in '.,;:៖-–—()[]{}<>#*!?"\'`/\U00010000-\U0010ffff')
                     norm_tokens = set(re.findall(r'[\u1780-\u17FF]{3,}|[a-zA-Z]{3,}', hl.lower()))
-                    if norm_tokens:
+                    ngrams_3 = set(clean_hl[i:i+3] for i in range(len(clean_hl) - 2)) if len(clean_hl) >= 3 else set()
+
+                    if clean_hl:
                         is_dup = False
-                        for prev_pid, prev_tokens in seen_headlines.items():
-                            overlap = len(norm_tokens.intersection(prev_tokens))
-                            union = len(norm_tokens.union(prev_tokens))
-                            jaccard = overlap / union if union else 0
-                            if jaccard >= 0.60:
-                                logger.critical(f"[AUTONOMOUS DUPLICATE PURGE] Duplicate post #{pid} matches #{prev_pid} (Jaccard {jaccard:.2f}). Deleting immediately!")
+                        for prev_pid, prev_data in seen_headlines.items():
+                            prev_clean, prev_tokens, prev_ngrams = prev_data
+                            
+                            # 1. SequenceMatcher ratio on unspaced text
+                            seq_ratio = difflib.SequenceMatcher(None, clean_hl, prev_clean).ratio() if prev_clean else 0.0
+
+                            # 2. 3-gram Jaccard on Khmer characters
+                            ng_overlap = len(ngrams_3.intersection(prev_ngrams))
+                            ng_union = len(ngrams_3.union(prev_ngrams))
+                            ng_jaccard = ng_overlap / ng_union if ng_union else 0.0
+
+                            # 3. Token Jaccard
+                            tok_overlap = len(norm_tokens.intersection(prev_tokens))
+                            tok_union = len(norm_tokens.union(prev_tokens))
+                            tok_jaccard = tok_overlap / tok_union if tok_union else 0.0
+
+                            if seq_ratio >= 0.55 or ng_jaccard >= 0.45 or tok_jaccard >= 0.50:
+                                logger.critical(f"[AUTONOMOUS DUPLICATE PURGE] Duplicate post #{pid} matches #{prev_pid} (seq={seq_ratio:.2f}, ngrams={ng_jaccard:.2f}, tok={tok_jaccard:.2f}). Deleting immediately!")
                                 self.notifier.delete_message(pid)
                                 posts = [post for post in posts if post["id"] != pid]
                                 is_dup = True
                                 break
                         if is_dup:
                             continue
-                        seen_headlines[pid] = norm_tokens
+                        seen_headlines[pid] = (clean_hl, norm_tokens, ngrams_3)
 
                 # C. Multi-post Image Duplicate Purge (Strict Zero Repetition Guarantee)
                 if photo_url and "ហាងឆេងមាស" not in txt:

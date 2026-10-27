@@ -645,7 +645,13 @@ class TelegramNotifier:
             message_id = data.get("result", {}).get("message_id")
             logger.info(f"[TelegramNotifier] Message sent successfully (ID: {message_id})")
             if target_chat == str(self.chat_id):
-                self._last_channel_post_time = time.time()
+                now_sent = time.time()
+                self._last_channel_post_time = now_sent
+                try:
+                    import database
+                    database.set_state("last_breaking_alert_ts", str(now_sent))
+                except Exception:
+                    pass
 
             # WORLD-CLASS POST-DISPATCH WATCHDOG AUDIT
             if message_id:
@@ -669,9 +675,12 @@ class TelegramNotifier:
             with open(photo_bytes, "rb") as f:
                 photo_bytes = f.read()
 
-        # Circuit Breaker 2: If image is missing, empty, or corrupted (< 500 bytes), fallback to MODE B text-only!
-        if not photo_bytes or len(photo_bytes) < 500:
-            logger.warning("[TelegramNotifier] Circuit Breaker: Invalid photo bytes. Seamless fallback to MODE B (send_message).")
+        is_gold_card = is_daily_gold_card or (bool(caption) and caption.startswith("🥇"))
+
+        # Circuit Breaker 2: If image is missing, empty, or low-res (< 15KB for news, < 500B for cards), fallback to MODE B text-only!
+        min_bytes = 500 if is_gold_card else 15000
+        if not photo_bytes or len(photo_bytes) < min_bytes:
+            logger.warning(f"[TelegramNotifier] Circuit Breaker: Image too small ({len(photo_bytes) if photo_bytes else 0} bytes < {min_bytes}). Seamless fallback to MODE B (send_message).")
             return self.send_message(text=caption, parse_mode=parse_mode, reply_markup=reply_markup, chat_id=chat_id, is_ultra_breaking=is_ultra_breaking)
 
         target_chat = str(chat_id or self.chat_id)
@@ -736,12 +745,16 @@ class TelegramNotifier:
             if result.get("ok"):
                 logger.info(f"[TelegramNotifier] Photo sent (ID: {result.get('result', {}).get('message_id')})")
                 if target_chat == str(self.chat_id):
-                    self._last_channel_post_time = time.time()
-                # Record perceptual dHash into database to lock it for 24 hours
+                    now_sent = time.time()
+                    self._last_channel_post_time = now_sent
+                    try:
+                        import database
+                        database.set_state("last_breaking_alert_ts", str(now_sent))
+                    except Exception:
+                        pass
+                # Record perceptual dHash into database to lock it for 30 days
                 if img_dhash and not is_gold_card:
                     record_image_dhash(img_dhash)
-
-                logger.info(f"[TelegramNotifier] Photo sent (ID: {result.get('result', {}).get('message_id')})")
             else:
                 logger.error(f"[TelegramNotifier] Error sending photo: {result}")
                 # Fallback: if HTML parsing failed, retry with sanitized HTML preserving supported tags & escaped &
