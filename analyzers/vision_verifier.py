@@ -99,7 +99,7 @@ Answer in STRICT JSON format:
                     logger.debug(f"[VisionQualityGate] Exception on {model}: {e}")
                     continue
 
-        logger.warning(f"[VisionQualityGate] Gemini vision quota exhausted. Allowing image via strict dimension, dHash, and publisher guards.")
-        fallback = {"is_valid": True, "reason": "Approved via strict dimensional, perceptual dHash & publisher rules (Gemini vision quota exhausted)"}
+        logger.warning("[VisionQualityGate] Gemini vision verification unavailable. Rejecting candidate photo to enforce safe MODE B (Clean VIP Text Mode) per Iron Law #1.")
+        fallback = {"is_valid": False, "reason": "Vision verification unavailable. Enforcing safe MODE B (Clean VIP Text Mode) per Supreme Iron Law #1"}
         cls._VERIFIED_CACHE[img_hash] = fallback
         return fallback

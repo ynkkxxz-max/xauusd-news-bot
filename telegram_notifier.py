@@ -325,34 +325,42 @@ class TelegramNotifier:
         # 1. Lexical Sanitization & 100% Chuon Nath Spelling Normalization
         text = sanitize_khmer_editorial_text(text)
 
-        # 2. Strict Headline Formatting: Clean trailing colons, ellipsis, or dots
-        def _clean_headline(m):
-            head = m.group(1)
-            # Remove trailing colons, ellipsis, dots
-            head = re.sub(r'[\s៖:：\.\.…]+$', '', head).strip()
+        # 2. Comprehensive Headline Structuring & Sovereign Flag Guarantee:
+        lines = text.splitlines()
+        if lines:
+            first_line = lines[0].strip()
+            # Extract flag if already at start
+            flag_match = re.search(r'^((?:[\U0001F1E0-\U0001F1FF]{2}|🌐|🪙|🥇|📅|📊|\s)+)', first_line)
+            if flag_match:
+                extracted_flag = flag_match.group(1).strip()
+                headline_core = first_line[flag_match.end():].strip()
+            else:
+                extracted_flag = "🌐"
+                headline_core = first_line
+
+            # Remove any existing <b> tags from headline_core to avoid nested/broken tags
+            headline_core = re.sub(r'</?b>', '', headline_core).strip()
+            # Clean trailing colons, ellipsis, dots
+            headline_core = re.sub(r'[\s៖:：\.\.…]+$', '', headline_core).strip()
             # Remove embedded colons or ellipsis
-            head = re.sub(r'[៖:：]', '', head)
-            head = re.sub(r'[\.]{2,}|…', '', head)
-            return f"<b>{head}</b>"
+            headline_core = re.sub(r'[៖:：]', '', headline_core)
+            headline_core = re.sub(r'[\.]{2,}|…', '', headline_core)
+            # Reassemble perfectly formatted headline: {FLAG} <b>{TITLE}</b>
+            lines[0] = f"{extracted_flag} <b>{headline_core}</b>"
+            text = '\n'.join(lines)
 
-        text = re.sub(r'<b>(.*?)</b>', _clean_headline, text, count=1, flags=re.DOTALL)
-
-        # 3. Sovereign Flag Guarantee: Auto-inject 🌐 if missing
-        first_line = text.splitlines()[0] if text else ""
-        if not re.search(r'[\U0001F1E0-\U0001F1FF]{2}|🌐|🥇|📅|📊', first_line):
-            text = f"🌐 {text}"
-
-        # 4. Strict Sentiment Honesty: Auto-correct war news sentiment mismatch
+        # 3. Strict Sentiment Honesty: Auto-correct war news sentiment mismatch
         war_terms = ['សង្គ្រាម', 'វាយប្រហារ', 'ដ្រូន', 'មីស៊ីល', 'ទាហាន', 'ស្លាប់', 'ផ្ទុះ', 'សមរភូមិ']
         is_peace_or_resilience = any(k in text for k in ['បទឈប់បាញ់', 'សន្តិភាព', 'ទប់ទល់', 'ភាពធន់', 'ស្ថិរភាព', 'បន្ធូរបន្ថយ', 'លុបចោលពន្ធ', 'លើកលែងពន្ធ'])
         if any(w in text for w in war_terms) and '🔹 ផលវិជ្ជមាន' in text and not is_peace_or_resilience:
             text = text.replace('🔹 ផលវិជ្ជមាន', '🔶 ហានិភ័យទីផ្សារ')
 
-        # 4.1 Strict 2-Line Impact Format Guarantee (🔶 ហានិភ័យទីផ្សារ៖\n... or 🔹 ផលវិជ្ជមាន៖\n...)
+        # 4. Strict 2-Line Impact Format Guarantee (🔶 ហានិភ័យទីផ្សារ៖\n... or 🔹 ផលវិជ្ជមាន៖\n...)
         text = re.sub(r'[🔸🔴]\s*(?:ហានិភ័យទីផ្សារ|ផលអវិជ្ជមាន|ហានិភ័យ)', '🔶 ហានិភ័យទីផ្សារ', text)
         text = re.sub(r'[🟢]\s*ផលវិជ្ជមាន', '🔹 ផលវិជ្ជមាន', text)
         text = re.sub(r'(🔹\s*ផលវិជ្ជមាន)[\s៖:]*(?!\n)\s*(.+)', r'🔹 ផលវិជ្ជមាន៖\n\2', text)
         text = re.sub(r'(🔶\s*ហានិភ័យទីផ្សារ)[\s៖:]*(?!\n)\s*(.+)', r'🔶 ហានិភ័យទីផ្សារ៖\n\2', text)
+        text = re.sub(r'(🔶\s*ហានិភ័យទីផ្សារ|🔹\s*ផលវិជ្ជមាន)[៖:]\s*([^\n]+)', r'\1៖\n\2', text)
 
         # 5. Remove any non-VIP emojis (rockets, meme emojis)
         text = re.sub(r'[🚀🔥💥💰🎉🤑💩🤡]', '', text)
@@ -470,12 +478,12 @@ class TelegramNotifier:
 
         # Check 2: Missing country/macro flag
         first_line = clean.splitlines()[0] if clean else ""
-        if not re.search(r'[\U0001F1E0-\U0001F1FF]{2}|🌐|🥇|📅|📊', first_line):
+        if not re.search(r'[\U0001F1E0-\U0001F1FF]{2}|🌐|🥇|📅|📊|🪙', first_line):
             logger.critical(f"[WATCHDOG PURGE] Post #{message_id} missing sovereign flag emoji. Auto-purging immediately!")
             self.delete_message(message_id, chat_id=target_chat)
             return False
 
-        # Check 3: Colons or ellipsis in headline
+        # Check 3: Colons or ellipsis in headline and ensure <b> tags exist
         m_head = re.search(r'<b>(.*?)</b>', raw_text, re.DOTALL)
         if m_head:
             head_txt = m_head.group(1)
@@ -483,6 +491,10 @@ class TelegramNotifier:
                 logger.critical(f"[WATCHDOG PURGE] Post #{message_id} contains colon/ellipsis in headline. Auto-purging immediately!")
                 self.delete_message(message_id, chat_id=target_chat)
                 return False
+        else:
+            logger.critical(f"[WATCHDOG PURGE] Post #{message_id} missing bold <b> tag in headline. Auto-purging immediately!")
+            self.delete_message(message_id, chat_id=target_chat)
+            return False
 
         # Check 4: Uncorrected typos & forbidden words
         typos = ['ប្រមាន', 'ធ្វើអោយ', 'ឿរ៉ង់', 'អគ្លេស', 'សហរដ្ធ', 'សេដ្ធកិច្ច', 'ធ្វើរ៉ង់', 'ធ្វើ៊ីរ៉ង់', 'កូដេន', 'លីគីឌីធី', 'ដ្ររដោន', 'តេហេឿរ៉ង់', 'សមរភូមិ្តមុខ', 'កិច្ចព្រមព្រ', 'កិច្ចព្រមព្របទឈប់បាញ់']
