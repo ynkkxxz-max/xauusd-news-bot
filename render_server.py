@@ -45,7 +45,7 @@ class HealthHandler(BaseHTTPRequestHandler):
                 "has_telegram_token": bool(os.getenv("TELEGRAM_BOT_TOKEN")),
                 "telegram_chat_id": os.getenv("TELEGRAM_CHAT_ID", ""),
                 "has_gemini_key": bool(os.getenv("GEMINI_API_KEY")),
-                "render_url": os.getenv("RENDER_EXTERNAL_URL", "https://xauusd-news-bot-jcc9.onrender.com"),
+                "render_url": os.getenv("RENDER_EXTERNAL_URL", "https://xauusd-news-bot-1-s8gh.onrender.com"),
             }
             if _bot_instance:
                 data["last_breaking_sent_ts"] = getattr(_bot_instance, "_last_breaking_sent_ts", 0)
@@ -80,7 +80,7 @@ def run_self_pinger():
     so Render Free Tier never spins down due to inactivity, while using practically ZERO bandwidth.
     Cadence: 480 seconds (8 minutes) provides a solid 7-minute safety buffer before Render's 15m timeout.
     """
-    url = os.getenv("RENDER_EXTERNAL_URL", "https://xauusd-news-bot-jcc9.onrender.com")
+    url = os.getenv("RENDER_EXTERNAL_URL", "https://xauusd-news-bot-1-s8gh.onrender.com")
 
     time.sleep(45) # Initial delay after startup
     while True:

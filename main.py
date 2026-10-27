@@ -273,7 +273,7 @@ class XAUUSDNewsAssistantBot:
             import threading
             import urllib.request
             def pinger_worker():
-                url = os.getenv("RENDER_EXTERNAL_URL", "https://xauusd-news-bot-jcc9.onrender.com")
+                url = os.getenv("RENDER_EXTERNAL_URL", "https://xauusd-news-bot-1-s8gh.onrender.com")
                 time.sleep(30)
                 while True:
                     try:
