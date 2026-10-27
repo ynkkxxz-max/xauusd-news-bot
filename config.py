@@ -19,6 +19,8 @@ SIMULATION_MODE = os.getenv("SIMULATION_MODE", "false").lower() in ("true", "1",
 # Gemini AI settings (used for natural-language Khmer market analysis)
 # NOTE: Never commit your real key. Set GEMINI_API_KEY in the .env file only.
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+GEMINI_API_KEY_2 = os.getenv("GEMINI_API_KEY_2", "").strip()
+GEMINI_KEYS_POOL = [k for k in [GEMINI_API_KEY, GEMINI_API_KEY_2] if k and k != "YOUR_GEMINI_API_KEY_HERE"]
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest").strip()
 # If true, use Gemini for analysis; otherwise fall back to the rule-based MacroAnalyzer.
 USE_GEMINI = os.getenv("USE_GEMINI", "true").lower() in ("true", "1", "yes")
@@ -32,16 +34,22 @@ USE_GEMINI = os.getenv("USE_GEMINI", "true").lower() in ("true", "1", "yes")
 GEMINI_MIN_INTERVAL = float(os.getenv("GEMINI_MIN_INTERVAL", "20"))
 GEMINI_COOLDOWN = float(os.getenv("GEMINI_COOLDOWN", "900"))
 
-# Minimum seconds between two breaking-news alerts (user spec: 1 alert per 2 hours).
-# Extra gold-relevant items arriving inside the window are held, not dropped.
-BREAKING_ALERT_MIN_GAP = float(os.getenv("BREAKING_ALERT_MIN_GAP", "7200"))
+# Minimum seconds between two breaking-news alerts (3 minutes / 180s for active, responsive channel pacing)
+# Preserves subscriber engagement; Tier-0 crises dynamically lower to 60s.
+BREAKING_ALERT_MIN_GAP = float(os.getenv("BREAKING_ALERT_MIN_GAP", "180"))
+
+# Maximum breaking news broadcasts per day (0 = Unlimited / Free broadcast per user directive)
+MAX_DAILY_BREAKING_NEWS = int(os.getenv("MAX_DAILY_BREAKING_NEWS", "0"))
+
 
 # Timezone (Cambodia Time UTC+7)
 CAMBODIA_TZ_NAME = os.getenv("TIMEZONE", "Asia/Phnom_Penh")
 CAMBODIA_TZ = pytz.timezone(CAMBODIA_TZ_NAME)
 
-# Daily Gold Price Alert Schedule (Cambodia Time)
-DAILY_PRICE_ALERT_HOUR = int(os.getenv("DAILY_PRICE_ALERT_HOUR", "7"))
+# Daily Gold Price Alert Schedule (Cambodia Time) - Twice daily (07:00 AM & 07:00 PM)
+DAILY_PRICE_MORNING_HOUR = int(os.getenv("DAILY_PRICE_MORNING_HOUR", "7"))
+DAILY_PRICE_EVENING_HOUR = int(os.getenv("DAILY_PRICE_EVENING_HOUR", "19"))
+DAILY_PRICE_ALERT_HOUR = DAILY_PRICE_MORNING_HOUR  # Backward compatibility
 DAILY_PRICE_ALERT_MINUTE = int(os.getenv("DAILY_PRICE_ALERT_MINUTE", "0"))
 
 # Database Path
@@ -65,5 +73,5 @@ DAMLUNG_TO_OZ_RATIO = GRAMS_PER_DAMLUNG / GRAMS_PER_TROY_OUNCE
 
 # Monitoring Interval timings (in seconds)
 INTERVAL_NORMAL = 60 * 60     # Mode 1: 1 hour normal checks
-INTERVAL_UPCOMING = 60 * 2     # Mode 2: 2 minutes when high-impact event is within 30m
-INTERVAL_HIGH_IMPACT = 30      # Mode 3: 30 seconds when within 5 mins or waiting for actual data
+INTERVAL_UPCOMING = 60         # Mode 2: 1 minute when high-impact event is within 30m
+INTERVAL_HIGH_IMPACT = 10      # Mode 3: 10 seconds when within 5 mins or waiting for actual data

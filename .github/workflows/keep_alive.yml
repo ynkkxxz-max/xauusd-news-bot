@@ -1,0 +1,15 @@
+name: Keep Render Alive 24/7
+
+on:
+  schedule:
+    # Run every 10 minutes (UTC) to keep Render Web Service active
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping-render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Service
+        run: |
+          curl -sS --max-time 30 https://xauusd-news-bot-jcc9.onrender.com || true

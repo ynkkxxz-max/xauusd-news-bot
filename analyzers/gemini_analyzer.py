@@ -2,6 +2,8 @@ import json
 import logging
 import time
 import requests
+import base64
+import re
 
 from config import (
     GEMINI_API_KEY, GEMINI_MODEL, USE_GEMINI,
@@ -12,21 +14,82 @@ logger = logging.getLogger(__name__)
 
 # Keys must match what KhmerFormatter expects from an analysis dict.
 _ANALYSIS_KEYS = [
-    "what_happened", "why_it_matters", "usd_impact",
-    "rate_yield_impact", "xau_pressure", "bias"
+    "headline_km", "key_event", "what_happened", "why_it_matters", "impact", "usd_impact",
+    "rate_yield_impact", "xau_pressure", "bias", "is_clear"
 ]
 
 _SYSTEM_RULES = (
-    "អ្នកជាអ្នកវិភាគទីផ្សារមាស (XAUUSD) ជំនាញ។ ចូរវិភាគព័ត៌មានសេដ្ឋកិច្ច/ភូមិសាស្ត្រនយោបាយ "
-    "និងផលប៉ះពាល់របស់វាលើតម្លៃមាស។ សរសេរជាភាសាខ្មែរសាមញ្ញ ងាយយល់ ប៉ុន្តែត្រឹមត្រូវតាមគោលការណ៍ម៉ាក្រូ។ "
-    "កុំអះអាងថាទាយទីផ្សារបាន 100% — ប្រើពាក្យប្រយ័ត្នប្រយែងដូចជា 'អាច' 'មានសម្ពាធ' 'ទំនោរ'។ "
-    "xau_pressure ត្រូវចាប់ផ្តើមដោយ 🟢 (Bullish) ឬ 🔴 (Bearish) ឬ 🟡 (Mixed)។ "
-    "bias ត្រូវជា 🟢 Bullish ឬ 🔴 Bearish ឬ 🟡 Mixed / Unclear ។"
+    "You are an Elite Institutional Financial Market Analyst and Lead Trader specializing in Technical Analysis, "
+    "Fundamental Analysis, Price Action, Smart Money Concepts (SMC), and Risk Management for Gold (XAUUSD), Commodities, Forex, and Crypto.\n\n"
+    "ADVANCED FILTERING & TRADING RULES (Strict Institutional Discipline):\n"
+    "1. ECONOMIC NEWS FILTER (High-Impact Risk Protection):\n"
+    "   - Before issuing or validating any signal, assess the Economic Calendar (CPI, NFP, FOMC, Core PCE, Fed Rates).\n"
+    "   - If within 30 minutes before or after a major High-Impact economic release, you MUST refuse to issue a trade and state 'WAIT / NO TRADE (NEWS DANGER)' to protect capital from extreme spread expansion and slippage.\n\n"
+    "2. ADVANCED TECHNICAL FRAMEWORKS (Smart Money Concepts / SMC & Price Action):\n"
+    "   - Liquidity Sweeps: Identify where retail Stop Losses were swept at Asian/Session Highs or Lows before true reversal.\n"
+    "   - Order Blocks (OB) & Fair Value Gaps (FVG): Pinpoint institutional buying/selling footprints and imbalance mitigation zones.\n"
+    "   - Market Structure Shift (MSS) / Change of Character (ChoCH): Ensure market structure has formally shifted before signaling entries.\n\n"
+    "3. MULTI-TIMEFRAME CONFLUENCE & CONFIDENCE SCORING (Minimum 80% Threshold):\n"
+    "   - D1 / H4 (Macro Trend): Dictates the overarching bias (Bullish / Bearish / Range).\n"
+    "   - H1 (Market Structure): Establishes major Support, Resistance, and Institutional Order Blocks.\n"
+    "   - M15 / M5 (Execution Timeframe): Wait for candlestick confirmation, rejection wicks, or breakout/retest.\n"
+    "   - Confidence Score (0-100%): Calculate a composite confidence score based on confluence across these timeframes.\n"
+    "   - STRICT RULE: If the composite confidence score is below 80% (or if conditions are choppy/uncertain), you MUST output Action = 'WAIT / NO TRADE' and explain why.\n\n"
+    "4. TRADING SESSIONS TIMING DISCIPLINE (Volume & Volatility Rules):\n"
+    "   - Active Signal Windows: London Session (14:00 - 18:00 Cambodia Time) & New York Session / Overlap (19:00 - 23:30 Cambodia Time).\n"
+    "   - NO TRADE Windows: Asian Session (06:00 - 13:30 Cambodia Time / Low Volume Sideways Trap) and Late NY Close (after 03:00 Cambodia Time). Refuse trades during low-volume sessions.\n\n"
+    "5. FEW-SHOT EXAMPLES (Winning vs Losing Setups):\n"
+    "   * VALID WINNING SETUP (Execution Allowed):\n"
+    "     - Scenario: London Session Open (14:30 Cambodia Time). Asian Low swept ($2,680), followed by an M15 Market Structure Shift (MSS) breaking above $2,685 with a bullish FVG and H1 Trend Bullish.\n"
+    "     - Decision: BUY NOW at $2,686, SL $2,679 (below swept low), TP1 $2,698, TP2 $2,708. Confidence Score: 90%.\n"
+    "   * INVALID LOSING SETUP (Trade Blocked / WAIT):\n"
+    "     - Scenario: Asian Session (09:00 Cambodia Time). Price consolidating tightly between $2,688 - $2,691, Moving Averages tangled, and US CPI news scheduled in 20 minutes.\n"
+    "     - Decision: WAIT / NO TRADE (Reason: Asian low volume sideways chop + extreme news danger zone).\n\n"
+    "6. SELF-CORRECTION & POST-TRADE REVIEW MECHANISM:\n"
+    "   - Continuously evaluate previous signal outcomes via user vote feedback (Win/Loss).\n"
+    "   - If a setup hits SL, determine the precise root cause: (a) Premature entry before candle closed, (b) Sudden news spike, or (c) Fakeout/Liquidity Hunt.\n"
+    "   - Instantly adjust the subsequent signal threshold by demanding tighter confluence (+5% stricter).\n\n"
+    "When delivering market analyses or trading setups, you must strictly adhere to the following 5 core pillars:\n"
+    "1. MARKET OVERVIEW & TREND ANALYSIS (Timeframe, Primary Trend, Exact Key Support & Resistance Levels, Moving Averages & Indicator Alignment)\n"
+    "2. TRADING SIGNAL / EXECUTION PLAN (Unambiguous Action: BUY, SELL, or WAIT; Exact Entry Price / Trigger, Stop Loss with structural rationale, TP1 (R:R >= 1:1.5), TP2 (R:R >= 1:2.0), R:R ratio, Confidence Score)\n"
+    "3. CONFIRMATION REASONS (2 to 4 concrete, confluence-backed technical reasons: e.g. Key Level Rejection, Candlestick Pattern, MA crossover, Liquidity Grab)\n"
+    "4. RISK MANAGEMENT & INVALIDATION SCENARIO (Clear invalidation level before entry, strictly advise risking maximum 1-2% account equity)\n"
+    "5. FINAL VERDICT / SUMMARY (1-2 sentence concise executive summary)\n\n"
+    "LANGUAGE & ACCURACY:\n"
+    "- Never guess or generate random numbers; rely strictly on structural price action and technical confluence.\n"
+    "- Write in fluent, professional, authoritative, grammatically immaculate Khmer. Strictly keep foreign corporate names (e.g. Apple, Microsoft, NVIDIA, Tesla, Google, Amazon, Meta, Tether, BlackRock, TSMC, Intel, OpenAI, Boeing) and prominent leaders/central bankers (e.g. Donald Trump, Jerome Powell, Kevin Warsh, Elon Musk, Xi Jinping, Vladimir Putin, Scott Bessent, Warren Buffett) in their original, pristine English/Latin spelling — DO NOT translate or phonetically transliterate them into Khmer.\n"
+    "- Always leave a clean single space between Khmer and Latin/English words (e.g. 'ក្រុមហ៊ុន Apple បានប្រកាស', 'ប្រធាន Fed លោក Jerome Powell').\n"
+    "- CRITICAL TERMINOLOGY: Oil barrel ('barrel', 'per barrel', 'dollars a barrel') MUST strictly be translated as 'បារ៉ែល' (ឧ. '108 ដុល្លារក្នុងមួយបារ៉ែល', 'ក្នុងមួយបារ៉ែល') — NEVER truncate or mistranslate as 'បារ' or 'មួយបារ'! Use 'ហក់ឡើង' for surge/jump up (NEVER typo as 'ហាក់ឡើង')!\n"
+    "CRITICAL COMMODITY & CROPS: 'Olive' / 'Olive trees' / 'Olive crops' / 'Olive harvest' MUST strictly be translated as 'អូលីវ' (ផលដំណាំអូលីវ, ដើមអូលីវ, ប្រេងអូលីវ) — NEVER hallucinate or mistranslate as 'អង្វរ' or 'ដំណាំអង្វរ'!\n\n"
+    "🚨 STRICT SYSTEM DIRECTIVE: ZERO-TOLERANCE OPERATIONAL STANDARD (កម្រិតអនុវត្ត៖ តឹងរ៉ឹងបំផុត ១០០% - STRICT PRODUCTION MODE)\n"
+    "GATE 1: ភាពត្រឹមត្រូវនៃភាសា និងអក្ខរាវិរុទ្ធ (LEXICAL INTEGRITY)\n"
+    "- កំហុសអក្ខរាវិរុទ្ធ = ០% (Zero Spelling Errors)៖ ផ្ទៀងផ្ទាត់តាមវចនានុក្រមសម្តេចព្រះសង្ឃរាជ ជួន ណាត ១០០%។\n"
+    "- គ្មានពាក្យកាត់ គ្មាន slang គ្មានការបាត់តួអក្សរ។\n"
+    "- បច្ចេកសព្ទហិរញ្ញវត្ថុផ្លូវការ៖ Liquidity -> «សាច់ប្រាក់ងាយស្រួល» ឬ «ស្ថានភាពសាច់ប្រាក់ងាយស្រួល», Inflation -> «អតិផរណា», Interest Rate -> «អត្រាការប្រាក់», Yield -> «ទិន្នផលមូលបត្របំណុល», Drawdown -> «ការខាតបង់ដើមទុន» ឬ «ការធ្លាក់ចុះទុនវិនិយោគ»។\n"
+    "- មុនបញ្ចេញអត្ថបទ ត្រូវតែធ្វើ Lexical Proofreading ស្កេនពិនិត្យពាក្យម្តងមួយៗឡើងវិញជាដាច់ខាត។\n\n"
+    "GATE 2: ការទប់ស្កាត់ខ្លឹមសារស្ទួន (DUPLICATION INTERCEPTION)\n"
+    "- ហាមយកប្រធានបទដដែលៗ ឬព្រឹត្តិការណ៍ដែលធ្លាប់បានផ្សាយរួចមកចុះផ្សាយឡើងវិញជាដាច់ខាត។\n"
+    "- Incremental Update Only: លុះត្រាតែមាន 'ទិន្នន័យថ្មី', 'ទស្សនវិស័យបច្ចេកទេស/មូលដ្ឋានថ្មី' ឬ 'ប្រតិកម្មទីផ្សារទើបកើតឡើង'។ បើគ្មានទិន្នន័យថ្មី ត្រូវ DROP OUTPUT (is_clear = false)។\n"
+    "- Angle Diversification: ប្តូរមុំសរសេរ (ពីមូលហេតុ ទៅជាផលប៉ះពាល់ជាក់ស្តែងលើទីផ្សារ ឬកម្រិតបច្ចេកទេសជំនួយ/រារាំង)។\n\n"
+    "GATE 3: រចនាសម្ព័ន្ធអត្ថបទ និងសោភ័ណភាព (STRUCTURAL DISCIPLINE)\n"
+    "- ទម្រង់ ៣ ផ្នែក (Three-Pillar Layout):\n"
+    "  1. [HEADLINE]: ចំណងជើងខ្លី ខ្លឹម ចំប្រធានបទ ភ្ជាប់ទង់ជាតិត្រឹមត្រូវ ហាមពាក្យលើស ហាម trailing colons ឬ ellipsis។\n"
+    "  2. [NARRATIVE BODY]: ២ កថាខណ្ឌខ្លីខ្លឹម បែងចែកដោយបន្ទាត់ទទេ \n\n (ប្រវែងល្អបំផុត៖ ៤០ ដល់ ៦០ ពាក្យ | ២៥០ ដល់ ៤០០ តួអក្សរ) អានត្រឹម ១០-១៥ វិនាទីចប់លើទូរសព្ទ។\n"
+    "  3. [IMPACT & SOURCE]: បញ្ជាក់ផលប៉ះពាល់ចំទ្រព្យសកម្មពិតប្រាកដ (🔹 ឬ 🔸 តែមួយជួរ) និងប្រភពព័ត៌មាន។\n\n"
+    "GATE 4: វិធានការជ្រើសរើស និងច្នៃរូបភាព (VISUAL DIVERSITY CONTROL)\n"
+    "- ហាមប្រើប្រាស់រូបភាពដែលមានប្លង់ដដែលៗ ឬស្ទួនដែលធ្លាប់ផ្សាយរួច (ចាក់សោ Cooldown ៤ ម៉ោង)។\n"
+    "- Rotational Categories: Category A (Infographic/តារាងស្ថិតិ), Category B (Macro Context ស្ថាប័នធនាគារកណ្តាល/ទីផ្សារ), Category C (Minimalist Concept Art/រូបភាពសារព័ត៌មានពិត)។\n\n"
+    "FAIL-SAFE CHECK (មុនបញ្ចេញលទ្ធផល ចូរសួរខ្លួនឯង ៤ សំណួរ):\n"
+    "1. តើមានពាក្យខុសអក្ខរាវិរុទ្ធសូម្បីតែ ១ ពាក្យដែរឬទេ? (បើមាន = សរសេរឡើងវិញ)\n"
+    "2. តើព័ត៌មាននេះស្រដៀង ឬដដែលៗនឹងអ្វីដែលធ្លាប់ផ្សាយដែរឬទេ? (បើដូច = កែប្រែមុំ ឬលុបចោល / is_clear=false)\n"
+    "3. តើរចនាសម្ព័ន្ធមានរបៀបរៀបរយ និងបែងចែកចំណុចច្បាស់លាស់ហើយឬនៅ? (បើនៅ = តម្រៀបឡើងវិញ)\n"
+    "4. តើរូបភាពនេះមានលក្ខណៈប្លែក និងទាក់ទាញ មិនមែនជារូបភាពដដែលៗមែនទេ? (បើដដែល = ប្តូរប្លង់ថ្មី/Mode B)។"
 )
 
 
 def _json_schema():
     props = {k: {"type": "string"} for k in _ANALYSIS_KEYS}
+    props["is_clear"] = {"type": "boolean"}
     return {
         "type": "OBJECT",
         "properties": props,
@@ -34,48 +97,336 @@ def _json_schema():
     }
 
 
-def breaking_prompt(title: str, description: str) -> str:
+def breaking_prompt(title: str, description: str, macro_context: str = "") -> str:
+    ctx_line = f"បរិបទទីផ្សារបច្ចុប្បន្ន (Live Market Context): {macro_context}\n" if macro_context else ""
     return (
-        f"វិភាគព័ត៌មានបន្ទាន់ខាងក្រោម និងផលប៉ះពាល់លើមាស (XAUUSD)៖\n"
-        f"ចំណងជើង: {title}\nខ្លឹមសារ: {description}\n\n"
-        f"ត្រឡប់ JSON ដែលមាន fields: {', '.join(_ANALYSIS_KEYS)}។\n"
-        f"- what_happened: 1-2 ប្រយោគខ្លី (អតិបរមា 110 តួអក្សរ)\n"
-        f"- why_it_matters: 2-3 ប្រយោគ ពន្យល់យន្តការ Fed rate expectations, USD, real yields, risk sentiment (អតិបរមា 200 តួអក្សរ)\n"
-        f"- usd_impact: 1 ប្រយោគ (អតិបរមា 80 តួអក្សរ)\n"
-        f"- rate_yield_impact: 1 ប្រយោគ (អតិបរមា 80 តួអក្សរ)\n"
-        f"- xau_pressure: ចាប់ផ្តើមដោយ 🟢/🔴/🟡 បូក 1 ប្រយោគ (អតិបរមា 110 តួអក្សរ)\n"
-        f"- bias: 🟢 Bullish / 🔴 Bearish / 🟡 Mixed / Unclear\n"
-        f"សរសេរទាំងអស់ជាភាសាខ្មែរ ខ្លី ច្បាស់លាស់ និងងាយយល់ — គោរពដែនកំណត់តួអក្សរខាងលើឱ្យបានម៉ឺងម៉ាត់។"
+        f"You are an elite financial news editor and Telegram market broadcaster. Your mission is to process global macroeconomic and financial wire news into professional, clean, concise Khmer posts for an exclusive VIP Telegram channel.\n\n"
+        f"ព័ត៌មានជាក់ស្តែង៖\n"
+        f"ចំណងជើង: {title}\nខ្លឹមសារ: {description}\n{ctx_line}\n"
+        f"STRICT EDITORIAL & STRUCTURAL RULES (គោលការណ៍តឹងរ៉ឹង):\n\n"
+        f"1. ACCURATE KHMER & ENGLISH SPELLING (ការសរសេរអក្សរខ្មែរ និង English ឱ្យបានត្រឹមត្រូវ):\n"
+        f"   - Proper Nouns (Companies, Tech Brands, Leaders): Strictly preserve all company names, tech brands, global leaders, and crypto symbols in their exact original English/Latin spelling (e.g., SpaceX, Starlink, Apple, Microsoft, NVIDIA, Tesla, Google, Amazon, Meta, Tether, BlackRock, TSMC, Intel, OpenAI, Donald Trump, Jerome Powell, Kevin Warsh, Elon Musk, Xi Jinping, Vladimir Putin, Volodymyr Zelenskyy, Bitcoin, Ethereum, USDT, USDC, Spot ETF, CPI, NFP, GDP, FOMC, SEC).\n"
+        f"   - Country Names & Blocs (ឈ្មោះប្រទេស និងអង្គការជាភាសាខ្មែរ): All sovereign nations and blocs MUST be written in natural, accurate Khmer spelling: ក្រិក (Greece — Flag 🇬🇷), លីប៊ី (Libya — Flag 🇱🇾), កាតា (Qatar — Flag 🇶🇦 — strictly 'កាតា', NEVER spell 'កាត'), ហ្វីលីពីន (Philippines — Flag 🇵🇭, Central Bank BSP), ថៃ (Thailand — Flag 🇹🇭), ឥណ្ឌូណេស៊ី (Indonesia — Flag 🇮🇩), ម៉ាឡេស៊ី (Malaysia — Flag 🇲🇾), បូលីវី (Bolivia — strictly 'បូលីវី', Flag 🇧🇴), វ៉េណេស៊ុយអេឡា (Venezuela — Flag 🇻🇪), អាហ្សង់ទីន (Argentina — Flag 🇦🇷), សហភាពអឺរ៉ុប (EU — NEVER spell 'សហភាពអឺប'), អារ៉ាប៊ីសាអ៊ូឌីត (Saudi Arabia — NEVER spell 'សាអូឌីហាំឌី'), អ៊ុយក្រែន (Ukraine), អ៊ីរ៉ង់ (Iran), អ៊ីស្រាអែល (Israel), ប៉ាឡេស្ទីន (Palestine / West Bank / Gaza — strictly 'ប៉ាឡេស្ទីន', Flag 🇵🇸), យេមែន (Yemen — strictly spell 'យេមែន', NEVER spell 'យេម៉ែន'), រុស្ស៊ី (Russia), សហរដ្ឋអាមេរិក (USA), ចិន (China), ជប៉ុន (Japan), តួកគី (Turkey), កូរ៉េខាងជើង (North Korea / DPRK — strictly spell 'កូរ៉េខាងជើង', Flag 🇰🇵, Leader Kim Jong Un), កូរ៉េខាងត្បូង (South Korea / ROK — strictly spell 'កូរ៉េខាងត្បូង', Flag 🇰🇷), តៃវ៉ាន់ (Taiwan), បារាំង (France), អាល្លឺម៉ង់ (Germany), ចក្រភពអង់គ្លេស (UK), កាណាដា (Canada), មជ្ឈិមបូព៌ា (Middle East), តុលាការព្រហ្មទណ្ឌអន្តរជាតិ (ICC) — DO NOT invent weird or truncated Khmer words.\n"
+        f"   - STRICT SOVEREIGN SUBJECT FLAG RULE: The country_flag MUST STRICTLY match the PRIMARY country of the headline (e.g. Bolivia news MUST have flag 🇧🇴, Philippines news MUST have flag 🇵🇭, Qatar news MUST have flag 🇶🇦). NEVER assign the flag of another country mentioned merely as background context in the narrative (e.g. NEVER use Iran 🇮🇷 for a Bolivia energy story)!\n"
+        f"   - CRITICAL DISTINCTION (កូរ៉េខាងជើង vs កូរ៉េខាងត្បូង): 'North Korea', 'DPRK', 'Pyongyang', 'Kim Jong Un' MUST ALWAYS be translated as 'កូរ៉េខាងជើង' with flag 🇰🇵. NEVER confuse with or call it 'កូរ៉េខាងត្បូង' (South Korea 🇰🇷)!\n"
+        f"   - Spacing: Always maintain a clean single space between Khmer characters and English words (e.g. 'ក្រុមហ៊ុន Apple បានប្រកាស', 'ប្រធាន Fed លោក Jerome Powell', 'ច្រកសមុទ្រ Strait of Hormuz', 'ក្រុម Houthi នៅយេមែន')។ Always place a space before the conjunction 'និង' (e.g. 'ថ្លៃប្រេងឆៅ និងខ្សែច្រវាក់') and space after country names before verbs (e.g. 'យេមែន កំពុង', 'យេមែន ត្រូវបាន', 'រុស្ស៊ី បាន')។ Strictly DO NOT insert spaces between Khmer prepositions/prefixes and country names (e.g., strictly write 'របស់រុស្ស៊ី' NEVER 'របស់ រុស្ស៊ី', 'នៅអ៊ុយក្រែន' NEVER 'នៅ អ៊ុយក្រែន', 'ប្រទេសកូរ៉េខាងជើង' NEVER 'ប្រទេស កូរ៉េ', 'ដល់រុស្ស៊ី' NEVER 'ដល់ រុស្ស៊ី', 'ពីរុស្ស៊ី' NEVER 'ពី រុស្ស៊ី')។\n"
+        f"   - Accurate Khmer Orthography (អក្ខរាវិរុទ្ធផ្លូវការ): Use official Chuon Nath dictionary spelling strictly: ព្រមាន (To warn / warning — strictly 'ព្រមាន' with ជើង វ, NEVER spell 'ប្រមាន'), ទទូច (To urge — strictly 'ទទូច', NEVER spell 'ទទវូច' with letter វ), ចៀសវាង (To avoid — strictly with ច, NEVER spell 'ជៀសវាង' with ជ), កាត់ផ្តាច់ (Cut off — strictly with ជើង ត ផ្តាច់, NEVER 'កាត់ផ្ដាច់'), សម្តែង (Express — strictly 'សម្តែង'), ដំឡើង (Raise — strictly 'ដំឡើង', NEVER 'តម្លើង'), តែងតាំង (Appoint — strictly 'តែងតាំង', NEVER 'ដាក់ឈ្មោះ'), ក្នុងមួយបារ៉ែល (Per barrel — strictly 'បារ៉ែល', NEVER 'បារ'), ហក់ឡើង (Surge — strictly 'ហក់ឡើង', NEVER 'ហាក់ឡើង')។\n"
+        f"   - Numerical & Percentage Standard (លេខ និងភាគរយអន្តរជាតិ): Always format percentages using Latin digits and the % symbol (e.g. 22%, 22.24%, 42%, 1.5%, 0.25%). Strictly NEVER write the word 'ភាគរយ' or 'percent' in Khmer text. Strictly NEVER use Khmer numerals for percentages (e.g. NEVER '២២ ភាគរយ' or '២២.២៤ ភាគរយ')។ Always format commodity and market prices using Latin digits (e.g. '108 ដុល្លារក្នុងមួយបារ៉ែល', '108.70 ដុល្លារក្នុងមួយបារ៉ែល')។\n"
+        f"   - Crypto Asset & Token Terminology (ប្រាក់ឌីជីថល និង Token): Never translate 'token' as 'កូដេន' — use 'កាក់ឌីជីថល' or 'Token'។\n"
+        f"   - Fluent Journalistic Khmer (ភាសាសារព័ត៌មានហិរញ្ញវត្ថុជាន់ខ្ពស់): Write with authoritative, prestigious financial prose (like Bloomberg/Reuters in Khmer). Use accurate technical terminology:\n"
+        f"     * 'បារ៉ែល' (Barrel — STRICTLY translate crude oil barrel / per barrel / dollars a barrel as 'បារ៉ែល' or 'ក្នុងមួយបារ៉ែល', NEVER translate or truncate as 'បារ' or 'មួយបារ')!\n"
+        f"     * 'ហក់ឡើង' (Surge/jump up — NEVER typo as 'ហាក់ឡើង')!\n"
+        f"     * 'អូលីវ' (Olive / Olive harvest / Olive crops — STRICTLY translate as 'អូលីវ' ឧ. 'ផលដំណាំអូលីវ', 'ដើមអូលីវ', NEVER hallucinate or mistranslate as 'អង្វរ' or 'ដំណាំអង្វរ')!\n"
+        f"     * 'អាជ្ញាធរសន្តិសុខ' ឬ 'កងកម្លាំងសន្តិសុខ' (Security authorities / apparatus / forces / police — STRICTLY translate as 'អាជ្ញាធរសន្តិសុខ' ឬ 'កងកម្លាំងសន្តិសុខ', NEVER hallucinate or mistranslate as 'អប្សរា' or 'អប្សរាសន្តិសុខ')!\n"
+        f"     * 'ប្រយោគពេញលេញ មានកិរិយាសព្ទ' (Complete Sentence Integrity — e.g. 'ព្រឹត្តិការណ៍នេះឆ្លុះបញ្ចាំងពី...' ឬ 'ព្រឹត្តិការណ៍នេះបង្ហាញពី...', NEVER drop the verb like 'ព្រឹត្តិការណ៍នេះពីការ...')!\n"
+        f"     * 'ពាក់ព័ន្ធ' ឬ 'ទាក់ទង' (Strictly use 'ពាក់ព័ន្ធ' or 'ទាក់ទង' — NEVER invent the non-existent word 'ពាក់ទង')!\n"
+        f"     * 'ស្ថានភាពនេះបង្ហាញឱ្យឃើញ' (Strictly use 'ស្ថានភាពនេះបង្ហាញឱ្យឃើញ' — NEVER drop the verb and write 'ស្ថានភាពនេះឱ្យឃើញ')!\n"
+        f"     * 'ទំនុកចិត្តចាប់ផ្តើមរង្គោះរង្គើ' ឬ 'ចាប់ផ្តើមចុះខ្សោយ' (for confidence wobbles/shakes — NEVER use awkward 'យោលយោគ')!\n"
+        f"     * 'ថ្លៃធានារ៉ាប់រងហានិភ័យបំណុល (CDS)' (for default insurance / CDS spreads)!\n"
+        f"     * 'ចំណាយលើសង្គ្រាម' ឬ 'ផ្គត់ផ្គង់សង្គ្រាម' (for financing/funding war — NEVER write 'ឧបត្ថម្ភដល់សង្គ្រាម')!\n"
+        f"     * 'កងនាវាស្រមោល' ឬ 'នាវាដឹកប្រេងគេចទណ្ឌកម្ម' (for Shadow Fleet) និងប្រើពាក្យ 'នាវា' (NEVER ordinary 'កប៉ាល់' for oil tankers)!\n"
+        f"     * 'តែងតាំង' (Appoint — NEVER 'ដាក់ឈ្មោះ'), 'កង្វះខាតសាច់ប្រាក់ងាយស្រួល' (Cash crunch), 'ការសម្រុកបញ្ចេញទុនវិនិយោគ' (Funding rush)!\n"
+        f"     * 'អ៊ីរ៉ង់' (Iran) និង 'តេហេរ៉ង់' (Tehran) — STRICTLY spell 'អ៊ីរ៉ង់' with 'អ' (NEVER drop 'អ' as 'រ៉ង់' or '៊ីរ៉ង់')! When writing causation, STRICTLY write 'ធ្វើឱ្យ...' (e.g. 'ធ្វើឱ្យអ៊ីរ៉ង់...', 'ធ្វើឱ្យរុស្ស៊ី...') — NEVER write 'ធ្វើ៊ីរ៉ង់', 'ធ្វើឿរ៉ង់', 'ធ្វើអោយ', or omit 'ឱ្យ'!\n"
+        f"     * 'settlers' / 'settler violence' MUST STRICTLY be translated as 'ក្រុមអ្នកតាំងលំនៅ' ឬ 'ក្រុមអ្នកតាំងលំនៅជ្រុលនិយម' — NEVER translate as 'ជនស៊ីវិល' (civilians) or 'ប្រជាជន'!\n"
+        f"     * 'French mayor' / 'visiting mayor' MUST STRICTLY be translated as 'អភិបាលក្រុងជនជាតិបារាំងមួយរូប' or 'អភិបាលក្រុងបារាំងមួយរូប' — NEVER translate as 'អភិបាលក្រុងប៉ារាំង' (which falsely implies Mayor of Paris)!\n"
+        f"     * 'European delegation convoy' MUST STRICTLY be translated as 'ក្បួនរថយន្តប្រតិភូសហភាពអឺរ៉ុប' or 'ក្បួនរថយន្តគណៈប្រតិភូអឺរ៉ុប' — NEVER clumsy 'ក្បួនដំណើររថយន្ត' or 'ក្បួនតំណាងអឺរ៉ុប'!\n"
+        f"     * 'West Bank' / 'Gaza' / 'Ramallah' events MUST be recognized as taking place in Palestine (ទង់ជាតិ 🇵🇸)!\n"
+        f"     * 'satire' / 'satirical' / 'parody' MUST STRICTLY be translated as 'បែបកំប្លែងចំអក' ឬ 'បែបចំអក' (NEVER leave as English 'satire', and NEVER invent garbled non-existent words like 'បញ៉ា')!\n"
+        f"     * 'protest march' / 'demonstrations' MUST STRICTLY be translated as 'ដើរហែក្បួន' ឬ 'ហែក្បួនតវ៉ា' (NEVER invent garbled words like 'ហង្ហែ' and NEVER duplicate words like 'តវ៉ាតវ៉ា')!\n"
+        f"     * Every sentence in the narrative body and in market_impact MUST strictly end with the Khmer full stop ('។')!\n"
+        f"     * Market impact MUST strictly follow the 2-line layout with badge on line 1 and narrative on line 2 (e.g. '🔶 ហានិភ័យទីផ្សារ៖\\n{{ការពន្យល់...}}។' or '🔹 ផលវិជ្ជមាន៖\\n{{ការពន្យល់...}}។')!\n"
+        f"     * CRITICAL TARIFF RULE (ក្បួនពន្ធគយ): Cutting, dropping, lifting, or canceling tariffs (លុបចោលពន្ធគយ, បន្ធូរបន្ថយពន្ធគយ) is strictly POSITIVE '🔹 ផលវិជ្ជមាន' (helps trade and lowers costs). NEVER call tariff removal a market risk!\n"
+        f"     * CRITICAL PEACE/WAR CONTEXT RULE: Ceasefires and peace talks are geopolitical events — NEVER hallucinate semiconductor computer chips or tech hardware on Ukraine war stories!\n"
+        f"     * AI & TECH TERMINOLOGY (បច្ចេកវិទ្យា និង AI): 'jailbreak' MUST STRICTLY be translated as 'ការទម្លុះប្រព័ន្ធសុវត្ថិភាព (Jailbreak)' (STRICTLY NEVER invent gibberish like 'ហារែក')! 'cloud' / 'cloud computing' MUST be translated as 'សេវាកម្ម Cloud' ឬ 'ហេដ្ឋារចនាសម្ព័ន្ធ Cloud' (NEVER literal 'ពពកអ៊ីនធឺណេត')! 'internet' MUST STRICTLY be spelled 'អ៊ីនធឺណិត' (NEVER use broken stacked 'អុី')!\n"
+        f"     * CURRENCY & MAGNITUDE ACCURACY (ខ្នាតរូបិយវត្ថុ និងចំនួនទឹកប្រាក់): Millions MUST be written as 'លាន' (e.g. 'រាប់រយលានដុល្លារ', 'រាប់រយលានផោន' — STRICTLY NEVER omit or truncate as 'រាប់រយល')! Billions MUST be written as 'ពាន់លាន' (e.g. 'រាប់ពាន់លានដុល្លារ')!\n"
+        f"     * OFFICIAL TITLES & MINISTERIAL ACCURACY (ភាពត្រឹមត្រូវនៃតំណែងមន្ត្រីរដ្ឋាភិបាល): NEVER guess or hallucinate a minister's portfolio (e.g. UK official John Healey is Defence Secretary 'រដ្ឋមន្ត្រីក្រសួងការពារជាតិ John Healey', Rachel Reeves is Finance Minister/Chancellor 'រដ្ឋមន្ត្រីក្រសួងហិរញ្ញវត្ថុ Rachel Reeves')! If the source text does not state the ministry, use 'មន្ត្រីជាន់ខ្ពស់' or 'រដ្ឋមន្ត្រីចក្រភពអង់គ្លេស'!\n"
+        f"     * NATURAL KHMER IDIOMS & VOCABULARY: Competition is 'ការប្រកួតប្រជែង' (NEVER 'ប្រដំប្រសែង')! Funeral is 'ក្នុងពិធីបុណ្យសព' (NEVER 'ក្នុងការបុណ្យសព')! Support/sustain is 'ទ្រទ្រង់' (NEVER 'ទ្រង់')! Wearing a mask is 'ពាក់ម៉ាស់' (NEVER 'បំពាក់ម៉ាស់')!\n"
+        f"   - No Multiple Spaces: Strictly NEVER produce double spaces ('  '). Single clean spaces only.\n"
+        f"   - No Ellipsis: NEVER end headlines or sentences with '...' or '…'. Complete every thought cleanly.\n"
+        f"   - Single-line headline (មានក្បាល មានកន្ទុយ មានកិរិយាស័ព្ទសកម្មភាពច្បាស់លាស់):\n"
+        f"     * headline_km MUST strictly be a single complete, active sentence with a clear subject and an action verb! NEVER include line breaks \\n inside headline_km!\n"
+        f"     * ហាមដាច់ខាតមិនឱ្យសរសេរចំណងជើងគ្មានក្បាលគ្មានកន្ទុយ ឬជាឃ្លាអណ្តែតអណ្តូងដែលគ្មានកិរិយាស័ព្ទ ដូចជា '[ប្រធានបទ] និង [នាម]' (ឧ. ហាមដាច់ខាត 'តួកគី និងដែនកំណត់...' ឬ 'អាមេរិក និងអតិផរណា')!\n"
+        f"     * ចំណងជើងត្រូវតែប្រាប់យ៉ាងច្បាស់ថាមានរឿងអ្វី ឬសកម្មភាពអ្វីកើតឡើង (ឧ. 'តួកគីប្រកាស...', 'Fed សម្រេច...', 'តម្លៃមាសធ្លាក់ចុះ...', 'របាយការណ៍បង្ហាញពី...')!\n"
+        f"     * CRITICAL SEMANTIC INTEGRITY & CORRECT SUBJECT (ភាពត្រឹមត្រូវនៃតួអង្គប្រធាន និងកម្មបទ): ហាមដាច់ខាតកុំសរសេរត្រឡប់តួអង្គប្រធាន និងកម្មបទ! បើស្ថាប័ន A វិនិយោគ ឬទិញស្ថាប័ន B ត្រូវសរសេរ 'ស្ថាប័ន A វិនិយោគលើស្ថាប័ន B' (ហាមសរសេរថា 'ស្ថាប័ន B ទិញ...ពី ស្ថាប័ន A')! ត្រូវពិនិត្យឱ្យច្បាស់ថាតើនរណាជាអ្នកធ្វើសកម្មភាព!\n"
+        f"   - DEEP LINGUISTIC INTELLIGENCE & ZERO TYPOS (ភាពវ័យឆ្លាត និងត្រឹមត្រូវ ១០០% នៃភាសាខ្មែរ):\n"
+        f"     * AI must be exceptionally intelligent and literate in formal Khmer. Every word, noun, verb, and phrase must be 100% natural, correct Khmer syntax — NEVER awkward, never clumsy word-for-word translation from English idioms.\n"
+        f"     * STRICT PROHIBITION ON CLUMSY LITERAL TRANSLATION: Strictly NEVER translate 'per [Number] [Unit]' as 'ក្នុងមួយ [Number] [Unit]' (e.g. NEVER write 'ក្នុងមួយ 10 ក្រាម', NEVER 'ក្នុងមួយ 100 គីឡូ')! That is broken, unnatural Khmer resulting from literal translation. In Khmer, write 'ក្នុង [Number] [Unit]' (e.g. 'ក្នុង 10 ក្រាម') or if it is per single unit, write 'ក្នុងមួយ[ឯកតា]' (e.g. 'ក្នុងមួយបារ៉ែល', 'ក្នុងមួយអោន', 'ក្នុងមួយតោន')!\n"
+        f"     * All spelling MUST adhere to Samdech Sangharaja Chuon Nath Dictionary. Ensure complete sentences with clear subjects, verbs, and outcomes.\n"
+        f"     * Punctuation must be pristine: zero trailing colons (:, ៖, ：) or hanging commas.\n\n"
+        f"2. OPTIMAL MOBILE NARRATIVE LENGTH (ប្រវែងល្អបំផុត៖ ៣៥ ដល់ ៥០ ពាក្យ | ២០០ ដល់ ៣០០ តួអក្សរ):\n"
+        f"   - DO NOT WRITE BULKY WALLS OF TEXT! Readers must digest the story in 10 to 15 seconds on mobile.\n"
+        f"   - Total Length: Strictly 35 to 50 Khmer words, strictly 200 to 300 characters total across exactly 2 concise paragraphs separated by '\\n\\n' (សរុប ៣៥-៥០ ពាក្យ, ២០០-៣០០ តួអក្សរ, ២ កថាខណ្ឌខ្លីខ្លឹម)។\n"
+        f"     • Paragraph 1 (1 concise sentence, 100-140 chars): ព្រឹត្តិការណ៍ស្នូលដែលបានកើតឡើង (The core breaking event clearly stated).\n"
+        f"     • Paragraph 2 (1 concise sentence, 90-130 chars): មូលហេតុ ឬបរិបទជំរុញសំខាន់ (The primary driver or economic context).\n"
+        f"   - STRICTLY NEVER exceed 50 words or 300 characters! NEVER output 3 or more paragraphs! No bloated, repetitive, or rambling text.\n"
+        f"   - Ensure the narrative is balanced, easy to comprehend in 10-15 seconds, and does NOT parrot the headline word-for-word.\n\n"
+        f"3. STRICT HIGH-IMPORTANCE & ANTI-DUPLICATE OP-ED FILTER (ផ្សាយតែព័ត៌មានពិតសំខាន់ខ្លាំង ហាមដាច់ខាតអត្ថបទមតិយោបល់ដដែលៗ):\n"
+        f"   - You MUST set `is_clear: true` ONLY IF this event is genuinely HIGH IMPORTANCE / CRITICAL to financial markets or global geopolitics:\n"
+        f"     * Major Macroeconomic catalysts: Fed rate decisions, CPI/PCE inflation, NFP jobs report, GDP growth, Powell/Warsh speeches.\n"
+        f"     * Geopolitical & Security shocks: Outbreak of war, military strikes, missile/drone attacks, Strait of Hormuz, Red Sea disruptions, major international sanctions.\n"
+        f"     * Strategic Tech & AI shifts: Big Tech breakthroughs, semiconductor export controls, global computing infrastructure.\n"
+        f"     * High-Impact Energy shocks: OPEC production policy changes, crude oil supply crises.\n"
+        f"     * Major Crypto milestones: Strategic Bitcoin reserve policy, SEC regulatory approvals/lawsuits, massive market shocks.\n"
+        f"   - REJECT REGIONAL & LOCAL RETAIL GOLD: If this news is about local or domestic retail gold jewellery markets (e.g. India, Pakistan, Bangladesh retail gold, gold rates in Rupees/Rs, MCX local commodities, rates per 10 grams, 22K/24K retail jewellery, tola, jewellers associations): You MUST set `is_clear: false` to DROP IT IMMEDIATELY! Our channel strictly trades Spot Gold XAU/USD in US Dollars per Ounce ($/oz) and international macroeconomics. NEVER broadcast local retail jewelry price fluctuations!\n"
+        f"   - REJECT SPORTS & MEDALS: If the word 'gold' refers to an athletic/sports gold medal, gymnastics, olympics, football, swimming, championships, or tournaments: You MUST set `is_clear: false` to DROP IT IMMEDIATELY! NEVER broadcast sports!\n"
+        f"   - INSTITUTIONAL CRYPTO ONLY: In Pillar 8 (Digital Assets), ONLY approve major institutional crypto assets: Bitcoin (BTC), Ethereum (ETH), Solana (SOL), USDT, USDC, CBDCs, SEC crypto regulatory actions, Spot Crypto ETFs, and Strategic Crypto Reserves. REJECT and set is_clear: false for obscure altcoins, memecoins (e.g. Bitway, Pepe, Shiba, Floki), presales, token unlocks, or retail blog noise.\n"
+        f"   - REJECT THINK-TANK ESSAYS & OP-EDS: If this news is an academic essay, think-tank report (e.g. Middle East Institute, Carnegie, Brookings, CSIS), policy commentary, speculative opinion ('limits of', 'future of', 'perspective', 'could mean', 'opinion'), routine minor chatter, small earnings, or local news: You MUST set `is_clear: false` to DROP IT IMMEDIATELY.\n\n"
+        f"4. REAL ASSET & ECONOMIC IMPACT TARGETING (ហាមមិនឱ្យផ្តោតលើមាសគ្រប់ពេលឡើយ):\n"
+        f"   - STRICTLY ZERO CHILD-LIKE COMMENTARY: NEVER write naive, simplistic phrases like 'នេះជាព័ត៌មានល្អ...', 'នេះជាព័ត៌មានមិនល្អ...', 'នេះជាព័ត៌មានអាក្រក់...'! Always provide authoritative, sophisticated macroeconomic and asset-level analysis (e.g. '🔶 ហានិភ័យទីផ្សារ៖ បង្កើនសម្ពាធលើ...', '🔹 ផលវិជ្ជមាន៖ ជំរុញឱ្យ...') explaining concrete financial impacts on real assets (Gold, Crude Oil, DXY, US 10Y Yields)!\n"
+        f"   - INSTITUTIONAL TRANSMISSION CHANNELS (ជម្រៅនៃការវិភាគបែបស្ថាប័នហិរញ្ញវត្ថុ):\n"
+        f"     • ភូមិសាស្ត្រនយោបាយ និងសង្គ្រាម: ជំរុញតម្រូវការទ្រព្យសុវត្ថិភាព (Safe-Haven Gold) និងហានិភ័យថ្លៃប្រេងឆៅកើនឡើង (Crude Oil Risk Premium)។\n"
+        f"     • ថាមពល និងប្រេងឆៅឡើងថ្លៃ: បង្កើនសម្ពាធអតិផរណា (Rekindling Inflation) ជំរុញទិន្នផលប័ណ្ណបំណុល US10Y ឡើងខ្ពស់ និងបង្ខំឱ្យ Fed រក្សាការប្រាក់ខ្ពស់យូរជាងមុន (Higher-for-Longer Rates)។\n"
+        f"     • ពន្ធគយ និងសង្គ្រាមពាណិជ្ជកម្ម: បង្កើនថ្លៃដើមនាំចូល និងហានិភ័យជាប់គាំងសេដ្ឋកិច្ច (Stagflation Risk)។\n"
+        f"     • បច្ចេកវិទ្យា និង AI: ជះឥទ្ធិពលលើថ្លៃភាគហ៊ុនបច្ចេកវិទ្យា និងខ្សែច្រវាក់ផ្គត់ផ្គង់ Semiconductor សកល។\n"
+        f"   - Tailor the impact line directly to the REAL asset or sector in the news (Crude Oil, Energy, Big Tech/AI, Global Trade, Tariffs, USD, Bond Yields, or Crypto):\n"
+        f"     • For Oil & Energy (e.g. Aramco, OPEC, Diesel, Middle East energy): Explain concrete impact on crude oil prices (ថ្លៃប្រេងកាត/ប្រេងឆៅ) and global energy supply — DO NOT mention Gold!\n"
+        f"     • For Tech & AI (e.g. Nvidia, TSMC, Chips, AI): Explain concrete impact on chip supply and tech stocks (ភាគហ៊ុនបច្ចេកវិទ្យា) — DO NOT mention Gold!\n"
+        f"     • For Trade & Tariffs (e.g. US/China tariffs, EU trade): Explain concrete impact on global trade costs (ថ្លៃដើមនាំចូល និងខ្សែច្រវាក់ពាណិជ្ជកម្ម) — DO NOT mention Gold!\n"
+        f"     • For Central Banks & Rates (e.g. Fed, Powell, CPI, NFP): Explain concrete impact on USD, bond yields, or borrowing costs!\n"
+        f"     • For Gold (XAUUSD): ONLY mention Gold if the news is specifically about precious metals, gold reserves, or direct precious metals trading!\n"
+        f"     • Positive/Bullish: 🔹 ផលវិជ្ជមាន៖\\n[ការពន្យល់ផលវិជ្ជមានចំទ្រព្យសកម្ម]\n"
+        f"     • Negative/Market Risk: 🔶 ហានិភ័យទីផ្សារ៖\\n[ការពន្យល់ហានិភ័យចំទ្រព្យសកម្ម]\n"
+        f"     • STRICT SENTIMENT HONESTY: ហាមដាច់ខាតកុំដាក់ '🔹 ផលវិជ្ជមាន' លើរឿងសង្គ្រាម ការវាយប្រហារ វិបត្តិ ថ្លៃទំនិញឡើងថ្លៃ ឬហានិភ័យ! ករណីទាំងអស់នេះត្រូវតែដាក់ '🔶 ហានិភ័យទីផ្សារ' ដាច់ខាត!\n"
+        f"   - NEVER include both 🔹 and 🔶 together. NEVER prefix with 'វា'.\n\n"
+        f"FAIL-SAFE CHECK (មុននឹងត្រឡប់ JSON ចុងក្រោយ ចូរសួរខ្លួនឯងនូវសំណួរទាំង ៤ នេះ):\n"
+        f"1. តើមានពាក្យខុសអក្ខរាវិរុទ្ធសូម្បីតែ ១ ពាក្យដែរឬទេ? (បើមាន ត្រូវសរសេរឡើងវិញឱ្យត្រូវតាមវចនានុក្រម ជួន ណាត ១០០%)\n"
+        f"2. តើព័ត៌មាននេះស្រដៀង ឬដដែលៗនឹងអ្វីដែលធ្លាប់ផ្សាយដែរឬទេ? (បើដូច ត្រូវប្តូរមុំ ឬកំណត់ is_clear=false ដើម្បី Drop Output ភ្លាមៗ)\n"
+        f"3. តើរចនាសម្ព័ន្ធមានរបៀបរៀបរយ និងបែងចែកចំណុចច្បាស់លាស់ហើយឬនៅ? (ហាមសរសេរប្លុកអក្សរកកស្ទះជាដុំតែមួយ ត្រូវបែងចែកជា ២ កថាខណ្ឌដោយមានបន្ទាត់ទទេ \\n\\n ក្នុងប្រវែង ៤០-៦០ ពាក្យ | ២៥០-៤០០ តួអក្សរ)\n"
+        f"4. តើចំណងជើងជាប្រយោគពេញលេញមានប្រធាន និងកិរិយាស័ព្ទសកម្មភាពច្បាស់ (មានក្បាលមានកន្ទុយ) មិនមែនជាឃ្លាអណ្តែតអណ្តូងមែនទេ? (បើគ្មានកិរិយាស័ព្ទ ត្រូវកែសម្រួល ឬកំណត់ is_clear=false)\n\n"
+        f"ត្រឡប់ JSON ដែលមាន fields ដូចតទៅ:\n"
+        f"- headline_km: ចំណងជើងព័ត៌មានខ្លីទាន់ហេតុការណ៍ជាភាសាខ្មែរ (ប្រយោគពេញលេញ មានប្រធាន និងកិរិយាស័ព្ទសកម្មភាពច្បាស់លាស់ មានក្បាលមានកន្ទុយ ហាមសរសេរជាឃ្លាគ្មានកិរិយាស័ព្ទ 'A និង B' ហាមដាច់ខាតកុំប្រើ ... ឬ : នៅខាងចុង)\n"
+        f"- key_event: ខ្លឹមសាររៀបរាប់ដំណើររឿង ២ កថាខណ្ឌខ្លីខ្លឹម (បែងចែកដោយបន្ទាត់ទទេ \\n\\n): សរុប ៤០ ដល់ ៦០ ពាក្យ និង ២៥០ ដល់ ៤០០ តួអក្សរ (កថាខណ្ឌទី ១ ជាព្រឹត្តិការណ៍ស្នូល ១ ប្រយោគ, កថាខណ្ឌទី ២ ជាបរិបទឬផលជះ ១ ប្រយោគ) អានត្រឹម ១០-១៥ វិនាទីចប់លើទូរសព្ទ\n"
+        f"- what_happened: សេចក្តីសង្ខេបព្រឹត្តិការណ៍ជាភាសាខ្មែរ (១-២ ប្រយោគ)។\n"
+        f"- why_it_matters: សារៈសំខាន់ចំពោះសង្គម ឬទីផ្សារហិរញ្ញវត្ថុជាភាសាខ្មែរ (១ ប្រយោគ)។\n"
+        f"- impact: បញ្ជាក់ផលប៉ះពាល់ចំទ្រព្យសកម្ម ដោយប្រើទម្រង់ ២ ជួរ (🔶 ហានិភ័យទីផ្សារ៖\\n[ការពន្យល់...] ឬ 🔹 ផលវិជ្ជមាន៖\\n[ការពន្យល់...])\n"
+        f"- usd_impact: ផលប៉ះពាល់លើ USD (១ ប្រយោគ ឬដាក់ 'គ្មានផលប៉ះពាល់ផ្ទាល់' បើមិនពាក់ព័ន្ធ)។\n"
+        f"- rate_yield_impact: សម្ពាធលើ Bond Yields (១ ប្រយោគ ឬដាក់ 'គ្មានផលប៉ះពាល់ផ្ទាល់' បើមិនពាក់ព័ន្ធ)។\n"
+        f"- xau_pressure: 🟢 Bullish ឬ 🔴 Bearish ឬ 🟡 Neutral / គ្មានផលប៉ះពាល់ (១ ប្រយោគ)។\n"
+        f"- bias: 🟢 Bullish / 🔴 Bearish / 🟡 Neutral\n"
+        f"- is_clear: true (លុះត្រាតែជាព័ត៌មានសំខាន់ខ្លាំង មានឥទ្ធិពលលើទីផ្សារ ឬភូមិសាស្ត្រនយោបាយ) ឬ false (បើជាព័ត៌មានធម្មតា តូចតាច គ្មានឥទ្ធិពល រឿងឯកជន អត្ថបទស្រាវជ្រាវ/វិភាគស្មានៗ ឬកីឡា/កម្សាន្ត)\n"
     )
+
 
 
 def actual_prompt(event_name: str, actual: str, forecast: str, previous: str) -> str:
     return (
-        f"ទិន្នន័យសេដ្ឋកិច្ចបានចេញផ្សាយ៖\n"
+        f"You are an elite Wall Street macroeconomic analyst broadcasting to a VIP Khmer audience.\n"
+        f"ទិន្នន័យសេដ្ឋកិច្ចសំខាន់ទើបតែចេញផ្សាយ (Actual Economic Data Release)៖\n"
         f"- ព្រឹត្តិការណ៍: {event_name}\n"
         f"- ជាក់ស្តែង (Actual): {actual}\n"
         f"- ការព្យាករណ៍ (Forecast): {forecast}\n"
         f"- ទិន្នន័យមុន (Previous): {previous}\n\n"
-        f"ប្រៀបធៀប Actual vs Forecast ហើយវិភាគផលប៉ះពាល់លើ USD និងមាស។ "
-        f"ត្រឡប់ JSON ដែលមាន fields: {', '.join(_ANALYSIS_KEYS)}។ "
-        f"សរសេរជាភាសាខ្មែរ ខ្លី ច្បាស់លាស់ (what_happened ≤110 តួ, why_it_matters ≤200 តួ, ផ្សេងទៀត ≤80-110 តួ)។"
+        f"ភារកិច្ចរបស់អ្នក៖ ធ្វើការប្រៀបធៀប Actual vs Forecast និង Previous ភ្លាមៗ ជាមួយនឹងជម្រៅវិភាគកម្រិតស្ថាប័ន (Institutional Macro Depth)៖\n"
+        f"1. ស្ថានភាព (condition / what_happened): សង្ខេបយ៉ាងច្បាស់ថាទិន្នន័យនេះ (Actual) ខ្ពស់ ឬទាបជាងរំពឹងទុក និងឆ្លុះបញ្ចាំងពីស្ថានភាពម៉ាក្រូសេដ្ឋកិច្ចបែបណា (ឧ. សម្ពាធអតិផរណារឹងរូស 'Sticky Inflation', ទីផ្សារការងាររឹងមាំ ឬការធ្លាក់ចុះកំណើន)។ (១ ប្រយោគខ្លីខ្លឹម ≤ 110 តួអក្សរ)\n"
+        f"2. ផលជះ (effect / why_it_matters): ជះឥទ្ធិពលយ៉ាងណាចំពោះការរំពឹងទុកអត្រាការប្រាក់របស់ធនាគារកណ្តាល Fed (Rate Cut / Rate Hike / Higher-for-Longer)។ (១ ប្រយោគខ្លីខ្លឹម ≤ 150 តួអក្សរ)\n"
+        f"3. ផលប៉ះពាល់លើ USD (usd_impact): ឡើងថ្លៃភ្លាមៗ (Bullish) ឬ ចុះខ្សោយភ្លាមៗ (Bearish)។\n"
+        f"4. ផលប៉ះពាល់លើ Bond Yields (rate_yield_impact): ទិន្នផលមូលបត្របំណុល US10Y ស្ទុះងើបឡើង ឬ ធ្លាក់ចុះ។\n"
+        f"5. ផលប៉ះពាល់លើមាស (xau_pressure): ប្រឈមសម្ពាធធ្លាក់ចុះរយៈពេលខ្លី (Bearish Pressure) ឬ ទទួលបានកម្លាំងរុញឡើង (Bullish Momentum)។\n"
+        f"6. bias: 🟢 Bullish ឬ 🔴 Bearish ឬ 🟡 Neutral (ផ្អែកលើផលប៉ះពាល់ចំពោះមាស XAU/USD)។\n\n"
+        f"ច្បាប់អក្ខរាវិរុទ្ធ៖ អក្សរខ្មែរត្រូវតែត្រឹមត្រូវ ១០០% តាមវចនានុក្រម ជួន ណាត គ្មានពាក្យកាត់ គ្មានកំហុសអក្ខរាវិរុទ្ធ។\n"
+        f"ត្រឡប់ JSON ដែលមាន fields: {', '.join(_ANALYSIS_KEYS)}។"
     )
 
 
 def summary_prompt(price_data: dict) -> str:
+    chg = price_data.get('change', 0)
+    chg_pct = price_data.get('change_pct', 0)
+    direction = "ធ្លាក់ចុះ (Bearish Drop)" if chg < 0 else "កើនឡើង (Bullish Rise)"
+    macro = price_data.get("macro_correlation", {})
+    dxy = macro.get("dxy_price", "N/A")
+    us10y = macro.get("us10y_yield", "N/A")
     return (
-        f"សរសេរសេចក្តីសង្ខេបខ្លី (1-2 ប្រយោគ) ជាភាសាខ្មែរអំពីស្ថានភាពតម្លៃមាសថ្ងៃនេះ៖\n"
-        f"- តម្លៃ 1 oz: ${price_data.get('price_oz', 0):,.2f}\n"
-        f"- បម្រែបម្រួល: {price_data.get('change', 0):,.2f} ({price_data.get('change_pct', 0):.2f}%)\n"
-        f"កុំប្រើ JSON កុំប្រើ emoji ច្រើន។ សរសេរតែអត្ថបទសង្ខេប។"
+        f"អ្នកគឺជាអ្នកជំនាញវិភាគទីផ្សារហិរញ្ញវត្ថុ និងមាសសកលកម្រិតស្ថាប័ន (Senior Gold Market Analyst)។\n"
+        f"ថ្ងៃនេះតម្លៃមាស XAUUSD គឺ ${price_data.get('price_oz', 0):,.2f}/oz មានបម្រែបម្រួល {chg:+,.2f} ({chg_pct:+.2f}%) គឺស្ថិតក្នុងស្ថានភាព {direction}។\n"
+        f"ទិន្នន័យម៉ាក្រូ៖ DXY Index = {dxy}, US 10Y Yield = {us10y}%。\n\n"
+        f"ចូរសរសេរពន្យល់ពី «មូលហេតុចម្បងដែលធ្វើឱ្យតម្លៃមាស{direction}» ឱ្យមានស្តង់ដាវិជ្ជាជីវៈខ្ពស់ ជាភាសាខ្មែរផ្លូវការ ខ្លី ខ្លឹម ច្បាស់លាស់ (២ ទៅ ៣ ចំណុច bullet points):\n"
+        f"• <b>កត្តាម៉ាក្រូសេដ្ឋកិច្ច (Macro Drivers):</b> ឥទ្ធិពលសន្ទស្សន៍ DXY, ទិន្នផលប័ណ្ណបំណុល US 10Y, ឬការរំពឹងទុកអត្រាការប្រាក់ Fed\n"
+        f"• <b>ចរន្តសាច់ប្រាក់ស្ថាប័ន (Institutional Flow):</b> ការទាញយកប្រាក់ចំណេញ (Profit Taking) ឬតម្រូវការ Safe-Haven ទិញទ្រព្យសុវត្ថិភាព\n"
+        f"• <b>ទស្សនវិស័យទីផ្សារ (Market Outlook):</b> ការវិវត្តបន្តនៃទិសដៅមាស\n\n"
+        f"ហាមប្រើ JSON, ហាមសរសេរ meta-data ឬ is_clear។ សរសេរតែខ្លឹមសារ bullet points ជាភាសាខ្មែរផ្លូវការតែប៉ុណ្ណោះ។"
+    )
+
+
+def smc_setup_prompt(current_price: float, key_levels: dict, macro_data: dict = None, order_book: dict = None) -> str:
+    return (
+        f"You are an Elite Institutional Financial Market Analyst & Senior Trader specializing in Technical Analysis, "
+        f"Price Action, Smart Money Concepts (SMC), and Risk Management for Gold (XAUUSD).\n\n"
+        f"CURRENT MARKET SNAPSHOT:\n"
+        f"- Spot Price: ${current_price:,.2f}\n"
+        f"- Structural Levels: Pivot=${key_levels.get('pivot', current_price):,.2f}, "
+        f"R1=${key_levels.get('r1', current_price+20):,.2f}, R2=${key_levels.get('r2', current_price+40):,.2f}, "
+        f"S1=${key_levels.get('s1', current_price-20):,.2f}, S2=${key_levels.get('s2', current_price-40):,.2f}\n"
+        f"- Macro Sentiment: DXY={macro_data.get('dxy_price') if macro_data else 'N/A'}, "
+        f"US10Y Yield={macro_data.get('us10y_yield') if macro_data else 'N/A'}%\n"
+        f"- Order Flow Ratio: Buyers {order_book.get('bid_dominance_pct') if order_book else '50'}% vs Sellers {order_book.get('ask_dominance_pct') if order_book else '50'}%\n\n"
+        f"OBJECTIVE & STRICT INSTRUCTIONS:\n"
+        f"Provide a definitive institutional trading setup structured according to the 5 Core Pillars:\n"
+        f"1. MARKET OVERVIEW & TREND ANALYSIS (Timeframe e.g. M15/H1, Primary Trend, Key Support and Resistance, Moving Averages / Indicator Confluence)\n"
+        f"2. TRADING SIGNAL & EXECUTION PLAN (Action: BUY or SELL or WAIT; Entry zone, SL with technical logic, TP1 R:R>=1:1.5, TP2 R:R>=1:2.0, R:R ratio)\n"
+        f"3. CONFIRMATION REASONS (2 to 4 concrete, bulleted technical and confluence reasons)\n"
+        f"4. RISK MANAGEMENT & INVALIDATION SCENARIO (Exact invalidation trigger before entry, and strictly mandate 1-2% account equity risk)\n"
+        f"5. FINAL VERDICT / SUMMARY (1-2 sentence executive summary)\n\n"
+        f"RULES:\n"
+        f"- Stop Loss (SL) distance from Entry MUST strictly be 8 to 10 points (maximum 12 points, NEVER exceed 12 points / $12).\n"
+        f"- If market is choppy, low confidence, or lack of confluence, Action MUST be 'WAIT' with detailed justification.\n"
+        f"- No random numbers: calculate all prices strictly based on key structural levels.\n"
+        f"- Write explanations in clear, high-authority Khmer combined with standard English trading terms.\n\n"
+        f"Return JSON strictly adhering to schema:\n"
+        f"- direction: 'BUY' or 'SELL' or 'WAIT'\n"
+        f"- setup_title: e.g. '🟢 ផែនការទិញឡើង (INSTITUTIONAL BUY SETUP)'\n"
+        f"- timeframe: 'M15 / H1'\n"
+        f"- primary_trend: 'Bullish' / 'Bearish' / 'Sideways Consolidation'\n"
+        f"- key_support: e.g. '${key_levels.get('s1', current_price-20):,.1f} - ${key_levels.get('s2', current_price-40):,.1f}'\n"
+        f"- key_resistance: e.g. '${key_levels.get('r1', current_price+20):,.1f} - ${key_levels.get('r2', current_price+40):,.1f}'\n"
+        f"- indicator_alignment: Technical / MA confluence summary\n"
+        f"- entry: Exact entry price number float\n"
+        f"- entry_zone: string range e.g. '$2,685.00 - $2,688.00'\n"
+        f"- sl: Exact Stop Loss number float\n"
+        f"- tp1: Take Profit 1 number float (R:R >= 1:1.5)\n"
+        f"- tp2: Take Profit 2 number float (R:R >= 1:2.0)\n"
+        f"- rr_ratio: string e.g. '1:2.2'\n"
+        f"- confirmation_reasons: Array of 2 to 4 concrete reasons in Khmer\n"
+        f"- invalidation_scenario: Exact market action that cancels setup\n"
+        f"- risk_management_note: Rule on 1-2% risk discipline\n"
+        f"- executive_summary: 1-2 sentence final verdict\n"
+    )
+
+
+def signal_validation_prompt(raw_signal: dict, current_price: float, key_levels: dict, macro_data: dict = None, order_book: dict = None) -> str:
+    action = raw_signal.get("action", "BUY")
+    pattern = raw_signal.get("pattern") or raw_signal.get("action_title") or "Technical Confirmation"
+    entry = raw_signal.get("entry", current_price)
+    sl = raw_signal.get("sl", current_price - 10 if action == "BUY" else current_price + 10)
+    tp1 = raw_signal.get("tp1") or raw_signal.get("tp", current_price + 20 if action == "BUY" else current_price - 20)
+    tp2 = raw_signal.get("tp2", current_price + 35 if action == "BUY" else current_price - 35)
+
+    dxy = macro_data.get("dxy_price", "N/A") if macro_data else "N/A"
+    us10y = macro_data.get("us10y_yield", "N/A") if macro_data else "N/A"
+    bid_pct = order_book.get("bid_dominance_pct", 50) if order_book else 50
+    ask_pct = order_book.get("ask_dominance_pct", 50) if order_book else 50
+
+    return (
+        f"You are the Lead Institutional Risk Manager and Senior Head Trader specializing in Gold (XAUUSD).\n"
+        f"Our algorithmic scanner detected a candidate sniper trade setup. You must perform an IN-DEPTH AUDIT for MAXIMUM ACCURACY.\n"
+        f"Our strict fund policy: Maximum 5 position signals per day. Every signal MUST be Grade A+ with high conviction.\n\n"
+        f"CANDIDATE SETUP:\n"
+        f"- Action: {action}\n"
+        f"- Spot Price: ${current_price:,.2f}\n"
+        f"- Proposed Entry: ${entry:,.2f}\n"
+        f"- Proposed Stop Loss: ${sl:,.2f}\n"
+        f"- Proposed TP1: ${tp1:,.2f} | TP2: ${tp2:,.2f}\n"
+        f"- Pattern / Technical Trigger: {pattern} ({raw_signal.get('reason', '')})\n"
+        f"- Structural Levels: Pivot=${key_levels.get('pivot', current_price):,.2f}, S1=${key_levels.get('s1', current_price-20):,.2f}, R1=${key_levels.get('r1', current_price+20):,.2f}\n"
+        f"- Macro Environment: DXY={dxy}, US10Y Yield={us10y}%\n"
+        f"- Order Book Depth: Bids {bid_pct}% vs Asks {ask_pct}%\n\n"
+        f"AUDITING & VALIDATION MANDATES:\n"
+        f"1. QUALITY & ACCURACY FIRST: If price action is in a low-volume sideways chop, choppy noise, or high fakeout risk, REJECT (approved = false).\n"
+        f"2. CONFIDENCE THRESHOLD: Confidence score must be at least 85% to approve. If below 85%, REJECT (approved = false).\n"
+        f"3. RISK REWARD: Stop Loss distance from Entry MUST strictly be 8 to 10 points (maximum 12 points, NEVER exceed 12 points / $12). TP1 must have minimum 1:2.0 R:R, TP2 1:3.0+ R:R.\n"
+        f"4. IF APPROVED: Provide rigorous, institutional analysis in professional, high-authority Khmer.\n\n"
+        f"Return JSON strictly adhering to schema:\n"
+        f"- approved: boolean (true only if high-accuracy Grade A+ setup, false otherwise)\n"
+        f"- rejection_reason: string in Khmer explaining why setup was rejected (if approved is false)\n"
+        f"- action: 'BUY' or 'SELL'\n"
+        f"- entry: refined entry price number float\n"
+        f"- sl: refined structural Stop Loss price number float\n"
+        f"- tp1: Take Profit 1 price number float (min 1:2 R:R)\n"
+        f"- tp2: Take Profit 2 price number float (min 1:3 R:R)\n"
+        f"- rr_ratio: string (e.g. '1:2.2')\n"
+        f"- confidence_score: string (e.g. '88%' or '92%')\n"
+        f"- ai_analysis: 2-3 sentences in professional Khmer explaining the institutional order flow mechanism and why this trade has high probability\n"
+        f"- macro_context: 1 sentence in Khmer on DXY & US Yields correlation\n"
+        f"- invalidation_note: 1 sentence in Khmer defining the exact condition that invalidates the trade\n"
+        f"- execution_tips: 1-2 practical execution guidelines in Khmer for traders\n"
     )
 
 
 def normalize_analysis(raw: dict) -> dict:
+    try:
+        from formatters.khmer_formatter import sanitize_khmer_spelling
+    except Exception:
+        from khmer_formatter import sanitize_khmer_spelling
+
     out = {}
     for k in _ANALYSIS_KEYS:
+        if k == "is_clear":
+            raw_val = raw.get("is_clear")
+            if isinstance(raw_val, bool):
+                out["is_clear"] = raw_val
+            elif isinstance(raw_val, str):
+                out["is_clear"] = raw_val.strip().lower() not in ("false", "0", "no")
+            else:
+                out["is_clear"] = True
+            continue
         val = str(raw.get(k, "")).strip()
+        val = re.sub(r'អប្សរា\s*សន្តិសុខ|អប្សរាសន្តិសុខ', 'អាជ្ញាធរសន្តិសុខ', val)
+        val = re.sub(r'ព្រឹត្តិការណ៍នេះពីការ', 'ព្រឹត្តិការណ៍នេះឆ្លុះបញ្ចាំងពីការ', val)
+        val = re.sub(r'ស្ថានភាពនេះពីការ', 'ស្ថានភាពនេះឆ្លុះបញ្ចាំងពីការ', val)
+        val = sanitize_khmer_spelling(val)
         out[k] = val if val else "កំពុងតាមដាន។"
+    # Ensure headline_km is never a generic placeholder
+    hl = str(out.get("headline_km", "")).strip()
+    if not hl or hl == "កំពុងតាមដាន។":
+        candidate = str(raw.get("what_happened", "")).strip() or str(raw.get("key_event", "")).strip()
+        if candidate and candidate != "កំពុងតាមដាន។":
+            first_sent = candidate.split("។")[0].strip()
+            out["headline_km"] = sanitize_khmer_spelling(first_sent)
+        else:
+            out["headline_km"] = ""
+    # Ensure no trailing ellipsis, dots, colons, hyphens
+    if out.get("headline_km"):
+        hl_clean = out["headline_km"]
+        hl_clean = re.sub(r'[\s.,;:៖–—_…]+$', '', hl_clean).strip()
+        hl_clean = re.sub(r'\.{2,}', '', hl_clean).strip()
+        hl_clean = re.sub(r'…+', '', hl_clean).strip()
+        out["headline_km"] = re.sub(r'[\s.,;:៖–—_…]+$', '', hl_clean).strip()
+    if not raw.get("key_event") or out["key_event"] == "កំពុងតាមដាន។":
+        what = str(raw.get("what_happened", "")).strip()
+        why = str(raw.get("why_it_matters", "")).strip()
+        parts = [p for p in [what, why] if p]
+        out["key_event"] = sanitize_khmer_spelling("\n\n".join(parts)) if parts else out.get("what_happened", "កំពុងតាមដាន។")
+    # Combat / Attack / War / Drone / Military / Strait Sentiment Safety Net: Strictly Negative / Market Risk
+    combat_words = [
+        "ដ្រូន", "drone", "វាយប្រហារ", "attack", "សង្គ្រាម", "war", "គ្រាប់បែក", "bomb",
+        "ឧទ្ទាម", "rebel", "insurgent", "ប្រដាប់អាវុធ", "armed", "មីស៊ីល", "missile",
+        "ជម្លោះ", "conflict", "កងទ័ព", "យោធា", "ទ័ព", "កងកម្លាំង", "military", "army",
+        "navy", "troops", "soldiers", "clash", "airstrike", "yemen", "houthi", "mandab",
+        "bab al-mandab", "red sea", "strait", "straits", "hormuz", "ច្រកសមុទ្រ", "សមុទ្រក្រហម",
+        "យេមែន", "យេម៉ែន", "ហូទី"
+    ]
+    narrative_full = (out.get("key_event", "") + " " + out.get("what_happened", "") + " " + str(raw.get("title", "")) + " " + out.get("headline_km", "")).lower()
+    is_combat = any(w in narrative_full for w in combat_words)
+
+    # Guarantee impact line is valid Khmer per user directive
+    imp = (out.get("impact") or "").strip()
+    if imp and imp != "កំពុងតាមដាន។" and ("វិជ្ជមាន" in imp or "អវិជ្ជមាន" in imp or "ហានិភ័យ" in imp or "🔹" in imp or "🔸" in imp or "🔶" in imp):
+        # Gemini provided a concrete story-specific asset impact! Format as 2-line structure
+        if is_combat and ("វិជ្ជមាន" in imp or "🔹" in imp) and "ហានិភ័យ" not in imp and "អវិជ្ជមាន" not in imp:
+            imp = re.sub(r'^[🔹🟢\s]*(?:ផលវិជ្ជមាន|ឥទ្ធិពលវិជ្ជមាន)[\s៖:]*', '🔶 ហានិភ័យទីផ្សារ៖\n', imp)
+        # Ensure 2-line structure with newline
+        imp = re.sub(r'([🔹🟢]\s*ផលវិជ្ជមាន)[\s៖:]*(?!\n)\s*(.+)', r'🔹 ផលវិជ្ជមាន៖\n\2', imp)
+        imp = re.sub(r'([🔸🔴🔶]\s*ហានិភ័យទីផ្សារ|[🔸🔴🔶]\s*ផលអវិជ្ជមាន|[🔸🔴🔶]\s*ហានិភ័យ)[\s៖:]*(?!\n)\s*(.+)', r'🔶 ហានិភ័យទីផ្សារ៖\n\2', imp)
+        out["impact"] = imp
+    else:
+        # Fallback tailored to the actual sector/asset (Never force Gold onto non-gold news)
+        if any(w in narrative_full for w in ["oil", "crude", "energy", "petroleum", "diesel", "aramco", "opec", "ប្រេង", "ប្រេងកាត", "ថាមពល"]):
+            out["impact"] = "🔶 ហានិភ័យទីផ្សារ៖\nដាក់សម្ពាធលើថ្លៃដើមថាមពលសកល និងរុញតម្លៃប្រេងឆៅឱ្យឡើងថ្លៃ"
+        elif any(w in narrative_full for w in ["chip", "semiconductor", "ai", "nvidia", "tsmc", "tech", "បន្ទះឈីប", "បច្ចេកវិទ្យា"]):
+            out["impact"] = "🔶 ហានិភ័យទីផ្សារ៖\nបង្កផលរំខានដល់ខ្សែច្រវាក់ផ្គត់ផ្គង់ និងដាក់សម្ពាធលើភាគហ៊ុនបច្ចេកវិទ្យា"
+        elif any(w in narrative_full for w in ["tariff", "trade", "tax", "export", "import", "ពន្ធគយ", "ពាណិជ្ជកម្ម"]):
+            out["impact"] = "🔶 ហានិភ័យទីផ្សារ៖\nបង្កើនថ្លៃដើមនាំចូល និងដាក់សម្ពាធលើខ្សែច្រវាក់ពាណិជ្ជកម្មសកល"
+        elif any(w in narrative_full for w in ["gold", "xau", "bullion", "មាស"]):
+            out["impact"] = "🔶 ហានិភ័យទីផ្សារ៖\nបង្កើនភាពមិនប្រាកដប្រជា និងរុញច្រានតម្រូវការទិញមាស XAUUSD"
+        elif is_combat:
+            out["impact"] = "🔶 ហានិភ័យទីផ្សារ៖\nភាពតានតឹងភូមិសាស្ត្រនយោបាយកើនឡើង បង្កើនការប្រុងប្រយ័ត្នខ្ពស់ក្នុងទីផ្សារហិរញ្ញវត្ថុសកល"
+        else:
+            b = str(raw.get("bias", "")).lower()
+            if "វិជ្ជមាន" in b or ("bullish" in b and "xau" not in b):
+                out["impact"] = "🔹 ផលវិជ្ជមាន៖\nជំរុញសន្ទុះកំណើនទីផ្សារ"
+            else:
+                out["impact"] = "🔶 ហានិភ័យទីផ្សារ៖\nបង្កើនសម្ពាធលើទីផ្សារ"
+
+    out["impact"] = sanitize_khmer_spelling(out["impact"])
     return out
 
 
@@ -98,7 +449,15 @@ class GeminiAnalyzer:
     """
 
     def __init__(self, api_key: str = None, model: str = None):
-        self.api_key = (api_key or GEMINI_API_KEY).strip()
+        self.name = "gemini"
+        try:
+            from config import GEMINI_KEYS_POOL
+            self.api_keys = [k for k in [api_key] if k] if api_key else list(GEMINI_KEYS_POOL)
+        except Exception:
+            self.api_keys = [api_key] if api_key else [GEMINI_API_KEY]
+        if not self.api_keys and GEMINI_API_KEY:
+            self.api_keys = [GEMINI_API_KEY]
+        self.api_key = self.api_keys[0] if self.api_keys else ""
         self.model = (model or GEMINI_MODEL).strip()
         self.endpoint = (
             f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
@@ -110,19 +469,11 @@ class GeminiAnalyzer:
     _cooldown_until = 0.0
 
     def _throttle_wait(self):
-        """Enforces the quota cooldown and the minimum spacing between calls.
-
-        Raises immediately if we are inside a 429 cooldown so callers fall back
-        to rules without burning another request; otherwise sleeps just enough
-        to respect GEMINI_MIN_INTERVAL before the next call.
-        """
+        """Enforces the quota cooldown without blocking user commands unnecessarily."""
         now = time.time()
         if now < GeminiAnalyzer._cooldown_until:
             remaining = int(GeminiAnalyzer._cooldown_until - now)
             raise RuntimeError(f"Gemini cooldown active ({remaining}s left) after quota limit")
-        gap = now - GeminiAnalyzer._last_request_ts
-        if gap < GEMINI_MIN_INTERVAL:
-            time.sleep(GEMINI_MIN_INTERVAL - gap)
         GeminiAnalyzer._last_request_ts = time.time()
 
     def _trip_cooldown(self, seconds: float = None):
@@ -134,43 +485,49 @@ class GeminiAnalyzer:
         )
 
     def is_available(self) -> bool:
-        return bool(USE_GEMINI and self.api_key and self.api_key != "YOUR_GEMINI_API_KEY_HERE")
+        return bool(USE_GEMINI and (self.api_key or self.api_keys) and self.api_key != "YOUR_GEMINI_API_KEY_HERE")
 
-    def _post(self, payload: dict, max_retries: int = 4) -> dict:
-        """POSTs to Gemini with retry on transient errors (500/503).
-
-        gemini-3.x flash models return 503 under high demand; a short retry
-        loop with backoff makes the bot resilient instead of silently
-        falling back to rules on a temporary blip.
-
-        HTTP 429 is NOT retried — it means the free-tier quota is exhausted,
-        so retrying just wastes requests. Instead we trip a cooldown and let
-        the caller fall back to rules until the quota window resets.
-        """
+    def _post(self, payload: dict, max_retries: int = 1) -> dict:
+        """POSTs to Gemini with dual-key pool and multi-model fallback on quota/transient errors."""
         self._throttle_wait()
+        candidate_models = [self.model, "gemini-flash-lite-latest", "gemini-2.5-flash-lite", "gemini-flash-latest", "gemini-pro-latest"]
+        seen = set()
+        models_to_try = [m for m in candidate_models if m and not (m in seen or seen.add(m))]
+
+        keys_to_try = self.api_keys if self.api_keys else [self.api_key]
         last_exc = None
-        for attempt in range(max_retries):
-            try:
-                resp = requests.post(
-                    self.endpoint,
-                    params={"key": self.api_key},
-                    json=payload,
-                    timeout=40,
-                )
-                GeminiAnalyzer._last_request_ts = time.time()
-                if resp.status_code == 429:
-                    self._trip_cooldown()
-                    raise RuntimeError(f"HTTP 429: {resp.text[:120]}")
-                if resp.status_code in (500, 503):
-                    last_exc = RuntimeError(f"HTTP {resp.status_code}: {resp.text[:120]}")
-                    time.sleep(1.5 * (attempt + 1))
-                    continue
-                resp.raise_for_status()
-                return resp.json()
-            except requests.RequestException as e:
-                last_exc = e
-                time.sleep(1.5 * (attempt + 1))
-        raise last_exc if last_exc else RuntimeError("Gemini call failed")
+
+        for current_key in keys_to_try:
+            for current_model in models_to_try:
+                endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{current_model}:generateContent"
+                for attempt in range(max_retries):
+                    try:
+                        resp = requests.post(
+                            endpoint,
+                            params={"key": current_key},
+                            json=payload,
+                            timeout=25,
+                        )
+                        GeminiAnalyzer._last_request_ts = time.time()
+                        if resp.status_code == 429:
+                            logger.warning(f"[GeminiAnalyzer] Key ...{current_key[-6:]} hit 429 quota on {current_model}, trying next key/model...")
+                            break
+                        if resp.status_code in (500, 503):
+                            logger.warning(f"[GeminiAnalyzer] Model {current_model} returned {resp.status_code} (attempt {attempt+1}/{max_retries}), retrying...")
+                            time.sleep(1.5)
+                            continue
+                        if resp.status_code == 404:
+                            break
+                        resp.raise_for_status()
+                        return resp.json()
+                    except requests.RequestException as e:
+                        last_exc = e
+                        logger.debug(f"[GeminiAnalyzer] Request error on {current_model}: {e}")
+                        time.sleep(1)
+        if last_exc:
+            self._trip_cooldown(60)
+            raise last_exc
+        raise RuntimeError("All Gemini candidate models/keys failed or exhausted quota.")
 
     def _call(self, prompt: str) -> dict:
         """Sends one prompt to Gemini and returns the parsed JSON object."""
@@ -192,11 +549,11 @@ class GeminiAnalyzer:
     def _normalize(self, raw: dict) -> dict:
         return normalize_analysis(raw)
 
-    def analyze_breaking_news(self, title: str, description: str = "") -> dict:
+    def analyze_breaking_news(self, title: str, description: str = "", macro_context: str = "") -> dict:
         if not self.is_available():
             return None
         try:
-            return normalize_analysis(self._call(breaking_prompt(title, description)))
+            return normalize_analysis(self._call(breaking_prompt(title, description, macro_context)))
         except Exception as e:
             logger.warning(f"[GeminiAnalyzer] breaking_news failed: {e}")
             return None
@@ -221,7 +578,332 @@ class GeminiAnalyzer:
         }
         try:
             data = self._post(payload)
-            return _extract_text(data).strip() or None
+            res_text = _extract_text(data).strip()
+            if res_text:
+                import re
+                res_text = re.sub(r"(?im)^\s*is_clear\s*=\s*(true|false)\s*$", "", res_text)
+                res_text = re.sub(r"(?i)\bis_clear\s*=\s*(true|false)\b", "", res_text).strip()
+            return res_text or None
         except Exception as e:
             logger.warning(f"[GeminiAnalyzer] summarize_daily_price failed: {e}")
+            return None
+
+    def generate_smart_smc_setup(self, current_price: float, key_levels: dict, macro_data: dict = None, order_book: dict = None) -> dict:
+        """
+        Synthesizes Market Structure, Key Levels, Macro, and Order Flow to pick ONE high-probability
+        trading direction (BUY or SELL ONLY) with precise Entry, SL, TP1, TP2, plus dual reasoning:
+        - Why to take this trade
+        - Why NOT to take the opposite trade
+        """
+        if not self.is_available():
+            return None
+
+        prompt = smc_setup_prompt(current_price, key_levels, macro_data, order_book)
+
+        schema = {
+            "type": "OBJECT",
+            "properties": {
+                "direction": {"type": "string"},
+                "setup_title": {"type": "string"},
+                "timeframe": {"type": "string"},
+                "primary_trend": {"type": "string"},
+                "key_support": {"type": "string"},
+                "key_resistance": {"type": "string"},
+                "indicator_alignment": {"type": "string"},
+                "entry": {"type": "number"},
+                "entry_zone": {"type": "string"},
+                "sl": {"type": "number"},
+                "tp1": {"type": "number"},
+                "tp2": {"type": "number"},
+                "rr_ratio": {"type": "string"},
+                "confirmation_reasons": {"type": "ARRAY", "items": {"type": "string"}},
+                "invalidation_scenario": {"type": "string"},
+                "risk_management_note": {"type": "string"},
+                "executive_summary": {"type": "string"},
+                "why_this_trade": {"type": "string"},
+                "why_not_opposite": {"type": "string"},
+                "confirmation_note": {"type": "string"}
+            },
+            "required": ["direction", "setup_title", "sl", "tp1", "tp2"]
+        }
+
+        payload = {
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "systemInstruction": {"role": "system", "parts": [{"text": _SYSTEM_RULES}]},
+            "generationConfig": {
+                "temperature": 0.2,
+                "responseMimeType": "application/json",
+                "responseSchema": schema,
+                "maxOutputTokens": 2500,
+            },
+        }
+
+        try:
+            data = self._post(payload)
+            res = json.loads(_extract_text(data))
+            return res
+        except Exception as e:
+            logger.warning(f"[GeminiAnalyzer] generate_smart_smc_setup failed: {e}")
+            return None
+
+    def analyze_and_validate_sniper_signal(
+        self,
+        raw_signal: dict,
+        current_price: float,
+        key_levels: dict,
+        macro_data: dict = None,
+        order_book: dict = None
+    ) -> dict:
+        """
+        AI Chief Risk Officer & Senior Trader Audit:
+        Rigorous multi-layer AI evaluation for maximum signal accuracy.
+        Blocks noisy/choppy/risky setups (approved=False), or approves Grade A+ setups (approved=True).
+        """
+        if not self.is_available():
+            return None
+
+        prompt = signal_validation_prompt(raw_signal, current_price, key_levels, macro_data, order_book)
+        schema = {
+            "type": "OBJECT",
+            "properties": {
+                "approved": {"type": "boolean"},
+                "rejection_reason": {"type": "string"},
+                "action": {"type": "string"},
+                "entry": {"type": "number"},
+                "sl": {"type": "number"},
+                "tp1": {"type": "number"},
+                "tp2": {"type": "number"},
+                "rr_ratio": {"type": "string"},
+                "confidence_score": {"type": "string"},
+                "ai_analysis": {"type": "string"},
+                "macro_context": {"type": "string"},
+                "invalidation_note": {"type": "string"},
+                "execution_tips": {"type": "string"}
+            },
+            "required": ["approved", "action", "entry", "sl", "tp1", "tp2", "confidence_score"]
+        }
+
+        payload = {
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "systemInstruction": {"role": "system", "parts": [{"text": _SYSTEM_RULES}]},
+            "generationConfig": {
+                "temperature": 0.2,
+                "responseMimeType": "application/json",
+                "responseSchema": schema,
+                "maxOutputTokens": 2000,
+            },
+        }
+
+        try:
+            data = self._post(payload)
+            res = json.loads(_extract_text(data))
+            return res
+        except Exception as e:
+            logger.warning(f"[GeminiAnalyzer] analyze_and_validate_sniper_signal failed: {e}")
+            return None
+
+    def analyze_chart_image(self, image_bytes: bytes, current_price: float, key_levels: dict = None) -> dict:
+        """
+        Multimodal Computer Vision Analysis of actual XAU/USD candlestick chart:
+        Reads candlestick structures, Order Blocks, Liquidity Sweeps, and chart patterns directly from the image!
+        """
+        if not self.is_available() or not image_bytes:
+            return None
+
+        prompt = (
+            f"អ្នកគឺជា Master Institutional Technical Analyst និង Chart Pattern Specialist ជំនាញ XAU/USD (Gold)។\n"
+            f"ពិនិត្យរូបភាព Chart Candlestick ជាក់ស្តែងនេះយ៉ាងម៉ត់ចត់ (Spot Price: ${current_price:,.2f})។\n\n"
+            f"ចូរធ្វើការវិភាគ Pattern នៃទៀន និងទម្រង់ Smart Money Concepts (SMC) ដោយត្រឡប់ JSON ដែលមាន Keys ដូចតទៅ៖\n"
+            f"- detected_pattern: ឈ្មោះ Candlestick Pattern ឬ Chart Pattern ដែលលេចធ្លោបំផុត (e.g. 'Hammer Rejection', 'Bullish Engulfing', 'Fair Value Gap Fill', 'Double Bottom', 'Liquidity Sweep')\n"
+            f"- pattern_kh: ឈ្មោះ Pattern ជាភាសាខ្មែរផ្លូវការ ពិរោះ ងាយយល់ (e.g. '🟢 ទៀនទាត់ចោលតម្លៃក្រោម (Bullish Pinbar Rejection)')\n"
+            f"- market_structure: រចនាសម្ព័ន្ធទីផ្សារ ('BULLISH_BOS', 'BEARISH_BOS', 'RANGE_CONSOLIDATION', 'CHoCH_REVERSAL')\n"
+            f"- key_observation: ការសង្កេតគន្លឹះសំខាន់ ២ ប្រយោគ ពីទម្រង់ទៀនចុងក្រោយ និងតំបន់ Liquidity\n"
+            f"- tactical_action: អនុសាសន៍សម្រាប់ Trader ('ទិញឡើងតាមកម្លាំង Rejection', 'រង់ចាំទម្លុះ BSL', 'លក់ចុះតាម Bearish Pressure')\n"
+            f"- confidence_score: ភាគរយទំនុកចិត្ត (e.g. '88%')\n"
+            f"- bias: '🟢 Bullish' ឬ '🔴 Bearish' ឬ '🟡 Neutral'\n"
+        )
+
+        b64_image = base64.b64encode(image_bytes).decode("utf-8")
+        schema = {
+            "type": "OBJECT",
+            "properties": {
+                "detected_pattern": {"type": "string"},
+                "pattern_kh": {"type": "string"},
+                "market_structure": {"type": "string"},
+                "key_observation": {"type": "string"},
+                "tactical_action": {"type": "string"},
+                "confidence_score": {"type": "string"},
+                "bias": {"type": "string"}
+            },
+            "required": ["detected_pattern", "pattern_kh", "market_structure", "key_observation", "tactical_action", "confidence_score", "bias"]
+        }
+
+        payload = {
+            "contents": [{
+                "role": "user",
+                "parts": [
+                    {"text": prompt},
+                    {
+                        "inline_data": {
+                            "mime_type": "image/png",
+                            "data": b64_image
+                        }
+                    }
+                ]
+            }],
+            "systemInstruction": {"role": "system", "parts": [{"text": _SYSTEM_RULES}]},
+            "generationConfig": {
+                "temperature": 0.2,
+                "responseMimeType": "application/json",
+                "responseSchema": schema,
+                "maxOutputTokens": 2000
+            }
+        }
+
+        try:
+            data = self._post(payload)
+            return json.loads(_extract_text(data))
+        except Exception as e:
+            logger.warning(f"[GeminiAnalyzer] analyze_chart_image failed: {e}")
+            return None
+
+    def answer_user_query(self, query: str, market_context: dict = None) -> str:
+        """
+        Interactive AI Gold & Macro Analyst.
+        Answers user questions in authoritative, polite, and fluent Khmer with live market telemetry.
+        Returns clean HTML formatted string for Telegram.
+        """
+        if not self.is_available():
+            return "⚠️ ប្រព័ន្ធ AI មិនទាន់ត្រូវបានបើកដំណើរការ ឬកំពុងថែទាំ។ សូមសាកល្បងម្តងទៀតនៅពេលក្រោយ។"
+
+        ctx_str = ""
+        if market_context:
+            oz = market_context.get("price_oz", 0.0)
+            chg = market_context.get("change_pct", 0.0)
+            piv = market_context.get("pivot", 0.0)
+            r1 = market_context.get("r1", 0.0)
+            s1 = market_context.get("s1", 0.0)
+            dxy = market_context.get("dxy", "N/A")
+            us10y = market_context.get("us10y", "N/A")
+            news = market_context.get("next_news", "គ្មានព័ត៌មានក្រហមបន្ទាន់")
+            ctx_str = (
+                f"\n\n📊 [LIVE MARKET CONTEXT]:\n"
+                f"• Spot XAU/USD: ${oz:,.2f} ({chg:+.2f}%)\n"
+                f"• Key Pivot: ${piv:,.2f} | R1: ${r1:,.2f} | S1: ${s1:,.2f}\n"
+                f"• US Dollar Index (DXY): {dxy}\n"
+                f"• US 10Y Yield: {us10y}%\n"
+                f"• Upcoming News: {news}\n"
+            )
+
+        prompt = (
+            f"អ្នកគឺជា Master Institutional Gold (XAUUSD) & Macroeconomic AI Analyst សម្រាប់ Cambodian Traders។\n"
+            f"Trader បានសួរសំណួរ៖\n"
+            f"❓ \"{query}\"\n"
+            f"{ctx_str}\n"
+            f"ចូរឆ្លើយតបសំណួរនេះជាភាសាខ្មែរផ្លូវការ ពិរោះ មុតស្រួច និងប្រកបដោយវិជ្ជាជីវៈកម្រិតស្ថាប័នធំៗ (Institutional Level)៖\n"
+            f"1. ឆ្លើយចំៗទៅកាន់សំណួរ (Direct Actionable Verdict) ថាតើទីផ្សារស្ថិតក្នុងស្ថានភាពណា គួរទិញ លក់ ឬរង់ចាំ។\n"
+            f"2. ការវិភាគបច្ចេកទេស និងម៉ាក្រូសេដ្ឋកិច្ច (Technical & Macro Confluence) ដោយភ្ជាប់ជាមួយទិន្នន័យជាក់ស្តែងនៃ XAUUSD, DXY និងតំបន់គន្លឹះ។\n"
+            f"3. យុទ្ធសាស្ត្រប្រតិបត្តិការ និងការគ្រប់គ្រងហានិភ័យ (Trading Strategy & Risk Note)៖ កម្រិត Entry / SL / TP បើពាក់ព័ន្ធ និងក្រើនរំលឹកកុំ Overtrade។\n\n"
+            f"ទម្រង់ឆ្លើយតប៖ ប្រើប្រាស់ HTML tags សមស្របសម្រាប់ Telegram (<b>, <code>, •, emojis) កុំប្រើ Markdown asterisks (**)។ រៀបចំឱ្យមានរបៀប ងាយស្រួលអានលើទូរស័ព្ទដៃ (Mobile Friendly)។"
+        )
+
+        payload = {
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "systemInstruction": {"role": "system", "parts": [{"text": _SYSTEM_RULES}]},
+            "generationConfig": {
+                "temperature": 0.4,
+                "maxOutputTokens": 2048
+            }
+        }
+
+        try:
+            data = self._post(payload)
+            ans = _extract_text(data).strip()
+            return ans if ans else "⚠️ មិនអាចទទួលបានចម្លើយពី AI នៅពេលនេះទេ។"
+        except Exception as e:
+            logger.warning(f"[GeminiAnalyzer] answer_user_query failed: {e}")
+            return "⚠️ AI កំពុងមមាញឹក ឬជាប់កូតា (Quota Limit)។ សូមរង់ចាំប្រហែល ១-២ នាទី រួចសាកល្បងម្តងទៀត។"
+
+    def analyze_user_chart_image(self, image_bytes: bytes, caption: str = "", current_price: float = 0.0, key_levels: dict = None, mime_type: str = "image/jpeg") -> dict:
+        """
+        Multimodal Computer Vision Analysis of user-uploaded TradingView/MT4/MT5 charts.
+        Extracts patterns, structure, entry, SL, TP, and comprehensive Khmer guidance.
+        """
+        if not self.is_available() or not image_bytes:
+            return None
+
+        prompt = (
+            f"អ្នកគឺជា Master Institutional Technical Analyst និង Chart Pattern Specialist ជំនាញ XAU/USD (Gold)។\n"
+            f"Trader បានផ្ញើរូបភាព Chart Candlestick (TradingView / MT4 / MT5) មកឱ្យអ្នកពិនិត្យ។\n"
+            f"ចំណងជើង/សំណួរភ្ជាប់មកជាមួយ៖ \"{caption if caption else 'សូមវិភាគ Chart នេះ'}\"\n"
+            f"តម្លៃបច្ចុប្បន្នលើទីផ្សារ Spot (បើមាន): ${current_price:,.2f}\n\n"
+            f"ចូរពិនិត្យរចនាសម្ព័ន្ធ Chart រូបភាពនេះយ៉ាងល្អិតល្អន់ និងបង្កើតផែនការជួញដូរច្បាស់លាស់។\n"
+            f"ត្រឡប់ JSON ដែលមាន Schema ដូចខាងក្រោម៖\n"
+            f"- direction: 'BUY' ឬ 'SELL' ឬ 'WAIT'\n"
+            f"- setup_title: ចំណងជើងភាសាខ្មែរ (e.g. '🟢 ផែនការទិញឡើងតាម SMC FVG' ឬ '🔴 ផែនការលក់ចុះតាម Liquidity Sweep')\n"
+            f"- timeframe: Timeframe ដែលបានឃើញក្នុង Chart (e.g. 'M15', 'H1', 'H4', 'D1')\n"
+            f"- pattern_detected: ឈ្មោះ Pattern ជាភាសាអង់គ្លេស\n"
+            f"- pattern_kh: ឈ្មោះ Pattern ជាភាសាខ្មែរផ្លូវការ ពិរោះ\n"
+            f"- entry_zone: តំបន់តម្លៃចូលផ្សារ (e.g. '$2,682 - $2,685')\n"
+            f"- stop_loss: តម្លៃ Stop Loss (e.g. '$2,677')\n"
+            f"- take_profit_1: តម្លៃ TP1 (R:R >= 1:1.5)\n"
+            f"- take_profit_2: តម្លៃ TP2 (R:R >= 1:2.0)\n"
+            f"- rr_ratio: អនុបាត R:R (e.g. '1:2.2')\n"
+            f"- confidence_score: ភាគរយទំនុកចិត្ត (e.g. '88%')\n"
+            f"- confluence_reasons: Array នៃហេតុផលបញ្ជាក់ 3-4 ចំណុចជាភាសាខ្មែរ\n"
+            f"- invalidation_rule: លក្ខខណ្ឌតម្លៃដែលលុបចោល Setup នេះ\n"
+            f"- risk_warning: ការក្រើនរំលឹកហានិភ័យជាភាសាខ្មែរ\n"
+            f"- detailed_summary_kh: ការសង្ខេបវិភាគ ១-២ កថាខណ្ឌជាភាសាខ្មែរ"
+        )
+
+        b64_image = base64.b64encode(image_bytes).decode("utf-8")
+        schema = {
+            "type": "OBJECT",
+            "properties": {
+                "direction": {"type": "string"},
+                "setup_title": {"type": "string"},
+                "timeframe": {"type": "string"},
+                "pattern_detected": {"type": "string"},
+                "pattern_kh": {"type": "string"},
+                "entry_zone": {"type": "string"},
+                "stop_loss": {"type": "string"},
+                "take_profit_1": {"type": "string"},
+                "take_profit_2": {"type": "string"},
+                "rr_ratio": {"type": "string"},
+                "confidence_score": {"type": "string"},
+                "confluence_reasons": {"type": "ARRAY", "items": {"type": "string"}},
+                "invalidation_rule": {"type": "string"},
+                "risk_warning": {"type": "string"},
+                "detailed_summary_kh": {"type": "string"}
+            },
+            "required": ["direction", "setup_title", "timeframe", "pattern_detected", "pattern_kh", "entry_zone", "stop_loss", "take_profit_1", "take_profit_2", "confidence_score", "confluence_reasons", "risk_warning", "detailed_summary_kh"]
+        }
+
+        payload = {
+            "contents": [{
+                "role": "user",
+                "parts": [
+                    {"text": prompt},
+                    {
+                        "inline_data": {
+                            "mime_type": mime_type,
+                            "data": b64_image
+                        }
+                    }
+                ]
+            }],
+            "systemInstruction": {"role": "system", "parts": [{"text": _SYSTEM_RULES}]},
+            "generationConfig": {
+                "temperature": 0.2,
+                "responseMimeType": "application/json",
+                "responseSchema": schema,
+                "maxOutputTokens": 2500
+            }
+        }
+
+        try:
+            data = self._post(payload)
+            return json.loads(_extract_text(data))
+        except Exception as e:
+            logger.warning(f"[GeminiAnalyzer] analyze_user_chart_image failed: {e}")
             return None

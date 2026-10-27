@@ -8,3 +8,11 @@ __pycache__/
 .venv/
 venv/
 env/
+
+# Runtime & Scratch
+bot.lock
+calendar_cache.json
+scratch/
+push_updates_to_github.py
+sync_to_github.py
+upload_to_github.py
