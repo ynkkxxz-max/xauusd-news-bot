@@ -24,6 +24,13 @@ _last_error = "None"
 _bot_stage = "Not started"
 
 class HealthHandler(BaseHTTPRequestHandler):
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
+
     def do_HEAD(self):
         self.send_response(200)
         self.send_header("Content-type", "text/plain")
@@ -32,6 +39,20 @@ class HealthHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
+        if "/api/signal" in self.path or "/api/active_signal" in self.path:
+            self.send_response(200)
+            self.send_header("Content-type", "application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            try:
+                import database
+                sig_json = database.get_state("active_official_signal_json") or "{}"
+                self.wfile.write(sig_json.encode("utf-8"))
+            except Exception:
+                self.wfile.write(b"{}")
+            return
+
         if self.path == "/status":
             self.send_response(200)
             self.send_header("Content-type", "application/json; charset=utf-8")
