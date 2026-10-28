@@ -1780,13 +1780,25 @@ class XAUUSDNewsAssistantBot:
                 logger.info(f"[IMAGE PERCEPTUAL SHIELD] Image visually matches a broadcast within 4h cooldown (dHash={dh}). Rejecting!")
                 return True
 
-            if dh:
-                database.record_image_dhash(dh)
-            database.set_state(f"channel_img_ts_{img_hash}", str(now))
             return False
         except Exception as e:
             logger.debug(f"[_is_image_already_in_channel error] {e}")
             return False
+
+    def _record_image_sent_in_channel(self, photo_bytes: bytes):
+        """Records an image as successfully broadcasted to enforce 4-hour cooldown."""
+        if not photo_bytes:
+            return
+        try:
+            import hashlib
+            now = time.time()
+            img_hash = hashlib.md5(photo_bytes[:4000]).hexdigest()
+            database.set_state(f"channel_img_ts_{img_hash}", str(now))
+            dh = database.calculate_image_dhash(photo_bytes)
+            if dh:
+                database.record_image_dhash(dh)
+        except Exception as e:
+            logger.debug(f"[_record_image_sent_in_channel error] {e}")
 
     def audit_live_channel_and_heal(self):
         """
@@ -2696,6 +2708,8 @@ class XAUUSDNewsAssistantBot:
                     new_msg_id = res_send.get("result", {}).get("message_id")
                     if new_msg_id:
                         database.set_state("last_channel_post_id", str(new_msg_id))
+                    if photo:
+                        self._record_image_sent_in_channel(photo)
                     # INSTANT SUB-SECOND POST-BROADCAST AUDIT:
                     # Immediately scans live channel to purge any concurrent duplicate within milliseconds!
                     try:

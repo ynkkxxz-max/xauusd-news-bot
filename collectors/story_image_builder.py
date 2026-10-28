@@ -665,19 +665,28 @@ class StoryImageBuilder:
                 b_name = "Tesla car" if detected_brands[0][0] == "tesla" else detected_brands[0][0]
                 live_queries.append(f"{l_key} {b_name}")
             live_queries.append(l_key)
-        elif detected_brands:
-            b_key = detected_brands[0][0]
-            if b_key == "tesla":
-                live_queries.append("Tesla, Inc.")
-            elif b_key == "spacex":
-                live_queries.append("SpaceX Starship")
-            elif b_key == "nvidia":
-                live_queries.append("Jensen Huang Nvidia")
-            elif b_key == "apple":
-                live_queries.append("Apple Inc.")
-            else:
-                live_queries.append(b_key)
-        elif detected_countries:
+        if detected_brands:
+            for b_tuple in detected_brands:
+                b_key = b_tuple[0]
+                if b_key == "tesla":
+                    live_queries.append("Tesla, Inc.")
+                elif b_key == "spacex":
+                    live_queries.append("SpaceX Starship")
+                elif b_key == "nvidia":
+                    live_queries.append("Jensen Huang Nvidia")
+                elif b_key == "apple":
+                    live_queries.append("Apple Inc.")
+                    live_queries.append("Apple Park")
+                elif b_key == "google":
+                    live_queries.append("Googleplex")
+                    live_queries.append("Sundar Pichai")
+                elif b_key == "microsoft":
+                    live_queries.append("Microsoft Redmond campus")
+                elif b_key == "amazon":
+                    live_queries.append("Amazon Spheres")
+                else:
+                    live_queries.append(b_key)
+        if detected_countries:
             for c_info in detected_countries[:2]:
                 c_code = c_info[0]
                 country_queries = {
