@@ -201,13 +201,14 @@ class XAUUSDNewsAssistantBot:
             except Exception:
                 pass
 
-        # Bind HTTP health check port & self-pinger on Render / Railway (always on port 10000 or PORT env)
-        port = int(os.getenv("PORT", "10000"))
-        try:
-            self._start_http_health_server(port)
-            self._start_self_pinger()
-        except Exception as e:
-            logger.warning(f"Could not start HTTP health server on port {port}: {e}")
+        # Bind HTTP health check port & self-pinger on Render / Railway (only if not already run by render_server.py)
+        if not os.getenv("RUNNING_IN_RENDER_SUPERVISOR"):
+            port = int(os.getenv("PORT", "10000"))
+            try:
+                self._start_http_health_server(port)
+                self._start_self_pinger()
+            except Exception as e:
+                logger.warning(f"Could not start HTTP health server on port {port}: {e}")
 
         self._bootstrap_news_cache()
         self._sync_channel_images_to_database()

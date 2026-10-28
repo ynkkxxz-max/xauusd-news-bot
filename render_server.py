@@ -97,21 +97,21 @@ def run_http_server():
 
 def run_self_pinger():
     """
-    Pings the public Render URL every 8 minutes using lightweight HEAD request (0-byte payload)
+    Pings the public Render URL every 5 minutes (300 seconds) using lightweight HEAD request (0-byte payload)
     so Render Free Tier never spins down due to inactivity, while using practically ZERO bandwidth.
-    Cadence: 480 seconds (8 minutes) provides a solid 7-minute safety buffer before Render's 15m timeout.
+    Cadence: 300 seconds (5 minutes) provides an ironclad anti-sleep safety net well inside Render's 15m timeout.
     """
     url = os.getenv("RENDER_EXTERNAL_URL", "https://xauusd-news-bot-1-a6gh.onrender.com")
 
-    time.sleep(45) # Initial delay after startup
+    time.sleep(30) # Initial delay after startup
     while True:
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "Render-KeepAlive/2.0"}, method="HEAD")
-            with urllib.request.urlopen(req, timeout=20) as resp:
+            with urllib.request.urlopen(req, timeout=15) as resp:
                 pass
         except Exception as e:
             logger.debug(f"[Self-Pinger] {e}")
-        time.sleep(480) # 8 minutes
+        time.sleep(300) # 5 minutes
 
 def run_memory_guard():
     """
@@ -119,7 +119,7 @@ def run_memory_guard():
     Guarantees RAM usage strictly stays well under Render's 512MB free tier limit!
     """
     while True:
-        time.sleep(1800) # Every 30 minutes
+        time.sleep(180) # Every 3 minutes
         try:
             collected = gc.collect()
             logger.debug(f"[MemoryGuard] Periodic GC collected {collected} objects.")
