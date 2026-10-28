@@ -2095,6 +2095,61 @@ class KhmerFormatter:
         return part1 + part2
 
     @staticmethod
+    def format_private_signal_dispatch(setup: dict, signal_id: str, signal_num: int, max_signals: int = 3, current_price: float = 0.0) -> str:
+        """
+        Formats an ultra-high-conviction institutional SMC Trade Signal specifically for Private Chat DM.
+        Adheres to strictly max 3 signals/day, 8$-10$ (max 12$) SL, and TP1/TP2/TP3 structure.
+        """
+        from datetime import datetime, timezone, timedelta
+        CAMBODIA_TZ = timezone(timedelta(hours=7))
+        now_kh = datetime.now(CAMBODIA_TZ).strftime("%H:%M ម៉ោងនៅកម្ពុជា")
+
+        direction = setup.get("direction", "BUY").upper()
+        is_buy = "BUY" in direction
+        action_icon = "🟢" if is_buy else "🔴"
+        action_kh = "ទិញឡើង (BUY)" if is_buy else "លក់ចុះ (SELL)"
+
+        entry_zone = setup.get("entry_zone", "")
+        sl = setup.get("sl", 0.0)
+        tp1 = setup.get("tp1", 0.0)
+        tp2 = setup.get("tp2", 0.0)
+        tp3 = setup.get("tp3", 0.0)
+        rr = setup.get("rr_ratio", "1:2.0")
+        conf = setup.get("confidence", "90%")
+
+        try:
+            parts = [float(x.replace("$", "").replace(",", "").strip()) for x in entry_zone.split("-") if x.strip()]
+            ref_entry = min(parts) if is_buy else max(parts)
+            sl_dist = abs(ref_entry - sl)
+        except Exception:
+            sl_dist = 10.0
+
+        why_trade = setup.get("why_this_trade", "").strip()
+        confirm = setup.get("confirmation_note", "រង់ចាំ Confirmation Candle M15 មុនចូល Order!").strip()
+        tp3_line = f"• 🚀 <b>Take Profit 3 (TP3):</b> <code>${tp3:,.2f}</code> <i>(Runner Target)</i>\n" if tp3 else ""
+
+        return (
+            f"⚡ <b>XAU/USD INSTITUTIONAL SMC TRADE SIGNAL</b> ⚡\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"📍 <b>Signal #{signal_num} នៃថ្ងៃនេះ (អតិបរមា {max_signals} Signals/ថ្ងៃ)</b>\n"
+            f"⏰ <b>ម៉ោងបញ្ចេញ:</b> {now_kh}\n"
+            f"🎯 <b>ទិសដៅអនុវត្ត:</b> {action_icon} <b>{action_kh}</b>\n"
+            f"⚡ <b>កម្រិតទំនុកចិត្ត (Confidence):</b> <code>{conf}</code>\n\n"
+            f"📍 <b>កម្រិតតម្លៃចូល និងគ្រប់គ្រងហានិភ័យ (SMC Levels):</b>\n"
+            f"• 🎯 <b>តំបន់ Entry:</b> <code>{entry_zone}</code>\n"
+            f"• 🛑 <b>Stop Loss (SL):</b> <code>${sl:,.2f}</code> <i>(ចម្ងាយសុវត្ថិភាព ${sl_dist:.1f}$)</i>\n"
+            f"• 🎯 <b>Take Profit 1 (TP1):</b> <code>${tp1:,.2f}</code> <i>(Lock Breakeven)</i>\n"
+            f"• 🏆 <b>Take Profit 2 (TP2):</b> <code>${tp2:,.2f}</code> <i>(BSL/SSL Sweep)</i>\n"
+            f"{tp3_line}"
+            f"• ⚖️ <b>សមាមាត្រ R:R:</b> <code>{rr}</code>\n\n"
+            f"🧠 <b>មូលហេតុ Confluence ស្ថាប័ន:</b>\n"
+            f"{why_trade}\n\n"
+            f"💡 <b>អនុសាសន៍ប្រតិបត្តិការ:</b>\n"
+            f"• {confirm}\n"
+            f"🛡️ <i>សូមគ្រប់គ្រងហានិភ័យដើមទុនមិនឱ្យលើស 1-2% ក្នុងមួយ Trade ដាច់ខាត!</i>"
+        )
+
+    @staticmethod
     def format_chart_vision_scan(current_price: float, vision_res: dict, timeframe: str = "M15") -> str:
         """
         Formats Multimodal AI Live Computer Vision Candlestick & Pattern Scan results.

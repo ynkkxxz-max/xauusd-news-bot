@@ -593,6 +593,147 @@ class XAUUSDNewsAssistantBot:
         """[PERMANENTLY DISABLED PER USER DIRECTIVE] Trade danger alerts permanently disabled."""
         return
 
+    def check_private_smc_signals(self):
+        """
+        Ultra-High-Conviction Institutional SMC Signal Dispatch Engine for Private Chat:
+        - Strictly max 3 signals per day.
+        - Active trading hours: 07:00 AM - 11:00 PM (23:00) Cambodia Time (UTC+7).
+        - AI Confidence >= 88%, Stop Loss strictly $8 - $10 (max $12).
+        - Dispatched EXCLUSIVELY to private subscribers (chat_id > 0), NEVER to the public channel.
+        - Cooldown: At least 90 minutes (5400s) between signals.
+        - Auto-locks during Red-Alert Economic News (CPI/NFP/FOMC).
+        """
+        now = time.time()
+        now_kh = datetime.now(CAMBODIA_TZ)
+        kh_hour = now_kh.hour
+
+        # 1. Trading hours filter: strictly 07:00 AM to 11:00 PM (23:00) Cambodia Time
+        if kh_hour < 7 or kh_hour >= 23:
+            return
+
+        today_str = now_kh.strftime("%Y-%m-%d")
+        daily_count = database.get_daily_signal_count(today_str)
+
+        # 2. Daily Quota Limit: strictly max 3 signals per day
+        if daily_count >= 3:
+            return
+
+        # 3. Cooldown guard: at least 90 minutes (5400s) between signals
+        last_signal_ts = float(database.get_state("last_private_signal_ts") or 0)
+        if (now - last_signal_ts) < 5400:
+            return
+
+        # 4. News Danger Zone filter (Buffer 15 mins before/after red news)
+        try:
+            from collectors.economic_calendar import EconomicCalendarCollector
+            news_danger = EconomicCalendarCollector().is_news_danger_zone(buffer_minutes=15)
+            if news_danger.get("is_danger"):
+                return
+        except Exception:
+            pass
+
+        # 5. Fetch Price, Macro, and Order Book Depth
+        price_data = self.gold_collector.fetch_price()
+        if not price_data:
+            return
+        oz = price_data.get("price_oz", 0.0)
+        if oz <= 1000:
+            return
+        levels = price_data.get("key_levels", {})
+        macro_data = self.macro_collector.fetch_macro_correlations()
+        order_book = self.order_book_tracker.fetch_order_book_depth()
+
+        # 6. Generate Decisive Institutional SMC Setup
+        setup = MacroAnalyzer.generate_smart_smc_setup(
+            current_price=oz,
+            key_levels=levels,
+            macro_data=macro_data,
+            order_book=order_book
+        )
+        if not setup:
+            return
+
+        # 7. Quality filters: Confidence >= 88%, No Traps
+        if setup.get("trap_alert"):
+            return # Reject setups during Bull/Bear trap fakeouts
+
+        conf_str = setup.get("confidence", "0%").replace("%", "").strip()
+        confidence_pct = int(conf_str) if conf_str.isdigit() else 0
+        if confidence_pct < 88:
+            return
+
+        # 8. Real-Time Price Proximity to Entry Zone
+        entry_zone_str = setup.get("entry_zone", "")
+        direction = setup.get("direction", "BUY").upper()
+        try:
+            parts = [float(x.replace("$", "").replace(",", "").strip()) for x in entry_zone_str.split("-") if x.strip()]
+            if len(parts) != 2:
+                return
+            e_low, e_high = min(parts), max(parts)
+
+            if direction == "BUY":
+                # Price must be testing discount zone (within 2 points of e_high or inside zone)
+                if not (e_low - 1.5 <= oz <= e_high + 2.0):
+                    return
+                # Ensure SL is strictly 8$, 10$, max 12$ below e_low
+                sl = setup.get("sl", e_low - 10.0)
+                sl_dist = e_low - sl
+                if sl_dist > 12.0 or sl_dist < 8.0:
+                    setup["sl"] = round(e_low - 10.0, 2)
+            else: # SELL
+                # Price must be testing premium zone (within 2 points of e_low or inside zone)
+                if not (e_low - 2.0 <= oz <= e_high + 1.5):
+                    return
+                # Ensure SL is strictly 8$, 10$, max 12$ above e_high
+                sl = setup.get("sl", e_high + 10.0)
+                sl_dist = sl - e_high
+                if sl_dist > 12.0 or sl_dist < 8.0:
+                    setup["sl"] = round(e_high + 10.0, 2)
+        except Exception:
+            return
+
+        # 9. Subscriber Check
+        subscribers = database.get_signal_subscribers()
+        if not subscribers:
+            return
+
+        # 10. Format and Dispatch Private Signal
+        signal_id = f"SMC_{today_str}_{daily_count + 1}"
+        signal_msg = KhmerFormatter.format_private_signal_dispatch(
+            setup=setup,
+            signal_id=signal_id,
+            signal_num=daily_count + 1,
+            max_signals=3,
+            current_price=oz
+        )
+
+        signal_buttons = {
+            "inline_keyboard": [
+                [
+                    {"text": "📱 បើក Telegram Mini App (Live)", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=150&tab=smc"}
+                ],
+                [
+                    {"text": "📊 TradingView Chart", "url": "https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD"},
+                    {"text": "🧮 គិត Lot Size តាមដើមទុន", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=150&tab=lot"}
+                ]
+            ]
+        }
+
+        dispatched_count = 0
+        for s_chat_id in subscribers:
+            try:
+                res = self.notifier.send_message(signal_msg, chat_id=s_chat_id, reply_markup=signal_buttons)
+                if res and res.get("ok"):
+                    dispatched_count += 1
+            except Exception as err:
+                logger.debug(f"Failed to dispatch private signal to {s_chat_id}: {err}")
+
+        # 11. Record State & Increment Daily Count
+        database.increment_daily_signal_count(today_str)
+        database.set_state("last_private_signal_ts", str(now))
+        database.set_state("last_private_signal_id", signal_id)
+        logger.info(f"[PRIVATE SMC SIGNAL DISPATCHED] Signal #{daily_count + 1}/3 ({direction}) sent to {dispatched_count} private subscribers.")
+
     def check_sniper_instant_signals(self):
         """[PERMANENTLY DISABLED PER USER DIRECTIVE] Trade Signals (Point 5) permanently disabled."""
         return
@@ -2653,6 +2794,14 @@ class XAUUSDNewsAssistantBot:
                     except Exception as err:
                         logger.error(f"Error during background task check: {err}", exc_info=True)
                         background_interval = 30
+
+                # 5. Private SMC Trade Signals Check (Strictly max 3 signals/day, 07:00-23:00, Private DM ONLY)
+                if now - last_signal_check >= signal_interval:
+                    last_signal_check = now
+                    try:
+                        self.check_private_smc_signals()
+                    except Exception as err:
+                        logger.debug(f"Error checking private signals: {err}")
 
 
 

@@ -641,6 +641,9 @@ class MacroAnalyzer:
             # TP1 must be above entry_high for a valid BUY trade
             if tp1_price <= entry_high:
                 tp1_price = round(entry_high + 10.0, 2)
+            if tp2_price <= tp1_price:
+                tp2_price = round(tp1_price + 12.0, 2)
+            tp3_price = round(max(tp2_price + 15.0, entry_high + 37.0), 2)
             sl_dist = max(entry_high - sl_price, 3.0)
             tp1_dist = tp1_price - entry_high
             rr_val = round(tp1_dist / sl_dist, 1)
@@ -665,6 +668,7 @@ class MacroAnalyzer:
                 "sl": sl_price,
                 "tp1": tp1_price,
                 "tp2": tp2_price,
+                "tp3": tp3_price,
                 "rr_ratio": rr,
                 "confidence": f"{confidence_pct}%",
                 "why_this_trade": why_trade,
@@ -692,6 +696,9 @@ class MacroAnalyzer:
             # TP1 must be below entry_low for a valid SELL trade
             if tp1_price >= entry_low:
                 tp1_price = round(entry_low - 10.0, 2)
+            if tp2_price >= tp1_price:
+                tp2_price = round(tp1_price - 12.0, 2)
+            tp3_price = round(min(tp2_price - 15.0, entry_low - 37.0), 2)
             sl_dist = max(sl_price - entry_low, 3.0)
             tp1_dist = entry_low - tp1_price
             rr_val = round(tp1_dist / sl_dist, 1)
@@ -716,6 +723,7 @@ class MacroAnalyzer:
                 "sl": sl_price,
                 "tp1": tp1_price,
                 "tp2": tp2_price,
+                "tp3": tp3_price,
                 "rr_ratio": rr,
                 "confidence": f"{confidence_pct}%",
                 "why_this_trade": why_trade,
