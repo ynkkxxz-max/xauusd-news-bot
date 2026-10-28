@@ -316,9 +316,10 @@ class TelegramNotifier:
         if not raw_text:
             return False, "", "Empty text"
 
-        # Special bypass for daily gold cards or calendar/market status
-        if raw_text.startswith("🥇") or raw_text.startswith("📅") or raw_text.startswith("📊") or raw_text.startswith("---"):
-            return True, raw_text, "Special card"
+        # Special bypass for daily gold cards, calendar/market status, or private DM messages/signals
+        is_private_chat = bool(target_chat and str(target_chat) != str(self.chat_id) and not str(target_chat).startswith("-100"))
+        if is_private_chat or raw_text.startswith("⚡") or raw_text.startswith("🥇") or raw_text.startswith("📅") or raw_text.startswith("📊") or raw_text.startswith("🎯") or raw_text.startswith("🧮") or raw_text.startswith("---"):
+            return True, raw_text, "Special card / Private message"
 
         text = raw_text
 
@@ -440,10 +441,11 @@ class TelegramNotifier:
 
         raw_text = raw_text or ""
 
-        # Skip scheduled daily price cards, pure graphic cards without caption, or market open status
-        if is_photo and not raw_text:
+        # Skip scheduled daily price cards, pure graphic cards without caption, or private chat messages/signals
+        is_private_chat = bool(target_chat and str(target_chat) != str(self.chat_id) and not str(target_chat).startswith("-100"))
+        if is_private_chat or raw_text.startswith("⚡") or raw_text.startswith("🥇") or raw_text.startswith("📅") or raw_text.startswith("📊") or raw_text.startswith("🎯") or raw_text.startswith("🧮") or raw_text.startswith("---"):
             return True
-        if raw_text.startswith("🥇") or raw_text.startswith("📅") or raw_text.startswith("📊") or raw_text.startswith("---"):
+        if is_photo and not raw_text:
             return True
 
         clean = re.sub(r'<[^>]+>', '', raw_text).strip()
