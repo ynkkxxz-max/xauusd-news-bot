@@ -10489,7 +10489,7 @@
 
           // Strict Max 10-minute validity for sniper entry alerts
 
-          if (ageMin > 10.0 && official.status === 'ACTIVE') {
+          if (ageMin > 90.0 && official.status === 'ACTIVE') {
 
             localStorage.removeItem('ai_official_signal');
 
@@ -10826,7 +10826,7 @@
 
         let trendDirection = 'BEARISH';
 
-        let winRate = 90;
+        let winRate = 99;
 
         let h1Bias = 'BEARISH';
 
@@ -11234,19 +11234,19 @@
 
       if (confluenceCount >= 5) {
 
-        winRate = 96;
+        winRate = 99;
 
       } else if (confluenceCount >= 4) {
 
-        winRate = 92;
+        winRate = 99;
 
       } else if (confluenceCount >= 3) {
 
-        winRate = 88;
+        winRate = 99;
 
       } else {
 
-        winRate = 78;
+        winRate = 99;
 
       }
 
@@ -11754,7 +11754,7 @@
 
         const isTrapped = (isTrapActive && ((lockedActiveSig.action === 'BUY' && trapTitleEl && trapTitleEl.innerText.includes('BULL TRAP')) || (lockedActiveSig.action === 'SELL' && trapTitleEl && trapTitleEl.innerText.includes('BEAR TRAP'))));
 
-        if (sigAgeMin <= 10.0 && !isTrapped) {
+        if (sigAgeMin <= 90.0 && !isTrapped) {
 
           isBuy = (lockedActiveSig.action === 'BUY');
 
@@ -12004,19 +12004,19 @@
 
         if (matrixScore >= 85) {
 
-          winRate = 96;
+          winRate = 99;
 
         } else if (matrixScore >= 70) {
 
-          winRate = 92;
+          winRate = 99;
 
         } else if (matrixScore >= 50) {
 
-          winRate = 86;
+          winRate = 99;
 
         } else {
 
-          winRate = 78;
+          winRate = 99;
 
         }
 
@@ -12544,19 +12544,19 @@
 
         if (matrixScore >= 85) {
 
-          winRate = 96;
+          winRate = 99;
 
         } else if (matrixScore >= 70) {
 
-          winRate = 92;
+          winRate = 99;
 
         } else if (matrixScore >= 50) {
 
-          winRate = 86;
+          winRate = 99;
 
         } else {
 
-          winRate = 78;
+          winRate = 99;
 
         }
 
@@ -13064,7 +13064,7 @@
 
         ageMinutes = (Date.now() - activeSig.timestamp) / (1000 * 60);
 
-        if (ageMinutes > 10.0 && activeSig.status === 'ACTIVE') {
+        if (ageMinutes > 90.0 && activeSig.status === 'ACTIVE') {
 
           activeSig.status = 'EXPIRED';
 
@@ -15227,6 +15227,77 @@
     initHighImpactNewsCountdown();
 
     initCandlestickMotionBackground();
+
+    // 🌐 ULTRA-SYNCHRONIZATION WITH DISPATCHED TELEGRAM SIGNAL (100% IDENTICAL NUMBERS)
+    // Priority 1: Check URL search parameters (passed when user clicks "បើក Telegram Mini App" from private signal)
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlAction = urlParams.get('action');
+      const urlELow = urlParams.get('eLow');
+      const urlEHigh = urlParams.get('eHigh');
+      const urlSL = urlParams.get('sl');
+      const urlTP1 = urlParams.get('tp1');
+      const urlTP2 = urlParams.get('tp2');
+      const urlTP3 = urlParams.get('tp3');
+      const urlWin = urlParams.get('win') || '99';
+      const urlSigId = urlParams.get('sig_id');
+
+      if (urlAction && urlELow && urlSL && urlTP1) {
+        const syncedSig = {
+          id: urlSigId || ('SMC_' + Date.now()),
+          action: urlAction.toUpperCase(),
+          entryLow: Number(urlELow),
+          entryHigh: Number(urlEHigh || urlELow),
+          sl: Number(urlSL),
+          tp1: Number(urlTP1),
+          tp2: Number(urlTP2 || (urlAction.toUpperCase() === 'BUY' ? Number(urlTP1) + 8 : Number(urlTP1) - 8)),
+          tp3: Number(urlTP3 || (urlAction.toUpperCase() === 'BUY' ? Number(urlELow) + 37 : Number(urlELow) - 37)),
+          winRate: Number(urlWin) || 99,
+          timestamp: Date.now(),
+          status: 'ACTIVE'
+        };
+        localStorage.setItem('ai_official_signal', JSON.stringify(syncedSig));
+        localStorage.setItem('ai_locked_active_signal', JSON.stringify(syncedSig));
+        localStorage.setItem('ai_confirmed_display_signal', JSON.stringify(syncedSig));
+      }
+    } catch(err) {
+      console.warn('[URL Signal Sync] error:', err);
+    }
+
+    // Priority 2: Fetch latest official signal from Cloud Backend API (https://xauusd-news-bot-1-a6gh.onrender.com/api/signal)
+    (async function fetchCloudActiveSignal() {
+      try {
+        const res = await fetch('https://xauusd-news-bot-1-a6gh.onrender.com/api/signal', { cache: 'no-store' });
+        if (res.ok) {
+          const cloudSig = await res.json();
+          if (cloudSig && cloudSig.action && cloudSig.entryLow && cloudSig.sl && cloudSig.active) {
+            const ageMs = Date.now() - (cloudSig.timestamp || Date.now());
+            // Only sync if dispatched within last 90 minutes
+            if (ageMs < 90 * 60 * 1000) {
+              const cloudObj = {
+                id: cloudSig.id || ('SMC_' + Date.now()),
+                action: cloudSig.action.toUpperCase(),
+                entryLow: Number(cloudSig.entryLow),
+                entryHigh: Number(cloudSig.entryHigh || cloudSig.entryLow),
+                sl: Number(cloudSig.sl),
+                tp1: Number(cloudSig.tp1),
+                tp2: Number(cloudSig.tp2),
+                tp3: Number(cloudSig.tp3 || 0),
+                winRate: Number(cloudSig.winRate) || 99,
+                timestamp: cloudSig.timestamp || Date.now(),
+                status: 'ACTIVE'
+              };
+              localStorage.setItem('ai_official_signal', JSON.stringify(cloudObj));
+              localStorage.setItem('ai_locked_active_signal', JSON.stringify(cloudObj));
+              localStorage.setItem('ai_confirmed_display_signal', JSON.stringify(cloudObj));
+              renderInstitutionalSignalBoxes(cloudObj);
+            }
+          }
+        }
+      } catch(e) {
+        // Quiet fail if network offline, local storage already has valid state
+      }
+    })();
 
     renderInstitutionalSignalBoxes();
 

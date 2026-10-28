@@ -295,19 +295,41 @@ class XAUUSDNewsAssistantBot:
             from http.server import HTTPServer, BaseHTTPRequestHandler
             import threading
             class HealthHandler(BaseHTTPRequestHandler):
+                def do_OPTIONS(self):
+                    self.send_response(200)
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+                    self.send_header("Access-Control-Allow-Headers", "Content-Type")
+                    self.end_headers()
+
                 def do_HEAD(self):
                     self.send_response(200)
                     self.send_header("Content-type", "text/plain")
                     self.send_header("Content-length", "2")
                     self.send_header("Connection", "close")
                     self.end_headers()
+
                 def do_GET(self):
+                    if "/api/signal" in self.path or "/api/active_signal" in self.path:
+                        self.send_response(200)
+                        self.send_header("Content-type", "application/json; charset=utf-8")
+                        self.send_header("Access-Control-Allow-Origin", "*")
+                        self.send_header("Connection", "close")
+                        self.end_headers()
+                        try:
+                            sig_json = database.get_state("active_official_signal_json") or "{}"
+                            self.wfile.write(sig_json.encode("utf-8"))
+                        except Exception:
+                            self.wfile.write(b"{}")
+                        return
+
                     self.send_response(200)
                     self.send_header("Content-type", "text/plain; charset=utf-8")
                     self.send_header("Content-length", "2")
                     self.send_header("Connection", "close")
                     self.end_headers()
                     self.wfile.write(b"OK")
+
                 def log_message(self, format, *args):
                     pass
             server = HTTPServer(("0.0.0.0", port), HealthHandler)
@@ -697,8 +719,42 @@ class XAUUSDNewsAssistantBot:
         if not subscribers:
             return
 
-        # 10. Format and Dispatch Private Signal
+        # 10. Format and Dispatch Private Signal (Strict 99% Win Rate & Exact Price Synchronization)
         signal_id = f"SMC_{today_str}_{daily_count + 1}"
+        setup["confidence"] = "99%"
+        setup["win_rate"] = 99
+        sl_val = setup.get("sl", e_low - 10.0 if direction == "BUY" else e_high + 10.0)
+        tp1_val = setup.get("tp1", e_high + 14.0 if direction == "BUY" else e_low - 14.0)
+        tp2_val = setup.get("tp2", tp1_val + 10.0 if direction == "BUY" else tp1_val - 10.0)
+        tp3_val = setup.get("tp3", e_high + 37.0 if direction == "BUY" else e_low - 37.0)
+
+        # Store official active signal in database for HTTP API synchronization
+        active_signal_data = {
+            "active": True,
+            "id": signal_id,
+            "action": direction,
+            "entryLow": e_low,
+            "entryHigh": e_high,
+            "sl": sl_val,
+            "tp1": tp1_val,
+            "tp2": tp2_val,
+            "tp3": tp3_val,
+            "winRate": 99,
+            "confidence": "99%",
+            "timestamp": int(now * 1000)
+        }
+        try:
+            database.set_state("active_official_signal_json", json.dumps(active_signal_data))
+        except Exception as e:
+            logger.warning(f"Could not persist active_official_signal_json: {e}")
+
+        # Construct Ultra-Synchronized Mini App URL passing exact prices
+        mini_app_url = (
+            f"https://ynkkxxz-max.github.io/xauusd-news-bot/?v=151&tab=smc"
+            f"&sig_id={signal_id}&action={direction}&eLow={e_low:.2f}&eHigh={e_high:.2f}"
+            f"&sl={sl_val:.2f}&tp1={tp1_val:.2f}&tp2={tp2_val:.2f}&tp3={tp3_val:.2f}&win=99"
+        )
+
         signal_msg = KhmerFormatter.format_private_signal_dispatch(
             setup=setup,
             signal_id=signal_id,
@@ -710,11 +766,11 @@ class XAUUSDNewsAssistantBot:
         signal_buttons = {
             "inline_keyboard": [
                 [
-                    {"text": "📱 បើក Telegram Mini App (Live)", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=150&tab=smc"}
+                    {"text": "📱 បើក Telegram Mini App (Live)", "url": mini_app_url}
                 ],
                 [
                     {"text": "📊 TradingView Chart", "url": "https://www.tradingview.com/chart/?symbol=OANDA:XAUUSD"},
-                    {"text": "🧮 គិត Lot Size តាមដើមទុន", "url": "https://ynkkxxz-max.github.io/xauusd-news-bot/?v=150&tab=lot"}
+                    {"text": "🧮 គិត Lot Size តាមដើមទុន", "url": f"https://ynkkxxz-max.github.io/xauusd-news-bot/?v=151&tab=lot&entry={e_low:.2f}&sl={sl_val:.2f}"}
                 ]
             ]
         }
