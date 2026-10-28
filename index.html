@@ -10497,7 +10497,12 @@
 
           } else if (official.status === 'ACTIVE' || official.status === 'HIT_TP1') {
 
-            display = official;
+            if (official.action === expAct) {
+              display = official;
+            } else {
+              localStorage.removeItem('ai_official_signal');
+              localStorage.removeItem('ai_locked_active_signal');
+            }
 
           } else if (official.action === expAct && ageMin <= 10.0) {
 
@@ -10791,7 +10796,15 @@
 
 
 
+  let isUpdatingDynamicSMC = false;
+  let pendingPriceToUpdate = null;
+
   async function updateDynamicSMC(price) {
+      if (isUpdatingDynamicSMC) {
+        pendingPriceToUpdate = price;
+        return;
+      }
+      isUpdatingDynamicSMC = true;
 
       try {
 
@@ -11066,6 +11079,8 @@
         if (lastC.high > prevC.high && lastC.close < prevC.high && upperWick >= Math.max(body, 1.2)) {
 
           isTrapActive = true;
+          trendDirection = 'BEARISH';
+          m15Structure = 'Bearish Reversal (Bull Trap Breakdown)';
 
           if (trapBannerEl) {
 
@@ -11090,6 +11105,8 @@
         else if (lastC.low < prevC.low && lastC.close > prevC.low && lowerWick >= Math.max(body, 1.2)) {
 
           isTrapActive = true;
+          trendDirection = 'BULLISH';
+          m15Structure = 'Bullish Reversal (Bear Trap Squeeze)';
 
           if (trapBannerEl) {
 
@@ -12899,6 +12916,39 @@
 
 
 
+      // 🛡️ ZERO UI CONTRADICTION IRON INTEGRITY CHECK
+      const finalHero = document.getElementById('smcHeroBox');
+      const finalDir = document.getElementById('smcDirection');
+      const finalBadge = document.getElementById('smcBadge');
+      const finalTvHero = document.getElementById('tvHeroDirection');
+      if (isBuy) {
+        if (finalHero) finalHero.classList.add('bullish');
+        if (finalDir && !finalDir.innerText.includes('BUY')) {
+          finalDir.innerText = '🟢 BUY PULLBACK ONLY';
+          finalDir.style.color = 'var(--bull)';
+        }
+        if (finalBadge && !finalBadge.innerText.includes('BUY') && !finalBadge.innerText.includes('BULL')) {
+          finalBadge.innerText = 'AI INSTITUTIONAL BIAS • BUY PULLBACK';
+        }
+        if (finalTvHero) {
+          finalTvHero.innerText = '🟢 BUY PULLBACK ONLY';
+          finalTvHero.style.color = 'var(--bull)';
+        }
+      } else {
+        if (finalHero) finalHero.classList.remove('bullish');
+        if (finalDir && !finalDir.innerText.includes('SELL')) {
+          finalDir.innerText = '🔴 SELL RETRACEMENT ONLY';
+          finalDir.style.color = 'var(--bear)';
+        }
+        if (finalBadge && !finalBadge.innerText.includes('SELL') && !finalBadge.innerText.includes('BEAR')) {
+          finalBadge.innerText = 'AI INSTITUTIONAL BIAS • SELL BOUNCE';
+        }
+        if (finalTvHero) {
+          finalTvHero.innerText = '🔴 SELL RETRACEMENT ONLY';
+          finalTvHero.style.color = 'var(--bear)';
+        }
+      }
+
       // Update current dynamic SL distance for Auto-Lot Calculator
 
       const entryRef = isBuy ? Number(entryLow) : Number(entryHigh);
@@ -12919,6 +12969,13 @@
 
       console.warn('[updateDynamicSMC] caught error safely:', err);
 
+    } finally {
+      isUpdatingDynamicSMC = false;
+      if (pendingPriceToUpdate !== null) {
+        const nextPrice = pendingPriceToUpdate;
+        pendingPriceToUpdate = null;
+        updateDynamicSMC(nextPrice);
+      }
     }
 
   }
@@ -13707,7 +13764,13 @@
 
       if (execDot) execDot.innerText = '🟡';
 
-      if (execText) execText.innerText = inZone ? (isBuy ? 'READY TO BUY • ដល់តំបន់ទិញ OTE' : 'READY TO SELL • ដល់តំបន់លក់ OTE') : (isBuy ? 'WAITING OTE 0.618' : 'WAITING OTE 0.618');
+      if (execText) {
+        if (isBuy) {
+          execText.innerText = inZone ? 'READY TO BUY • ដល់តំបន់ទិញ OTE' : 'WAITING OTE 0.618 • រង់ចាំចុះ';
+        } else {
+          execText.innerText = inZone ? 'READY TO SELL • ដល់តំបន់លក់ OTE' : 'WAITING OTE 0.618 • រង់ចាំឡើង';
+        }
+      }
 
 
 

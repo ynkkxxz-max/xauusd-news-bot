@@ -428,7 +428,8 @@ class MacroAnalyzer:
         # Dynamic Scoring Matrix (Each factor weighed for real-money risk)
         bull_score = 0
         bear_score = 0
-        confluences = []
+        bull_confluences = []
+        bear_confluences = []
 
         # 1. Proximity to SMC Key Zones (Discount vs Premium)
         dist_to_s1 = current_price - s1
@@ -436,34 +437,34 @@ class MacroAnalyzer:
 
         if dist_to_s1 <= 8.0:
             bull_score += 3
-            confluences.append(f"តម្លៃស្ថិតក្នុងតំបន់ Discount Demand Zone (${s1:,.2f}) ដែលជាចំណុចស្ថាប័នប្រមូលទិញ (Accumulation)")
+            bull_confluences.append(f"តម្លៃស្ថិតក្នុងតំបន់ Discount Demand Zone (${s1:,.2f}) ដែលជាចំណុចស្ថាប័នប្រមូលទិញ (Accumulation)")
         elif dist_to_r1 <= 8.0:
             bear_score += 3
-            confluences.append(f"តម្លៃឡើងដល់ Premium Supply Zone (${r1:,.2f}) ដែលជាតំបន់ស្ថាប័នត្រៀមលក់ (Distribution)")
+            bear_confluences.append(f"តម្លៃឡើងដល់ Premium Supply Zone (${r1:,.2f}) ដែលជាតំបន់ស្ថាប័នត្រៀមលក់ (Distribution)")
 
         # 2. Relationship to Daily Pivot
         if current_price >= pivot:
             bull_score += 2
-            confluences.append(f"តម្លៃឈរនៅពីលើ Pivot Point (${pivot:,.2f}) បញ្ជាក់ពី Bullish Intraday Structure")
+            bull_confluences.append(f"តម្លៃឈរនៅពីលើ Pivot Point (${pivot:,.2f}) បញ្ជាក់ពី Bullish Intraday Structure")
         else:
             bear_score += 2
-            confluences.append(f"តម្លៃទម្លាក់ចុះក្រោម Pivot Point (${pivot:,.2f}) បង្ហាញពី Bearish Intraday Structure")
+            bear_confluences.append(f"តម្លៃស្ថិតនៅក្រោម Pivot Point (${pivot:,.2f}) បង្ហាញពី Bearish Intraday Structure")
 
         # 3. Order Book Depth & Institutional Liquidity
         if bid_dominance >= 52.0:
             bull_score += 2
-            confluences.append(f"Order Book បង្ហាញកម្លាំងទិញ Bid គ្រប់គ្រង ({bid_dominance:.1f}%) គាំទ្រការទប់តម្លៃ")
+            bull_confluences.append(f"Order Book បង្ហាញកម្លាំងទិញ Bid គ្រប់គ្រង ({bid_dominance:.1f}%) គាំទ្រការទប់តម្លៃ")
         elif bid_dominance <= 48.0:
             bear_score += 2
-            confluences.append(f"Order Book បង្ហាញកម្លាំងលក់ Ask គ្របដណ្តប់ ({100 - bid_dominance:.1f}%) បង្កើតបន្ទុកសង្កត់តម្លៃ")
+            bear_confluences.append(f"Order Book បង្ហាញកម្លាំងលក់ Ask គ្របដណ្តប់ ({100 - bid_dominance:.1f}%) បង្កើតបន្ទុកសង្កត់តម្លៃ")
 
         # 4. Macro DXY Dollar Pressure
         if dxy_pct < -0.05:
             bull_score += 1
-            confluences.append(f"សន្ទស្សន៍ដុល្លារ DXY កំពុងធ្លាក់ចុះ ({dxy_pct:.2f}%) បង្កើនសម្ពាធទិញលើមាស")
+            bull_confluences.append(f"សន្ទស្សន៍ដុល្លារ DXY កំពុងធ្លាក់ចុះ ({dxy_pct:.2f}%) បង្កើនសម្ពាធទិញលើមាស")
         elif dxy_pct > 0.05:
             bear_score += 1
-            confluences.append(f"សន្ទស្សន៍ដុល្លារ DXY រឹងមាំ ({dxy_pct:+.2f}%) បង្កើតសម្ពាធដកថយលើមាស")
+            bear_confluences.append(f"សន្ទស្សន៍ដុល្លារ DXY រឹងមាំ ({dxy_pct:+.2f}%) បង្កើតសម្ពាធដកថយលើមាស")
 
         # Multi-Timeframe Confirmation (M5 + M15 + H1 Confluence)
         mtf_summary = []
@@ -607,11 +608,11 @@ class MacroAnalyzer:
         except Exception:
             pass
 
-        if mtf_summary:
-            confluences.append("ផ្ទៀងផ្ទាត់ Institutional Multi-Confluence: " + " | ".join(mtf_summary))
-
         # Final Deterministic Decision
         is_buy = bull_score >= bear_score
+        confluences = bull_confluences if is_buy else bear_confluences
+        if mtf_summary:
+            confluences.append("ផ្ទៀងផ្ទាត់ Institutional Multi-Confluence: " + " | ".join(mtf_summary))
         total_signals = max(bull_score, bear_score)
         
         # Institutional High Confluence boost up to 96%
@@ -649,8 +650,13 @@ class MacroAnalyzer:
             rr_val = round(tp1_dist / sl_dist, 1)
             rr = f"1:{max(1.8, rr_val)}"
 
+            if current_price < pivot:
+                pivot_reason = f"តម្លៃទាញចុះមកតំបន់ Discount ក្រោម Pivot (${pivot:,.2f}) ផ្តល់ឱកាសទិញក្នុងតម្លៃទាប"
+            else:
+                pivot_reason = f"តម្លៃឈរយ៉ាងរឹងមាំលើ Pivot Point (${pivot:,.2f}) បញ្ជាក់រចនាសម្ព័ន្ធ Bullish Intraday Structure"
+
             why_trade = (
-                f"• {confluences[0] if len(confluences) > 0 else 'ទិសដៅមេគឺកម្លាំងទិញ (Bullish Bias)'} ប៉ុន្តែ AI ណែនាំកុំឱ្យដេញទិញនៅចំណុចខ្ពស់ (${current_price:,.2f})។\n"
+                f"• {pivot_reason} ប៉ុន្តែ AI ណែនាំកុំឱ្យដេញទិញនៅចំណុចខ្ពស់ (${current_price:,.2f})។\n"
                 f"• រង់ចាំតម្លៃទម្លាក់ស្រូបយកសាច់ប្រាក់ងាយស្រួល (Pullback to Discount Zone ${entry_low:,.2f} - ${entry_high:,.2f}) ដើម្បីទទួលបានតម្លៃទាបចំណេញខ្ពស់។\n"
                 f"• ស្ថាប័នធំៗការពារតំបន់ Support (${s1:,.2f}) មុននឹងរុញតម្លៃឡើងទៅបោសសម្អាត Buy-Side Liquidity នៅ ${tp1_price:,.2f}។"
             )
@@ -704,8 +710,13 @@ class MacroAnalyzer:
             rr_val = round(tp1_dist / sl_dist, 1)
             rr = f"1:{max(1.8, rr_val)}"
 
+            if current_price > pivot:
+                pivot_reason = f"តម្លៃលោតឡើងដល់តំបន់ Premium លើ Pivot (${pivot:,.2f}) ផ្តល់ឱកាសលក់ក្នុងតម្លៃខ្ពស់"
+            else:
+                pivot_reason = f"តម្លៃស្ថិតនៅក្រោម Pivot Point (${pivot:,.2f}) បញ្ជាក់រចនាសម្ព័ន្ធ Bearish Intraday Structure"
+
             why_trade = (
-                f"• {confluences[0] if len(confluences) > 0 else 'ទិសដៅមេគឺសម្ពាធលក់ (Bearish Bias)'} ប៉ុន្តែ AI ណែនាំកុំឱ្យដេញលក់នៅបាត (${current_price:,.2f})។\n"
+                f"• {pivot_reason} ប៉ុន្តែ AI ណែនាំកុំឱ្យដេញលក់នៅបាត (${current_price:,.2f})។\n"
                 f"• រង់ចាំតម្លៃងើបឡើងសាកល្បងតំបន់ថ្លៃ (Pullback to Premium Zone ${entry_low:,.2f} - ${entry_high:,.2f}) ដើម្បីបានតម្លៃលក់ខ្ពស់ និង SL ខ្លី។\n"
                 f"• ស្ថាប័នធំៗរារាំងការឡើងថ្លៃនៅ R1 (${r1:,.2f}) ដើម្បីទម្លាក់តម្លៃទៅបោសសម្អាត Sell-Side Liquidity នៅ ${tp1_price:,.2f}។"
             )
