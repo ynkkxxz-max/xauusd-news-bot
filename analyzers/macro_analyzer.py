@@ -651,9 +651,9 @@ class MacroAnalyzer:
                 pivot_reason = f"តម្លៃឈរយ៉ាងរឹងមាំលើ Pivot Point (${pivot:,.2f}) បញ្ជាក់រចនាសម្ព័ន្ធ Bullish Intraday Structure"
 
             why_trade = (
-                f"• {pivot_reason} ប៉ុន្តែ AI ណែនាំកុំឱ្យដេញទិញនៅចំណុចខ្ពស់ (${current_price:,.2f})។\n"
-                f"• រង់ចាំតម្លៃទម្លាក់ស្រូបយកសាច់ប្រាក់ងាយស្រួល (Pullback to Discount Zone ${entry_low:,.2f} - ${entry_high:,.2f}) ដើម្បីទទួលបានតម្លៃទាបចំណេញខ្ពស់។\n"
-                f"• ស្ថាប័នធំៗការពារតំបន់ Support (${s1:,.2f}) មុននឹងរុញតម្លៃឡើងទៅបោសសម្អាត Buy-Side Liquidity នៅ ${tp1_price:,.2f}។"
+                f"• {pivot_reason} ស្ថិតក្នុងតំបន់ ICT Discount Zone (0.618 - 0.786 OTE) មិនដេញទិញនៅចំណុចខ្ពស់ (${current_price:,.2f})។\n"
+                f"• រចនាសម្ព័ន្ធ Market Structure បញ្ជាក់ Bullish BOS/MSS + Mitigated Bullish FVG & Order Block (${entry_low:,.2f} - ${entry_high:,.2f})។\n"
+                f"• ស្ថាប័នការពារតំបន់ Support/SSL (${s1:,.2f}) រៀបចំរុញតម្លៃឡើងទៅបោសសម្អាត Buy-Side Liquidity (BSL) នៅ TP1: ${tp1_price:,.2f} និង TP2: ${tp2_price:,.2f}។"
             )
             why_not_opp = (
                 f"• ហាម Sell ដាច់ខាតព្រោះទិសដៅចរន្តសាច់ប្រាក់ធំ (Macro Order Flow) គាំទ្រការឡើងថ្លៃ ការ Sell គឺដើរបញ្ច្រាសរថភ្លើង!\n"
@@ -711,9 +711,9 @@ class MacroAnalyzer:
                 pivot_reason = f"តម្លៃស្ថិតនៅក្រោម Pivot Point (${pivot:,.2f}) បញ្ជាក់រចនាសម្ព័ន្ធ Bearish Intraday Structure"
 
             why_trade = (
-                f"• {pivot_reason} ប៉ុន្តែ AI ណែនាំកុំឱ្យដេញលក់នៅបាត (${current_price:,.2f})។\n"
-                f"• រង់ចាំតម្លៃងើបឡើងសាកល្បងតំបន់ថ្លៃ (Pullback to Premium Zone ${entry_low:,.2f} - ${entry_high:,.2f}) ដើម្បីបានតម្លៃលក់ខ្ពស់ និង SL ខ្លី។\n"
-                f"• ស្ថាប័នធំៗរារាំងការឡើងថ្លៃនៅ R1 (${r1:,.2f}) ដើម្បីទម្លាក់តម្លៃទៅបោសសម្អាត Sell-Side Liquidity នៅ ${tp1_price:,.2f}។"
+                f"• {pivot_reason} ស្ថិតក្នុងតំបន់ ICT Premium Zone (0.618 - 0.786 OTE) មិនដេញលក់នៅបាត (${current_price:,.2f})។\n"
+                f"• រចនាសម្ព័ន្ធ Market Structure បញ្ជាក់ Bearish CHoCH/MSS + Mitigated Bearish FVG & Order Block (${entry_low:,.2f} - ${entry_high:,.2f})។\n"
+                f"• ស្ថាប័នទប់តំបន់ Resistance/BSL (${r1:,.2f}) រៀបចំទម្លាក់តម្លៃទៅបោសសម្អាត Sell-Side Liquidity (SSL) នៅ TP1: ${tp1_price:,.2f} និង TP2: ${tp2_price:,.2f}។"
             )
             why_not_opp = (
                 f"• ហាម Buy ដាច់ខាតដោយសារ Structure ធំកំពុងចុះខ្សោយ ការ Buy នៅពេលនេះងាយរងគ្រោះដោយ Stop Hunt!\n"

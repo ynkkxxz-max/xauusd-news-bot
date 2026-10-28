@@ -2128,6 +2128,13 @@ class KhmerFormatter:
         confirm = setup.get("confirmation_note", "រង់ចាំ Confirmation Candle M15 មុនចូល Order!").strip()
         tp3_line = f"• 🚀 <b>Take Profit 3 (TP3):</b> <code>${tp3:,.2f}</code> <i>(Runner Target)</i>\n" if tp3 else ""
 
+        # Point 14: Risk Management & Exact Position Sizing Matrix (1-2% Max Capital Risk)
+        safe_sl_dist = max(sl_dist, 5.0)
+        lot_1k = max(0.01, round((1000.0 * 0.01) / (safe_sl_dist * 100.0), 2))
+        lot_3k = max(0.01, round((3000.0 * 0.01) / (safe_sl_dist * 100.0), 2))
+        lot_5k = max(0.01, round((5000.0 * 0.01) / (safe_sl_dist * 100.0), 2))
+        lot_10k = max(0.01, round((10000.0 * 0.01) / (safe_sl_dist * 100.0), 2))
+
         return (
             f"⚡ <b>XAU/USD INSTITUTIONAL SMC TRADE SIGNAL</b> ⚡\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
@@ -2142,7 +2149,12 @@ class KhmerFormatter:
             f"• 🏆 <b>Take Profit 2 (TP2):</b> <code>${tp2:,.2f}</code> <i>(BSL/SSL Sweep)</i>\n"
             f"{tp3_line}"
             f"• ⚖️ <b>សមាមាត្រ R:R:</b> <code>{rr}</code>\n\n"
-            f"🧠 <b>មូលហេតុ Confluence ស្ថាប័ន:</b>\n"
+            f"🧮 <b>ការគ្រប់គ្រងទំហំ Lot Size (Risk 1-2% តាមដើមទុន):</b>\n"
+            f"• ដើមទុន $1,000 (ហានិភ័យ $10): <code>{lot_1k:.2f} Lot</code>\n"
+            f"• ដើមទុន $3,000 (ហានិភ័យ $30): <code>{lot_3k:.2f} Lot</code>\n"
+            f"• ដើមទុន $5,000 (ហានិភ័យ $50): <code>{lot_5k:.2f} Lot</code>\n"
+            f"• ដើមទុន $10,000 (ហានិភ័យ $100): <code>{lot_10k:.2f} Lot</code>\n\n"
+            f"🧠 <b>មូលហេតុ Confluence ស្ថាប័ន (14 ICT/SMC Pillars):</b>\n"
             f"{why_trade}\n\n"
             f"💡 <b>អនុសាសន៍ប្រតិបត្តិការ:</b>\n"
             f"• {confirm}\n"
