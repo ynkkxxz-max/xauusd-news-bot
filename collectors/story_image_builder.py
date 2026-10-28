@@ -678,23 +678,30 @@ class StoryImageBuilder:
             else:
                 live_queries.append(b_key)
         elif detected_countries:
-            c_code = detected_countries[0][0]
-            country_names = {
-                "us": "United States", "jp": "Japan", "gb": "United Kingdom", "eu": "European Union",
-                "de": "Germany", "cn": "China", "ru": "Russia", "ua": "Ukraine", "ir": "Iran",
-                "kp": "North Korea", "kr": "South Korea", "il": "Israel", "ps": "Palestine",
-                "sy": "Syria", "in": "India", "ca": "Canada", "fr": "France"
-            }
-            is_central_bank_story = bool(re.search(r'\b(rate|interest rate|monetary policy|central bank|inflation|cpi|yield|fomc|fed)\b|អត្រាការប្រាក់|ធនាគារកណ្តាល', comb_text, re.IGNORECASE))
-            if is_central_bank_story:
-                cb_names = {
-                    "us": "United States Federal Reserve", "jp": "Bank of Japan", "gb": "Bank of England",
-                    "eu": "European Central Bank", "de": "Deutsche Bundesbank", "cn": "People's Bank of China"
+            for c_info in detected_countries[:2]:
+                c_code = c_info[0]
+                country_queries = {
+                    "gb": ["Bank of England", "Palace of Westminster", "London financial district", "Keir Starmer"],
+                    "us": ["Federal Reserve Eccles Building", "New York Stock Exchange", "United States Capitol", "Wall Street Manhattan"],
+                    "kr": ["Bank of Korea", "Seoul skyline", "National Assembly of South Korea"],
+                    "jp": ["Bank of Japan", "Tokyo skyline", "Tokyo Stock Exchange"],
+                    "eu": ["European Central Bank", "European Parliament"],
+                    "de": ["Deutsche Bundesbank", "Frankfurt skyline", "Bundestag"],
+                    "fr": ["Bank of France", "Elysée Palace", "Paris financial district"],
+                    "cn": ["People's Bank of China", "Great Hall of the People", "Beijing financial street"],
+                    "ru": ["Moscow Kremlin", "Central Bank of Russia"],
+                    "ir": ["Tehran skyline", "Majlis of Iran"],
+                    "il": ["Knesset", "Bank of Israel"],
+                    "in": ["Reserve Bank of India", "Parliament of India"],
+                    "ca": ["Bank of Canada", "Parliament Hill Ottawa"],
+                    "tw": ["Taipei 101", "Taiwan Legislative Yuan"],
+                    "kp": ["Pyongyang skyline", "Mansu Hill"],
+                    "sa": ["Riyadh skyline", "Saudi Aramco"],
+                    "ae": ["Dubai skyline", "Abu Dhabi financial center"],
+                    "au": ["Reserve Bank of Australia", "Parliament House Canberra"],
                 }
-                if c_code in cb_names:
-                    live_queries.append(cb_names[c_code])
-            elif c_code in country_names:
-                live_queries.append(country_names[c_code])
+                if c_code in country_queries:
+                    live_queries.extend(country_queries[c_code])
 
         for q in live_queries:
             live_img = cls.fetch_live_editorial_photo(q, headline_text=headline_text)
@@ -710,8 +717,19 @@ class StoryImageBuilder:
                 logger.info(f"[StoryImageBuilder] Successfully acquired verified editorial photo for query '{q}'.")
                 return live_img
 
+        # Step 7.8: Sovereign Country VIP Flag Card Fallback (Clean editorial graphics guarantee)
+        if detected_countries:
+            for c_code, f_path, _ in detected_countries:
+                if f_path and os.path.exists(f_path):
+                    if not cls.is_asset_on_cooldown(f"flag_card_{c_code}"):
+                        flag_bytes = cls.create_single_flag_canvas(f_path)
+                        if flag_bytes and not cls.is_image_visually_duplicate(flag_bytes):
+                            cls.record_asset_used(f"flag_card_{c_code}")
+                            logger.info(f"[StoryImageBuilder] Using Sovereign Country Flag Card for {c_code.upper()}")
+                            return flag_bytes
+
         # Step 8: Mode B Fallback Guarantee
-        # If no authentic direct publisher photo or verified single leader/split asset exists, return None!
+        # If no authentic direct publisher photo, live editorial photo, or country flag card exists, return None!
         # main.py will automatically broadcast in MODE B (Clean VIP Text Mode), preventing ANY image error or repetition 100%!
         logger.info("[StoryImageBuilder] No authentic direct photo or leader portrait. Falling back to MODE B (VIP Text Mode).")
         return None

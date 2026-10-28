@@ -112,7 +112,7 @@ Answer in STRICT JSON format:
                 w, h = im.size
                 aspect = w / max(h, 1)
 
-                if fmt not in ("JPEG", "JPG", "PNG", "WEBP"):
+                if fmt not in ("JPEG", "JPG", "PNG", "WEBP", "AVIF", "TIFF", "MPO", "BMP"):
                     return {"is_valid": False, "reason": f"Disallowed format: {fmt}"}
 
                 if w < 400 or h < 250:

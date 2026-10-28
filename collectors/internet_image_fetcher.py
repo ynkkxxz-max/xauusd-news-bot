@@ -131,7 +131,7 @@ class InternetImageFetcher:
             with Image.open(io.BytesIO(img_bytes)) as im:
                 # Disallow GIFs / animations / SVG
                 fmt = (im.format or "").upper()
-                if fmt not in ("JPEG", "JPG", "PNG", "WEBP"):
+                if fmt not in ("JPEG", "JPG", "PNG", "WEBP", "AVIF", "TIFF", "MPO", "BMP"):
                     return None
 
                 w, h = im.size
