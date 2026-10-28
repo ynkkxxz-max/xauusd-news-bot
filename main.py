@@ -1571,7 +1571,7 @@ class XAUUSDNewsAssistantBot:
            - Auto-edits caption or text in-place without deleting the post!
         """
         now = time.time()
-        if (now - getattr(self, "_last_channel_audit_ts", 0)) < 3.0:
+        if (now - getattr(self, "_last_channel_audit_ts", 0)) < 1.5:
             return
         self._last_channel_audit_ts = now
 
@@ -1582,7 +1582,7 @@ class XAUUSDNewsAssistantBot:
             if not hasattr(self, "_healed_posts_cache"):
                 self._healed_posts_cache = {}
 
-            channel_html = self._fetch_channel_html(max_cache_age=2.0)
+            channel_html = self._fetch_channel_html(max_cache_age=1.0)
             if not channel_html:
                 return
 
@@ -1676,43 +1676,47 @@ class XAUUSDNewsAssistantBot:
                     posts = [post for post in posts if post["id"] != pid]
                     continue
 
-                # B. Multi-post Duplicate Check (Character 3-grams, SequenceMatcher & Token Jaccard)
+                # B. Multi-post Duplicate Check (Character 3-grams, SequenceMatcher & Token Jaccard across Headline + Full Text)
                 lines = [l.strip() for l in txt.split('\n') if l.strip()]
                 if lines and "ហាងឆេងមាស" not in lines[0]:
                     import difflib
                     hl = lines[0]
                     # Strip emojis and punctuation
                     clean_hl = ''.join(c for c in hl.lower() if not c.isspace() and c not in '.,;:៖-–—()[]{}<>#*!?"\'`/\U00010000-\U0010ffff')
+                    clean_full = ''.join(c for c in txt.lower() if not c.isspace() and c not in '.,;:៖-–—()[]{}<>#*!?"\'`/\U00010000-\U0010ffff')[:300]
                     norm_tokens = set(re.findall(r'[\u1780-\u17FF]{3,}|[a-zA-Z]{3,}', hl.lower()))
                     ngrams_3 = set(clean_hl[i:i+3] for i in range(len(clean_hl) - 2)) if len(clean_hl) >= 3 else set()
 
                     if clean_hl:
                         is_dup = False
                         for prev_pid, prev_data in seen_headlines.items():
-                            prev_clean, prev_tokens, prev_ngrams = prev_data
+                            prev_clean, prev_tokens, prev_ngrams, prev_full = prev_data
                             
-                            # 1. SequenceMatcher ratio on unspaced text
+                            # 1. SequenceMatcher ratio on unspaced headline
                             seq_ratio = difflib.SequenceMatcher(None, clean_hl, prev_clean).ratio() if prev_clean else 0.0
 
-                            # 2. 3-gram Jaccard on Khmer characters
+                            # 2. SequenceMatcher ratio on first 300 chars of full narrative text
+                            full_seq_ratio = difflib.SequenceMatcher(None, clean_full, prev_full).ratio() if prev_full else 0.0
+
+                            # 3. 3-gram Jaccard on Khmer characters
                             ng_overlap = len(ngrams_3.intersection(prev_ngrams))
                             ng_union = len(ngrams_3.union(prev_ngrams))
                             ng_jaccard = ng_overlap / ng_union if ng_union else 0.0
 
-                            # 3. Token Jaccard
+                            # 4. Token Jaccard
                             tok_overlap = len(norm_tokens.intersection(prev_tokens))
                             tok_union = len(norm_tokens.union(prev_tokens))
                             tok_jaccard = tok_overlap / tok_union if tok_union else 0.0
 
-                            if seq_ratio >= 0.55 or ng_jaccard >= 0.45 or tok_jaccard >= 0.50:
-                                logger.critical(f"[AUTONOMOUS DUPLICATE PURGE] Duplicate post #{pid} matches #{prev_pid} (seq={seq_ratio:.2f}, ngrams={ng_jaccard:.2f}, tok={tok_jaccard:.2f}). Deleting immediately!")
+                            if seq_ratio >= 0.48 or full_seq_ratio >= 0.48 or ng_jaccard >= 0.38 or tok_jaccard >= 0.40:
+                                logger.critical(f"[INSTANT DUPLICATE AUTO-PURGE] Sub-second purge of duplicate post #{pid} matching #{prev_pid} (hl_seq={seq_ratio:.2f}, full_seq={full_seq_ratio:.2f}, ngrams={ng_jaccard:.2f}, tok={tok_jaccard:.2f})!")
                                 self.notifier.delete_message(pid)
                                 posts = [post for post in posts if post["id"] != pid]
                                 is_dup = True
                                 break
                         if is_dup:
                             continue
-                        seen_headlines[pid] = (clean_hl, norm_tokens, ngrams_3)
+                        seen_headlines[pid] = (clean_hl, norm_tokens, ngrams_3, clean_full)
 
                 # C. Multi-post Image Duplicate Purge (Strict Zero Repetition Guarantee)
                 if photo_url and "ហាងឆេងមាស" not in txt:
@@ -2421,6 +2425,12 @@ class XAUUSDNewsAssistantBot:
                     new_msg_id = res_send.get("result", {}).get("message_id")
                     if new_msg_id:
                         database.set_state("last_channel_post_id", str(new_msg_id))
+                    # INSTANT SUB-SECOND POST-BROADCAST AUDIT:
+                    # Immediately scans live channel to purge any concurrent duplicate within milliseconds!
+                    try:
+                        self.audit_live_channel_and_heal()
+                    except Exception as ae:
+                        logger.debug(f"[Post-broadcast audit error] {ae}")
 
             # Increment daily broadcast counter
             today_count = int(database.get_state(f"daily_breaking_count_{today_key}") or "0")

@@ -285,43 +285,43 @@ class InternetImageFetcher:
         # Clean headline of verbose trailers
         clean_h = re.sub(r'\s*[-–—|]\s*(?:Reuters|Bloomberg|CNBC|BBC|AP|Fox Business|WSJ|MarketWatch|Financial Times|Al Jazeera|Ars Technica|TechCrunch).*$', '', headline, flags=re.IGNORECASE)
         clean_h = re.sub(r'[^a-zA-Z0-9\s]', ' ', clean_h).strip()
-        words = clean_h.split()[:7]
+        words = clean_h.split()[:6]
         if not words:
             return None
 
-        search_query = " ".join(words)
-        url = f"https://www.bing.com/images/search?q={quote(search_query)}&qft=+filterui:photo-photo&FORM=HDRSC2"
+        # Tier 3.1: Wikipedia / Wikimedia Commons API (Fast, authentic, high-res editorial photos)
+        search_queries = [" ".join(words)]
+        if len(words) >= 3:
+            search_queries.append(" ".join(words[:3]))
+        if source:
+            search_queries.append(f"{source} news")
 
-        try:
-            r = requests.get(url, headers=cls.HEADERS, timeout=5.0)
-            if r.status_code != 200:
-                return None
-
-            matches = re.findall(r'm=(?:&quot;|")(\{.+?\})(?:&quot;|")', r.text)
-            candidates = []
-            for m in matches[:15]:
-                try:
-                    data = json.loads(html.unescape(m))
-                    murl = data.get("murl", "")
-                    desc = data.get("desc", "")
-                    if cls.is_valid_image_url(murl):
-                        candidates.append((murl, desc))
-                except Exception:
-                    pass
-
-            for murl, desc in candidates[:6]:
-                try:
-                    img_resp = requests.get(murl, headers=cls.HEADERS, timeout=4.5)
-                    if img_resp.status_code == 200:
-                        verified = cls.verify_and_enhance_image(img_resp.content, headline=headline, summary=summary)
-                        if verified:
-                            logger.info(f"[InternetImageFetcher] Found verified live editorial press photo from search: {murl[:80]}")
-                            return verified
-                except Exception as e:
-                    logger.debug(f"[InternetImageFetcher] Search candidate download error: {e}")
-
-        except Exception as e:
-            logger.debug(f"[InternetImageFetcher] Live image search exception: {e}")
+        for sq in search_queries:
+            try:
+                encoded = urllib.parse.quote(sq.strip())
+                api_url = f"https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch={encoded}&gsrlimit=5&prop=pageimages&pithumbsize=1200&format=json"
+                req = urllib.request.Request(api_url, headers={"User-Agent": "VIPNewsAssistant/2.0 (contact: info@telegram.org)"})
+                with urllib.request.urlopen(req, timeout=4.0) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                pages = data.get("query", {}).get("pages", {})
+                for pid, pdata in pages.items():
+                    thumb = pdata.get("thumbnail", {}).get("source")
+                    if not thumb:
+                        continue
+                    thumb_low = thumb.lower()
+                    if any(bad in thumb_low for bad in [".svg", "seal", "emblem", "logo", "flag_of", "map", "diagram", "chart"]):
+                        continue
+                    try:
+                        img_resp = requests.get(thumb, headers=cls.HEADERS, timeout=4.5)
+                        if img_resp.status_code == 200:
+                            verified = cls.verify_and_enhance_image(img_resp.content, headline=headline, summary=summary)
+                            if verified:
+                                logger.info(f"[InternetImageFetcher] Found verified live editorial press photo from Wikipedia API for '{sq}': {thumb[:80]}")
+                                return verified
+                    except Exception as e:
+                        logger.debug(f"[InternetImageFetcher] Wiki candidate download error: {e}")
+            except Exception as e:
+                logger.debug(f"[InternetImageFetcher] Live image search exception ({sq}): {e}")
 
         return None
 
