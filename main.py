@@ -2256,8 +2256,8 @@ class XAUUSDNewsAssistantBot:
         last_alert_ts = float(database.get_state("last_breaking_alert_ts") or "0")
         channel_time_since_last = self._channel_time_since_last_post()
         time_since_last = min(now - last_alert_ts, now - self._last_breaking_sent_ts, channel_time_since_last)
-        # Fast-track gate: minimal 60-second safety gap to prevent rapid consecutive posts
-        if time_since_last < 60.0:
+        # Fast-track gate: strictly 180-second (3-minute) minimum safety gap to prevent rapid consecutive posts
+        if time_since_last < 180.0:
             return
 
         # Daily Volume Capping & Moderation Standard:

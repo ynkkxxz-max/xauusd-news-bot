@@ -10487,26 +10487,15 @@
 
           const ageMin = (Date.now() - (official.timestamp || 0)) / (1000 * 60);
 
-          // Strict Max 10-minute validity for sniper entry alerts
-
-          if (ageMin > 90.0 && official.status === 'ACTIVE') {
+          if (ageMin > 90.0) {
 
             localStorage.removeItem('ai_official_signal');
 
             localStorage.removeItem('ai_locked_active_signal');
 
-          } else if (official.status === 'ACTIVE' || official.status === 'HIT_TP1') {
+          } else {
 
-            if (official.action === expAct) {
-              display = official;
-            } else {
-              localStorage.removeItem('ai_official_signal');
-              localStorage.removeItem('ai_locked_active_signal');
-            }
-
-          } else if (official.action === expAct && ageMin <= 10.0) {
-
-            // Concluded trade matches current trend direction -> keep exact numbers locked so user can verify TP/SL!
+            // Constitutional Rule: Lock exact prices 100% identically to private chat signal
 
             display = official;
 
@@ -11748,19 +11737,15 @@
 
       let isBuy = (trendDirection === 'BULLISH');
 
-      if (lockedActiveSig && lockedActiveSig.status === 'ACTIVE') {
+      if (lockedActiveSig && (lockedActiveSig.status === 'ACTIVE' || lockedActiveSig.entryLow)) {
 
         const sigAgeMin = (Date.now() - (lockedActiveSig.timestamp || 0)) / (1000 * 60);
 
-        const isTrapped = (isTrapActive && ((lockedActiveSig.action === 'BUY' && trapTitleEl && trapTitleEl.innerText.includes('BULL TRAP')) || (lockedActiveSig.action === 'SELL' && trapTitleEl && trapTitleEl.innerText.includes('BEAR TRAP'))));
-
-        if (sigAgeMin <= 90.0 && !isTrapped) {
+        if (sigAgeMin <= 90.0) {
 
           isBuy = (lockedActiveSig.action === 'BUY');
 
         } else {
-
-          // Stale (> 10 min) or trapped signal -> clear it immediately so UI follows live trend!
 
           localStorage.removeItem('ai_official_signal');
 

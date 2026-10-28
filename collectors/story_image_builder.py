@@ -534,17 +534,17 @@ class StoryImageBuilder:
         # Step 4.2.1: Company/Brand + Target Country Dual Split Image (Story-Accurate Composite)
         # e.g. NVIDIA Logo + Germany/Japan/India flag
         if len(headline_leaders) == 0 and len(detected_brands) >= 1 and len(detected_countries) >= 1:
-            b1, path_brand = detected_brands[0]
             target_countries = [c for c in detected_countries if c[0] != "us"]
-            c1, path_flag, _ = target_countries[0] if target_countries else detected_countries[0]
-            b1_name = os.path.basename(path_brand)
-            if not cls.is_asset_on_cooldown(f"brand_{b1}") and not cls.is_asset_on_cooldown(f"split_{b1}_{c1}"):
-                logger.info(f"[StoryImageBuilder] Synthesizing Company + Country Split Image: {b1} (Left) + {c1} Flag (Right)")
-                split_bytes = cls.create_split_image(path_brand, path_flag)
-                if split_bytes:
-                    cls.record_asset_used(f"brand_{b1}")
-                    cls.record_asset_used(f"split_{b1}_{c1}")
-                    return split_bytes
+            target_list = target_countries if target_countries else detected_countries
+            for b1, path_brand in detected_brands:
+                for c1, path_flag, _ in target_list:
+                    if not cls.is_asset_on_cooldown(f"brand_{b1}") and not cls.is_asset_on_cooldown(f"split_{b1}_{c1}"):
+                        logger.info(f"[StoryImageBuilder] Synthesizing Company + Country Split Image: {b1} (Left) + {c1} Flag (Right)")
+                        split_bytes = cls.create_split_image(path_brand, path_flag)
+                        if split_bytes:
+                            cls.record_asset_used(f"brand_{b1}")
+                            cls.record_asset_used(f"split_{b1}_{c1}")
+                            return split_bytes
 
         # Step 4.3: Leader + Brand Split Image (Story-Accurate Composite)
         # e.g. Elon Musk + SpaceX / Tesla / Anthropic
@@ -602,39 +602,40 @@ class StoryImageBuilder:
 
         # Step 6: Single Brand VIP Card (for major tech / market corporations)
         if len(headline_leaders) == 0 and len(detected_brands) >= 1:
-            b_slug, b_path = detected_brands[0]
-            if b_path and os.path.exists(b_path) and not cls.is_asset_on_cooldown(f"brand_{b_slug}"):
-                try:
-                    with open(b_path, "rb") as f:
-                        brand_bytes = cls.enhance_image_for_vip(f.read())
-                    if brand_bytes:
-                        if not cls.is_image_visually_duplicate(brand_bytes):
-                            cls.record_asset_used(f"brand_{b_slug}")
-                            logger.info(f"[StoryImageBuilder] Using Single Brand VIP Card for {b_slug.upper()}")
-                            return brand_bytes
-                        else:
-                            logger.warning(f"[StoryImageBuilder] Brand card '{b_slug}' is visually duplicate in 30-day channel history. Skipping.")
-                except Exception as e:
-                    logger.warning(f"[StoryImageBuilder] Failed reading brand image {b_path}: {e}")
+            for b_slug, b_path in detected_brands:
+                if b_path and os.path.exists(b_path) and not cls.is_asset_on_cooldown(f"brand_{b_slug}"):
+                    try:
+                        with open(b_path, "rb") as f:
+                            brand_bytes = cls.enhance_image_for_vip(f.read())
+                        if brand_bytes:
+                            if not cls.is_image_visually_duplicate(brand_bytes):
+                                cls.record_asset_used(f"brand_{b_slug}")
+                                logger.info(f"[StoryImageBuilder] Using Single Brand VIP Card for {b_slug.upper()}")
+                                return brand_bytes
+                            else:
+                                logger.warning(f"[StoryImageBuilder] Brand card '{b_slug}' is visually duplicate in 30-day channel history. Skipping.")
+                    except Exception as e:
+                        logger.warning(f"[StoryImageBuilder] Failed reading brand image {b_path}: {e}")
 
         # Step 6.5: Sovereign State Leader Portrait Fallback
         # When a major country is featured in headline/state action and no specific leader was named,
         # use that nation's leader portrait if available and not on 4-hour cooldown (e.g. Russia -> Putin, North Korea -> Kim Jong Un)
         if len(headline_leaders) == 0 and len(detected_countries) >= 1:
-            c1_code = detected_countries[0][0]
-            l_slug, p_path = cls.get_available_president_photo_for_country(c1_code)
-            if l_slug and p_path and not is_market_index:
-                p_name = os.path.basename(p_path)
-                if not cls.is_asset_on_cooldown(f"photo_{p_name}"):
-                    try:
-                        with open(p_path, "rb") as f:
-                            leader_cand = cls.enhance_image_for_vip(f.read())
-                        if leader_cand and not cls.is_image_visually_duplicate(leader_cand):
-                            cls.record_asset_used(f"photo_{p_name}")
-                            logger.info(f"[StoryImageBuilder] Using Sovereign State Leader Portrait for {c1_code.upper()}: {p_name}")
-                            return leader_cand
-                    except Exception as e:
-                        logger.warning(f"[StoryImageBuilder] Error reading sovereign leader {p_path}: {e}")
+            for c_info in detected_countries:
+                c1_code = c_info[0]
+                l_slug, p_path = cls.get_available_president_photo_for_country(c1_code)
+                if l_slug and p_path and not is_market_index:
+                    p_name = os.path.basename(p_path)
+                    if not cls.is_asset_on_cooldown(f"photo_{p_name}"):
+                        try:
+                            with open(p_path, "rb") as f:
+                                leader_cand = cls.enhance_image_for_vip(f.read())
+                            if leader_cand and not cls.is_image_visually_duplicate(leader_cand):
+                                cls.record_asset_used(f"photo_{p_name}")
+                                logger.info(f"[StoryImageBuilder] Using Sovereign State Leader Portrait for {c1_code.upper()}: {p_name}")
+                                return leader_cand
+                        except Exception as e:
+                            logger.warning(f"[StoryImageBuilder] Error reading sovereign leader {p_path}: {e}")
 
         # Step 7: Macro Topic Verified Ultra-HD Photo (Direct Headline Matching Only per Supreme Iron Law #1)
         # Macro Topics (gold bullion, crude oil, central bank, AI data center, Wall Street, naval)
