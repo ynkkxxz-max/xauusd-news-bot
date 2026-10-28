@@ -430,8 +430,8 @@ def get_signal_subscribers() -> list:
 _MEMORY_DHASH_CACHE = []  # List of tuples: (int_hash: int, epoch: float, hex_str: str)
 _BYTE_HASH_CACHE = {}     # Mapping: md5_bytes_prefix -> (hex_str, int_hash)
 
-def _preload_image_hashes(max_age_seconds: float = 2592000.0):
-    """Preloads past 30-day visual hashes from SQLite into high-speed in-memory list on startup."""
+def _preload_image_hashes(max_age_seconds: float = 14400.0):
+    """Preloads past 4-hour visual hashes from SQLite into high-speed in-memory list on startup."""
     global _MEMORY_DHASH_CACHE
     import time
     try:
@@ -531,12 +531,12 @@ def record_image_dhash(dhash: str, epoch: float = None):
     except Exception as e:
         logger.debug(f"[record_image_dhash error] {e}")
 
-def is_image_dhash_duplicate(dhash: str, max_age_seconds: float = 2592000.0, max_hamming_dist: int = 6) -> bool:
+def is_image_dhash_duplicate(dhash: str, max_age_seconds: float = 14400.0, max_hamming_dist: int = 6) -> bool:
     """
     Ultra-Fast Perceptual Duplication Check (Sub-Millisecond Speed):
     Compares 64-bit integer difference hashes using Python's hardware-accelerated .bit_count().
     Runs in < 0.05 milliseconds across hundreds of active hashes.
-    Guarantees strict 30-day ZERO image repetition across all channel broadcasts!
+    Guarantees strict 4-hour ZERO image repetition (14,400s cooldown) per Supreme Iron Law #1!
     """
     if not dhash:
         return False

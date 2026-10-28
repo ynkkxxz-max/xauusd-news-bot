@@ -127,20 +127,21 @@ class StoryImageBuilder:
         ("qa", r"\b(qatar|doha)\b|(?:ប្រទេស|រដ្ឋ)?\s*កាតា(?![លក\u1780-\u17D3])"),
         ("eg", r"\b(egypt|egyptian|cairo)\b|អេហ្ស៊ីប"),
         ("ps", r"\b(palestine|palestinian|west bank|ramallah|gaza)\b|ប៉ាឡេស្ទីន|វេសប៊ែង|ហ្កាហ្សា"),
+        ("sy", r"\b(syria|syrian|damascus)\b|ស៊ីរី"),
     ]
 
-    IMAGE_COOLDOWN_SECONDS = 2592000.0  # 30 days strict cooldown for ANY visual asset (Strict Zero Repetition)
+    IMAGE_COOLDOWN_SECONDS = 14400.0  # 4 hours strict cooldown per Supreme Iron Law #1 (14,400 seconds)
     _RECENT_USED_ASSETS = {}
 
     @classmethod
     def is_image_visually_duplicate(cls, img_bytes: bytes) -> bool:
-        """Checks if generated or fetched image bytes match any channel broadcast within 30 days."""
+        """Checks if generated or fetched image bytes match any channel broadcast within 4-hour cooldown."""
         if not img_bytes:
             return False
         try:
             import database
             dh = database.calculate_image_dhash(img_bytes)
-            if dh and database.is_image_dhash_duplicate(dh, max_age_seconds=2592000.0, max_hamming_dist=6):
+            if dh and database.is_image_dhash_duplicate(dh, max_age_seconds=14400.0, max_hamming_dist=6):
                 return True
         except Exception:
             pass
@@ -214,13 +215,13 @@ class StoryImageBuilder:
             try:
                 import database
                 c_hash = cls._get_file_dhash(c)
-                if c_hash and database.is_image_dhash_duplicate(c_hash, max_age_seconds=2592000.0, max_hamming_dist=6):
+                if c_hash and database.is_image_dhash_duplicate(c_hash, max_age_seconds=14400.0, max_hamming_dist=6):
                     continue
             except Exception:
                 pass
             return c
 
-        logger.info(f"[StoryImageBuilder] All {len(candidates)} photo variants of '{leader_key}' are currently on 30-day cooldown.")
+        logger.info(f"[StoryImageBuilder] All {len(candidates)} photo variants of '{leader_key}' are currently on 4-hour cooldown.")
         return ""
 
     @classmethod
@@ -256,7 +257,7 @@ class StoryImageBuilder:
             try:
                 import database
                 c_hash = cls._get_file_dhash(c)
-                if c_hash and database.is_image_dhash_duplicate(c_hash, max_age_seconds=2592000.0, max_hamming_dist=6):
+                if c_hash and database.is_image_dhash_duplicate(c_hash, max_age_seconds=14400.0, max_hamming_dist=6):
                     continue
             except Exception:
                 pass
@@ -366,8 +367,8 @@ class StoryImageBuilder:
                     try:
                         import database
                         dh = database.calculate_image_dhash(direct_photo)
-                        if dh and database.is_image_dhash_duplicate(dh, max_age_seconds=2592000.0, max_hamming_dist=6):
-                            logger.warning(f"[StoryImageBuilder] Direct publisher photo matches 30-day channel hash ({dh}). Skipping candidate.")
+                        if dh and database.is_image_dhash_duplicate(dh, max_age_seconds=14400.0, max_hamming_dist=6):
+                            logger.warning(f"[StoryImageBuilder] Direct publisher photo matches 4-hour channel hash ({dh}). Skipping candidate.")
                             direct_photo = None
                     except Exception:
                         pass
@@ -471,12 +472,13 @@ class StoryImageBuilder:
         # e.g. Israel vs Iran -> Left: Benjamin Netanyahu, Right: Ali Khamenei
         # e.g. US vs China -> Left: Donald Trump, Right: Xi Jinping
         is_bilateral_conflict = bool(re.search(
-            r"\b(war|conflict|clash|clashes|strike|strikes|attack|missile|missiles|drone|drones|tensions|retaliat|invad|invasion|sanction|sanctions|dispute|standoff|frontline|escalat|defense|military|peace talks|summit|bilateral|ceasefire|threat|warns|warning)\b|សង្គ្រាម|ជម្លោះ|វាយប្រហារ|មីស៊ីល|ដ្រូន|តានតឹង|ទណ្ឌកម្ម|យោធា|ការពារជាតិ|ការប្រឈមមុខ|បាញ់|ប្រយុទ្ធ|ជំនួប|កិច្ចប្រជុំ|ព្រមាន",
+            r"\b(war|conflict|clash|clashes|strike|strikes|attack|missile|missiles|drone|drones|tensions|retaliat|invad|invasion|sanction|sanctions|dispute|standoff|frontline|escalat|defense|military|peace talks|summit|bilateral|ceasefire|threat|warns|warning|talks|talk|negotiat|dialogue|diplomac|diplomat|relation|relations|ties|interference|security|pact|treaty|accord|deal|alliance|cooperation|meeting|meet|visit)\b|សង្គ្រាម|ជម្លោះ|វាយប្រហារ|មីស៊ីល|ដ្រូន|តានតឹង|ទណ្ឌកម្ម|យោធា|ការពារជាតិ|ការប្រឈមមុខ|បាញ់|ប្រយុទ្ធ|ជំនួប|កិច្ចប្រជុំ|ព្រមាន|កិច្ចចរចា|ចរចា|ការទូត|ទំនាក់ទំនង|ការជ្រៀតជ្រែក|សន្តិសុខ|កិច្ចព្រមព្រៀង|សម្ព័ន្ធភាព|កិច្ចសហប្រតិបត្តិការ|ទស្សនកិច្ច",
             comb_text, re.IGNORECASE
         ))
 
         # Case 1: Two countries detected in conflict / bilateral relations
-        if len(detected_countries) >= 2 and is_bilateral_conflict:
+        headline_country_count = len([c for c in detected_countries if c[2] < 99999])
+        if len(detected_countries) >= 2 and (is_bilateral_conflict or headline_country_count >= 2):
             c1_code = detected_countries[0][0]
             c2_code = detected_countries[1][0]
             l1_slug, p1_path = cls.get_available_president_photo_for_country(c1_code)
@@ -615,9 +617,44 @@ class StoryImageBuilder:
                 except Exception as e:
                     logger.warning(f"[StoryImageBuilder] Failed reading brand image {b_path}: {e}")
 
-        # Note: Static topic stock photos (bitcoin_crypto, wall_street, crude_oil, etc.)
-        # and cheap flag cutouts are strictly BANNED to guarantee zero repetition and maximum visual quality.
-        # Fall through to Live Editorial Photo Search or Clean MODE B!
+        # Step 6.5: Sovereign State Leader Portrait Fallback
+        # When a major country is featured in headline/state action and no specific leader was named,
+        # use that nation's leader portrait if available and not on 4-hour cooldown (e.g. Russia -> Putin, North Korea -> Kim Jong Un)
+        if len(headline_leaders) == 0 and len(detected_countries) >= 1:
+            c1_code = detected_countries[0][0]
+            l_slug, p_path = cls.get_available_president_photo_for_country(c1_code)
+            if l_slug and p_path and not is_market_index:
+                p_name = os.path.basename(p_path)
+                if not cls.is_asset_on_cooldown(f"photo_{p_name}"):
+                    try:
+                        with open(p_path, "rb") as f:
+                            leader_cand = cls.enhance_image_for_vip(f.read())
+                        if leader_cand and not cls.is_image_visually_duplicate(leader_cand):
+                            cls.record_asset_used(f"photo_{p_name}")
+                            logger.info(f"[StoryImageBuilder] Using Sovereign State Leader Portrait for {c1_code.upper()}: {p_name}")
+                            return leader_cand
+                    except Exception as e:
+                        logger.warning(f"[StoryImageBuilder] Error reading sovereign leader {p_path}: {e}")
+
+        # Step 7: Macro Topic Verified Ultra-HD Photo (Direct Headline Matching Only per Supreme Iron Law #1)
+        # Macro Topics (gold bullion, crude oil, central bank, AI data center, Wall Street, naval)
+        # MUST strictly match the HEADLINE directly (zero guessing on GDP or indirect news).
+        # Enforces strict 4-hour (14,400s) cooldown per variant!
+        for top_key, pat in cls.TOPIC_PATTERNS:
+            if re.search(pat, headline_text, re.IGNORECASE):
+                topic_path = cls.get_available_topic_photo(top_key)
+                if topic_path and os.path.exists(topic_path):
+                    p_name = os.path.basename(topic_path)
+                    if not cls.is_asset_on_cooldown(f"topic_{p_name}"):
+                        try:
+                            with open(topic_path, "rb") as f:
+                                cand_bytes = cls.enhance_image_for_vip(f.read())
+                            if cand_bytes and not cls.is_image_visually_duplicate(cand_bytes):
+                                cls.record_asset_used(f"topic_{p_name}")
+                                logger.info(f"[StoryImageBuilder] Using verified Macro Topic Photo: {p_name} for '{top_key}'")
+                                return cand_bytes
+                        except Exception as e:
+                            logger.warning(f"[StoryImageBuilder] Error reading topic photo {topic_path}: {e}")
 
         # Step 7.5: Live Real-Time Editorial Photo Search (Wikipedia Commons High-Res Press Wire)
         live_queries = []
@@ -640,19 +677,23 @@ class StoryImageBuilder:
             else:
                 live_queries.append(b_key)
         elif detected_countries:
+            c_code = detected_countries[0][0]
+            country_names = {
+                "us": "United States", "jp": "Japan", "gb": "United Kingdom", "eu": "European Union",
+                "de": "Germany", "cn": "China", "ru": "Russia", "ua": "Ukraine", "ir": "Iran",
+                "kp": "North Korea", "kr": "South Korea", "il": "Israel", "ps": "Palestine",
+                "sy": "Syria", "in": "India", "ca": "Canada", "fr": "France"
+            }
             is_central_bank_story = bool(re.search(r'\b(rate|interest rate|monetary policy|central bank|inflation|cpi|yield|fomc|fed)\b|អត្រាការប្រាក់|ធនាគារកណ្តាល', comb_text, re.IGNORECASE))
             if is_central_bank_story:
-                c_code = detected_countries[0][0]
-                country_names = {
-                    "us": "United States Federal Reserve",
-                    "jp": "Bank of Japan",
-                    "gb": "Bank of England",
-                    "eu": "European Central Bank",
-                    "de": "Deutsche Bundesbank",
-                    "cn": "People's Bank of China"
+                cb_names = {
+                    "us": "United States Federal Reserve", "jp": "Bank of Japan", "gb": "Bank of England",
+                    "eu": "European Central Bank", "de": "Deutsche Bundesbank", "cn": "People's Bank of China"
                 }
-                if c_code in country_names:
-                    live_queries.append(country_names[c_code])
+                if c_code in cb_names:
+                    live_queries.append(cb_names[c_code])
+            elif c_code in country_names:
+                live_queries.append(country_names[c_code])
 
         for q in live_queries:
             live_img = cls.fetch_live_editorial_photo(q, headline_text=headline_text)
@@ -660,8 +701,8 @@ class StoryImageBuilder:
                 try:
                     import database
                     h = database.calculate_image_dhash(live_img)
-                    if h and database.is_image_dhash_duplicate(h, max_age_seconds=2592000.0, max_hamming_dist=6):
-                        logger.warning(f"[StoryImageBuilder] Live photo for '{q}' matches 30-day channel hash ({h}). Skipping candidate.")
+                    if h and database.is_image_dhash_duplicate(h, max_age_seconds=14400.0, max_hamming_dist=6):
+                        logger.warning(f"[StoryImageBuilder] Live photo for '{q}' matches 4-hour channel hash ({h}). Skipping candidate.")
                         continue
                 except Exception:
                     pass
@@ -726,8 +767,8 @@ class StoryImageBuilder:
                             if len(raw_bytes) >= 15000:
                                 import database
                                 dh = database.calculate_image_dhash(raw_bytes)
-                                if dh and database.is_image_dhash_duplicate(dh, max_age_seconds=2592000.0, max_hamming_dist=6):
-                                    logger.warning(f"[StoryImageBuilder] Live photo candidate for '{query}' matches 30-day channel dHash ({dh}). Skipping.")
+                                if dh and database.is_image_dhash_duplicate(dh, max_age_seconds=14400.0, max_hamming_dist=6):
+                                    logger.warning(f"[StoryImageBuilder] Live photo candidate for '{query}' matches 4-hour channel dHash ({dh}). Skipping.")
                                     continue
                                 img_hash = hashlib.md5(raw_bytes[:2000]).hexdigest()
                                 if not cls.is_asset_on_cooldown(f"live_{img_hash}"):

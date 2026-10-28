@@ -69,7 +69,7 @@ Return STRICT JSON:
             }
         }
 
-        candidate_models = [GEMINI_MODEL, "gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest"]
+        candidate_models = [GEMINI_MODEL, "gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-flash-latest", "gemini-flash-lite-latest"]
         seen_models = set()
         models = [m for m in candidate_models if m and not (m in seen_models or seen_models.add(m))]
 
@@ -77,7 +77,7 @@ Return STRICT JSON:
             for model in models:
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
                 try:
-                    resp = requests.post(url, json=payload, timeout=10)
+                    resp = requests.post(url, json=payload, timeout=8)
                     if resp.status_code == 200:
                         raw = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
                         data = json.loads(raw)
@@ -103,7 +103,35 @@ Return STRICT JSON:
                     logger.debug(f"[SemanticEventDeduplicator error on {model}] {e}")
                     continue
 
-        return (False, "API check failed, fail-open to not block legitimate news")
+        # Algorithmic Deduplication Fallback (when Gemini API is 429 or unavailable)
+        try:
+            import re
+            stopwords = {
+                "the", "a", "an", "in", "to", "and", "of", "on", "for", "with", "at", "by", "from",
+                "as", "is", "are", "was", "were", "be", "been", "has", "have", "had", "it", "its",
+                "after", "says", "said", "new", "amid", "over", "into", "about", "against", "more",
+                "than", "will", "would", "could", "should", "out", "up", "down", "ahead", "before",
+                "តម្លៃ", "បាន", "ធ្លាក់ចុះ", "ឡើង", "ខ្ពស់", "ទាប", "ក្នុង", "រយះពេល", "រយៈពេល", "មុន"
+            }
+            cand_tokens = set(re.findall(r'[a-zA-Z0-9\u1780-\u17D3]{3,}', f"{candidate_title} {candidate_desc}".lower())) - stopwords
+            for idx, story_str in enumerate(recent_channel_stories[:10], 1):
+                story_tokens = set(re.findall(r'[a-zA-Z0-9\u1780-\u17D3]{3,}', str(story_str).lower())) - stopwords
+                if not story_tokens or not cand_tokens:
+                    continue
+                intersection = cand_tokens & story_tokens
+                union = cand_tokens | story_tokens
+                jaccard = len(intersection) / len(union) if union else 0.0
+
+                # High token overlap or >= 3 major keyword matches
+                if len(intersection) >= 4 or (len(intersection) >= 3 and jaccard >= 0.25):
+                    logger.info(f"[ALGORITHMIC DEDUP INTERCEPTED] '{candidate_title[:45]}' matches recent story [{idx}] (common tokens: {intersection}). Flagged as duplicate.")
+                    res_tuple = (True, f"Algorithmic match with post [{idx}] (overlap: {', '.join(list(intersection)[:4])})")
+                    cls._DEDUP_CACHE[cache_key] = res_tuple
+                    return res_tuple
+        except Exception as e:
+            logger.debug(f"[Algorithmic Dedup Fallback error] {e}")
+
+        return (False, "API check failed, passed algorithmic deduplication")
 
     @classmethod
     def find_duplicate_posts_in_channel(cls, posts: list) -> list:

@@ -273,7 +273,7 @@ class XAUUSDNewsAssistantBot:
             import threading
             import urllib.request
             def pinger_worker():
-                url = os.getenv("RENDER_EXTERNAL_URL", "https://xauusd-news-bot-1-s8gh.onrender.com")
+                url = os.getenv("RENDER_EXTERNAL_URL", "https://xauusd-news-bot-1-a6gh.onrender.com")
                 time.sleep(30)
                 while True:
                     try:
@@ -1527,7 +1527,7 @@ class XAUUSDNewsAssistantBot:
             return (999999.0, [], [], {}, {}, [])
 
     def _is_image_already_in_channel(self, photo_bytes: bytes) -> bool:
-        """Inspects recently used image hashes and channel feed to strictly guarantee ZERO repetitive images over 30 days!"""
+        """Inspects recently used image hashes and channel feed to strictly guarantee ZERO repetitive images over 4-hour cooldown (14,400s)!"""
         if not photo_bytes or len(photo_bytes) < 1000:
             return False
         try:
@@ -1535,13 +1535,13 @@ class XAUUSDNewsAssistantBot:
             now = time.time()
             img_hash = hashlib.md5(photo_bytes[:4000]).hexdigest()
             last_used = float(database.get_state(f"channel_img_ts_{img_hash}") or "0")
-            if (now - last_used) < 2592000.0:  # Strict 30 days
-                logger.info(f"[IMAGE REPETITION SHIELD] Image MD5 {img_hash[:8]} was already used {(now - last_used)/3600:.1f}h ago. Rejecting!")
+            if (now - last_used) < 14400.0:  # Strict 4 hours (14,400 seconds) per Supreme Iron Law #1
+                logger.info(f"[IMAGE REPETITION SHIELD] Image MD5 {img_hash[:8]} was already used {(now - last_used)/3600:.1f}h ago (< 4h cooldown). Rejecting!")
                 return True
 
             dh = database.calculate_image_dhash(photo_bytes)
-            if dh and database.is_image_dhash_duplicate(dh, max_age_seconds=2592000.0, max_hamming_dist=6):
-                logger.info(f"[IMAGE PERCEPTUAL SHIELD] Image visually matches a broadcast within 30 days (dHash={dh}). Rejecting!")
+            if dh and database.is_image_dhash_duplicate(dh, max_age_seconds=14400.0, max_hamming_dist=6):
+                logger.info(f"[IMAGE PERCEPTUAL SHIELD] Image visually matches a broadcast within 4h cooldown (dHash={dh}). Rejecting!")
                 return True
 
             if dh:
@@ -2344,11 +2344,15 @@ class XAUUSDNewsAssistantBot:
                 self._broadcasted_titles_cache.add(title.lower())
                 continue
 
-            # Pre-flight channel cooldown check: ensure another container did not just post in the last 120-180 seconds
+            # Pre-flight channel cooldown check: ensure neither another container nor local cycle just posted within min_post_gap
+            now_pre = time.time()
             fresh_elapsed = self._channel_time_since_last_post()
+            db_last_ts = float(database.get_state("last_breaking_alert_ts") or "0")
+            local_elapsed = now_pre - max(self._last_breaking_sent_ts, db_last_ts)
+            effective_pre_gap = min(fresh_elapsed, local_elapsed) if local_elapsed > 0 else fresh_elapsed
             min_post_gap = 120.0 if is_ultra else max(required_gap, 180.0)
-            if fresh_elapsed < min_post_gap:
-                logger.info(f"[CHANNEL COLLISION PREVENTED] Channel has a post from {fresh_elapsed:.1f}s ago (< {min_post_gap}s required). Deferring.")
+            if effective_pre_gap < min_post_gap:
+                logger.info(f"[CHANNEL COLLISION PREVENTED] Pre-flight gap is {effective_pre_gap:.1f}s (< {min_post_gap}s required). Deferring to next cycle.")
                 break
 
             # Lock in-memory and database atomically BEFORE dispatching

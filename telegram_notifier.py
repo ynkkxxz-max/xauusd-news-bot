@@ -711,8 +711,8 @@ class TelegramNotifier:
         is_gold_card = is_daily_gold_card or (bool(caption) and caption.startswith("🥇"))
         if not is_gold_card:
             img_dhash = calculate_image_dhash(photo_bytes)
-            if img_dhash and is_image_dhash_duplicate(img_dhash, max_age_seconds=2592000.0, max_hamming_dist=6):
-                logger.critical(f"[STRICT ZERO REPETITION SHIELD] Image dHash '{img_dhash}' matches an image broadcasted in the channel! Auto-dropping image and falling back to MODE B (Clean VIP Text Mode).")
+            if img_dhash and is_image_dhash_duplicate(img_dhash, max_age_seconds=14400.0, max_hamming_dist=6):
+                logger.critical(f"[STRICT ZERO REPETITION SHIELD] Image dHash '{img_dhash}' matches an image broadcasted in the channel within 4h cooldown! Auto-dropping image and falling back to MODE B (Clean VIP Text Mode).")
                 return self.send_message(text=caption, parse_mode=parse_mode, reply_markup=reply_markup, chat_id=chat_id, is_ultra_breaking=is_ultra_breaking)
 
         if not self.is_configured():

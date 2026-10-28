@@ -146,8 +146,8 @@ class InternetImageFetcher:
 
                 # Sub-millisecond Perceptual Duplication Interception via database.FastDHashMemoryCache
                 dhash = database.calculate_image_dhash(img_bytes)
-                if dhash and database.is_image_dhash_duplicate(dhash, max_age_seconds=2592000.0, max_hamming_dist=6):
-                    logger.info(f"[InternetImageFetcher] Intercepted visually duplicate image (dHash={dhash}). Auto-dropping.")
+                if dhash and database.is_image_dhash_duplicate(dhash, max_age_seconds=14400.0, max_hamming_dist=6):
+                    logger.info(f"[InternetImageFetcher] Intercepted visually duplicate image within 4h cooldown (dHash={dhash}). Auto-dropping.")
                     return None
 
                 # Multimodal AI Vision Quality Gate Check (if available)
