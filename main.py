@@ -435,17 +435,49 @@ class XAUUSDNewsAssistantBot:
         except Exception as e:
             logger.debug(f"[LiveChannelImageSync error] {e}")
 
-    def _is_daily_price_already_in_channel(self, date_str: str, session_keyword: str = "") -> bool:
-        """Inspects live channel feed to verify if daily gold price was already broadcasted for this session."""
+    def _is_daily_price_already_in_channel(self, date_str: str, session_type: str = "") -> bool:
+        """
+        Inspects live channel feed (@GoldMarketKH8888) to verify if the daily gold price graphic card
+        has ALREADY been broadcasted for this session.
+        Guarantees ZERO duplication across multiple instances (Render cloud + Local PC) or container restarts.
+        """
         try:
-            channel_html = self._fetch_channel_html(max_cache_age=300.0)
-            if date_str in channel_html:
-                if not session_keyword:
-                    return True
-                kw = "ព្រឹក" if "ព្រឹក" in session_keyword else "យប់"
-                if session_keyword in channel_html or kw in channel_html:
-                    return True
+            channel_html = self._fetch_channel_html(max_cache_age=10.0)
+            if not channel_html:
                 return False
+            parts = channel_html.split('<div class="tgme_widget_message_wrap')
+            for part in parts[1:]:
+                m_id = re.search(r'data-post="GoldMarketKH8888/(\d+)"', part)
+                m_time = re.search(r'<time datetime="([^"]+)"', part)
+                m_text = re.search(r'<div class="tgme_widget_message_(?:text|caption)[^"]*"[^>]*>(.*?)</div>', part, re.DOTALL)
+                has_photo = 'tgme_widget_message_photo_wrap' in part
+                if not (m_id and m_time and has_photo):
+                    continue
+
+                iso_time = m_time.group(1)
+                try:
+                    dt_utc = datetime.fromisoformat(iso_time.replace('Z', '+00:00'))
+                    dt_kh = dt_utc.astimezone(CAMBODIA_TZ)
+                except Exception:
+                    continue
+
+                post_date = dt_kh.strftime('%Y-%m-%d')
+                if post_date != date_str:
+                    continue
+
+                kh_hour = dt_kh.hour
+                txt = m_text.group(1) if m_text else ''
+                is_gold_card = has_photo and (not txt or 'ហាងឆេងមាស' in txt) and ('padding-top:100%' in part or 'style="width:800px' in part)
+                if not is_gold_card:
+                    continue
+
+                post_session = "morning" if 7 <= kh_hour <= 10 else ("evening" if 19 <= kh_hour <= 22 else "")
+                if session_type:
+                    if post_session == session_type:
+                        logger.info(f"[LiveChannelGuard] Daily gold price ({session_type}) already exists in channel (Post #{m_id.group(1)} at {dt_kh.strftime('%H:%M:%S')}). Suppressing duplicate dispatch.")
+                        return True
+                elif post_session:
+                    return True
         except Exception as e:
             logger.debug(f"[Channel Gold Price Check] {e}")
         return False
@@ -482,7 +514,14 @@ class XAUUSDNewsAssistantBot:
             self._daily_price_locks.add(session_key)
             return
 
-        # 4. Trigger Daily Gold Price broadcast (07:00 AM or 07:00 PM)
+        # 4. Live Telegram Channel Feed Verification (Triple-Shield Multi-Instance Guard)
+        # Prevents duplicate posts across multiple containers (Render cloud + local PC) or server restarts
+        if self._is_daily_price_already_in_channel(today_str, session_type):
+            self._daily_price_locks.add(session_key)
+            database.record_daily_price_sent(session_key, 999999)
+            return
+
+        # 5. Trigger Daily Gold Price broadcast (07:00 AM or 07:00 PM)
         self._daily_price_locks.add(session_key)
         logger.info(f"Triggering {session_label} Daily Gold Price broadcast for {today_str} ({session_type})...")
         price_data = self.gold_collector.fetch_price(force_refresh=True)
@@ -1609,13 +1648,19 @@ class XAUUSDNewsAssistantBot:
                 has_photo = bool(real_photos) or has_photo_tag
                 has_video = bool(re.search(r'tgme_widget_message_video|tgme_widget_message_roundvideo|<video', part))
 
+                m_time = re.search(r'<time datetime="([^"]+)"', part)
+                iso_time = m_time.group(1) if m_time else ""
+                is_gold_card = has_photo and (not clean_text or "ហាងឆេងមាស" in clean_text) and ('padding-top:100%' in part or 'style="width:800px' in part)
+
                 posts.append({
                     "id": pid,
                     "text": clean_text,
                     "raw_html": clean_html,
                     "photo_url": photo_url,
                     "has_photo": has_photo or has_video,
-                    "has_video": has_video
+                    "has_video": has_video,
+                    "iso_time": iso_time,
+                    "is_gold_card": is_gold_card
                 })
 
             if not posts:
@@ -1624,11 +1669,40 @@ class XAUUSDNewsAssistantBot:
             # --- 1. DEFECT PURGE & MULTI-POST DEDUPLICATION (លុបបញ្ហាខុស & លុបជាន់) ---
             seen_headlines = {}
             seen_image_hashes = {}
+            seen_gold_cards = {}
             for p in list(posts):
                 pid = p["id"]
                 txt = p["text"]
                 has_photo = p["has_photo"]
                 photo_url = p.get("photo_url")
+                is_gold_card = p.get("is_gold_card", False)
+
+                # Daily Gold Price Card Session Deduplication (Auto-purge duplicate gold cards for same session)
+                if is_gold_card:
+                    session_key = ""
+                    iso_time = p.get("iso_time", "")
+                    if iso_time:
+                        try:
+                            dt_utc = datetime.fromisoformat(iso_time.replace('Z', '+00:00'))
+                            dt_kh = dt_utc.astimezone(CAMBODIA_TZ)
+                            kh_date = dt_kh.strftime('%Y-%m-%d')
+                            kh_hour = dt_kh.hour
+                            sname = "morning" if 7 <= kh_hour <= 10 else ("evening" if 19 <= kh_hour <= 22 else "")
+                            if sname:
+                                session_key = f"{kh_date}_{sname}"
+                        except Exception:
+                            pass
+                    if session_key:
+                        if session_key in seen_gold_cards:
+                            earlier_pid = seen_gold_cards[session_key]
+                            logger.critical(f"[AUTONOMOUS GOLD CARD DUPLICATE PURGE] Duplicate gold card in post #{pid} matches earlier post #{earlier_pid} for session {session_key}. Deleting duplicate immediately!")
+                            self.notifier.delete_message(pid)
+                            posts = [post for post in posts if post["id"] != pid]
+                            continue
+                        else:
+                            seen_gold_cards[session_key] = pid
+                    # Whitelist the legitimate/first gold price card from further checks
+                    continue
 
                 # Absolute Whitelist for Daily Gold Price Card (Never purge system price cards under any check)
                 if database.is_daily_price_message_id(pid):
