@@ -667,24 +667,53 @@ class TelegramNotifier:
 
         # Check 8: Lightning Anti-Duplicate Purge (< 1 second)
         # Guarantees zero duplicate headlines or story signatures can ever coexist on the channel
-        if not hasattr(self, "_recent_watchdog_posts"):
-            self._recent_watchdog_posts = []
-
-        now_ts = time.time()
-        self._recent_watchdog_posts = [p for p in self._recent_watchdog_posts if (now_ts - p[0]) < 14400.0]
-
+        import difflib
         headline_match = re.search(r'<b>(.*?)</b>', raw_text, re.DOTALL)
         current_headline = re.sub(r'[^\w\u1780-\u17FF]', '', headline_match.group(1)).strip().lower() if headline_match else ""
         current_sig = re.sub(r'[^\w\u1780-\u17FF]', '', clean)[:60].lower()
 
-        for p_ts, p_head, p_sig, p_id in self._recent_watchdog_posts:
-            if (current_headline and len(current_headline) >= 15 and current_headline == p_head) or (current_sig and len(current_sig) >= 30 and current_sig == p_sig):
-                logger.critical(f"[LIGHTNING WATCHDOG PURGE] Post #{message_id} duplicates earlier post #{p_id}. Auto-purging immediately in < 1 second!")
+        now_ts = time.time()
+        if not hasattr(TelegramNotifier, "_global_watchdog_posts"):
+            TelegramNotifier._global_watchdog_posts = []
+        TelegramNotifier._global_watchdog_posts = [p for p in TelegramNotifier._global_watchdog_posts if (now_ts - p[0]) < 14400.0]
+
+        # 8.1 In-Memory Global Watchdog Check (Fuzzy Similarity)
+        for p_ts, p_head, p_sig, p_id in TelegramNotifier._global_watchdog_posts:
+            if p_id == message_id:
+                continue
+            head_sim = difflib.SequenceMatcher(None, current_headline, p_head).ratio() if (current_headline and p_head) else 0.0
+            sig_sim = difflib.SequenceMatcher(None, current_sig, p_sig).ratio() if (current_sig and p_sig) else 0.0
+            if head_sim >= 0.40 or sig_sim >= 0.45 or (current_headline and len(current_headline) >= 15 and (current_headline in p_head or p_head in current_headline)):
+                logger.critical(f"[LIGHTNING WATCHDOG PURGE] Post #{message_id} duplicates earlier post #{p_id} (sim={max(head_sim, sig_sim):.2f}). Auto-purging immediately in < 1 second!")
                 self.delete_message(message_id, chat_id=target_chat)
                 return False
 
+        # 8.2 Persistent SQLite Watchdog Check (Cross-Process / Cross-Container)
+        try:
+            import database
+            past_posts = database.get_recent_channel_posts(hours=4)
+            for (past_id, past_hl, past_full, past_photo, past_epoch) in past_posts:
+                if past_id == message_id:
+                    continue
+                past_clean_hl = re.sub(r'[^\w\u1780-\u17FF]', '', past_hl or '').strip().lower()
+                past_clean_sig = re.sub(r'[^\w\u1780-\u17FF]', '', past_full or '')[:60].lower()
+                head_sim = difflib.SequenceMatcher(None, current_headline, past_clean_hl).ratio() if (current_headline and past_clean_hl) else 0.0
+                sig_sim = difflib.SequenceMatcher(None, current_sig, past_clean_sig).ratio() if (current_sig and past_clean_sig) else 0.0
+                if head_sim >= 0.40 or sig_sim >= 0.45 or (current_headline and len(current_headline) >= 15 and (current_headline in past_clean_hl or past_clean_hl in current_headline)):
+                    logger.critical(f"[DATABASE WATCHDOG PURGE] Post #{message_id} duplicates DB post #{past_id} (sim={max(head_sim, sig_sim):.2f}). Auto-purging immediately!")
+                    self.delete_message(message_id, chat_id=target_chat)
+                    return False
+        except Exception as e_db_wd:
+            logger.debug(f"[DatabaseWatchdog error] {e_db_wd}")
+
+        # Register successful post in memory & database
         if current_headline or current_sig:
-            self._recent_watchdog_posts.append((now_ts, current_headline, current_sig, message_id))
+            TelegramNotifier._global_watchdog_posts.append((now_ts, current_headline, current_sig, message_id))
+            try:
+                import database
+                database.record_channel_post(message_id, current_headline, clean, is_photo=is_photo)
+            except Exception:
+                pass
 
         logger.info(f"[WATCHDOG PASSED] Post #{message_id} passed all 100% quality checks ({vis_len}/{max_allowed} chars).")
         return True
@@ -1086,26 +1115,6 @@ class TelegramNotifier:
             logger.error(f"[TelegramNotifier] Exception while editing text: {e}")
             return {"ok": False, "error": str(e)}
 
-    def delete_message(self, message_id: int, chat_id: str = None) -> dict:
-        """Deletes a message from the Telegram chat/channel."""
-        if not self.is_configured():
-            logger.info(f"[TelegramNotifier] Simulated delete for message ID: {message_id}")
-            return {"ok": True, "result": True}
-
-        target_chat = str(chat_id or self.chat_id)
-        url = f"{self.base_url}/deleteMessage"
-        payload = {"chat_id": target_chat, "message_id": message_id}
-        try:
-            resp = requests.post(url, json=payload, timeout=15)
-            result = resp.json()
-            if result.get("ok"):
-                logger.info(f"[TelegramNotifier] Message deleted successfully (ID: {message_id})")
-            else:
-                logger.error(f"[TelegramNotifier] Error deleting message: {result}")
-            return result
-        except Exception as e:
-            logger.error(f"[TelegramNotifier] Exception while deleting message: {e}")
-            return {"ok": False, "error": str(e)}
 
     def send_voice(self, voice_bytes: bytes, caption: str = "", parse_mode: str = "HTML", reply_markup: dict = None, chat_id: str = None) -> dict:
         """Voice notes are permanently disabled per user directive."""

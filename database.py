@@ -56,6 +56,17 @@ def init_db():
 
     # Generic key-value state (e.g. last breaking-alert timestamp)
     cursor.execute("""
+    CREATE TABLE IF NOT EXISTS channel_posts_history (
+        message_id INTEGER PRIMARY KEY,
+        headline TEXT,
+        full_text TEXT,
+        is_photo INTEGER DEFAULT 0,
+        epoch REAL,
+        sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    cursor.execute("""
     CREATE TABLE IF NOT EXISTS bot_state (
         key TEXT PRIMARY KEY,
         value TEXT,
@@ -246,6 +257,36 @@ def is_daily_price_message_id(message_id: int) -> bool:
     exists = cursor.fetchone() is not None
     conn.close()
     return exists
+
+def record_channel_post(message_id: int, headline: str, full_text: str, is_photo: bool = False):
+    """Records an outbound channel broadcast for persistent multi-instance deduplication & watchdog audit."""
+    if not message_id:
+        return
+    import time
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+    INSERT OR REPLACE INTO channel_posts_history (message_id, headline, full_text, is_photo, epoch, sent_at)
+    VALUES (?, ?, ?, ?, ?, datetime('now'))
+    """, (message_id, headline, full_text, 1 if is_photo else 0, time.time()))
+    conn.commit()
+    conn.close()
+
+def get_recent_channel_posts(hours: int = 4) -> list:
+    """Returns recent posts broadcasted to the channel within given hours."""
+    import time
+    min_epoch = time.time() - (hours * 3600.0)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+    SELECT message_id, headline, full_text, is_photo, epoch
+    FROM channel_posts_history
+    WHERE epoch >= ? OR sent_at >= datetime('now', ?)
+    ORDER BY message_id DESC
+    """, (min_epoch, f"-{hours} hours"))
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
 
 def get_state(key: str):
     conn = get_db_connection()
