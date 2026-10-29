@@ -487,17 +487,34 @@ class TelegramNotifier:
         try:
             import urllib.request, html as html_mod, difflib
             from datetime import datetime, timezone, timedelta
-            ch_req = urllib.request.Request("https://t.me/s/GoldMarketKH8888", headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(ch_req, timeout=3.0) as ch_resp:
+            ch_req = urllib.request.Request("https://t.me/s/GoldMarketKH8888", headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+            with urllib.request.urlopen(ch_req, timeout=4.0) as ch_resp:
                 ch_html = ch_resp.read().decode("utf-8", errors="ignore")
             if ch_html:
-                # A. Gold Card Guard
+                wraps = ch_html.split("tgme_widget_message_wrap")
+                all_wraps = list(reversed(wraps[1:]))  # Newest to oldest!
+
+                # A. Channel Cadence Spacing Guard (Minimum 120s between channel news posts)
+                if not text.startswith("🥇") and all_wraps:
+                    time_m = re.search(r'<time datetime="([^"]+)"', all_wraps[0])
+                    if time_m:
+                        try:
+                            p_dt = datetime.fromisoformat(time_m.group(1).replace('Z', '+00:00'))
+                            now_utc = datetime.now(timezone.utc)
+                            gap_elapsed = (now_utc - p_dt).total_seconds()
+                            if gap_elapsed < 120.0:
+                                logger.critical(f"[LIVE CHANNEL GUARD] Channel already posted a message {gap_elapsed:.1f}s ago (< 120s gap). Pre-dispatch suppressed!")
+                                return False, text, f"Channel collision: previous post published {gap_elapsed:.1f}s ago"
+                        except Exception:
+                            pass
+
+                # B. Gold Card Guard
                 if not text or "ហាងឆេងមាស" in text:
                     kh_now = datetime.now(timezone(timedelta(hours=7)))
                     today_kh = kh_now.strftime("%Y-%m-%d")
                     session_str = "07:00 ព្រឹក" if 7 <= kh_now.hour <= 10 else ("07:00 យប់" if 19 <= kh_now.hour <= 22 else "")
                     if session_str:
-                        for m_wrap in ch_html.split("tgme_widget_message_wrap")[1:10]:
+                        for m_wrap in all_wraps:
                             if ("padding-top:100%" in m_wrap or "tgme_widget_message_photo" in m_wrap) and ("07:00" in m_wrap or "ហាងឆេងមាស" in m_wrap or not re.search(r'tgme_widget_message_(?:text|caption)', m_wrap)):
                                 time_m = re.search(r'<time datetime="([^"]+)"', m_wrap)
                                 if time_m:
@@ -508,16 +525,18 @@ class TelegramNotifier:
                                             logger.critical(f"[LIVE CHANNEL GUARD] Daily gold card for {today_kh} {session_str} already exists in @GoldMarketKH8888! Pre-dispatch suppressed.")
                                             return False, text, f"Gold card already in channel for {session_str}"
 
-                # B. Breaking News Headline Guard
+                # C. Breaking News Headline & Content Guard (Checks all recent posts on channel)
                 if current_headline and len(current_headline) >= 15:
-                    for m_wrap in ch_html.split("tgme_widget_message_wrap")[1:15]:
+                    for m_wrap in all_wraps:
                         txt_m = re.search(r'tgme_widget_message_(?:text|caption)[^"]*"[^>]*>(.*?)</div>', m_wrap, re.DOTALL)
                         if txt_m:
                             c_line = html_mod.unescape(re.sub(r'<[^>]+>', ' ', txt_m.group(1))).strip().split('\n')[0]
                             c_head = re.sub(r'[^\w\u1780-\u17FF]', '', c_line).strip().lower()
+                            c_full = re.sub(r'[^\w\u1780-\u17FF]', '', html_mod.unescape(re.sub(r'<[^>]+>', ' ', txt_m.group(1)))).strip().lower()
                             if c_head and len(c_head) >= 15:
                                 seq_sim = difflib.SequenceMatcher(None, current_headline, c_head).ratio()
-                                if seq_sim >= 0.45 or current_headline in c_head or c_head in current_headline:
+                                full_sim = difflib.SequenceMatcher(None, current_sig, c_full[:60]).ratio() if current_sig else 0.0
+                                if seq_sim >= 0.40 or full_sim >= 0.50 or current_headline in c_head or c_head in current_headline or (current_sig and current_sig in c_full):
                                     logger.critical(f"[LIVE CHANNEL GUARD] Headline already published in @GoldMarketKH8888 (sim={seq_sim:.2f})! Pre-dispatch suppressed.")
                                     return False, text, f"Duplicate of live channel post (sim={seq_sim:.2f})"
         except Exception as e_live:

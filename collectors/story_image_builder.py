@@ -31,7 +31,7 @@ class StoryImageBuilder:
         ("ai_data_center", r"\b(data center|data centers|cooling|liquid cooling|wastewater|supercomputer|compute|gpu cluster|ai infrastructure)\b|មជ្ឈមណ្ឌលទិន្នន័យ|កម្ដៅម៉ាស៊ីនមេ|ម៉ាស៊ីនមេ"),
         ("gold_bullion", r"\b(gold|gold price|bullion|xauusd|xau|precious metals)\b|(?<![\u1780-\u17D3])មាស(?![\u1780-\u17D3])|ហាងឆេងមាស|តម្លៃមាស|ដុំមាស"),
         ("crude_oil", r"\b(oil|crude|brent|wti|opec|refinery|refineries|petroleum|fuel|gasoline|natural gas|lng|permian basin)\b|ប្រេង|ប្រេងកាត|ប្រេងឆៅ|ឧស្ម័នធម្មជាតិ"),
-        ("federal_reserve", r"\b(federal reserve|fed|fomc|interest rate|rate hike|rate cut|monetary policy)\b|ធនាគារកណ្តាលអាមេរិក|អត្រាការប្រាក់"),
+        ("federal_reserve", r"(?<!ecb\s)(?<!european\s)\b(federal reserve|the fed\b|fed's|fomc|jerome powell)\b(?!\s*ecb)|(?<!អឺរ៉ុប\s)ធនាគារកណ្តាលអាមេរិក|ហ្វេត\b"),
         ("wall_street", r"\b(wall street|dow jones|s&p 500|nasdaq|nyse|stock market|equities|stocks rally|stocks plunge)\b|ទីផ្សារភាគហ៊ុន|សន្ទស្សន៍"),
         ("bitcoin_crypto", r"\b(bitcoin|btc|cryptocurrency|crypto|ethereum|eth|stablecoin|tether|usdt)\b|កាក់ឌីជីថល|ប៊ីតខញ"),
         ("geopolitics_naval", r"\b(naval|warship|destroyer|aircraft carrier|strait of hormuz|red sea|bab al-mandab)\b|កងទ័ពជើងទឹក|នាវាចម្បាំង|ច្រកសមុទ្រ"),
@@ -643,6 +643,9 @@ class StoryImageBuilder:
         # Enforces strict 4-hour (14,400s) cooldown per variant!
         for top_key, pat in cls.TOPIC_PATTERNS:
             if re.search(pat, headline_text, re.IGNORECASE):
+                # Never assign US Federal Reserve logo to European Central Bank, BOJ, or BOE news!
+                if top_key == "federal_reserve" and re.search(r'\b(ecb|european central bank|bank of england|boe|bank of japan|boj|pboc)\b|ធនាគារកណ្តាលអឺរ៉ុប|ធនាគារកណ្តាលជប៉ុន|ធនាគារកណ្តាលអង់គ្លេស', headline_text, re.IGNORECASE):
+                    continue
                 topic_path = cls.get_available_topic_photo(top_key)
                 if topic_path and os.path.exists(topic_path):
                     p_name = os.path.basename(topic_path)
