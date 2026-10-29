@@ -370,7 +370,8 @@ class TelegramNotifier:
         # 0.2 Private Chat General Deduplication Guard (prevent double response to /price, /stats, etc.)
         if is_private_chat:
             now_ts = time.time()
-            clean_cmd_key = f"{target_chat_str}:{re.sub(r'[^a-zA-Z0-9\u1780-\u17FF]', '', raw_text[:40])}"
+            clean_suffix = re.sub(r'[^a-zA-Z0-9\u1780-\u17FF]', '', raw_text[:40])
+            clean_cmd_key = f"{target_chat_str}:{clean_suffix}"
             last_cmd_ts = TelegramNotifier._recent_private_messages.get(clean_cmd_key, 0.0)
             if (now_ts - last_cmd_ts) < 15.0:
                 logger.warning(f"[PRIVATE MSG DEDUP] Intercepted duplicate response to {target_chat_str} within 15s. Suppressed!")
