@@ -6,13 +6,15 @@ echo ========================================================
 echo   XAUUSD NEWS ASSISTANT TELEGRAM BOT (CAMBODIA UTC+7)
 echo ========================================================
 echo.
-echo [*] Starting Bot in Autonomous Loop Mode...
-echo [*] Features Active:
-echo     - 07:00 AM Daily Gold Price Graphic Card (Ultra-HD 1080x1080)
-echo     - London 14:00 ^& NY 19:00 Session Open Alerts + Liquidity Heatmap
-echo     - 7 Core Pillars Real-Time Breaking News (Zero-Duplicate Shield)
-echo     - Interactive Telegram Commands (Sub-Second Response)
-echo     - 24/7 Autonomous Self-Healing Operation
+echo [*] Checking 24/7 Cloud Status (Render)...
+echo [*] Render Service: https://xauusd-news-bot-1-a6gh.onrender.com
+echo.
+echo [IMPORTANT NOTICE]:
+echo  - If Render Cloud is online, your bot is ALREADY running 24/7!
+echo  - This local PC instance will run in PASSIVE STANDBY mode
+echo    to strictly PREVENT double-posting into @GoldMarketKH8888.
+echo  - You can safely CLOSE this window at any time!
+echo ========================================================
 echo.
 
 cd /d "%~dp0"
@@ -22,6 +24,6 @@ echo [%date% %time%] Launching bot process...
 python -u -c "from main import XAUUSDNewsAssistantBot; bot = XAUUSDNewsAssistantBot(); bot.start_loop()"
 echo.
 echo [!] Bot process stopped or disconnected.
-echo [*] Auto-restarting in 5 seconds...
-timeout /t 5 /nobreak >nul
+echo [*] Auto-restarting in 10 seconds...
+timeout /t 10 /nobreak >nul
 goto loop

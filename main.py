@@ -183,6 +183,9 @@ class XAUUSDNewsAssistantBot:
             logger.info(f"AI analysis chain ENABLED: {' -> '.join(names)} -> rules")
         else:
             logger.info("No AI keys configured — using rule-based MacroAnalyzer fallback.")
+        self._is_standby_mode = False
+        self._last_cloud_check_ts = 0.0
+        self._check_cloud_supervisor_standby()
         self._enforce_single_instance_lock()
         logger.info("Initializing XAUUSD News Assistant Bot (Cambodia Time UTC+7)...")
         self._calendar_attached = False
@@ -212,6 +215,39 @@ class XAUUSDNewsAssistantBot:
 
         self._bootstrap_news_cache()
         self._sync_channel_images_to_database()
+
+    def _check_cloud_supervisor_standby(self):
+        """
+        Cloud Primary / Local Standby Mutual Exclusion Guard.
+        If running on a local PC (outside Render Cloud) and Render Cloud is actively running 24/7,
+        switches this local instance to PASSIVE STANDBY mode to physically prevent double-posting!
+        """
+        self._last_cloud_check_ts = time.time()
+        is_render = bool(os.getenv("RENDER") or os.getenv("RUNNING_IN_RENDER_SUPERVISOR"))
+        if is_render:
+            self._is_standby_mode = False
+            return False
+
+        try:
+            import urllib.request, json
+            render_url = "https://xauusd-news-bot-1-a6gh.onrender.com/status"
+            req = urllib.request.Request(render_url, headers={"User-Agent": "LocalStandbyCheck/1.0"})
+            with urllib.request.urlopen(req, timeout=3.5) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                if data.get("bot_running", False):
+                    uptime_h = data.get("uptime_hours", 0)
+                    if not getattr(self, "_is_standby_mode", False):
+                        logger.warning(
+                            f"[RENDER CLOUD DETECTED] Render Cloud is ONLINE & managing broadcasts 24/7 "
+                            f"(Uptime: {uptime_h}h). Local bot activated PASSIVE STANDBY mode (double-posts suppressed)!"
+                        )
+                    self._is_standby_mode = True
+                    return True
+        except Exception:
+            pass
+
+        self._is_standby_mode = False
+        return False
 
     def _enforce_single_instance_lock(self):
         """
@@ -506,6 +542,11 @@ class XAUUSDNewsAssistantBot:
         return False
 
     def check_daily_gold_price(self):
+        # Mutual Exclusion: Suppress local broadcast if Render Cloud is handling 24/7
+        if getattr(self, "_is_standby_mode", False) or (time.time() - getattr(self, "_last_cloud_check_ts", 0) > 60.0 and self._check_cloud_supervisor_standby()):
+            if getattr(self, "_is_standby_mode", False):
+                logger.debug("[PASSIVE STANDBY] Daily gold price check skipped locally (Render Cloud is active 24/7).")
+                return
         """Checks if daily gold price message needs to be sent at 07:00 AM and 07:00 PM Cambodia Time (twice per day)."""
         now_kh = datetime.now(CAMBODIA_TZ)
         today_str = now_kh.strftime("%Y-%m-%d")
@@ -2258,6 +2299,11 @@ class XAUUSDNewsAssistantBot:
         return False
 
     def check_breaking_news(self):
+        # Mutual Exclusion: Suppress local broadcast if Render Cloud is handling 24/7
+        if getattr(self, "_is_standby_mode", False) or (time.time() - getattr(self, "_last_cloud_check_ts", 0) > 60.0 and self._check_cloud_supervisor_standby()):
+            if getattr(self, "_is_standby_mode", False):
+                logger.debug("[PASSIVE STANDBY] Breaking news check skipped locally (Render Cloud is active 24/7).")
+                return
         """
         Monitors RSS feeds for high-impact breaking news across the 7 Core Pillars.
         Protected by Triple Anti-Duplicate Shield:
