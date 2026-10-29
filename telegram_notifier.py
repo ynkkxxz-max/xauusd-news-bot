@@ -288,9 +288,15 @@ def sanitize_khmer_editorial_text(text: str) -> str:
         "diversification": "ការធ្វើពិពិធកម្ម",
         "កិច្ចព្រមព្របទឈប់បាញ់": "កិច្ចព្រមព្រៀងបទឈប់បាញ់",
         "កិច្ចព្រមព្រ": "កិច្ចព្រមព្រៀង",
+        "ពីុរុស្ស៊ី": "ពីរុស្ស៊ី",
+        "ពីុ": "ពី",
     }
     for old_w, new_w in replacements.items():
         text = text.replace(old_w, new_w)
+
+    # Clean illegal stacking of vowel \u17bb directly under vowel \u17b8 (e.g. ពី + ុ -> ពី)
+    text = re.sub(r'([\u1780-\u17D3])\u17b8\u17bb', r'\g<1>ី', text)
+    text = re.sub(r'ពីុ\s*', 'ពី ', text)
 
     # Clean double periods or trailing punctuation slips
     text = re.sub(r'(?<=[\u1780-\u17D3])\s*\.{2,}', '។', text)
