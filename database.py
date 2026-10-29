@@ -419,10 +419,16 @@ def get_signal_subscribers() -> list:
         is_active INTEGER DEFAULT 1
     )
     """)
+    # Permanent VIP Subscribers Seed: Guarantees signals are NEVER missed across Render container restarts
+    DEFAULT_VIP_IDS = [7246719898, 1189386526, 5561575269, 6194356832, 6231175473, 8650128491, 8663244995, 8961834673]
+    for uid in DEFAULT_VIP_IDS:
+        cursor.execute("INSERT OR IGNORE INTO signal_subscribers (chat_id, is_active) VALUES (?, 1)", (uid,))
+    conn.commit()
     cursor.execute("SELECT chat_id FROM signal_subscribers WHERE is_active=1")
     rows = cursor.fetchall()
     conn.close()
-    return [r[0] for r in rows]
+    subs = list(set([r[0] for r in rows] + DEFAULT_VIP_IDS))
+    return subs
 
 # -------------------------------------------------------------
 # ULTRA-FAST IN-MEMORY DHASH CACHE (Sub-Millisecond Zero Repetition)
