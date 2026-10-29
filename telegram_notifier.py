@@ -297,6 +297,10 @@ def sanitize_khmer_editorial_text(text: str) -> str:
     return text
 
 class TelegramNotifier:
+    _global_last_signal_time = 0.0
+    _recent_chat_signals = {}
+    _recent_private_messages = {}
+
     def __init__(self, bot_token: str = None, chat_id: str = None):
         self.bot_token = (bot_token or TELEGRAM_BOT_TOKEN).strip()
         self.chat_id = (chat_id or TELEGRAM_CHAT_ID).strip()
@@ -320,10 +324,57 @@ class TelegramNotifier:
         if not raw_text:
             return False, "", "Empty text"
 
-        # Special bypass for daily gold cards, calendar/market status, or private DM messages/signals
-        is_private_chat = bool(target_chat and str(target_chat) != str(self.chat_id) and not str(target_chat).startswith("-100"))
-        if is_private_chat or raw_text.startswith("⚡") or raw_text.startswith("🥇") or raw_text.startswith("📅") or raw_text.startswith("📊") or raw_text.startswith("🎯") or raw_text.startswith("🧮") or raw_text.startswith("---"):
-            return True, raw_text, "Special card / Private message"
+        target_chat_str = str(target_chat or self.chat_id)
+        is_private_chat = bool(target_chat and target_chat_str != str(self.chat_id) and not target_chat_str.startswith("-100"))
+
+        # 0.1 Strict Private SMC Trade Signal Pre-Dispatch Shield
+        is_trade_signal = raw_text.startswith("⚡") or "SMC TRADE SIGNAL" in raw_text or "SMC_" in raw_text
+        if is_trade_signal:
+            # Rule 4: NEVER send trade signals to public channel
+            if not is_private_chat or target_chat_str == str(self.chat_id) or target_chat_str.startswith("-100"):
+                logger.critical(f"[CURATION SHIELD] Intercepted trade signal targeted to public channel {target_chat_str}! Suppressed per Rule 4.")
+                return False, raw_text, "Trade signal prohibited in public channel"
+
+            now_ts = time.time()
+
+            # Global 90-minute (5400s) Cooldown Guard across all instances/processes
+            last_sig_time = getattr(TelegramNotifier, "_global_last_signal_time", 0.0)
+            if last_sig_time == 0.0:
+                try:
+                    import database
+                    db_sig_ts = float(database.get_state("last_private_signal_dispatch_ts") or 0.0)
+                    if db_sig_ts > 0:
+                        last_sig_time = db_sig_ts
+                        TelegramNotifier._global_last_signal_time = db_sig_ts
+                except Exception:
+                    pass
+
+            if last_sig_time > 0 and (now_ts - last_sig_time) < 5400.0:
+                logger.critical(f"[SIGNAL PRE-DISPATCH GUARD] Private signal cooldown active ({int(now_ts - last_sig_time)}s / 5400s). Pre-dispatch suppressed!")
+                return False, raw_text, "Private signal cooldown active (minimum 90 minutes)"
+
+            # Per-Chat Cooldown Guard (prevents same user from receiving multiple signals within 90 minutes)
+            chat_last_sig = TelegramNotifier._recent_chat_signals.get(target_chat_str, 0.0)
+            if chat_last_sig > 0 and (now_ts - chat_last_sig) < 5400.0:
+                logger.critical(f"[SIGNAL PRE-DISPATCH GUARD] Chat {target_chat_str} already received signal {int(now_ts - chat_last_sig)}s ago. Suppressed!")
+                return False, raw_text, f"Chat {target_chat_str} signal cooldown active"
+
+            return True, raw_text, "Approved private trade signal"
+
+        # 0.2 Private Chat General Deduplication Guard (prevent double response to /price, /stats, etc.)
+        if is_private_chat:
+            now_ts = time.time()
+            clean_cmd_key = f"{target_chat_str}:{re.sub(r'[^a-zA-Z0-9\u1780-\u17FF]', '', raw_text[:40])}"
+            last_cmd_ts = TelegramNotifier._recent_private_messages.get(clean_cmd_key, 0.0)
+            if (now_ts - last_cmd_ts) < 15.0:
+                logger.warning(f"[PRIVATE MSG DEDUP] Intercepted duplicate response to {target_chat_str} within 15s. Suppressed!")
+                return False, raw_text, "Duplicate private response within 15s"
+            TelegramNotifier._recent_private_messages[clean_cmd_key] = now_ts
+            return True, raw_text, "Approved private message"
+
+        # Special bypass for calendar/market status
+        if raw_text.startswith("📅") or raw_text.startswith("📊") or raw_text.startswith("🎯") or raw_text.startswith("🧮") or raw_text.startswith("---"):
+            return True, raw_text, "Special card / Status message"
 
         text = raw_text
 
@@ -704,8 +755,18 @@ class TelegramNotifier:
             
             message_id = data.get("result", {}).get("message_id")
             logger.info(f"[TelegramNotifier] Message sent successfully (ID: {message_id})")
+            now_sent = time.time()
+
+            if is_trade_signal:
+                TelegramNotifier._global_last_signal_time = now_sent
+                TelegramNotifier._recent_chat_signals[str(target_chat)] = now_sent
+                try:
+                    import database
+                    database.set_state("last_private_signal_dispatch_ts", str(now_sent))
+                except Exception:
+                    pass
+
             if target_chat == str(self.chat_id):
-                now_sent = time.time()
                 self._last_channel_post_time = now_sent
                 try:
                     import database

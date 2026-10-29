@@ -676,6 +676,25 @@ class XAUUSDNewsAssistantBot:
             return
 
         today_str = now_kh.strftime("%Y-%m-%d")
+
+        # Persistent JSON state file check (survives memory resets)
+        sig_file = os.path.join(os.path.dirname(__file__), "last_signal_state.json")
+        try:
+            if os.path.exists(sig_file):
+                with open(sig_file, "r", encoding="utf-8") as f:
+                    sig_state = json.load(f)
+                    if sig_state.get("date") == today_str:
+                        if sig_state.get("count", 0) >= 3:
+                            return
+                        if (now - sig_state.get("last_ts", 0)) < 5400:
+                            return
+        except Exception:
+            pass
+
+        # In-memory bot instance cooldown guard
+        if (now - getattr(self, "_last_private_smc_dispatch_ts", 0.0)) < 5400.0:
+            return
+
         daily_count = database.get_daily_signal_count(today_str)
 
         # 2. Daily Quota Limit: strictly max 3 signals per day
@@ -817,6 +836,30 @@ class XAUUSDNewsAssistantBot:
             ]
         }
 
+        # 10. Atomic Pre-Dispatch Lock (Prevents concurrent containers / dual-process race condition)
+        lock_key = f"dispatching_signal_{today_str}_{daily_count + 1}"
+        if database.get_state(lock_key):
+            logger.info(f"[Signal Lock] Signal #{daily_count + 1} is already being dispatched by another instance. Aborting.")
+            return
+
+        database.set_state(lock_key, str(now))
+        self._last_private_smc_dispatch_ts = now
+        database.set_state("last_private_signal_ts", str(now))
+        database.set_state("last_private_signal_dispatch_ts", str(now))
+        database.increment_daily_signal_count(today_str)
+
+        # Persist last_signal_state.json immediately
+        try:
+            with open(sig_file, "w", encoding="utf-8") as f:
+                json.dump({
+                    "date": today_str,
+                    "count": daily_count + 1,
+                    "last_ts": now,
+                    "signal_id": signal_id
+                }, f, indent=2)
+        except Exception as e_json:
+            logger.warning(f"Could not persist last_signal_state.json: {e_json}")
+
         dispatched_count = 0
         for s_chat_id in subscribers:
             try:
@@ -826,9 +869,7 @@ class XAUUSDNewsAssistantBot:
             except Exception as err:
                 logger.debug(f"Failed to dispatch private signal to {s_chat_id}: {err}")
 
-        # 11. Record State & Increment Daily Count
-        database.increment_daily_signal_count(today_str)
-        database.set_state("last_private_signal_ts", str(now))
+        # 11. Finalize Record State
         database.set_state("last_private_signal_id", signal_id)
         logger.info(f"[PRIVATE SMC SIGNAL DISPATCHED] Signal #{daily_count + 1}/3 ({direction}) sent to {dispatched_count} private subscribers.")
 

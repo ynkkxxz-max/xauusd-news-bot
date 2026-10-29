@@ -20,7 +20,17 @@ echo.
 cd /d "%~dp0"
 
 :loop
-echo [%date% %time%] Launching bot process...
+echo [%date% %time%] Checking Render Cloud health...
+curl.exe -s -m 5 https://xauusd-news-bot-1-a6gh.onrender.com/status > nul 2>&1
+if %errorlevel% equ 0 (
+    echo [*] Render Cloud is ONLINE and actively serving 24/7!
+    echo [*] Local instance is in PASSIVE STANDBY mode to prevent double-posting.
+    echo [*] You can safely CLOSE this window at any time.
+    timeout /t 60 /nobreak >nul
+    goto loop
+)
+
+echo [!] Render Cloud appears unreachable. Starting Local Fallback Bot...
 python -u -c "from main import XAUUSDNewsAssistantBot; bot = XAUUSDNewsAssistantBot(); bot.start_loop()"
 echo.
 echo [!] Bot process stopped or disconnected.
