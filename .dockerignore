@@ -1,0 +1,12 @@
+.git
+.gitignore
+.github
+*.pyc
+__pycache__
+*.db
+bot.lock
+scratch
+tests
+.env
+.agents
+Procfile
