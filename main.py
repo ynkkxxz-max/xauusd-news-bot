@@ -2424,6 +2424,13 @@ class XAUUSDNewsAssistantBot:
             if database.is_news_sent(news_id):
                 continue
 
+            # SQLite check by canonical link (Ironclad Link Deduplication)
+            item_link = item.get("link", "")
+            if item_link and database.is_link_already_broadcasted(item_link):
+                logger.info(f"[LINK DEDUP SHIELD] Dropping already broadcasted article URL: '{title}' ({item_link[:60]})")
+                self.news_collector.clear_item(news_id=news_id, link=item_link, title=title)
+                continue
+
             # SQLite check by title
             if database.is_title_already_broadcasted(title):
                 continue
@@ -2760,7 +2767,7 @@ class XAUUSDNewsAssistantBot:
                 break
 
             # Lock in-memory and database atomically BEFORE dispatching
-            database.clear_news_from_data(it["id"], title, it.get("source", ""), headline_km=hl_km)
+            database.clear_news_from_data(it["id"], title, it.get("source", ""), headline_km=hl_km, link=it.get("link", ""))
             self._broadcasted_titles_cache.add(title.lower())
             database.set_state("last_breaking_alert_ts", str(time.time()))
             self._last_breaking_sent_ts = time.time()
@@ -2840,7 +2847,7 @@ class XAUUSDNewsAssistantBot:
 
             # 💥 USER DIRECTIVE: CLEAR FROM DATA IMMEDIATELY AFTER SENDING
             self.news_collector.clear_item(news_id=it["id"], link=it.get("link", ""), title=title)
-            database.clear_news_from_data(it["id"], title, it.get("source", ""), headline_km=hl_km)
+            database.clear_news_from_data(it["id"], title, it.get("source", ""), headline_km=hl_km, link=it.get("link", ""))
             self._broadcasted_titles_cache.add(title.lower())
             pending.clear()
 

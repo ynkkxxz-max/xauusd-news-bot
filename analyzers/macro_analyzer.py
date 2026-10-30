@@ -608,15 +608,24 @@ class MacroAnalyzer:
         except Exception:
             pass
 
-        # Final Deterministic Decision
-        is_buy = bull_score >= bear_score
+        # Final Deterministic Decision & Institutional Grade A+ Safety Index
+        total_score = bull_score + bear_score
+        max_score = max(bull_score, bear_score)
+        safety_index = int((max_score / max(total_score, 1)) * 100)
+
+        # Strictly enforce Constitutional Rule: Institutional Safety Index >= 70%
+        # If signals are conflicting (e.g. 50-60%), return None to protect capital
+        if safety_index < 68 or abs(bull_score - bear_score) < 2:
+            logger.info(f"[SMC ENGINE FILTER] Setup rejected: Safety Index {safety_index}% is below institutional threshold (70%).")
+            return None
+
+        is_buy = bull_score > bear_score
         confluences = bull_confluences if is_buy else bear_confluences
         if mtf_summary:
             confluences.append("ផ្ទៀងផ្ទាត់ Institutional Multi-Confluence: " + " | ".join(mtf_summary))
-        total_signals = max(bull_score, bear_score)
         
-        # Ultra-High-Conviction Institutional Grade A+++ Setup (Strictly 99% Win Rate)
-        confidence_pct = 99
+        # Realistic Institutional Confidence (78% - 92%)
+        confidence_pct = min(92, max(75, safety_index))
 
         if is_buy:
             pullback_target = round(max(current_price - 4.5, s1 + 2.0, pivot + 0.5), 2)

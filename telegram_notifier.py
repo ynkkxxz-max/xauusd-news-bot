@@ -478,6 +478,18 @@ class TelegramNotifier:
             TelegramNotifier._global_watchdog_posts = []
         TelegramNotifier._global_watchdog_posts = [p for p in TelegramNotifier._global_watchdog_posts if (now_ts - p[0]) < 14400.0]
 
+        # 7.-1 Link-Level Deduplication Pre-Dispatch Guard
+        link_href_match = re.search(r'''<a\s+href=['"]([^'"]+)['"]''', text)
+        if link_href_match:
+            cand_link = link_href_match.group(1).strip()
+            try:
+                import database
+                if database.is_link_already_broadcasted(cand_link, hours=48):
+                    logger.warning(f"[PRE-DISPATCH LINK DEDUP] Intercepted post with duplicate link ({cand_link[:60]}). Dropped!")
+                    return False, text, f"Duplicate source link already broadcasted"
+            except Exception as e_lk:
+                logger.debug(f"[Link dedup check error] {e_lk}")
+
         headline_match = re.search(r'<b>(.*?)</b>', text, re.DOTALL)
         current_headline = re.sub(r'[^\w\u1780-\u17FF]', '', headline_match.group(1)).strip().lower() if headline_match else ""
         current_sig = re.sub(r'[^\w\u1780-\u17FF]', '', clean_vis)[:60].lower()

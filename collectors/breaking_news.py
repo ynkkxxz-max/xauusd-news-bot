@@ -366,7 +366,13 @@ class BreakingNewsCollector:
 
                         video_url = self._extract_video(entry)
 
-                        item_id = hashlib.md5((title + link).encode("utf-8")).hexdigest()
+                        canonical_link = re.sub(r'(\?|\&)(oc|utm_[^&]+|ref)=[^&]*', '', link).strip()
+                        norm_title = re.sub(r'[^\w\s]', '', title.lower()).strip()
+                        # Use clean canonical link as primary anchor for bulletproof deduplication
+                        item_id = hashlib.md5((norm_title[:45] + canonical_link).encode("utf-8")).hexdigest()
+                        # Reject intra-cycle duplicates if canonical link already captured
+                        if any(x.get("link", "").split("?")[0] == canonical_link.split("?")[0] for x in items):
+                            continue
                         items.append({
                             "id": item_id,
                             "title": title,
