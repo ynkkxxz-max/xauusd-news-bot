@@ -20,22 +20,25 @@ import time
 CACHE_FILE = "calendar_cache.json"
 
 class EconomicCalendarCollector:
+    _global_cached_raw = None
+    _global_last_fetch_ts = 0.0
+    _global_rate_limit_until = 0.0
+    _last_rate_limit_warn_ts = 0.0
+
     def __init__(self):
         # Open source economic calendar feeds
         self.ff_url = "https://nfs.faireconomy.media/ff_calendar_thisweek.json"
-        self._cached_raw = None
-        self._last_fetch_ts = 0.0
-        self._rate_limit_until = 0.0
-        self._load_disk_cache()
+        if EconomicCalendarCollector._global_cached_raw is None:
+            self._load_disk_cache()
 
     def _load_disk_cache(self):
         try:
             if os.path.exists(CACHE_FILE):
                 with open(CACHE_FILE, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    self._cached_raw = data.get("events", [])
-                    self._last_fetch_ts = data.get("timestamp", 0.0)
-                    logger.info(f"[EconomicCalendarCollector] Loaded {len(self._cached_raw)} events from disk cache.")
+                    EconomicCalendarCollector._global_cached_raw = data.get("events", [])
+                    EconomicCalendarCollector._global_last_fetch_ts = data.get("timestamp", 0.0)
+                    logger.info(f"[EconomicCalendarCollector] Loaded {len(EconomicCalendarCollector._global_cached_raw)} events from disk cache.")
         except Exception as e:
             logger.warning(f"[EconomicCalendarCollector] Could not load disk cache: {e}")
 
@@ -48,9 +51,13 @@ class EconomicCalendarCollector:
 
     def _fetch_raw_calendar(self, max_age: float = 60.0) -> list:
         now = time.time()
-        # Return cache if still fresh or currently rate-limited
-        if self._cached_raw and (now - self._last_fetch_ts < max_age or now < self._rate_limit_until):
-            return self._cached_raw
+        # Strictly return cached events if still fresh or currently backed off due to rate limit
+        if EconomicCalendarCollector._global_cached_raw and (now - EconomicCalendarCollector._global_last_fetch_ts < max_age or now < EconomicCalendarCollector._global_rate_limit_until):
+            return EconomicCalendarCollector._global_cached_raw
+
+        # If currently in rate-limit backoff period, NEVER hit network
+        if now < EconomicCalendarCollector._global_rate_limit_until:
+            return EconomicCalendarCollector._global_cached_raw or []
 
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -62,20 +69,22 @@ class EconomicCalendarCollector:
             if resp.status_code == 200:
                 raw_data = resp.json()
                 if isinstance(raw_data, list) and len(raw_data) > 0:
-                    self._cached_raw = raw_data
-                    self._last_fetch_ts = now
+                    EconomicCalendarCollector._global_cached_raw = raw_data
+                    EconomicCalendarCollector._global_last_fetch_ts = now
                     self._save_disk_cache(raw_data)
                     return raw_data
             elif resp.status_code == 429:
-                logger.warning(f"[EconomicCalendarCollector] HTTP 429 Rate Limit from calendar feed. Backing off for 180s. Serving cache.")
-                self._rate_limit_until = now + 180.0
-                self._last_fetch_ts = now
+                EconomicCalendarCollector._global_rate_limit_until = now + 600.0  # Back off 10 minutes
+                EconomicCalendarCollector._global_last_fetch_ts = now
+                if now - EconomicCalendarCollector._last_rate_limit_warn_ts > 600.0:
+                    logger.info(f"[EconomicCalendarCollector] Calendar API rate-limited (429). Cleanly serving {len(EconomicCalendarCollector._global_cached_raw or [])} cached events for 10 minutes.")
+                    EconomicCalendarCollector._last_rate_limit_warn_ts = now
         except Exception as e:
-            logger.warning(f"[EconomicCalendarCollector] Network exception: {e}")
+            logger.debug(f"[EconomicCalendarCollector] Network exception: {e}")
 
         # Fallback to in-memory or disk cache
-        if self._cached_raw:
-            return self._cached_raw
+        if EconomicCalendarCollector._global_cached_raw:
+            return EconomicCalendarCollector._global_cached_raw
 
         return []
 
