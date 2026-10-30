@@ -632,18 +632,20 @@ class MacroAnalyzer:
                 sl_price = round(s1 - 2.0, 2)
             elif (entry_low - sl_price) > 12.0 or (entry_low - sl_price) < 8.0:
                 sl_price = round(entry_low - 10.0, 2)
-            tp1_price = round(max(current_price + 10.0, pivot + 14.0), 2)
-            tp2_price = round(max(current_price + 22.0, r1 + 5.0), 2)
-            # TP1 must be above entry_high for a valid BUY trade
-            if tp1_price <= entry_high:
-                tp1_price = round(entry_high + 10.0, 2)
-            if tp2_price <= tp1_price:
-                tp2_price = round(tp1_price + 12.0, 2)
-            tp3_price = round(max(tp2_price + 15.0, entry_high + 37.0), 2)
-            sl_dist = max(entry_high - sl_price, 3.0)
-            tp1_dist = tp1_price - entry_high
-            rr_val = round(tp1_dist / sl_dist, 1)
-            rr = f"1:{max(1.8, rr_val)}"
+            # Risk distance (R) strictly enforced
+            r_dist = round(entry_low - sl_price, 2)
+            if r_dist < 8.0 or r_dist > 12.0:
+                r_dist = 10.0
+                sl_price = round(entry_low - 10.0, 2)
+
+            # Strict Institutional SMC Multiples:
+            # TP1: 1.5R (Lock Breakeven)
+            # TP2: 2.5R (BSL Liquidity Sweep)
+            # TP3: 3.5R (Runner Target)
+            tp1_price = round(entry_high + (1.5 * r_dist), 2)
+            tp2_price = round(entry_high + (2.5 * r_dist), 2)
+            tp3_price = round(entry_high + (3.5 * r_dist), 2)
+            rr = "1:2.5"
 
             if current_price < pivot:
                 pivot_reason = f"តម្លៃទាញចុះមកតំបន់ Discount ក្រោម Pivot (${pivot:,.2f}) ផ្តល់ឱកាសទិញក្នុងតម្លៃទាប"
@@ -692,18 +694,20 @@ class MacroAnalyzer:
                 sl_price = round(r1 + 2.0, 2)
             elif (sl_price - entry_high) > 12.0 or (sl_price - entry_high) < 8.0:
                 sl_price = round(entry_high + 10.0, 2)
-            tp1_price = round(min(current_price - 10.0, pivot - 14.0), 2)
-            tp2_price = round(min(current_price - 22.0, s1 - 5.0), 2)
-            # TP1 must be below entry_low for a valid SELL trade
-            if tp1_price >= entry_low:
-                tp1_price = round(entry_low - 10.0, 2)
-            if tp2_price >= tp1_price:
-                tp2_price = round(tp1_price - 12.0, 2)
-            tp3_price = round(min(tp2_price - 15.0, entry_low - 37.0), 2)
-            sl_dist = max(sl_price - entry_low, 3.0)
-            tp1_dist = entry_low - tp1_price
-            rr_val = round(tp1_dist / sl_dist, 1)
-            rr = f"1:{max(1.8, rr_val)}"
+            # Risk distance (R) strictly enforced
+            r_dist = round(sl_price - entry_high, 2)
+            if r_dist < 8.0 or r_dist > 12.0:
+                r_dist = 10.0
+                sl_price = round(entry_high + 10.0, 2)
+
+            # Strict Institutional SMC Multiples:
+            # TP1: 1.5R (Lock Breakeven)
+            # TP2: 2.5R (SSL Liquidity Sweep)
+            # TP3: 3.5R (Runner Target)
+            tp1_price = round(entry_low - (1.5 * r_dist), 2)
+            tp2_price = round(entry_low - (2.5 * r_dist), 2)
+            tp3_price = round(entry_low - (3.5 * r_dist), 2)
+            rr = "1:2.5"
 
             if current_price > pivot:
                 pivot_reason = f"តម្លៃលោតឡើងដល់តំបន់ Premium លើ Pivot (${pivot:,.2f}) ផ្តល់ឱកាសលក់ក្នុងតម្លៃខ្ពស់"

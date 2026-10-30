@@ -2152,7 +2152,7 @@ class KhmerFormatter:
             f"⚡ <b>កម្រិតទំនុកចិត្ត (Confidence):</b> <code>99% (AI Win Rate 99%)</code>\n\n"
             f"📍 <b>កម្រិតតម្លៃចូល និងគ្រប់គ្រងហានិភ័យ (SMC Levels):</b>\n"
             f"• 🎯 <b>តំបន់ Entry:</b> <code>{entry_zone}</code>\n"
-            f"• 🛑 <b>Stop Loss (SL):</b> <code>${sl:,.2f}</code> <i>(ចម្ងាយសុវត្ថិភាព ${sl_dist:.1f}$)</i>\n"
+            f"• 🛑 <b>Stop Loss (SL):</b> <code>${sl:,.2f}</code> <i>(ចម្ងាយសុវត្ថិភាព ${sl_dist:.1f})</i>\n"
             f"• 🎯 <b>Take Profit 1 (TP1):</b> <code>${tp1:,.2f}</code> <i>(Lock Breakeven)</i>\n"
             f"• 🏆 <b>Take Profit 2 (TP2):</b> <code>${tp2:,.2f}</code> <i>(BSL/SSL Sweep)</i>\n"
             f"{tp3_line}"

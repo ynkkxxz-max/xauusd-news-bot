@@ -770,7 +770,16 @@ class XAUUSDNewsAssistantBot:
                 sl = setup.get("sl", e_low - 10.0)
                 sl_dist = e_low - sl
                 if sl_dist > 12.0 or sl_dist < 8.0:
+                    sl_dist = 10.0
                     setup["sl"] = round(e_low - 10.0, 2)
+                else:
+                    sl_dist = round(sl_dist, 2)
+                
+                # Strict Institutional SMC Multiples: TP1: 1.5R, TP2: 2.5R, TP3: 3.5R
+                setup["tp1"] = round(e_high + (1.5 * sl_dist), 2)
+                setup["tp2"] = round(e_high + (2.5 * sl_dist), 2)
+                setup["tp3"] = round(e_high + (3.5 * sl_dist), 2)
+                setup["rr_ratio"] = "1:2.5"
             else: # SELL
                 # Price must be testing premium zone (within 2 points of e_low or inside zone)
                 if not (e_low - 2.0 <= oz <= e_high + 1.5):
@@ -779,7 +788,16 @@ class XAUUSDNewsAssistantBot:
                 sl = setup.get("sl", e_high + 10.0)
                 sl_dist = sl - e_high
                 if sl_dist > 12.0 or sl_dist < 8.0:
+                    sl_dist = 10.0
                     setup["sl"] = round(e_high + 10.0, 2)
+                else:
+                    sl_dist = round(sl_dist, 2)
+                
+                # Strict Institutional SMC Multiples: TP1: 1.5R, TP2: 2.5R, TP3: 3.5R
+                setup["tp1"] = round(e_low - (1.5 * sl_dist), 2)
+                setup["tp2"] = round(e_low - (2.5 * sl_dist), 2)
+                setup["tp3"] = round(e_low - (3.5 * sl_dist), 2)
+                setup["rr_ratio"] = "1:2.5"
         except Exception:
             return
 
@@ -792,10 +810,10 @@ class XAUUSDNewsAssistantBot:
         signal_id = f"SMC_{today_str}_{daily_count + 1}"
         setup["confidence"] = "99%"
         setup["win_rate"] = 99
-        sl_val = setup.get("sl", e_low - 10.0 if direction == "BUY" else e_high + 10.0)
-        tp1_val = setup.get("tp1", e_high + 14.0 if direction == "BUY" else e_low - 14.0)
-        tp2_val = setup.get("tp2", tp1_val + 10.0 if direction == "BUY" else tp1_val - 10.0)
-        tp3_val = setup.get("tp3", e_high + 37.0 if direction == "BUY" else e_low - 37.0)
+        sl_val = setup["sl"]
+        tp1_val = setup["tp1"]
+        tp2_val = setup["tp2"]
+        tp3_val = setup["tp3"]
 
         # Store official active signal in database for HTTP API synchronization
         active_signal_data = {
