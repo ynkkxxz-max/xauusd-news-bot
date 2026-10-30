@@ -382,8 +382,15 @@ class BreakingNewsCollector:
             logger.debug(f"[BreakingNewsCollector] Fetch failed for {source_name}: {e}")
         return items
 
-    def fetch_latest_news(self) -> list:
-        """Fetches news items from established 7-pillar market feeds simultaneously in parallel."""
+    _global_cached_items = []
+    _global_last_fetch_ts = 0.0
+
+    def fetch_latest_news(self, max_age: float = 25.0) -> list:
+        """Fetches news items from established 7-pillar market feeds with in-memory TTL caching to protect Render 5GB bandwidth."""
+        now = time.time()
+        if BreakingNewsCollector._global_cached_items and (now - BreakingNewsCollector._global_last_fetch_ts) < max_age:
+            return BreakingNewsCollector._global_cached_items
+
         items = []
         seen_ids = set()
         seen_titles_norm = set()
@@ -434,4 +441,7 @@ class BreakingNewsCollector:
 
         # Always prioritize freshest news first
         items.sort(key=lambda x: x.get("pub_ts", 0), reverse=True)
+        if items:
+            BreakingNewsCollector._global_cached_items = items
+            BreakingNewsCollector._global_last_fetch_ts = now
         return items

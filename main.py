@@ -380,19 +380,28 @@ class XAUUSDNewsAssistantBot:
             logger.warning(f"[Cloud Health Server] Warning on port {port}: {e}")
 
     def _fetch_channel_html(self, max_cache_age: float = 180.0) -> str:
-        """Caches public Telegram channel feed HTML for 180s to prevent bandwidth waste, spamming Telegram web, and event loop lag."""
+        """Caches public Telegram channel feed HTML for at least 120s with gzip compression to strictly protect Render 5GB bandwidth."""
         now = time.time()
+        effective_max_age = max(120.0, max_cache_age)
         if hasattr(self, "_cached_channel_html") and self._cached_channel_html:
-            if now - getattr(self, "_cached_channel_html_ts", 0) < max_cache_age:
+            if now - getattr(self, "_cached_channel_html_ts", 0) < effective_max_age:
                 return self._cached_channel_html
         try:
             import urllib.request
+            import gzip
             req = urllib.request.Request(
                 "https://t.me/s/GoldMarketKH8888",
-                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+                    "Accept-Encoding": "gzip, deflate"
+                }
             )
             with urllib.request.urlopen(req, timeout=4.0) as resp:
-                html = resp.read().decode("utf-8", errors="ignore")
+                raw_bytes = resp.read()
+                if resp.info().get('Content-Encoding') == 'gzip' or raw_bytes[:2] == b'\x1f\x8b':
+                    html = gzip.decompress(raw_bytes).decode("utf-8", errors="ignore")
+                else:
+                    html = raw_bytes.decode("utf-8", errors="ignore")
                 self._cached_channel_html = html
                 self._cached_channel_html_ts = now
                 return html
@@ -426,7 +435,7 @@ class XAUUSDNewsAssistantBot:
         except Exception as e:
             logger.warning(f"[Startup News Sync] Warning: {e}")
 
-    def _sync_channel_images_to_database(self, max_pages: int = 5):
+    def _sync_channel_images_to_database(self, max_pages: int = 1):
         """
         Scrapes visible Telegram channel photo posts and seeds database with perceptual dHashes.
         Runs on startup and periodically to ensure Render deploys or bot restarts never lose track
@@ -1768,7 +1777,7 @@ class XAUUSDNewsAssistantBot:
         """Returns elapsed seconds since the latest message was published in @GoldMarketKH8888 live channel feed."""
         try:
             import datetime
-            channel_html = self._fetch_channel_html(max_cache_age=0.0)
+            channel_html = self._fetch_channel_html(max_cache_age=120.0)
             times = re.findall(r'<time[^>]*datetime="([^"]+)"', channel_html)
             if times:
                 last_dt = datetime.datetime.fromisoformat(times[-1])
@@ -1901,7 +1910,7 @@ class XAUUSDNewsAssistantBot:
            - Auto-edits caption or text in-place without deleting the post!
         """
         now = time.time()
-        if (now - getattr(self, "_last_channel_audit_ts", 0)) < 1.5:
+        if (now - getattr(self, "_last_channel_audit_ts", 0)) < 180.0:
             return
         self._last_channel_audit_ts = now
 
@@ -1912,7 +1921,7 @@ class XAUUSDNewsAssistantBot:
             if not hasattr(self, "_healed_posts_cache"):
                 self._healed_posts_cache = {}
 
-            channel_html = self._fetch_channel_html(max_cache_age=1.0)
+            channel_html = self._fetch_channel_html(max_cache_age=180.0)
             if not channel_html:
                 return
 
@@ -2353,9 +2362,12 @@ class XAUUSDNewsAssistantBot:
         """
         now = time.time()
         last_alert_ts = float(database.get_state("last_breaking_alert_ts") or "0")
+        # Bandwidth-Protection Early Exit: Do NOT hit network or scrape channel if local 180s cooldown active
+        if (now - last_alert_ts) < 180.0 and (now - self._last_breaking_sent_ts) < 180.0:
+            return
+
         channel_time_since_last = self._channel_time_since_last_post()
         time_since_last = min(now - last_alert_ts, now - self._last_breaking_sent_ts, channel_time_since_last)
-        # Fast-track gate: strictly 180-second (3-minute) minimum safety gap to prevent rapid consecutive posts
         if time_since_last < 180.0:
             return
 
@@ -2913,9 +2925,9 @@ class XAUUSDNewsAssistantBot:
         last_background_check = 0.0
         background_interval = 30  # Responsive background check interval (30s)
         last_breaking_check = 0.0
-        breaking_interval = 2.0   # Ultra-fast sub-second breaking news monitor (every 2s)
+        breaking_interval = 15.0  # High-speed breaking news monitor (every 15s, saves 87% bandwidth)
         last_channel_audit = 0.0
-        channel_audit_interval = 2.0  # Ultra-fast 2-second autonomous self-healing audit per user directive
+        channel_audit_interval = 180.0  # Autonomous self-healing audit (every 3m, saves 99% bandwidth)
         last_signal_check = 0.0
         signal_interval = 30.0    # Real-time high-speed signals & trade trailing monitor (every 30s)
 
