@@ -731,6 +731,7 @@ class TelegramNotifier:
         import time
 
         target_chat = str(chat_id or self.chat_id)
+        is_trade_signal = bool(text and (text.startswith("⚡") or "SMC TRADE SIGNAL" in text or "SMC_" in text))
 
         # 100% PRE-DISPATCH CURATION SHIELD: Curate, proofread, and verify BEFORE sending
         is_ok, curated_text, reason = self._curate_and_sanitize_pre_dispatch(text, is_photo=False, target_chat=target_chat)
