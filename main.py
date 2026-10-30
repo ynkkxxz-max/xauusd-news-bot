@@ -708,8 +708,7 @@ class XAUUSDNewsAssistantBot:
 
         # 4. News Danger Zone filter (Buffer 15 mins before/after red news)
         try:
-            from collectors.economic_calendar import EconomicCalendarCollector
-            news_danger = EconomicCalendarCollector().is_news_danger_zone(buffer_minutes=15)
+            news_danger = self.calendar_collector.is_news_danger_zone(buffer_minutes=15)
             if news_danger.get("is_danger"):
                 return
         except Exception:

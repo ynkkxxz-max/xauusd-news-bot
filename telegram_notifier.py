@@ -782,6 +782,15 @@ class TelegramNotifier:
             resp = requests.post(url, json=payload, timeout=15)
             data = resp.json()
             if not data.get("ok"):
+                desc = str(data.get("description", "")).lower()
+                if "blocked by the user" in desc or "user is deactivated" in desc:
+                    logger.info(f"[TelegramNotifier] Target user {target_chat} has blocked the bot or is deactivated. Skipping.")
+                    try:
+                        import database
+                        database.unsubscribe_signal(int(target_chat))
+                    except Exception:
+                        pass
+                    return data
                 logger.error(f"[TelegramNotifier] Error sending message: {data}")
                 # Fallback: If Telegram rejected unsupported HTML tags (e.g. <font>, <div> from RSS feeds)
                 desc = str(data.get("description", "")).lower()
