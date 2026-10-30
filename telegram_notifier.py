@@ -473,30 +473,53 @@ class TelegramNotifier:
             return False, text, f"Unapproved English words {unapproved_pre_leak}"
 
         # 7. Lightning Anti-Duplicate Pre-Dispatch Intercept
-        if not hasattr(self, "_recent_watchdog_posts"):
-            self._recent_watchdog_posts = []
-
         now_ts = time.time()
-        self._recent_watchdog_posts = [p for p in self._recent_watchdog_posts if (now_ts - p[0]) < 14400.0]
+        if not hasattr(TelegramNotifier, "_global_watchdog_posts"):
+            TelegramNotifier._global_watchdog_posts = []
+        TelegramNotifier._global_watchdog_posts = [p for p in TelegramNotifier._global_watchdog_posts if (now_ts - p[0]) < 14400.0]
 
         headline_match = re.search(r'<b>(.*?)</b>', text, re.DOTALL)
         current_headline = re.sub(r'[^\w\u1780-\u17FF]', '', headline_match.group(1)).strip().lower() if headline_match else ""
         current_sig = re.sub(r'[^\w\u1780-\u17FF]', '', clean_vis)[:60].lower()
 
-        for p_ts, p_head, p_sig, p_id in self._recent_watchdog_posts:
-            if (current_headline and len(current_headline) >= 15 and current_headline == p_head) or (current_sig and len(current_sig) >= 30 and current_sig == p_sig):
-                logger.warning(f"[PRE-DISPATCH DEDUP INTERCEPT] Dropping candidate post pre-dispatch (duplicates recent post #{p_id}). Never sent to Telegram!")
+        # 7.0 In-Memory Global Watchdog Check (Fuzzy Similarity >= 0.40)
+        import difflib
+        for p_ts, p_head, p_sig, p_id in TelegramNotifier._global_watchdog_posts:
+            head_sim = difflib.SequenceMatcher(None, current_headline, p_head).ratio() if (current_headline and p_head) else 0.0
+            sig_sim = difflib.SequenceMatcher(None, current_sig, p_sig).ratio() if (current_sig and p_sig) else 0.0
+            if head_sim >= 0.40 or sig_sim >= 0.45 or (current_headline and len(current_headline) >= 15 and (current_headline in p_head or p_head in current_headline)):
+                logger.warning(f"[PRE-DISPATCH DEDUP INTERCEPT] Dropping candidate post pre-dispatch (duplicates recent post #{p_id}, sim={max(head_sim, sig_sim):.2f}). Never sent to Telegram!")
                 return False, text, f"Duplicate of post #{p_id}"
 
-        # 7.1 Multi-Instance Live Channel Verification Guard
-        # Directly verifies the live public feed of @GoldMarketKH8888 right before hitting the Telegram API
-        # To strictly prevent double-posting across distributed containers (Cloud + PC)!
+        # 7.0.1 Persistent SQLite Watchdog Check (Cross-Process / Cross-Container)
         try:
-            import urllib.request, html as html_mod, difflib
+            import database
+            past_posts = database.get_recent_channel_posts(hours=6)
+            for (past_id, past_hl, past_full, past_photo, past_epoch) in past_posts:
+                past_clean_hl = re.sub(r'[^\w\u1780-\u17FF]', '', past_hl or '').strip().lower()
+                past_clean_sig = re.sub(r'[^\w\u1780-\u17FF]', '', past_full or '')[:60].lower()
+                head_sim = difflib.SequenceMatcher(None, current_headline, past_clean_hl).ratio() if (current_headline and past_clean_hl) else 0.0
+                sig_sim = difflib.SequenceMatcher(None, current_sig, past_clean_sig).ratio() if (current_sig and past_clean_sig) else 0.0
+                if head_sim >= 0.40 or sig_sim >= 0.45 or (current_headline and len(current_headline) >= 15 and (current_headline in past_clean_hl or past_clean_hl in current_headline)):
+                    logger.warning(f"[PRE-DISPATCH DB DEDUP] Intercepted duplicate of DB post #{past_id} (sim={max(head_sim, sig_sim):.2f}). Dropped before sending!")
+                    return False, text, f"Duplicate of DB post #{past_id}"
+        except Exception as e_db:
+            logger.debug(f"[Pre-dispatch DB dedup error] {e_db}")
+
+        # 7.1 Multi-Instance Live Channel Verification Guard (Fast Gzip Cached)
+        try:
+            import urllib.request, html as html_mod, gzip
             from datetime import datetime, timezone, timedelta
-            ch_req = urllib.request.Request("https://t.me/s/GoldMarketKH8888", headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
-            with urllib.request.urlopen(ch_req, timeout=4.0) as ch_resp:
-                ch_html = ch_resp.read().decode("utf-8", errors="ignore")
+            if not hasattr(TelegramNotifier, "_cached_ch_html") or (time.time() - getattr(TelegramNotifier, "_cached_ch_html_ts", 0)) > 60.0:
+                ch_req = urllib.request.Request("https://t.me/s/GoldMarketKH8888", headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Accept-Encoding": "gzip"})
+                with urllib.request.urlopen(ch_req, timeout=4.0) as ch_resp:
+                    content = ch_resp.read()
+                    if ch_resp.info().get('Content-Encoding') == 'gzip' or content[:2] == b'\x1f\x8b':
+                        TelegramNotifier._cached_ch_html = gzip.decompress(content).decode("utf-8", errors="ignore")
+                    else:
+                        TelegramNotifier._cached_ch_html = content.decode("utf-8", errors="ignore")
+                TelegramNotifier._cached_ch_html_ts = time.time()
+            ch_html = TelegramNotifier._cached_ch_html
             if ch_html:
                 wraps = ch_html.split("tgme_widget_message_wrap")
                 all_wraps = list(reversed(wraps[1:]))  # Newest to oldest!
