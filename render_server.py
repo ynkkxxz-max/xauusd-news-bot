@@ -16,6 +16,7 @@ for p in [str(BASE_DIR), str(BASE_DIR / 'analyzers'), str(BASE_DIR / 'collectors
         sys.path.insert(0, p)
 
 from main import XAUUSDNewsAssistantBot
+from tradingview_gemini_bridge import handle_tradingview
 
 logger = logging.getLogger("RenderServer")
 _bot_instance = None
@@ -38,7 +39,13 @@ class HealthHandler(BaseHTTPRequestHandler):
         self.send_header("Connection", "close")
         self.end_headers()
 
+    def do_POST(self):
+        if not handle_tradingview(self):
+            self.send_error(404)
+
     def do_GET(self):
+        if handle_tradingview(self):
+            return
         if "/api/signal" in self.path or "/api/active_signal" in self.path:
             self.send_response(200)
             self.send_header("Content-type", "application/json; charset=utf-8")

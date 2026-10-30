@@ -16,3 +16,7 @@ scratch/
 push_updates_to_github.py
 sync_to_github.py
 upload_to_github.py
+
+# TradingView private review data
+*.sqlite3
+*.sqlite3-*
